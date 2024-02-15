@@ -16,3 +16,6 @@
 # Custom ignores
 .DS_Store
 *.swp
+
+# IDE
+.idea/
