@@ -1,0 +1,8 @@
+name: 'Address group'
+locations:
+  # TODO
+spec:
+  name: 'The name of the address group.'
+  version: '10.1.0'
+  properties:
+    # TODO
