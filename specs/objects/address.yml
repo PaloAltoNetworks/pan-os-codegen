@@ -6,13 +6,12 @@ locations:
     xpath: ['config', 'shared']
   'from_panorama':
     description: 'Located in the config pushed from Panorama.'
-    # NOTE: "read_only" would put something in the docstring, but otherwise wouldn't restrict functionality.
     read_only: true
     device: ['ngfw']
     xpath: ['config', 'panorama']
   'vsys':
     description: 'Located in a specific vsys.'
-    device: ['ngfw']
+    device: ['ngfw', 'panorama']
     xpath:
       - 'config'
       - 'devices'
