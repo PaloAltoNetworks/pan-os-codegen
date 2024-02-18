@@ -1,6 +1,52 @@
 name: 'Service'
 locations:
-# TODO
+  'shared':
+    description: 'Located in shared.'
+    device: ['panorama', 'ngfw']
+    xpath: ['config', 'shared']
+  'from_panorama':
+    description: 'Located in the config pushed from Panorama.'
+    read_only: true
+    device: ['ngfw']
+    xpath: ['config', 'panorama']
+  'vsys':
+    description: 'Located in a specific vsys.'
+    device: ['ngfw', 'panorama']
+    xpath:
+      - 'config'
+      - 'devices'
+      - '{{ Entry $ngfw_device }}'
+      - 'vsys'
+      - '{{ Entry $vsys }}'
+    vars:
+      'ngfw_device':
+        description: 'The NGFW device.'
+        default: 'localhost.localdomain'
+      'vsys':
+        description: 'The vsys.'
+        default: 'vsys1'
+        validation:
+          not_values:
+            'shared': 'The vsys cannot be "shared". Use the "shared" path instead.'
+  'device_group':
+    description: 'Located in a specific device group.'
+    device: ['panorama']
+    xpath:
+      - 'config'
+      - 'devices'
+      - '{{ Entry $panorama_device }}'
+      - 'device-group'
+      - '{{ Entry $device_group }}'
+    vars:
+      'panorama_device':
+        description: 'The panorama device.'
+        default: 'localhost.localdomain'
+      'device_group':
+        description: 'The device group.'
+        required: true
+        validation:
+          not_values:
+            'shared': 'The device group cannot be "shared". Use the "shared" path instead.'
 spec:
   name: 'The name of the service.'
   version: '10.1.0'

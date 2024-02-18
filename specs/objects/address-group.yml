@@ -61,35 +61,35 @@ spec:
         profiles:
           -
             xpath: ["description"]
-        tags:
-          description: 'The administrative tags.'
-          type: 'list'
-          count:
-            max: 64
-          items:
-            type: 'string'
-            length:
-              max: 127
-          profiles:
-            -
-              type: 'member'
-              xpath: ["tag"]
-      one_of:
-        'static':
-          type: 'list'
-          count:
-            min: 1
-          items:
-            type: 'object'
-            ref: '#/specs/objects/address.yml'
-          profiles:
-            -
-              type: 'member'
-              xpath: ["static"]
-        'dynamic':
+      tags:
+        description: 'The administrative tags.'
+        type: 'list'
+        count:
+          max: 64
+        items:
+          type: 'string'
           length:
-            min: 1
-            max: 2047
-          profiles:
-            -
-              xpath: ["dynamic/filter"]
+            max: 127
+        profiles:
+          -
+            type: 'member'
+            xpath: ["tag"]
+    one_of:
+      'static':
+        type: 'list'
+        count:
+          min: 1
+        items:
+          type: 'object'
+          ref: '#/specs/objects/address.yml'
+        profiles:
+          -
+            type: 'member'
+            xpath: ["static"]
+      'dynamic':
+        length:
+          min: 1
+          max: 2047
+        profiles:
+          -
+            xpath: ["dynamic/filter"]
