@@ -81,7 +81,8 @@ spec:
           min: 1
         items:
           type: 'object'
-          ref: '#/specs/objects/address.yml'
+          ref:
+          - '#/specs/objects/address.yml'
         profiles:
           -
             type: 'member'
