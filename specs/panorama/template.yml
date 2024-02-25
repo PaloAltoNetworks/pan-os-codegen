@@ -2,7 +2,7 @@ name: 'Template'
 locations:
   'vsys':
     description: 'Located in a specific vsys.'
-    device: ['ngfw', 'panorama']
+    device: ['panorama']
     xpath:
       - 'config'
       - 'devices'
@@ -10,8 +10,11 @@ locations:
       - 'vsys'
       - '{{ Entry $vsys }}'
 spec:
-  name: 'The name of the address object.'
+  name: 'The name of the template.'
   version: '10.1.0'
+  length:
+    min: 1
+    max: 63
   properties:
     params:
       description:
