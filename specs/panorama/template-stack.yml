@@ -10,10 +10,11 @@ locations:
       - 'vsys'
       - '{{ Entry $vsys }}'
 spec:
-  name: 'The name of the template stack.'
-  length:
-    min: 1
-    max: 63
+  name:
+    description: 'The name of the template stack.'
+    length:
+      min: 1
+      max: 63
   version: '10.1.0'
   properties:
     params:

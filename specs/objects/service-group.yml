@@ -48,7 +48,11 @@ locations:
           not_values:
             'shared': 'The device group cannot be "shared". Use the "shared" path instead.'
 spec:
-  name: 'The name of the service group.'
+  name:
+    description: 'The name of the service group.'
+    length:
+      min: 1
+      max: 63
   version: '10.1.0'
   properties:
     params:

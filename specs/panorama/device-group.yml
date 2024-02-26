@@ -15,7 +15,7 @@ spec:
     length:
       min: 1
       max: 31
-    version: '10.1.0'
+  version: '10.1.0'
   properties:
     params:
       description:
