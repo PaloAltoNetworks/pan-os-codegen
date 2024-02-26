@@ -96,7 +96,7 @@ spec:
                                       md5:
                                         profiles:
                                           -
-                                            xpath: ["algorithm/md5"]
+                                            xpath: ["algorithm", "md5"]
                                         spec:
                                           properties:
                                             params:
@@ -111,7 +111,7 @@ spec:
                                       sha1:
                                         profiles:
                                           -
-                                            xpath: ["algorithm/sha1"]
+                                            xpath: ["algorithm", "sha1"]
                                         spec:
                                           properties:
                                             params:
