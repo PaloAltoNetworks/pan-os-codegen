@@ -1,0 +1,54 @@
+name: 'Device group'
+locations:
+  'vsys':
+    description: 'Located in a specific vsys.'
+    device: ['panorama']
+    xpath:
+      - 'config'
+      - 'devices'
+      - '{{ Entry $ngfw_device }}'
+      - 'vsys'
+      - '{{ Entry $vsys }}'
+spec:
+  name:
+    description: 'The name of the device group.'
+    length:
+      min: 1
+      max: 31
+    version: '10.1.0'
+  properties:
+    params:
+      description:
+        description: 'The description.'
+        type: 'string'
+        length:
+          min: 0
+          max: 255
+        profiles:
+          -
+            xpath: ["description"]
+      templates:
+        description: 'List of reference templates'
+        type: 'list'
+        items:
+          type: 'object'
+          ref:
+            - '#/specs/panorama/template.yml'
+        profiles:
+          -
+            type: 'member'
+            xpath: ["reference-templates"]
+      devices:
+        description: 'List of devices'
+        type: 'list'
+        items:
+          type: 'string'
+        profiles:
+          -
+            type: 'entry'
+            xpath: ["devices"]
+      authorization_code:
+        description: 'Authorization code'
+        profiles:
+          -
+            xpath: ["authorization-code"]
