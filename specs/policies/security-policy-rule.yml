@@ -1,11 +1,24 @@
 name: 'Security policy rule'
+terraform_provider_suffix: 'security_policy_rule'
+xpath_suffix:
+  - 'security'
+  - 'rules'
 locations:
   'shared':
     description: 'Located in shared.'
     device:
       panorama: true
       ngfw: true
-    xpath: ['config', 'shared']
+    xpath:
+      - 'config'
+      - 'shared'
+      - '{{ Entry $rulebase }}'
+    vars:
+      'rulebase':
+        description: 'The vsys.'
+        default: 'vsys1'
+        validation:
+          values: ['post-rulebase' 'pre-rulebase']
   'vsys':
     description: 'Located in a specific vsys.'
     device:
@@ -17,6 +30,7 @@ locations:
       - '{{ Entry $ngfw_device }}'
       - 'vsys'
       - '{{ Entry $vsys }}'
+      - '{{ Entry $rulebase }}'
     vars:
       'ngfw_device':
         description: 'The NGFW device.'
@@ -27,6 +41,11 @@ locations:
         validation:
           not_values:
             'shared': 'The vsys cannot be "shared". Use the "shared" path instead.'
+      'rulebase':
+        description: 'The vsys.'
+        default: 'vsys1'
+        validation:
+          values: ['post-rulebase' 'pre-rulebase']
   'device_group':
     description: 'Located in a specific device group.'
     device: ['panorama']
@@ -36,6 +55,7 @@ locations:
       - '{{ Entry $panorama_device }}'
       - 'device-group'
       - '{{ Entry $device_group }}'
+      - '{{ Entry $rulebase }}'
     vars:
       'panorama_device':
         description: 'The panorama device.'
@@ -46,6 +66,11 @@ locations:
         validation:
           not_values:
             'shared': 'The device group cannot be "shared". Use the "shared" path instead.'
+      'rulebase':
+        description: 'The vsys.'
+        default: 'vsys1'
+        validation:
+          values: ['post-rulebase' 'pre-rulebase']
 spec:
   name:
     description: 'The name of the security policy rule.'

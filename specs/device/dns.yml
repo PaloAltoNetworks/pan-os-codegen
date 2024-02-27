@@ -1,4 +1,5 @@
 name: 'DNS'
+terraform_provider_suffix: 'dns'
 locations:
   'system':
     description: 'Located in a system settings.'

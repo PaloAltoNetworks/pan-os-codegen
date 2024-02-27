@@ -1,4 +1,5 @@
 name: 'NTP'
+terraform_provider_suffix: 'ntp'
 locations:
   'system':
     description: 'Located in a system settings.'

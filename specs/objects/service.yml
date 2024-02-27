@@ -1,4 +1,7 @@
 name: 'Service'
+terraform_provider_suffix: 'service'
+xpath_suffix:
+  - 'service'
 locations:
   'shared':
     description: 'Located in shared.'

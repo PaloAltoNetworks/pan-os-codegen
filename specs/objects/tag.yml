@@ -1,4 +1,7 @@
 name: 'Tag'
+terraform_provider_suffix: 'tag'
+xpath_suffix:
+  - 'tag'
 locations:
   'shared':
     description: 'Located in shared.'
