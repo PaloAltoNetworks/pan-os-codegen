@@ -10,12 +10,13 @@ locations:
       - '{{ Entry $ngfw_device }}'
       - 'vsys'
       - '{{ Entry $vsys }}'
-spec:
+entry:
   name:
     description: 'The name of the template stack.'
     length:
       min: 1
       max: 63
+spec:
   version: '10.1.0'
   properties:
     params:

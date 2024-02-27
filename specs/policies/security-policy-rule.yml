@@ -71,7 +71,7 @@ locations:
         default: 'vsys1'
         validation:
           values: ['post-rulebase' 'pre-rulebase']
-spec:
+entry:
   name:
     description: 'The name of the security policy rule.'
     length:
@@ -81,6 +81,7 @@ spec:
       not_values:
         'intrazone-default': 'The intrazone-default is a reserved name.'
         'interzone-default': 'The interzone-default is a reserved name.'
+spec:
   version: '10.1.0'
   properties:
     params:
