@@ -2,7 +2,8 @@ name: 'Template stack'
 locations:
   'vsys':
     description: 'Located in a specific vsys.'
-    device: ['panorama']
+    device:
+      panorama: true
     xpath:
       - 'config'
       - 'devices'

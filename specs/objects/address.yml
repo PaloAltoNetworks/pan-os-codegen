@@ -2,16 +2,21 @@ name: 'Address'
 locations:
   'shared':
     description: 'Located in shared.'
-    device: ['panorama', 'ngfw']
+    device:
+      panorama: true
+      ngfw: true
     xpath: ['config', 'shared']
   'from_panorama':
     description: 'Located in the config pushed from Panorama.'
     read_only: true
-    device: ['ngfw']
+    device:
+      ngfw: true
     xpath: ['config', 'panorama']
   'vsys':
     description: 'Located in a specific vsys.'
-    device: ['ngfw', 'panorama']
+    device:
+      panorama: true
+      ngfw: true
     xpath:
       - 'config'
       - 'devices'
@@ -30,7 +35,8 @@ locations:
             'shared': 'The vsys cannot be "shared". Use the "shared" path instead.'
   'device_group':
     description: 'Located in a specific device group.'
-    device: ['panorama']
+    device:
+      panorama: true
     xpath:
       - 'config'
       - 'devices'

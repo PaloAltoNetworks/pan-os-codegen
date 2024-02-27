@@ -2,7 +2,9 @@ name: 'NTP'
 locations:
   'system':
     description: 'Located in a system settings.'
-    device: ['ngfw', 'panorama']
+    device:
+      panorama: true
+      ngfw: true
     xpath:
       - 'config'
       - 'devices'
@@ -15,7 +17,8 @@ locations:
         default: 'localhost.localdomain'
   'template':
     description: 'Located in a specific template.'
-    device: ['panorama']
+    device:
+      panorama: true
     xpath:
       - 'config'
       - 'devices'

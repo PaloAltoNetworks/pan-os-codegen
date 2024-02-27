@@ -2,7 +2,8 @@ name: 'Device group'
 locations:
   'vsys':
     description: 'Located in a specific vsys.'
-    device: ['panorama']
+    device:
+      panorama: true
     xpath:
       - 'config'
       - 'devices'
