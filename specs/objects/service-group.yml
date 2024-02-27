@@ -67,41 +67,40 @@ entry:
       max: 63
 version: '10.1.0'
 spec:
-  properties:
-    params:
-      description:
-        description: 'The description.'
-        type: 'string'
-        length:
-          min: 0
-          max: 1023
-        profiles:
-          -
-            xpath: ["description"]
-      members:
-        description: 'Service group members.'
-        type: 'list'
-        count:
-          max: 63
-        items:
-          type: 'object'
-          ref:
+  params:
+    description:
+      description: 'The description.'
+      type: 'string'
+      length:
+        min: 0
+        max: 1023
+      profiles:
+        -
+          xpath: ["description"]
+    members:
+      description: 'Service group members.'
+      type: 'list'
+      count:
+        max: 63
+      items:
+        type: 'object'
+        ref:
           - '#/specs/objects/service.yml'
           - '#/specs/objects/service-group.yml'
-        profiles:
-          -
-            type: 'member'
-            xpath: ["members"]
-      tags:
-        description: 'The administrative tags.'
-        type: 'list'
-        count:
-          max: 64
-        items:
-          type: 'string'
-          length:
-            max: 127
-        profiles:
-          -
-            type: 'member'
-            xpath: ["tag"]
+      profiles:
+        -
+          type: 'member'
+          xpath: ["members"]
+    tags:
+      description: 'The administrative tags.'
+      type: 'list'
+      count:
+        max: 64
+      items:
+        type: 'string'
+        length:
+          max: 127
+      profiles:
+        -
+          type: 'member'
+          xpath: ["tag"]

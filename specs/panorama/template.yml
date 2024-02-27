@@ -24,20 +24,19 @@ entry:
       max: 63
 version: '10.1.0'
 spec:
-  properties:
-    params:
-      description:
-        description: 'The description.'
-        type: 'string'
-        length:
-          min: 0
-          max: 255
-        profiles:
-          -
-            xpath: ["description"]
-      default_vsys:
-        description: 'Default virtual system'
-        type: 'string'
-        profiles:
-          -
-            xpath: ['settings/default-vsys']
+  params:
+    description:
+      description: 'The description.'
+      type: 'string'
+      length:
+        min: 0
+        max: 255
+      profiles:
+        -
+          xpath: ["description"]
+    default_vsys:
+      description: 'Default virtual system'
+      type: 'string'
+      profiles:
+        -
+          xpath: ['settings/default-vsys']

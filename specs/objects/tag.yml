@@ -67,23 +67,22 @@ entry:
       max: 127
 version: '10.1.0'
 spec:
-  properties:
-    params:
-      color:
-        description: 'The color.'
-        type: 'color'
-        profiles:
-          -
-            xpath: ["color"]
-      comments:
-        description: 'Comments.'
-        type: 'string'
-        length:
-          min: 0
-          max: 1023
-        profiles:
-          -
-            xpath: ["comments"]
+  params:
+    color:
+      description: 'The color.'
+      type: 'color'
+      profiles:
+        -
+          xpath: ["color"]
+    comments:
+      description: 'Comments.'
+      type: 'string'
+      length:
+        min: 0
+        max: 1023
+      profiles:
+        -
+          xpath: ["comments"]
 type:
   color:
     -

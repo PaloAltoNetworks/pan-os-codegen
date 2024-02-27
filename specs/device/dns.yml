@@ -47,41 +47,39 @@ locations:
         default: 'localhost.localdomain'
 version: '10.1.0'
 spec:
-  properties:
-    params:
-      fqdn_refresh_time:
-        description: 'Seconds for Periodic Timer to refresh expired FQDN object entries'
-        type: 'int'
-        value:
-          min: 600
-          max: 14399
-          default: 1800
-        profiles:
-          -
-            xpath: ["fqdn-refresh-time"]
-      dns_setting:
-        description: 'DNS settings'
-        profiles:
-          -
-            xpath: ["dns-setting"]
-        spec:
-          properties:
-            params:
-              servers:
-                description: 'DNS servers'
-                profiles:
-                  -
-                    xpath: ["servers"]
-                spec:
-                  properties:
-                    params:
-                      primary:
-                        description: 'Primary DNS server IP address'
-                        profiles:
-                          -
-                            xpath: ["primary"]
-                      secondary:
-                        description: 'Secondary DNS server IP address'
-                        profiles:
-                          -
-                            xpath: ["secondary"]
+  params:
+    fqdn_refresh_time:
+      description: 'Seconds for Periodic Timer to refresh expired FQDN object entries'
+      type: 'int'
+      value:
+        min: 600
+        max: 14399
+        default: 1800
+      profiles:
+        -
+          xpath: ["fqdn-refresh-time"]
+    dns_setting:
+      description: 'DNS settings'
+      profiles:
+        -
+          xpath: ["dns-setting"]
+      spec:
+        params:
+          servers:
+            description: 'DNS servers'
+            profiles:
+              -
+                xpath: ["servers"]
+            spec:
+              properties:
+                params:
+                  primary:
+                    description: 'Primary DNS server IP address'
+                    profiles:
+                      -
+                        xpath: ["primary"]
+                  secondary:
+                    description: 'Secondary DNS server IP address'
+                    profiles:
+                      -
+                        xpath: ["secondary"]

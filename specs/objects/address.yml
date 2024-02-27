@@ -67,52 +67,51 @@ entry:
       max: 63
 version: '10.1.0'
 spec:
-  properties:
-    params:
-      description:
-        description: 'The description.'
+  params:
+    description:
+      description: 'The description.'
+      type: 'string'
+      length:
+        min: 0
+        max: 1023
+      profiles:
+        -
+          xpath: ["description"]
+    tags:
+      description: 'The administrative tags.'
+      type: 'list'
+      count:
+        max: 64
+      items:
         type: 'string'
         length:
-          min: 0
-          max: 1023
-        profiles:
-          -
-            xpath: ["description"]
-      tags:
-        description: 'The administrative tags.'
-        type: 'list'
-        count:
-          max: 64
-        items:
-          type: 'string'
-          length:
-            max: 127
-        profiles:
-          -
-            type: 'member'
-            xpath: ["tag"]
-    one_of:
-      'ip_netmask':
-        description: 'The IP netmask value.'
-        profiles:
-          -
-            xpath: ["ip-netmask"]
-      'ip_range':
-        description: 'The IP range value.'
-        profiles:
-          -
-            xpath: ["ip-range"]
-      'fqdn':
-        description: 'The FQDN value.'
-        regex: '^[a-zA-Z0-9_]([a-zA-Z0-9:_-])+[a-zA-Z0-9]$'
-        length:
-          min: 1
-          max: 255
-        profiles:
-          -
-            xpath: ["fqdn"]
-      'ip_wildcard':
-        description: 'The IP wildcard value.'
-        profiles:
-          -
-            xpath: ["ip-wildcard"]
+          max: 127
+      profiles:
+        -
+          type: 'member'
+          xpath: ["tag"]
+  one_of:
+    'ip_netmask':
+      description: 'The IP netmask value.'
+      profiles:
+        -
+          xpath: ["ip-netmask"]
+    'ip_range':
+      description: 'The IP range value.'
+      profiles:
+        -
+          xpath: ["ip-range"]
+    'fqdn':
+      description: 'The FQDN value.'
+      regex: '^[a-zA-Z0-9_]([a-zA-Z0-9:_-])+[a-zA-Z0-9]$'
+      length:
+        min: 1
+        max: 255
+      profiles:
+        -
+          xpath: ["fqdn"]
+    'ip_wildcard':
+      description: 'The IP wildcard value.'
+      profiles:
+        -
+          xpath: ["ip-wildcard"]
