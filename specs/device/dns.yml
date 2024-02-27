@@ -45,8 +45,8 @@ locations:
       'ngfw_device':
         description: 'The NGFW device.'
         default: 'localhost.localdomain'
+version: '10.1.0'
 spec:
-  version: '10.1.0'
   properties:
     params:
       fqdn_refresh_time:

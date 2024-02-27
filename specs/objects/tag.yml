@@ -65,8 +65,8 @@ entry:
     length:
       min: 1
       max: 127
+version: '10.1.0'
 spec:
-  version: '10.1.0'
   properties:
     params:
       color:

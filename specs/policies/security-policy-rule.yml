@@ -84,8 +84,8 @@ entry:
       not_values:
         'intrazone-default': 'The intrazone-default is a reserved name.'
         'interzone-default': 'The interzone-default is a reserved name.'
+version: '10.1.0'
 spec:
-  version: '10.1.0'
   properties:
     params:
       description:
