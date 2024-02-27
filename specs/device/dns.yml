@@ -1,5 +1,9 @@
 name: 'DNS'
 terraform_provider_suffix: 'dns'
+go_sdk_path:
+  - 'device'
+  - 'services'
+  - 'dns'
 locations:
   'system':
     description: 'Located in a system settings.'

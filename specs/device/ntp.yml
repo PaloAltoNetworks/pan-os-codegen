@@ -1,5 +1,9 @@
 name: 'NTP'
 terraform_provider_suffix: 'ntp'
+go_sdk_path:
+  - 'device'
+  - 'services'
+  - 'ntp'
 locations:
   'system':
     description: 'Located in a system settings.'

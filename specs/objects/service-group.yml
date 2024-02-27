@@ -1,5 +1,8 @@
 name: 'Service group'
 terraform_provider_suffix: 'service_group'
+go_sdk_path:
+  - 'objects'
+  - 'service-group'
 xpath_suffix:
   - 'service-group'
 locations:

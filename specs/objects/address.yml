@@ -1,5 +1,8 @@
 name: 'Address'
 terraform_provider_suffix: 'address'
+go_sdk_path:
+  - 'objects'
+  - 'address'
 xpath_suffix:
   - 'address'
 locations:

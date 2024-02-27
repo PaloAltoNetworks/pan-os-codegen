@@ -1,4 +1,10 @@
 name: 'Template stack'
+terraform_provider_suffix: 'template_stack'
+go_sdk_path:
+  - 'panorama'
+  - 'template-stack'
+xpath_suffix:
+  - 'template-stack'
 locations:
   'vsys':
     description: 'Located in a specific vsys.'
