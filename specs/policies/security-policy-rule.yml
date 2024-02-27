@@ -18,8 +18,8 @@ locations:
       - '{{ Entry $rulebase }}'
     vars:
       'rulebase':
-        description: 'The vsys.'
-        default: 'vsys1'
+        description: 'The rulebase.'
+        default: 'pre-rulebase'
         validation:
           values: ['post-rulebase' 'pre-rulebase']
   'vsys':
@@ -45,8 +45,8 @@ locations:
           not_values:
             'shared': 'The vsys cannot be "shared". Use the "shared" path instead.'
       'rulebase':
-        description: 'The vsys.'
-        default: 'vsys1'
+        description: 'The rulebase.'
+        default: 'pre-rulebase'
         validation:
           values: ['post-rulebase' 'pre-rulebase']
   'device_group':
@@ -70,8 +70,8 @@ locations:
           not_values:
             'shared': 'The device group cannot be "shared". Use the "shared" path instead.'
       'rulebase':
-        description: 'The vsys.'
-        default: 'vsys1'
+        description: 'The rulebase.'
+        default: 'pre-rulebase'
         validation:
           values: ['post-rulebase' 'pre-rulebase']
 entry:
