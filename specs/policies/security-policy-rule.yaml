@@ -21,7 +21,7 @@ locations:
         description: 'The rulebase.'
         default: 'pre-rulebase'
         validation:
-          values: ['post-rulebase' 'pre-rulebase']
+          values: ['post-rulebase', 'pre-rulebase']
   'vsys':
     description: 'Located in a specific vsys.'
     device:
@@ -48,7 +48,7 @@ locations:
         description: 'The rulebase.'
         default: 'pre-rulebase'
         validation:
-          values: ['post-rulebase' 'pre-rulebase']
+          values: ['post-rulebase', 'pre-rulebase']
   'device_group':
     description: 'Located in a specific device group.'
     device: ['panorama']
@@ -73,7 +73,7 @@ locations:
         description: 'The rulebase.'
         default: 'pre-rulebase'
         validation:
-          values: ['post-rulebase' 'pre-rulebase']
+          values: ['post-rulebase', 'pre-rulebase']
 entry:
   name:
     description: 'The name of the security policy rule.'
