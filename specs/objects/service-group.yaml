@@ -85,8 +85,8 @@ spec:
       items:
         type: 'object'
         ref:
-          - '#/specs/objects/service.yml'
-          - '#/specs/objects/service-group.yml'
+          - '#/specs/objects/service.yaml'
+          - '#/specs/objects/service-group.yaml'
       profiles:
         -
           type: 'member'

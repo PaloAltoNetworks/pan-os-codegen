@@ -40,7 +40,7 @@ spec:
       items:
         type: 'object'
         ref:
-          - '#/specs/panorama/template.yml'
+          - '#/specs/panorama/template.yaml'
       profiles:
         -
           type: 'member'
