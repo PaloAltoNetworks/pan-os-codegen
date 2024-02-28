@@ -2,7 +2,7 @@ name: 'Template stack'
 terraform_provider_suffix: 'template_stack'
 go_sdk_path:
   - 'panorama'
-  - 'template-stack'
+  - 'template_stack'
 xpath_suffix:
   - 'template-stack'
 locations:

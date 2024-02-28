@@ -2,7 +2,7 @@ name: 'Address group'
 terraform_provider_suffix: 'address_group'
 go_sdk_path:
   - 'objects'
-  - 'address-group'
+  - 'address_group'
 xpath_suffix:
   - 'address-group'
 locations:
