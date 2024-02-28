@@ -5,14 +5,14 @@ import (
 	"log"
 	"os"
 
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/commands/mktp"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/commands/mksdk"
 )
 
 func main() {
 	var err error
 	ctx := context.Background()
 
-	cmd := mktp.Command(ctx, os.Args[1:]...)
+	cmd := mksdk.Command(ctx, os.Args[1:]...)
 	err = cmd.Setup()
 	if err == nil {
 		err = cmd.Execute()
