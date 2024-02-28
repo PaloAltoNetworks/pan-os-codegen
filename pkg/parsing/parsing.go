@@ -26,16 +26,7 @@ func ReadDataFromFile(filename string) ([]byte, error) {
 	return yamlFile, err
 }
 
-func MarshallYaml(yamlData *YamlSpecParser) (string, error) {
-	yamlDump, err := yaml.Marshal(&yamlData)
-	if err != nil {
-		log.Fatalf("error: %v", err)
-	}
-
-	return string(yamlDump), err
-}
-
-func UnmarshallYaml(inputData []byte) (*YamlSpecParser, error) {
+func NewYamlSpecParser(inputData []byte) (*YamlSpecParser, error) {
 	yamlData := YamlSpecParser{}
 
 	err := yaml.Unmarshal(inputData, &yamlData)
@@ -43,4 +34,13 @@ func UnmarshallYaml(inputData []byte) (*YamlSpecParser, error) {
 		log.Fatalf("error: %v", err)
 	}
 	return &yamlData, err
+}
+
+func (yamlData *YamlSpecParser) Dump() (string, error) {
+	yamlDump, err := yaml.Marshal(&yamlData)
+	if err != nil {
+		log.Fatalf("error: %v", err)
+	}
+
+	return string(yamlDump), err
 }

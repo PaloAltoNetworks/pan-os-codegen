@@ -19,23 +19,23 @@ xpath_suffix:
 `
 
 	// when
-	unmarshallData, _ := UnmarshallYaml([]byte(fileContent))
+	yamlParser, _ := NewYamlSpecParser([]byte(fileContent))
 
 	// then
-	assert.NotNilf(t, unmarshallData, "Unmarshalled data cannot be nil")
-	assert.Equal(t, "Address", unmarshallData.Name, "Unmarshalled data should contain `name`")
+	assert.NotNilf(t, yamlParser, "Unmarshalled data cannot be nil")
+	assert.Equal(t, "Address", yamlParser.Name, "Unmarshalled data should contain `name`")
 }
 
 func TestMarshall(t *testing.T) {
 	// given
-	parsedData := YamlSpecParser{}
-	parsedData.Name = "Address"
+	yamlParser := YamlSpecParser{}
+	yamlParser.Name = "Address"
 
 	// when
-	marshallData, _ := MarshallYaml(&parsedData)
+	dumpData, _ := yamlParser.Dump()
 
 	// then
-	fmt.Printf("%s", marshallData)
-	assert.NotNilf(t, marshallData, "Marshalled data cannot be nil")
-	assert.Containsf(t, marshallData, "name: Address", "Marshalled data should contain key `name`")
+	fmt.Printf("%s", dumpData)
+	assert.NotNilf(t, dumpData, "Marshalled data cannot be nil")
+	assert.Containsf(t, dumpData, "name: Address", "Marshalled data should contain key `name`")
 }
