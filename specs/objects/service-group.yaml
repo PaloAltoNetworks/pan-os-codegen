@@ -1,0 +1,106 @@
+name: 'Service group'
+terraform_provider_suffix: 'service_group'
+go_sdk_path:
+  - 'objects'
+  - 'service-group'
+xpath_suffix:
+  - 'service-group'
+locations:
+  'shared':
+    description: 'Located in shared.'
+    device:
+      panorama: true
+      ngfw: true
+    xpath: ['config', 'shared']
+  'from_panorama':
+    description: 'Located in the config pushed from Panorama.'
+    read_only: true
+    device:
+      ngfw: true
+    xpath: ['config', 'panorama']
+  'vsys':
+    description: 'Located in a specific vsys.'
+    device:
+      panorama: true
+      ngfw: true
+    xpath:
+      - 'config'
+      - 'devices'
+      - '{{ Entry $ngfw_device }}'
+      - 'vsys'
+      - '{{ Entry $vsys }}'
+    vars:
+      'ngfw_device':
+        description: 'The NGFW device.'
+        default: 'localhost.localdomain'
+      'vsys':
+        description: 'The vsys.'
+        default: 'vsys1'
+        validation:
+          not_values:
+            'shared': 'The vsys cannot be "shared". Use the "shared" path instead.'
+  'device_group':
+    description: 'Located in a specific device group.'
+    device:
+      panorama: true
+    xpath:
+      - 'config'
+      - 'devices'
+      - '{{ Entry $panorama_device }}'
+      - 'device-group'
+      - '{{ Entry $device_group }}'
+    vars:
+      'panorama_device':
+        description: 'The panorama device.'
+        default: 'localhost.localdomain'
+      'device_group':
+        description: 'The device group.'
+        required: true
+        validation:
+          not_values:
+            'shared': 'The device group cannot be "shared". Use the "shared" path instead.'
+entry:
+  name:
+    description: 'The name of the service group.'
+    length:
+      min: 1
+      max: 63
+version: '10.1.0'
+spec:
+  params:
+    description:
+      description: 'The description.'
+      type: 'string'
+      length:
+        min: 0
+        max: 1023
+      profiles:
+        -
+          xpath: ["description"]
+    members:
+      description: 'Service group members.'
+      type: 'list'
+      count:
+        max: 63
+      items:
+        type: 'object'
+        ref:
+          - '#/specs/objects/service.yaml'
+          - '#/specs/objects/service-group.yaml'
+      profiles:
+        -
+          type: 'member'
+          xpath: ["members"]
+    tags:
+      description: 'The administrative tags.'
+      type: 'list'
+      count:
+        max: 64
+      items:
+        type: 'string'
+        length:
+          max: 127
+      profiles:
+        -
+          type: 'member'
+          xpath: ["tag"]

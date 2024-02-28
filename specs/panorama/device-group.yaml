@@ -1,0 +1,61 @@
+name: 'Device group'
+terraform_provider_suffix: 'device_group'
+go_sdk_path:
+  - 'panorama'
+  - 'device-group'
+xpath_suffix:
+  - 'device-group'
+locations:
+  'vsys':
+    description: 'Located in a specific vsys.'
+    device:
+      panorama: true
+    xpath:
+      - 'config'
+      - 'devices'
+      - '{{ Entry $ngfw_device }}'
+      - 'vsys'
+      - '{{ Entry $vsys }}'
+entry:
+  name:
+    description: 'The name of the device group.'
+    length:
+      min: 1
+      max: 31
+version: '10.1.0'
+spec:
+  params:
+    description:
+      description: 'The description.'
+      type: 'string'
+      length:
+        min: 0
+        max: 255
+      profiles:
+        -
+          xpath: ["description"]
+    templates:
+      description: 'List of reference templates'
+      type: 'list'
+      items:
+        type: 'object'
+        ref:
+          - '#/specs/panorama/template.yaml'
+      profiles:
+        -
+          type: 'member'
+          xpath: ["reference-templates"]
+    devices:
+      description: 'List of devices'
+      type: 'list'
+      items:
+        type: 'string'
+      profiles:
+        -
+          type: 'entry'
+          xpath: ["devices"]
+    authorization_code:
+      description: 'Authorization code'
+      profiles:
+        -
+          xpath: ["authorization-code"]

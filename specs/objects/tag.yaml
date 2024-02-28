@@ -1,0 +1,210 @@
+name: 'Tag'
+terraform_provider_suffix: 'tag'
+go_sdk_path:
+  - 'objects'
+  - 'tag'
+xpath_suffix:
+  - 'tag'
+locations:
+  'shared':
+    description: 'Located in shared.'
+    device:
+      panorama: true
+      ngfw: true
+    xpath: ['config', 'shared']
+  'from_panorama':
+    description: 'Located in the config pushed from Panorama.'
+    read_only: true
+    device:
+      ngfw: true
+    xpath: ['config', 'panorama']
+  'vsys':
+    description: 'Located in a specific vsys.'
+    device:
+      panorama: true
+      ngfw: true
+    xpath:
+      - 'config'
+      - 'devices'
+      - '{{ Entry $ngfw_device }}'
+      - 'vsys'
+      - '{{ Entry $vsys }}'
+    vars:
+      'ngfw_device':
+        description: 'The NGFW device.'
+        default: 'localhost.localdomain'
+      'vsys':
+        description: 'The vsys.'
+        default: 'vsys1'
+        validation:
+          not_values:
+            'shared': 'The vsys cannot be "shared". Use the "shared" path instead.'
+  'device_group':
+    description: 'Located in a specific device group.'
+    device:
+      panorama: true
+    xpath:
+      - 'config'
+      - 'devices'
+      - '{{ Entry $panorama_device }}'
+      - 'device-group'
+      - '{{ Entry $device_group }}'
+    vars:
+      'panorama_device':
+        description: 'The panorama device.'
+        default: 'localhost.localdomain'
+      'device_group':
+        description: 'The device group.'
+        required: true
+        validation:
+          not_values:
+            'shared': 'The device group cannot be "shared". Use the "shared" path instead.'
+entry:
+  name:
+    description: 'The name of the tag.'
+    length:
+      min: 1
+      max: 127
+version: '10.1.0'
+spec:
+  params:
+    color:
+      description: 'The color.'
+      type: 'color'
+      profiles:
+        -
+          xpath: ["color"]
+    comments:
+      description: 'Comments.'
+      type: 'string'
+      length:
+        min: 0
+        max: 1023
+      profiles:
+        -
+          xpath: ["comments"]
+type:
+  color:
+    -
+      name: red
+      value: color1
+    -
+      name: green
+      value: color2
+    -
+      name: blue
+      value: color3
+    -
+      name: yellow
+      value: color4
+    -
+      name: copper
+      value: color5
+    -
+      name: orange
+      value: color6
+    -
+      name: purple
+      value: color7
+    -
+      name: gray
+      value: color8
+    -
+      name: light green
+      value: color9
+    -
+      name: cyan
+      value: color10
+    -
+      name: light gray
+      value: color11
+    -
+      name: blue gray
+      value: color12
+    -
+      name: lime
+      value: color13
+    -
+      name: black
+      value: color14
+    -
+      name: gold
+      value: color15
+    -
+      name: brown
+      value: color16
+    -
+      name: olive
+      value: color17
+    -
+      name: maroon
+      value: color19
+    -
+      name: red-orange
+      value: color20
+    -
+      name: yellow-orange
+      value: color21
+    -
+      name: forest green
+      value: color22
+    -
+      name: turquoise blue
+      value: color23
+    -
+      name: azure blue
+      value: color24
+    -
+      name: cerulean blue
+      value: color25
+    -
+      name: midnight blue
+      value: color26
+    -
+      name: medium blue
+      value: color27
+    -
+      name: cobalt blue
+      value: color28
+    -
+      name: violet blue
+      value: color29
+    -
+      name: blue violet
+      value: color30
+    -
+      name: medium violet
+      value: color31
+    -
+      name: medium rose
+      value: color32
+    -
+      name: lavender
+      value: color33
+    -
+      name: orchid
+      value: color34
+    -
+      name: thistle
+      value: color35
+    -
+      name: peach
+      value: color36
+    -
+      name: salmon
+      value: color37
+    -
+      name: magenta
+      value: color38
+    -
+      name: red violet
+      value: color39
+    -
+      name: mahogany
+      value: color40
+    -
+      name: burnt sienna
+      value: color41
+    -
+      name: chestnut
+      value: color42

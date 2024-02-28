@@ -1,0 +1,189 @@
+name: 'Service'
+terraform_provider_suffix: 'service'
+go_sdk_path:
+  - 'objects'
+  - 'service'
+xpath_suffix:
+  - 'service'
+locations:
+  'shared':
+    description: 'Located in shared.'
+    device:
+      panorama: true
+      ngfw: true
+    xpath: ['config', 'shared']
+  'from_panorama':
+    description: 'Located in the config pushed from Panorama.'
+    read_only: true
+    device:
+      ngfw: true
+    xpath: ['config', 'panorama']
+  'vsys':
+    description: 'Located in a specific vsys.'
+    device:
+      panorama: true
+      ngfw: true
+    xpath:
+      - 'config'
+      - 'devices'
+      - '{{ Entry $ngfw_device }}'
+      - 'vsys'
+      - '{{ Entry $vsys }}'
+    vars:
+      'ngfw_device':
+        description: 'The NGFW device.'
+        default: 'localhost.localdomain'
+      'vsys':
+        description: 'The vsys.'
+        default: 'vsys1'
+        validation:
+          not_values:
+            'shared': 'The vsys cannot be "shared". Use the "shared" path instead.'
+  'device_group':
+    description: 'Located in a specific device group.'
+    device:
+      panorama: true
+    xpath:
+      - 'config'
+      - 'devices'
+      - '{{ Entry $panorama_device }}'
+      - 'device-group'
+      - '{{ Entry $device_group }}'
+    vars:
+      'panorama_device':
+        description: 'The panorama device.'
+        default: 'localhost.localdomain'
+      'device_group':
+        description: 'The device group.'
+        required: true
+        validation:
+          not_values:
+            'shared': 'The device group cannot be "shared". Use the "shared" path instead.'
+entry:
+  name:
+    description: 'The name of the service.'
+    length:
+      min: 1
+      max: 63
+version: '10.1.0'
+spec:
+  params:
+    description:
+      description: 'The description.'
+      type: 'string'
+      length:
+        min: 0
+        max: 1023
+      profiles:
+        -
+          xpath: ["description"]
+    tags:
+      description: 'The administrative tags.'
+      type: 'list'
+      count:
+        max: 64
+      items:
+        type: 'string'
+        length:
+          max: 127
+      profiles:
+        -
+          type: 'member'
+          xpath: ["tag"]
+    protocol:
+      description: 'The protocol (TCP or UDP).'
+      profiles:
+        -
+          xpath: ["protocol"]
+          spec:
+            one_of:
+              tcp:
+                description: 'TCP protocol'
+                profiles:
+                  -
+                    xpath: ["tcp"]
+                    spec:
+                      params:
+                        destination-port:
+                          description: 'The destination port.'
+                          type: 'int'
+                          value:
+                            min: 0
+                            max: 1023
+                          profiles:
+                            - xpath: [ "port" ]
+                        source-port:
+                          description: 'The source port.'
+                          type: 'int'
+                          value:
+                            min: 0
+                            max: 1023
+                          profiles:
+                            - xpath: [ "source-port" ]
+                        override:
+                          description: 'Override session timeout.'
+                          profiles:
+                            - xpath: [ "override" ]
+                              spec:
+                                one_of:
+                                  yes:
+                                    profiles:
+                                      -
+                                        xpath: [ "yes"]
+                                        spec:
+                                          'timeout':
+                                            description: 'TCP session timeout value (in second)'
+                                            profiles:
+                                              - xpath: [ "timeout" ]
+                                          'halfclose-timeout':
+                                            description: 'TCP session half-close timeout value (in second)'
+                                            profiles:
+                                              - xpath: [ "halfclose-timeout" ]
+                                          'timewait-timeout':
+                                            description: 'TCP session time-wait timeout value (in second)'
+                                            profiles:
+                                              - xpath: [ "timewait-timeout" ]
+                                  no:
+                                    profiles:
+                                      - xpath: [ "no" ]
+              udp:
+                description: 'UDP protocol'
+                profiles:
+                  -
+                    xpath: ["udp"]
+                    spec:
+                      params:
+                        destination-port:
+                          description: 'The destination port.'
+                          type: 'int'
+                          value:
+                            min: 0
+                            max: 1023
+                          profiles:
+                            - xpath: [ "port" ]
+                        source-port:
+                          description: 'The source port.'
+                          type: 'int'
+                          value:
+                            min: 0
+                            max: 1023
+                          profiles:
+                            - xpath: [ "source-port" ]
+                        override:
+                          description: 'Override session timeout.'
+                          profiles:
+                            - xpath: [ "override" ]
+                              spec:
+                                one_of:
+                                  yes:
+                                    profiles:
+                                      -
+                                        xpath: [ "yes"]
+                                        spec:
+                                          'timeout':
+                                            description: 'UDP session timeout value (in second)'
+                                            profiles:
+                                              - xpath: [ "timeout" ]
+                                  no:
+                                    profiles:
+                                      - xpath: [ "no" ]
