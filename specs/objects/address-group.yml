@@ -97,7 +97,7 @@ spec:
       items:
         type: 'object'
         ref:
-          - '#/specs/objects/address.yml'
+          - '#/specs/objects/address.yaml'
       profiles:
         -
           type: 'member'
