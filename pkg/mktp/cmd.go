@@ -65,8 +65,16 @@ func (c *Cmd) Execute() error {
 	if err != nil {
 		return fmt.Errorf("error parsing %s - %s", c.args[0], err)
 	}
+
 	fmt.Fprintf(c.Stdout, "Output directory for Go SDK: %s\n", config.Output.GoSdk)
+	if err = os.MkdirAll(config.Output.GoSdk, 0755); err != nil && !os.IsExist(err) {
+		return err
+	}
+
 	fmt.Fprintf(c.Stdout, "Output directory for Terraform provider: %s\n", config.Output.TerraformProvider)
+	if err = os.MkdirAll(config.Output.TerraformProvider, 0755); err != nil && !os.IsExist(err) {
+		return err
+	}
 
 	for _, configPath := range c.specs {
 		fmt.Fprintf(c.Stdout, "Parsing %s...\n", configPath)
@@ -81,14 +89,8 @@ func (c *Cmd) Execute() error {
 		}
 
 		// Output normalization as pango code.
-		if err = os.MkdirAll(config.Output.GoSdk, 0755); err != nil && !os.IsExist(err) {
-			return err
-		}
 
 		// Output as Terraform code.
-		if err = os.MkdirAll(config.Output.TerraformProvider, 0755); err != nil && !os.IsExist(err) {
-			return err
-		}
 	}
 
 	// Finalize pango code:

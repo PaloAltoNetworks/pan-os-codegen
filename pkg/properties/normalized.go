@@ -1,6 +1,7 @@
 package properties
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -10,6 +11,17 @@ import (
 
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/load"
 )
+
+type Normalization struct {
+	Name                    string                      `json:"name" yaml:"name"`
+	TerraformProviderSuffix string                      `json:"terraform_provider_suffix" yaml:"terraform_provider_suffix"`
+	GoSdkPath               []string                    `json:"go_sdk_path" yaml:"go_sdk_path"`
+	XpathSuffix             []string                    `json:"xpath_suffix" yaml:"xpath_suffix"`
+	Locations               map[interface{}]interface{} `json:"locations" yaml:"locations"`
+	Entry                   map[interface{}]interface{} `json:"entry" yaml:"entry"`
+	Version                 string                      `json:"version" yaml:"version"`
+	Spec                    map[interface{}]interface{} `json:"spec" yaml:"spec"`
+}
 
 func GetNormalizations() ([]string, error) {
 	_, loc, _, ok := runtime.Caller(0)
@@ -50,21 +62,24 @@ func ParseSpec(path string) (*Normalization, error) {
 	return &ans, err
 }
 
-type Normalization struct {
-	Name                    string                      `json:"name" yaml:"name"`
-	TerraformProviderSuffix string                      `json:"terraform_provider_suffix" yaml:"terraform_provider_suffix"`
-	GoSdkPath               []string                    `json:"go_sdk_path" yaml:"go_sdk_path"`
-	XpathSuffix             []string                    `json:"xpath_suffix" yaml:"xpath_suffix"`
-	Locations               map[interface{}]interface{} `json:"locations" yaml:"locations"`
-	Entry                   map[interface{}]interface{} `json:"entry" yaml:"entry"`
-	Version                 string                      `json:"version" yaml:"version"`
-	Spec                    map[interface{}]interface{} `json:"spec" yaml:"spec"`
-}
-
-func (o *Normalization) Sanity() error {
+func (spec *Normalization) Sanity() error {
+	if strings.Contains(spec.TerraformProviderSuffix, "panos_") {
+		return errors.New("suffix for Terraform provider cannot contain `panos_`")
+	}
+	for _, suffix := range spec.XpathSuffix {
+		if strings.Contains(suffix, "/") {
+			return errors.New("XPath cannot contain /")
+		}
+	}
+	if len(spec.Locations) < 1 {
+		return errors.New("at least 1 location is required")
+	}
+	if len(spec.GoSdkPath) < 2 {
+		return errors.New("golang SDK path should contain at least 2 elements of the path")
+	}
 	return nil
 }
 
-func (o *Normalization) Validate() []error {
+func (spec *Normalization) Validate() []error {
 	return nil
 }
