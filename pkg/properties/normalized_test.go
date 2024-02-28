@@ -2,6 +2,7 @@ package properties
 
 import (
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v3"
 	"testing"
 )
 
@@ -32,4 +33,27 @@ func TestGetNormalizations(t *testing.T) {
 	// then
 	assert.NotNil(t, config)
 	assert.GreaterOrEqual(t, 15, len(config), "Expected to have 15 spec YAML files")
+}
+
+func TestSanityCheck(t *testing.T) {
+	// given
+	var fileContent = `
+name: 'Address'
+terraform_provider_suffix: 'address'
+go_sdk_path:
+  - 'objects'
+  - 'address'
+xpath_suffix:
+  - 'address'
+`
+	// when
+	yamlParsedData := Normalization{}
+	err := yaml.Unmarshal([]byte(fileContent), &yamlParsedData)
+	if err != nil {
+		t.Fatalf("error: %v", err)
+	}
+	err = yamlParsedData.Sanity()
+
+	// then
+	assert.ErrorContainsf(t, err, "at least 1 location is required", "error message %s", err)
 }
