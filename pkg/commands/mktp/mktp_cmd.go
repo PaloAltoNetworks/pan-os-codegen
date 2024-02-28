@@ -2,13 +2,8 @@ package mktp
 
 import (
 	"context"
-	"log"
-	_ "os/exec"
-	_ "path/filepath"
-	_ "sort"
-	_ "strings"
-
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
+	"log"
 )
 
 type Cmd struct {
