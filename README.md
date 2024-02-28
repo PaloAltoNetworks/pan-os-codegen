@@ -18,3 +18,9 @@ We are maintaining a [public roadmap](https://github.com/orgs/PaloAltoNetworks/p
 ## Getting Help
 
 Open an [issue](https://github.com/PaloAltoNetworks/pan-os-codegen/issues) on Github.
+
+## Usage
+
+```bash
+go run cmd/mktp/main.go cmd/mktp/config.yaml
+```

@@ -18,9 +18,10 @@ type Cmd struct {
 	Stdout io.Writer
 	Stderr io.Writer
 
-	ctx     context.Context
-	args    []string
-	configs []string
+	ctx    context.Context
+	args   []string
+	specs  []string
+	config string
 }
 
 func Command(ctx context.Context, args ...string) *Cmd {
@@ -45,8 +46,8 @@ func (c *Cmd) Setup() error {
 		c.Stderr = os.Stderr
 	}
 
-	if c.configs == nil {
-		c.configs, err = properties.GetNormalizations()
+	if c.specs == nil {
+		c.specs, err = properties.GetNormalizations()
 	}
 
 	return err
@@ -59,7 +60,15 @@ func (c *Cmd) Execute() error {
 	//providerDataSources := make([]string, 0, 200)
 	//providerResources := make([]string, 0, 100)
 
-	for _, configPath := range c.configs {
+	fmt.Fprintf(c.Stdout, "Reading configuration file: %s...\n", c.args[0])
+	config, err := properties.ParseConfig(c.args[0])
+	if err != nil {
+		return fmt.Errorf("error parsing %s - %s", c.args[0], err)
+	}
+	fmt.Fprintf(c.Stdout, "Output directory for Go SDK: %s\n", config.Output.GoSdk)
+	fmt.Fprintf(c.Stdout, "Output directory for Terraform provider: %s\n", config.Output.TerraformProvider)
+
+	for _, configPath := range c.specs {
 		fmt.Fprintf(c.Stdout, "Parsing %s...\n", configPath)
 		spec, err := properties.ParseSpec(configPath)
 		if err != nil {
