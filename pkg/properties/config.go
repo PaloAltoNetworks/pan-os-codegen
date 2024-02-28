@@ -7,7 +7,6 @@ import (
 
 type Config struct {
 	Output OutputPaths `json:"output" yaml:"output"`
-	Name   string      `json:"name" yaml:"name"`
 }
 
 type OutputPaths struct {

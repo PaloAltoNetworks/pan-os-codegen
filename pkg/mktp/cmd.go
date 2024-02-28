@@ -81,8 +81,14 @@ func (c *Cmd) Execute() error {
 		}
 
 		// Output normalization as pango code.
+		if err = os.MkdirAll(config.Output.GoSdk, 0755); err != nil && !os.IsExist(err) {
+			return err
+		}
 
 		// Output as Terraform code.
+		if err = os.MkdirAll(config.Output.TerraformProvider, 0755); err != nil && !os.IsExist(err) {
+			return err
+		}
 	}
 
 	// Finalize pango code:
