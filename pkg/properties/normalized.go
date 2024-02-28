@@ -1,69 +1,70 @@
 package properties
 
 import (
-    "fmt"
-    "io/fs"
-    "os"
-    "runtime"
-    "path/filepath"
-    "strings"
+	"fmt"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
 
-    "github.com/paloaltonetworks/pan-os-codegen/pkg/load"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/load"
 )
 
-
 func GetNormalizations() ([]string, error) {
-    _, loc, _, ok := runtime.Caller(0)
-    if !ok {
-        return nil, fmt.Errorf("couldn't get caller info")
-    }
+	_, loc, _, ok := runtime.Caller(0)
+	if !ok {
+		return nil, fmt.Errorf("couldn't get caller info")
+	}
 
-    basePath := filepath.Join(filepath.Dir(filepath.Dir(filepath.Dir(loc))), "specs")
+	basePath := filepath.Join(filepath.Dir(filepath.Dir(filepath.Dir(loc))), "specs")
 
-    files := make([]string, 0, 100)
+	files := make([]string, 0, 100)
 
-    err := filepath.WalkDir(basePath, func(path string, entry fs.DirEntry, err error) error {
-        if err != nil {
-            return err
-        }
+	err := filepath.WalkDir(basePath, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
 
-        if strings.HasSuffix(entry.Name(), ".yaml") {
-            files = append(files, path)
-        }
+		if strings.HasSuffix(entry.Name(), ".yaml") {
+			files = append(files, path)
+		}
 
-        return nil
-    })
-    if err != nil {
-        return nil, err
-    }
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
 
-    return files, nil
+	return files, nil
 }
 
 func ParseSpec(path string) (*Normalization, error) {
-    b, err := os.ReadFile(path)
-    if err != nil {
-        return nil, err
-    }
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
 
-    var ans Normalization
-    err = load.File(b, &ans)
-    return &ans, err
+	var ans Normalization
+	err = load.File(b, &ans)
+	return &ans, err
 }
 
 type Normalization struct {
-    Name string `json:"name" yaml:"name"`
-    Spec NormalizationSpec `json:"spec" yaml:"spec"`
-}
-
-type NormalizationSpec struct {
-    Version string `json:"version" yaml:"version"`
+	Name                    string                      `json:"name" yaml:"name"`
+	TerraformProviderSuffix string                      `json:"terraform_provider_suffix" yaml:"terraform_provider_suffix"`
+	GoSdkPath               []string                    `json:"go_sdk_path" yaml:"go_sdk_path"`
+	XpathSuffix             []string                    `json:"xpath_suffix" yaml:"xpath_suffix"`
+	Locations               map[interface{}]interface{} `json:"locations" yaml:"locations"`
+	Entry                   map[interface{}]interface{} `json:"entry" yaml:"entry"`
+	Version                 string                      `json:"version" yaml:"version"`
+	Spec                    map[interface{}]interface{} `json:"spec" yaml:"spec"`
 }
 
 func (o *Normalization) Sanity() error {
-    return nil
+	return nil
 }
 
 func (o *Normalization) Validate() []error {
-    return nil
+	return nil
 }
