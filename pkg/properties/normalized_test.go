@@ -22,3 +22,14 @@ func TestUnmarshallAddressSpecFile(t *testing.T) {
 	assert.NotNilf(t, yamlParser.Version, "Unmarshalled data should contain `version`")
 	assert.NotNilf(t, yamlParser.Spec, "Unmarshalled data should contain `spec`")
 }
+
+func TestGetNormalizations(t *testing.T) {
+	// given
+
+	// when
+	config, _ := GetNormalizations()
+
+	// then
+	assert.NotNil(t, config)
+	assert.GreaterOrEqual(t, 15, len(config), "Expected to have 15 spec YAML files")
+}
