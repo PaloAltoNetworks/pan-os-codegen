@@ -1,0 +1,345 @@
+name: 'Security policy rule'
+terraform_provider_suffix: 'security_policy_rule'
+go_sdk_path:
+  - 'policies'
+  - 'security-policy-rule'
+xpath_suffix:
+  - 'security'
+  - 'rules'
+locations:
+  'shared':
+    description: 'Located in shared.'
+    device:
+      panorama: true
+      ngfw: true
+    xpath:
+      - 'config'
+      - 'shared'
+      - '{{ Entry $rulebase }}'
+    vars:
+      'rulebase':
+        description: 'The rulebase.'
+        default: 'pre-rulebase'
+        validation:
+          values: ['post-rulebase', 'pre-rulebase']
+  'vsys':
+    description: 'Located in a specific vsys.'
+    device:
+      panorama: true
+      ngfw: true
+    xpath:
+      - 'config'
+      - 'devices'
+      - '{{ Entry $ngfw_device }}'
+      - 'vsys'
+      - '{{ Entry $vsys }}'
+      - '{{ Entry $rulebase }}'
+    vars:
+      'ngfw_device':
+        description: 'The NGFW device.'
+        default: 'localhost.localdomain'
+      'vsys':
+        description: 'The vsys.'
+        default: 'vsys1'
+        validation:
+          not_values:
+            'shared': 'The vsys cannot be "shared". Use the "shared" path instead.'
+      'rulebase':
+        description: 'The rulebase.'
+        default: 'pre-rulebase'
+        validation:
+          values: ['post-rulebase', 'pre-rulebase']
+  'device_group':
+    description: 'Located in a specific device group.'
+    device: ['panorama']
+    xpath:
+      - 'config'
+      - 'devices'
+      - '{{ Entry $panorama_device }}'
+      - 'device-group'
+      - '{{ Entry $device_group }}'
+      - '{{ Entry $rulebase }}'
+    vars:
+      'panorama_device':
+        description: 'The panorama device.'
+        default: 'localhost.localdomain'
+      'device_group':
+        description: 'The device group.'
+        required: true
+        validation:
+          not_values:
+            'shared': 'The device group cannot be "shared". Use the "shared" path instead.'
+      'rulebase':
+        description: 'The rulebase.'
+        default: 'pre-rulebase'
+        validation:
+          values: ['post-rulebase', 'pre-rulebase']
+entry:
+  name:
+    description: 'The name of the security policy rule.'
+    length:
+      min: 1
+      max: 63
+    validation:
+      not_values:
+        'intrazone-default': 'The intrazone-default is a reserved name.'
+        'interzone-default': 'The interzone-default is a reserved name.'
+version: '10.1.0'
+spec:
+  params:
+    description:
+      description: 'The description.'
+      type: 'string'
+      length:
+        min: 0
+        max: 1023
+      profiles:
+        -
+          xpath: ["description"]
+    uuid:
+      description: 'The UUID value.'
+      regex: '[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}'
+      length:
+        min: 3
+        max: 36
+      profiles:
+        - xpath: [ "uuid" ]
+    tags:
+      description: 'The administrative tags.'
+      type: 'list'
+      count:
+        max: 64
+      items:
+        type: 'string'
+        length:
+          max: 127
+      profiles:
+        -
+          type: 'member'
+          xpath: ["tag"]
+    source_zone:
+      description: 'Source zone'
+      type: list
+      count:
+        max: 31
+      profiles:
+        -
+          type: 'member'
+          xpath: ["from"]
+    destination_zone:
+      description: 'Destination zone'
+      type: list
+      count:
+        max: 31
+      profiles:
+        -
+          type: 'member'
+          xpath: ["to"]
+    source_address:
+      description: 'Source address'
+      type: list
+      count:
+        max: 63
+      profiles:
+        -
+          type: 'member'
+          xpath: ["source"]
+    destination_address:
+      description: 'Destination address'
+      type: list
+      count:
+        max: 63
+      profiles:
+        -
+          type: 'member'
+          xpath: ["destination"]
+    source_user:
+      description: 'Source user'
+      type: list
+      count:
+        max: 1023
+      profiles:
+        -
+          type: 'member'
+          xpath: ["source-user"]
+    service:
+      description: 'Service'
+      type: list
+      count:
+        max: 63
+      profiles:
+        -
+          type: 'member'
+          xpath: ["service"]
+    category:
+      description: 'Category'
+      type: list
+      count:
+        max: 63
+      profiles:
+        -
+          type: 'member'
+          xpath: ["category"]
+    application:
+      description: 'Application'
+      type: list
+      count:
+        max: 63
+      profiles:
+        -
+          type: 'member'
+          xpath: ["application"]
+    source_hip:
+      description: 'Source HIP'
+      type: list
+      count:
+        max: 63
+      profiles:
+        -
+          type: 'member'
+          xpath: ["source-hip"]
+    destination_hip:
+      description: 'Destination HIP'
+      type: list
+      count:
+        max: 63
+      profiles:
+        -
+          type: 'member'
+          xpath: ["destination-hip"]
+    negate_source:
+      description: 'Negate source address'
+      type: bool
+      default: false
+      profiles:
+        -
+          xpath: ["negate-source"]
+    negate_destination:
+      description: 'Negate destination address'
+      type: bool
+      default: false
+      profiles:
+        -
+          xpath: ["negate-destination"]
+    disabled:
+      description: 'Disable the rule'
+      type: bool
+      default: false
+      profiles:
+        -
+          xpath: ["disabled"]
+    action:
+      description: 'Action'
+      type: string
+      default: 'allow'
+      values: ['deny', 'allow', 'drop', 'reset-client', 'reset-server', 'reset-both']
+      profiles:
+        -
+          xpath: ["action"]
+    rule_type:
+      description: 'Rule type'
+      type: string
+      default: 'allow'
+      values: ['universal', 'intrazone', 'interzone']
+      profiles:
+        -
+          xpath: ["rule-type"]
+    log_setting:
+      description: 'Log forwarding'
+      type: string
+      length:
+        min: 0
+        max: 63
+      profiles:
+        -
+          xpath: ["log-setting"]
+    log_start:
+      description: 'Log at session start'
+      type: bool
+      default: false
+      profiles:
+        -
+          xpath: ["log-start"]
+    log_end:
+      description: 'Log at session end'
+      type: bool
+      default: true
+      profiles:
+        -
+          xpath: ["log-end"]
+    icmp_unreachable:
+      description: 'Send ICMP unreachable'
+      type: bool
+      default: false
+      profiles:
+        - xpath: ["icmp-unreachable"]
+    disable_server_response_inspection:
+      description: 'Disable Server Response Inspection'
+      type: bool
+      default: false
+      profiles:
+        -
+          xpath: ["disable-server-response-inspection"]
+    virus:
+      description: 'Antivirus profile'
+      type: list
+      count:
+        max: 1
+      profiles:
+        -
+          type: 'member'
+          xpath: ["profile-setting", "profiles", "virus"]
+    spyware:
+      description: 'Anti-Spyware profile'
+      type: list
+      count:
+        max: 1
+      profiles:
+        -
+          type: 'member'
+          xpath: ["profile-setting", "profiles", "spyware"]
+    vulnerability:
+      description: 'Vulnerability Protection profile'
+      type: list
+      count:
+        max: 1
+      profiles:
+        -
+          type: 'member'
+          xpath: ["profile-setting", "profiles", "vulnerability"]
+    url_filtering:
+      description: 'URL filtering profile'
+      type: list
+      count:
+        max: 1
+      profiles:
+        -
+          type: 'member'
+          xpath: ["profile-setting", "profiles", "url-filtering"]
+    file_blocking:
+      description: 'File blocking profile'
+      type: list
+      count:
+        max: 1
+      profiles:
+        -
+          type: 'member'
+          xpath: ["profile-setting", "profiles", "file-blocking"]
+    wildfire_analysis:
+      description: 'WildFire analysis profile'
+      type: list
+      count:
+        max: 1
+      profiles:
+        -
+          type: 'member'
+          xpath: ["profile-setting", "profiles", "wildfire-analysis"]
+    data_filtering:
+      description: 'Data filtering profile'
+      type: list
+      count:
+        max: 1
+      profiles:
+        -
+          type: 'member'
+          xpath: ["profile-setting", "profiles", "data-filtering"]

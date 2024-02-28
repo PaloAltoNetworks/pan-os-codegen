@@ -1,0 +1,85 @@
+name: 'DNS'
+terraform_provider_suffix: 'dns'
+go_sdk_path:
+  - 'device'
+  - 'services'
+  - 'dns'
+locations:
+  'system':
+    description: 'Located in a system settings.'
+    device:
+      panorama: true
+      ngfw: true
+    xpath:
+      - 'config'
+      - 'devices'
+      - '{{ Entry $ngfw_device }}'
+      - 'deviceconfig'
+      - 'system'
+    vars:
+      'ngfw_device':
+        description: 'The NGFW device.'
+        default: 'localhost.localdomain'
+  'template':
+    description: 'Located in a specific template.'
+    device:
+      panorama: true
+    xpath:
+      - 'config'
+      - 'devices'
+      - '{{ Entry $panorama_device }}'
+      - 'template'
+      - '{{ Entry $template }}'
+      - 'config'
+      - 'devices'
+      - '{{ Entry $ngfw_device }}'
+      - 'deviceconfig'
+      - 'system'
+    vars:
+      'panorama_device':
+        description: 'The panorama device.'
+        default: 'localhost.localdomain'
+      'template':
+        description: 'The template.'
+        required: true
+      'ngfw_device':
+        description: 'The NGFW device.'
+        default: 'localhost.localdomain'
+version: '10.1.0'
+spec:
+  params:
+    fqdn_refresh_time:
+      description: 'Seconds for Periodic Timer to refresh expired FQDN object entries'
+      type: 'int'
+      value:
+        min: 600
+        max: 14399
+        default: 1800
+      profiles:
+        -
+          xpath: ["fqdn-refresh-time"]
+    dns_setting:
+      description: 'DNS settings'
+      profiles:
+        -
+          xpath: ["dns-setting"]
+      spec:
+        params:
+          servers:
+            description: 'DNS servers'
+            profiles:
+              -
+                xpath: ["servers"]
+            spec:
+              properties:
+                params:
+                  primary:
+                    description: 'Primary DNS server IP address'
+                    profiles:
+                      -
+                        xpath: ["primary"]
+                  secondary:
+                    description: 'Secondary DNS server IP address'
+                    profiles:
+                      -
+                        xpath: ["secondary"]
