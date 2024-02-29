@@ -310,7 +310,7 @@ func TestGetNormalizations(t *testing.T) {
 	assert.GreaterOrEqual(t, 15, len(config), "Expected to have 15 spec YAML files")
 }
 
-func TestSanityCheck(t *testing.T) {
+func TestSanity(t *testing.T) {
 	// given
 	var fileContent = `
 name: 'Address'
@@ -331,4 +331,24 @@ xpath_suffix:
 
 	// then
 	assert.ErrorContainsf(t, err, "at least 1 location is required", "error message %s", err)
+}
+
+func TestValidation(t *testing.T) {
+	// given
+	var fileContent = `
+name: 'Address'
+terraform_provider_suffix: 'address'
+xpath_suffix:
+  - 'address'
+`
+	// when
+	yamlParsedData := Normalization{}
+	err := yaml.Unmarshal([]byte(fileContent), &yamlParsedData)
+	if err != nil {
+		t.Fatalf("error: %v", err)
+	}
+	problems := yamlParsedData.Validate()
+
+	// then
+	assert.Len(t, problems, 2, "Not all expected validation checks failed")
 }

@@ -135,23 +135,36 @@ func ParseSpec(content []byte) (*Normalization, error) {
 }
 
 func (spec *Normalization) Sanity() error {
-	if strings.Contains(spec.TerraformProviderSuffix, "panos_") {
-		return errors.New("suffix for Terraform provider cannot contain `panos_`")
+	if spec.Name == "" {
+		return errors.New("name is required")
 	}
-	for _, suffix := range spec.XpathSuffix {
-		if strings.Contains(suffix, "/") {
-			return errors.New("XPath cannot contain /")
-		}
-	}
-	if len(spec.Locations) < 1 {
+	if spec.Locations == nil {
 		return errors.New("at least 1 location is required")
 	}
-	if len(spec.GoSdkPath) < 2 {
-		return errors.New("golang SDK path should contain at least 2 elements of the path")
+	if spec.GoSdkPath == nil {
+		return errors.New("golang SDK path is required")
 	}
+
 	return nil
 }
 
 func (spec *Normalization) Validate() []error {
-	return nil
+	var checks []error
+
+	if strings.Contains(spec.TerraformProviderSuffix, "panos_") {
+		checks = append(checks, errors.New("suffix for Terraform provider cannot contain `panos_`"))
+	}
+	for _, suffix := range spec.XpathSuffix {
+		if strings.Contains(suffix, "/") {
+			checks = append(checks, errors.New("XPath cannot contain /"))
+		}
+	}
+	if len(spec.Locations) < 1 {
+		checks = append(checks, errors.New("at least 1 location is required"))
+	}
+	if len(spec.GoSdkPath) < 2 {
+		checks = append(checks, errors.New("golang SDK path should contain at least 2 elements of the path"))
+	}
+
+	return checks
 }

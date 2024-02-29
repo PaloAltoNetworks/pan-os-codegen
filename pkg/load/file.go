@@ -3,10 +3,9 @@ package load
 import (
 	"encoding/json"
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"os"
 	"strings"
-
-	"gopkg.in/yaml.v3"
 )
 
 func Unmarshall(v []byte, o interface{}) error {
