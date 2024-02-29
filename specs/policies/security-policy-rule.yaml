@@ -51,7 +51,8 @@ locations:
           values: ['post-rulebase', 'pre-rulebase']
   'device_group':
     description: 'Located in a specific device group.'
-    device: ['panorama']
+    device:
+      panorama: true
     xpath:
       - 'config'
       - 'devices'
