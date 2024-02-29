@@ -10,18 +10,182 @@ func TestUnmarshallAddressSpecFile(t *testing.T) {
 	// given
 
 	// when
-	yamlParser, _ := ParseSpec("../../specs/objects/address.yaml")
+	yamlParsedData, _ := ParseSpec("../../specs/objects/address.yaml")
 
 	// then
-	assert.NotNilf(t, yamlParser, "Unmarshalled data cannot be nil")
-	assert.Equal(t, "Address", yamlParser.Name, "Unmarshalled data should contain `name`")
-	assert.Equal(t, "address", yamlParser.TerraformProviderSuffix, "Unmarshalled data should contain `terraform_provider_suffix`")
-	assert.NotNilf(t, yamlParser.GoSdkPath, "Unmarshalled data should contain `go_sdk_path`")
-	assert.NotNilf(t, yamlParser.XpathSuffix, "Unmarshalled data should contain `xpath_suffix`")
-	assert.NotNilf(t, yamlParser.Locations, "Unmarshalled data should contain `locations`")
-	assert.NotNilf(t, yamlParser.Entry, "Unmarshalled data should contain `entry`")
-	assert.NotNilf(t, yamlParser.Version, "Unmarshalled data should contain `version`")
-	assert.NotNilf(t, yamlParser.Spec, "Unmarshalled data should contain `spec`")
+	assert.NotNilf(t, yamlParsedData, "Unmarshalled data cannot be nil")
+	assert.Equal(t, "Address", yamlParsedData.Name, "Unmarshalled data should contain `name`")
+	assert.Equal(t, "address", yamlParsedData.TerraformProviderSuffix, "Unmarshalled data should contain `terraform_provider_suffix`")
+	assert.NotNilf(t, yamlParsedData.GoSdkPath, "Unmarshalled data should contain `go_sdk_path`")
+	assert.NotNilf(t, yamlParsedData.XpathSuffix, "Unmarshalled data should contain `xpath_suffix`")
+	assert.NotNilf(t, yamlParsedData.Locations, "Unmarshalled data should contain `locations`")
+	assert.NotNilf(t, yamlParsedData.Entry, "Unmarshalled data should contain `entry`")
+	assert.NotNilf(t, yamlParsedData.Version, "Unmarshalled data should contain `version`")
+	assert.NotNilf(t, yamlParsedData.Spec, "Unmarshalled data should contain `spec`")
+}
+
+func TestMarshallAddressSpecFile(t *testing.T) {
+	// given
+	var expectedMarshalledData = `name: Address
+terraform_provider_suffix: address
+go_sdk_path:
+    - objects
+    - address
+xpath_suffix:
+    - address
+locations:
+    device_group:
+        description: Located in a specific device group.
+        device:
+            panorama: true
+            ngfw: false
+        xpath:
+            - config
+            - devices
+            - '{{ Entry $panorama_device }}'
+            - device-group
+            - '{{ Entry $device_group }}'
+        read_only: false
+        vars:
+            device_group:
+                description: The device group.
+                required: true
+                validation:
+                    not_values:
+                        shared: The device group cannot be "shared". Use the "shared" path instead.
+            panorama_device:
+                description: The panorama device.
+                required: false
+                validation:
+                    not_values: {}
+    from_panorama:
+        description: Located in the config pushed from Panorama.
+        device:
+            panorama: false
+            ngfw: true
+        xpath:
+            - config
+            - panorama
+        read_only: true
+        vars: {}
+    shared:
+        description: Located in shared.
+        device:
+            panorama: true
+            ngfw: true
+        xpath:
+            - config
+            - shared
+        read_only: false
+        vars: {}
+    vsys:
+        description: Located in a specific vsys.
+        device:
+            panorama: true
+            ngfw: true
+        xpath:
+            - config
+            - devices
+            - '{{ Entry $ngfw_device }}'
+            - vsys
+            - '{{ Entry $vsys }}'
+        read_only: false
+        vars:
+            ngfw_device:
+                description: The NGFW device.
+                required: false
+                validation:
+                    not_values: {}
+            vsys:
+                description: The vsys.
+                required: false
+                validation:
+                    not_values:
+                        shared: The vsys cannot be "shared". Use the "shared" path instead.
+entry:
+    name:
+        description: The name of the address object.
+        length:
+            min: 1
+            max: 63
+version: 10.1.0
+spec:
+    params:
+        description:
+            description: The description.
+            type: string
+            length:
+                min: 0
+                max: 1023
+            profiles:
+                - xpath:
+                    - description
+            spec:
+                params: {}
+        tags:
+            description: The administrative tags.
+            type: list
+            count:
+                min: 0
+                max: 64
+            items:
+                type: string
+                length:
+                    min: 0
+                    max: 127
+            profiles:
+                - xpath:
+                    - tag
+                  type: member
+            spec:
+                params: {}
+    one_of:
+        fqdn:
+            description: The FQDN value.
+            type: ""
+            length:
+                min: 1
+                max: 255
+            regex: ^[a-zA-Z0-9_]([a-zA-Z0-9:_-])+[a-zA-Z0-9]$
+            profiles:
+                - xpath:
+                    - fqdn
+            spec:
+                params: {}
+        ip_netmask:
+            description: The IP netmask value.
+            type: ""
+            profiles:
+                - xpath:
+                    - ip-netmask
+            spec:
+                params: {}
+        ip_range:
+            description: The IP range value.
+            type: ""
+            profiles:
+                - xpath:
+                    - ip-range
+            spec:
+                params: {}
+        ip_wildcard:
+            description: The IP wildcard value.
+            type: ""
+            profiles:
+                - xpath:
+                    - ip-wildcard
+            spec:
+                params: {}
+`
+
+	// when
+	yamlParsedData, _ := ParseSpec("../../specs/objects/address.yaml")
+	yamlDump, _ := yaml.Marshal(&yamlParsedData)
+	//fmt.Printf("%s", string(yamlDump))
+
+	// then
+	assert.NotNilf(t, yamlDump, "Marshalled data cannot be nil")
+	assert.Equal(t, expectedMarshalledData, string(yamlDump), "Marshalled data differs from expected")
 }
 
 func TestGetNormalizations(t *testing.T) {
