@@ -56,8 +56,7 @@ locations:
             panorama_device:
                 description: The panorama device.
                 required: false
-                validation:
-                    not_values: {}
+                validation: null
     from_panorama:
         description: Located in the config pushed from Panorama.
         device:
@@ -94,8 +93,7 @@ locations:
             ngfw_device:
                 description: The NGFW device.
                 required: false
-                validation:
-                    not_values: {}
+                validation: null
             vsys:
                 description: The vsys.
                 required: false
@@ -120,25 +118,23 @@ spec:
             profiles:
                 - xpath:
                     - description
-            spec:
-                params: {}
+            spec: null
         tags:
             description: The administrative tags.
             type: list
             count:
-                min: 0
+                min: null
                 max: 64
             items:
                 type: string
                 length:
-                    min: 0
+                    min: null
                     max: 127
             profiles:
                 - xpath:
                     - tag
                   type: member
-            spec:
-                params: {}
+            spec: null
     one_of:
         fqdn:
             description: The FQDN value.
@@ -150,32 +146,28 @@ spec:
             profiles:
                 - xpath:
                     - fqdn
-            spec:
-                params: {}
+            spec: null
         ip_netmask:
             description: The IP netmask value.
             type: ""
             profiles:
                 - xpath:
                     - ip-netmask
-            spec:
-                params: {}
+            spec: null
         ip_range:
             description: The IP range value.
             type: ""
             profiles:
                 - xpath:
                     - ip-range
-            spec:
-                params: {}
+            spec: null
         ip_wildcard:
             description: The IP wildcard value.
             type: ""
             profiles:
                 - xpath:
                     - ip-wildcard
-            spec:
-                params: {}
+            spec: null
 `
 
 	// when

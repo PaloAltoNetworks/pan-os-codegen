@@ -13,22 +13,22 @@ import (
 )
 
 type Normalization struct {
-	Name                    string              `json:"name" yaml:"name"`
-	TerraformProviderSuffix string              `json:"terraform_provider_suffix" yaml:"terraform_provider_suffix"`
-	GoSdkPath               []string            `json:"go_sdk_path" yaml:"go_sdk_path"`
-	XpathSuffix             []string            `json:"xpath_suffix" yaml:"xpath_suffix"`
-	Locations               map[string]Location `json:"locations" yaml:"locations"`
-	Entry                   Entry               `json:"entry" yaml:"entry"`
-	Version                 string              `json:"version" yaml:"version"`
-	Spec                    Spec                `json:"spec" yaml:"spec"`
+	Name                    string               `json:"name" yaml:"name"`
+	TerraformProviderSuffix string               `json:"terraform_provider_suffix" yaml:"terraform_provider_suffix"`
+	GoSdkPath               []string             `json:"go_sdk_path" yaml:"go_sdk_path"`
+	XpathSuffix             []string             `json:"xpath_suffix" yaml:"xpath_suffix"`
+	Locations               map[string]*Location `json:"locations" yaml:"locations"`
+	Entry                   *Entry               `json:"entry" yaml:"entry"`
+	Version                 string               `json:"version" yaml:"version"`
+	Spec                    *Spec                `json:"spec" yaml:"spec"`
 }
 
 type Location struct {
-	Description string                 `json:"description" yaml:"description"`
-	Device      LocationDevice         `json:"device" yaml:"device"`
-	Xpath       []string               `json:"xpath" yaml:"xpath"`
-	ReadOnly    bool                   `json:"read_only" yaml:"read_only"`
-	Vars        map[string]LocationVar `json:"vars" yaml:"vars"`
+	Description string                  `json:"description" yaml:"description"`
+	Device      *LocationDevice         `json:"device" yaml:"device"`
+	Xpath       []string                `json:"xpath" yaml:"xpath"`
+	ReadOnly    bool                    `json:"read_only" yaml:"read_only"`
+	Vars        map[string]*LocationVar `json:"vars" yaml:"vars"`
 }
 
 type LocationDevice struct {
@@ -37,9 +37,9 @@ type LocationDevice struct {
 }
 
 type LocationVar struct {
-	Description string                `json:"description" yaml:"description"`
-	Required    bool                  `json:"required" yaml:"required"`
-	Validation  LocationVarValidation `json:"validation" yaml:"validation"`
+	Description string                 `json:"description" yaml:"description"`
+	Required    bool                   `json:"required" yaml:"required"`
+	Validation  *LocationVarValidation `json:"validation" yaml:"validation"`
 }
 
 type LocationVarValidation struct {
@@ -47,53 +47,53 @@ type LocationVarValidation struct {
 }
 
 type Entry struct {
-	Name EntryName `json:"name" yaml:"name"`
+	Name *EntryName `json:"name" yaml:"name"`
 }
 
 type EntryName struct {
-	Description string          `json:"description" yaml:"description"`
-	Length      EntryNameLength `json:"length" yaml:"length"`
+	Description string           `json:"description" yaml:"description"`
+	Length      *EntryNameLength `json:"length" yaml:"length"`
 }
 
 type EntryNameLength struct {
-	Min int `json:"min" yaml:"min"`
-	Max int `json:"max" yaml:"max"`
+	Min *int64 `json:"min" yaml:"min"`
+	Max *int64 `json:"max" yaml:"max"`
 }
 
 type Spec struct {
-	Params map[string]SpecParam `json:"params" yaml:"params"`
-	OneOf  map[string]SpecParam `json:"one_of" yaml:"one_of,omitempty"`
+	Params map[string]*SpecParam `json:"params" yaml:"params"`
+	OneOf  map[string]*SpecParam `json:"one_of" yaml:"one_of,omitempty"`
 }
 
 type SpecParam struct {
-	Description string             `json:"description" yaml:"description"`
-	Type        string             `json:"type" yaml:"type"`
-	Length      SpecParamLength    `json:"length" yaml:"length,omitempty"`
-	Count       SpecParamCount     `json:"count" yaml:"count,omitempty"`
-	Items       SpecParamItems     `json:"items" yaml:"items,omitempty"`
-	Regex       string             `json:"regex" yaml:"regex,omitempty"`
-	Profiles    []SpecParamProfile `json:"profiles" yaml:"profiles"`
-	Spec        Spec               `json:"spec" yaml:"spec"`
+	Description string              `json:"description" yaml:"description"`
+	Type        string              `json:"type" yaml:"type"`
+	Length      *SpecParamLength    `json:"length" yaml:"length,omitempty"`
+	Count       *SpecParamCount     `json:"count" yaml:"count,omitempty"`
+	Items       *SpecParamItems     `json:"items" yaml:"items,omitempty"`
+	Regex       string              `json:"regex" yaml:"regex,omitempty"`
+	Profiles    []*SpecParamProfile `json:"profiles" yaml:"profiles"`
+	Spec        *Spec               `json:"spec" yaml:"spec"`
 }
 
 type SpecParamLength struct {
-	Min int `json:"min" yaml:"min"`
-	Max int `json:"max" yaml:"max"`
+	Min *int64 `json:"min" yaml:"min"`
+	Max *int64 `json:"max" yaml:"max"`
 }
 
 type SpecParamCount struct {
-	Min int `json:"min" yaml:"min"`
-	Max int `json:"max" yaml:"max"`
+	Min *int64 `json:"min" yaml:"min"`
+	Max *int64 `json:"max" yaml:"max"`
 }
 
 type SpecParamItems struct {
-	Type   string               `json:"type" yaml:"type"`
-	Length SpecParamItemsLength `json:"length" yaml:"length"`
+	Type   string                `json:"type" yaml:"type"`
+	Length *SpecParamItemsLength `json:"length" yaml:"length"`
 }
 
 type SpecParamItemsLength struct {
-	Min int `json:"min" yaml:"min"`
-	Max int `json:"max" yaml:"max"`
+	Min *int64 `json:"min" yaml:"min"`
+	Max *int64 `json:"max" yaml:"max"`
 }
 
 type SpecParamProfile struct {
