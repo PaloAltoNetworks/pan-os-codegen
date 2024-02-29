@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func Unmarshall(v []byte, o interface{}) error {
+func Unmarshal(v []byte, o interface{}) error {
 	var err error
 
 	runes := []byte(strings.TrimSpace(string(v)))
@@ -25,7 +25,7 @@ func Unmarshall(v []byte, o interface{}) error {
 	return err
 }
 
-func FileContent(path string) ([]byte, error) {
+func File(path string) ([]byte, error) {
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
