@@ -9,7 +9,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func File(v []byte, o interface{}) error {
+func Unmarshall(v []byte, o interface{}) error {
 	var err error
 
 	runes := []byte(strings.TrimSpace(string(v)))

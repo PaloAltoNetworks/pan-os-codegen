@@ -130,7 +130,7 @@ func GetNormalizations() ([]string, error) {
 
 func ParseSpec(content []byte) (*Normalization, error) {
 	var ans Normalization
-	err := load.File(content, &ans)
+	err := load.Unmarshall(content, &ans)
 	return &ans, err
 }
 

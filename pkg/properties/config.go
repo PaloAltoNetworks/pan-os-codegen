@@ -15,6 +15,6 @@ type OutputPaths struct {
 
 func ParseConfig(content []byte) (*Config, error) {
 	var ans Config
-	err := load.File(content, &ans)
+	err := load.Unmarshall(content, &ans)
 	return &ans, err
 }
