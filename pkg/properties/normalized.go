@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -129,14 +128,9 @@ func GetNormalizations() ([]string, error) {
 	return files, nil
 }
 
-func ParseSpec(path string) (*Normalization, error) {
-	b, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
+func ParseSpec(content []byte) (*Normalization, error) {
 	var ans Normalization
-	err = load.File(b, &ans)
+	err := load.File(content, &ans)
 	return &ans, err
 }
 

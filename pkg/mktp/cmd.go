@@ -3,6 +3,7 @@ package mktp
 import (
 	"context"
 	"fmt"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/load"
 	"io"
 	"os"
 	_ "os/exec"
@@ -61,7 +62,8 @@ func (c *Cmd) Execute() error {
 	//providerResources := make([]string, 0, 100)
 
 	fmt.Fprintf(c.Stdout, "Reading configuration file: %s...\n", c.args[0])
-	config, err := properties.ParseConfig(c.args[0])
+	content, err := load.FileContent(c.args[0])
+	config, err := properties.ParseConfig(content)
 	if err != nil {
 		return fmt.Errorf("error parsing %s - %s", c.args[0], err)
 	}
@@ -78,7 +80,8 @@ func (c *Cmd) Execute() error {
 
 	for _, configPath := range c.specs {
 		fmt.Fprintf(c.Stdout, "Parsing %s...\n", configPath)
-		spec, err := properties.ParseSpec(configPath)
+		content, err := load.FileContent(configPath)
+		spec, err := properties.ParseSpec(content)
 		if err != nil {
 			return fmt.Errorf("error parsing %s - %s", configPath, err)
 		}

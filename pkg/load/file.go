@@ -3,6 +3,7 @@ package load
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -23,4 +24,12 @@ func File(v []byte, o interface{}) error {
 	}
 
 	return err
+}
+
+func FileContent(path string) ([]byte, error) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	return content, err
 }
