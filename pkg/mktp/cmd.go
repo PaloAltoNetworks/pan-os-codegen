@@ -82,7 +82,7 @@ func (c *Cmd) Execute() error {
 
 	// Create output directories
 	fmt.Fprintf(c.Stdout, "Creating output directories defined in %s... \n", configPath)
-	_, err = creator.PrepareOutputDirs(config)
+	_, err = creator.CreateOutputDirs(config)
 	if err != nil {
 		return fmt.Errorf("error config %s - %s", configPath, err)
 	}
@@ -108,7 +108,7 @@ func (c *Cmd) Execute() error {
 		}
 
 		// Prepare files
-		_, err = creator.PrepareSpecFiles(config.Output.GoSdk, spec.GoSdkPath)
+		_, err = creator.RenderTemplate(config.Output.GoSdk, spec)
 
 		// Output normalization as pango code.
 

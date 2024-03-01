@@ -7,9 +7,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 )
 
-func PrepareOutputDirs(config *properties.Config) (bool, error) {
+func CreateOutputDirs(config *properties.Config) (bool, error) {
 	if err := os.MkdirAll(config.Output.GoSdk, 0755); err != nil && !os.IsExist(err) {
 		return false, err
 	}
@@ -20,7 +21,7 @@ func PrepareOutputDirs(config *properties.Config) (bool, error) {
 	return true, nil
 }
 
-func PrepareSpecFiles(goOutputDir string, goSdkPath []string) (bool, error) {
+func RenderTemplate(goOutputDir string, spec *properties.Normalization) (bool, error) {
 	files := make([]string, 0, 100)
 
 	err := filepath.WalkDir("templates", func(path string, entry fs.DirEntry, err error) error {
@@ -39,14 +40,32 @@ func PrepareSpecFiles(goOutputDir string, goSdkPath []string) (bool, error) {
 	}
 
 	for _, fileName := range files {
-		filePath := fmt.Sprintf("%s/%s/%s.go", goOutputDir, strings.Join(goSdkPath, "/"), strings.Split(fileName, ".")[0])
+		filePath := fmt.Sprintf("%s/%s/%s.go", goOutputDir, strings.Join(spec.GoSdkPath, "/"), strings.Split(fileName, ".")[0])
 		fmt.Printf("Create file %s\n", filePath)
 
 		dirPath := filepath.Dir(filePath)
 		if err = os.MkdirAll(dirPath, os.ModePerm); err != nil {
 			return false, err
 		}
-		if err = os.WriteFile(filePath, []byte(""), 0644); err != nil {
+
+		outputFile, err := os.Create(filePath)
+		if err != nil {
+			return false, err
+		}
+		defer func(outputFile *os.File) {
+			err := outputFile.Close()
+			if err != nil {
+
+			}
+		}(outputFile)
+
+		templatePath := fmt.Sprintf("templates/%s", fileName)
+		tmpl, err := template.ParseFiles(templatePath)
+		if err != nil {
+			return false, err
+		}
+
+		if err = tmpl.Execute(outputFile, spec); err != nil {
 			return false, err
 		}
 	}
