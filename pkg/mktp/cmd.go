@@ -3,6 +3,7 @@ package mktp
 import (
 	"context"
 	"fmt"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/creator"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/load"
 	"io"
 	"os"
@@ -61,34 +62,29 @@ func (c *Cmd) Execute() error {
 	//providerDataSources := make([]string, 0, 200)
 	//providerResources := make([]string, 0, 100)
 
-	fmt.Fprintf(c.Stdout, "Reading configuration file: %s...\n", c.args[0])
-	content, err := load.File(c.args[0])
-	config, err := properties.ParseConfig(content)
+	if len(c.args) == 0 {
+		return fmt.Errorf("path to configuration file is required")
+	}
+	configPath := c.args[0]
+
+	_, err := creator.PrepareOutputDirs(configPath)
 	if err != nil {
-		return fmt.Errorf("error parsing %s - %s", c.args[0], err)
+		return fmt.Errorf("error config %s - %s", configPath, err)
+	} else {
+		fmt.Fprintf(c.Stdout, "Output directories defined in %s created \n", configPath)
 	}
 
-	fmt.Fprintf(c.Stdout, "Output directory for Go SDK: %s\n", config.Output.GoSdk)
-	if err = os.MkdirAll(config.Output.GoSdk, 0755); err != nil && !os.IsExist(err) {
-		return err
-	}
-
-	fmt.Fprintf(c.Stdout, "Output directory for Terraform provider: %s\n", config.Output.TerraformProvider)
-	if err = os.MkdirAll(config.Output.TerraformProvider, 0755); err != nil && !os.IsExist(err) {
-		return err
-	}
-
-	for _, configPath := range c.specs {
-		fmt.Fprintf(c.Stdout, "Parsing %s...\n", configPath)
-		content, err := load.File(configPath)
+	for _, specPath := range c.specs {
+		fmt.Fprintf(c.Stdout, "Parsing %s...\n", specPath)
+		content, err := load.File(specPath)
 		spec, err := properties.ParseSpec(content)
 		if err != nil {
-			return fmt.Errorf("error parsing %s - %s", configPath, err)
+			return fmt.Errorf("error parsing %s - %s", specPath, err)
 		}
 
 		// Sanity check.
 		if err = spec.Sanity(); err != nil {
-			return fmt.Errorf("%s sanity failed: %s", configPath, err)
+			return fmt.Errorf("%s sanity failed: %s", specPath, err)
 		}
 
 		// Output normalization as pango code.
