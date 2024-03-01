@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-const content = `name: 'Address'
+const sampleSpec = `name: 'Address'
 terraform_provider_suffix: 'address'
 go_sdk_path:
   - 'objects'
@@ -129,7 +129,7 @@ func TestUnmarshallAddressSpecFile(t *testing.T) {
 	// given
 
 	// when
-	yamlParsedData, _ := ParseSpec([]byte(content))
+	yamlParsedData, _ := ParseSpec([]byte(sampleSpec))
 
 	// then
 	assert.NotNilf(t, yamlParsedData, "Unmarshalled data cannot be nil")
@@ -290,7 +290,7 @@ spec:
 `
 
 	// when
-	yamlParsedData, _ := ParseSpec([]byte(content))
+	yamlParsedData, _ := ParseSpec([]byte(sampleSpec))
 	yamlDump, _ := yaml.Marshal(&yamlParsedData)
 	//fmt.Printf("%s", string(yamlDump))
 
@@ -312,7 +312,7 @@ func TestGetNormalizations(t *testing.T) {
 
 func TestSanity(t *testing.T) {
 	// given
-	var fileContent = `
+	var sampleInvalidSpec = `
 name: 'Address'
 terraform_provider_suffix: 'address'
 go_sdk_path:
@@ -323,7 +323,7 @@ xpath_suffix:
 `
 	// when
 	yamlParsedData := Normalization{}
-	err := yaml.Unmarshal([]byte(fileContent), &yamlParsedData)
+	err := yaml.Unmarshal([]byte(sampleInvalidSpec), &yamlParsedData)
 	if err != nil {
 		t.Fatalf("error: %v", err)
 	}
@@ -335,7 +335,7 @@ xpath_suffix:
 
 func TestValidation(t *testing.T) {
 	// given
-	var fileContent = `
+	var sampleInvalidSpec = `
 name: 'Address'
 terraform_provider_suffix: 'address'
 xpath_suffix:
@@ -343,7 +343,7 @@ xpath_suffix:
 `
 	// when
 	yamlParsedData := Normalization{}
-	err := yaml.Unmarshal([]byte(fileContent), &yamlParsedData)
+	err := yaml.Unmarshal([]byte(sampleInvalidSpec), &yamlParsedData)
 	if err != nil {
 		t.Fatalf("error: %v", err)
 	}

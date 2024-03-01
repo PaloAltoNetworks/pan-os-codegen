@@ -1,8 +1,6 @@
 package properties
 
-import (
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/load"
-)
+import "github.com/paloaltonetworks/pan-os-codegen/pkg/content"
 
 type Config struct {
 	Output OutputPaths `json:"output" yaml:"output"`
@@ -13,8 +11,8 @@ type OutputPaths struct {
 	TerraformProvider string `json:"terraform_provider" yaml:"terraform_provider"`
 }
 
-func ParseConfig(content []byte) (*Config, error) {
+func ParseConfig(input []byte) (*Config, error) {
 	var ans Config
-	err := load.Unmarshal(content, &ans)
+	err := content.Unmarshal(input, &ans)
 	return &ans, err
 }
