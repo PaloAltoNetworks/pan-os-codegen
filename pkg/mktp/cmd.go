@@ -80,13 +80,6 @@ func (c *Cmd) Execute() error {
 		return fmt.Errorf("error parsing %s - %s", configPath, err)
 	}
 
-	// Create output directories
-	fmt.Fprintf(c.Stdout, "Creating output directories defined in %s... \n", configPath)
-	_, err = creator.CreateOutputDirs(config)
-	if err != nil {
-		return fmt.Errorf("error config %s - %s", configPath, err)
-	}
-
 	for _, specPath := range c.specs {
 		fmt.Fprintf(c.Stdout, "Parsing %s...\n", specPath)
 
@@ -107,10 +100,10 @@ func (c *Cmd) Execute() error {
 			return fmt.Errorf("%s sanity failed: %s", specPath, err)
 		}
 
-		// Prepare files
-		_, err = creator.RenderTemplate(config.Output.GoSdk, spec)
-
 		// Output normalization as pango code.
+		if err = creator.RenderTemplate(config.Output.GoSdk, spec); err != nil {
+			return fmt.Errorf("error rendering %s - %s", specPath, err)
+		}
 
 		// Output as Terraform code.
 	}
