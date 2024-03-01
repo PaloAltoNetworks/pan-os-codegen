@@ -1,7 +1,8 @@
-package creator
+package generate
 
 import (
 	"fmt"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 	"io/fs"
 	"os"
@@ -10,22 +11,34 @@ import (
 	"text/template"
 )
 
-func RenderTemplate(goOutputDir string, spec *properties.Normalization) error {
+type Creator struct {
+	GoOutputDir string
+	Spec        *properties.Normalization
+}
+
+func NewCreator(goOutputDir string, spec *properties.Normalization) *Creator {
+	return &Creator{
+		GoOutputDir: goOutputDir,
+		Spec:        spec,
+	}
+}
+
+func (c *Creator) RenderTemplate() error {
 	templates := make([]string, 0, 100)
-	templates, err := listOfTemplates(templates)
+	templates, err := c.listOfTemplates(templates)
 	if err != nil {
 		return err
 	}
 
 	for _, templateName := range templates {
-		filePath := createFullFilePath(goOutputDir, spec, templateName)
+		filePath := c.createFullFilePath(c.GoOutputDir, c.Spec, templateName)
 		fmt.Printf("Create file %s\n", filePath)
 
-		if err := makeAllDirs(filePath, err); err != nil {
+		if err := c.makeAllDirs(filePath, err); err != nil {
 			return err
 		}
 
-		outputFile, err := createFile(filePath)
+		outputFile, err := c.createFile(filePath)
 		if err != nil {
 			return err
 		}
@@ -36,12 +49,12 @@ func RenderTemplate(goOutputDir string, spec *properties.Normalization) error {
 			}
 		}(outputFile)
 
-		tmpl, err := parseTemplate(templateName, err)
+		tmpl, err := c.parseTemplate(templateName, err)
 		if err != nil {
 			return err
 		}
 
-		err = generateOutputFileFromTemplate(err, tmpl, outputFile, spec)
+		err = c.generateOutputFileFromTemplate(err, tmpl, outputFile, c.Spec)
 		if err != nil {
 			return err
 		}
@@ -49,23 +62,26 @@ func RenderTemplate(goOutputDir string, spec *properties.Normalization) error {
 	return nil
 }
 
-func generateOutputFileFromTemplate(err error, tmpl *template.Template, outputFile *os.File, spec *properties.Normalization) error {
+func (c *Creator) generateOutputFileFromTemplate(err error, tmpl *template.Template, outputFile *os.File, spec *properties.Normalization) error {
 	if err = tmpl.Execute(outputFile, spec); err != nil {
 		return err
 	}
 	return nil
 }
 
-func parseTemplate(templateName string, err error) (*template.Template, error) {
+func (c *Creator) parseTemplate(templateName string, err error) (*template.Template, error) {
 	templatePath := fmt.Sprintf("templates/%s", templateName)
-	tmpl, err := template.ParseFiles(templatePath)
+	funcMap := template.FuncMap{
+		"packageName": naming.PackageName,
+	}
+	tmpl, err := template.New(templateName).Funcs(funcMap).ParseFiles(templatePath)
 	if err != nil {
 		return nil, err
 	}
 	return tmpl, nil
 }
 
-func createFile(filePath string) (*os.File, error) {
+func (c *Creator) createFile(filePath string) (*os.File, error) {
 	outputFile, err := os.Create(filePath)
 	if err != nil {
 		return nil, err
@@ -73,11 +89,11 @@ func createFile(filePath string) (*os.File, error) {
 	return outputFile, nil
 }
 
-func createFullFilePath(goOutputDir string, spec *properties.Normalization, templateName string) string {
+func (c *Creator) createFullFilePath(goOutputDir string, spec *properties.Normalization, templateName string) string {
 	return fmt.Sprintf("%s/%s/%s.go", goOutputDir, strings.Join(spec.GoSdkPath, "/"), strings.Split(templateName, ".")[0])
 }
 
-func makeAllDirs(filePath string, err error) error {
+func (c *Creator) makeAllDirs(filePath string, err error) error {
 	dirPath := filepath.Dir(filePath)
 	if err = os.MkdirAll(dirPath, os.ModePerm); err != nil {
 		return err
@@ -85,7 +101,7 @@ func makeAllDirs(filePath string, err error) error {
 	return nil
 }
 
-func listOfTemplates(files []string) ([]string, error) {
+func (c *Creator) listOfTemplates(files []string) ([]string, error) {
 	err := filepath.WalkDir("templates", func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err

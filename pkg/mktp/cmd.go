@@ -3,7 +3,7 @@ package mktp
 import (
 	"context"
 	"fmt"
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/creator"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/generate"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/load"
 	"io"
 	"os"
@@ -101,7 +101,8 @@ func (c *Cmd) Execute() error {
 		}
 
 		// Output normalization as pango code.
-		if err = creator.RenderTemplate(config.Output.GoSdk, spec); err != nil {
+		generator := generate.NewCreator(config.Output.GoSdk, spec)
+		if err = generator.RenderTemplate(); err != nil {
 			return fmt.Errorf("error rendering %s - %s", specPath, err)
 		}
 
