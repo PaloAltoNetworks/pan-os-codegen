@@ -101,7 +101,7 @@ func (c *Cmd) Execute() error {
 		}
 
 		// Output normalization as pango code.
-		generator := generate.NewCreator(config.Output.GoSdk, spec)
+		generator := generate.NewCreator(config.Output.GoSdk, "templates/sdk", spec)
 		if err = generator.RenderTemplate(); err != nil {
 			return fmt.Errorf("error rendering %s - %s", specPath, err)
 		}

@@ -12,14 +12,16 @@ import (
 )
 
 type Creator struct {
-	GoOutputDir string
-	Spec        *properties.Normalization
+	GoOutputDir  string
+	TemplatesDir string
+	Spec         *properties.Normalization
 }
 
-func NewCreator(goOutputDir string, spec *properties.Normalization) *Creator {
+func NewCreator(goOutputDir string, templatesDir string, spec *properties.Normalization) *Creator {
 	return &Creator{
-		GoOutputDir: goOutputDir,
-		Spec:        spec,
+		GoOutputDir:  goOutputDir,
+		TemplatesDir: templatesDir,
+		Spec:         spec,
 	}
 }
 
@@ -70,7 +72,7 @@ func (c *Creator) generateOutputFileFromTemplate(err error, tmpl *template.Templ
 }
 
 func (c *Creator) parseTemplate(templateName string, err error) (*template.Template, error) {
-	templatePath := fmt.Sprintf("templates/%s", templateName)
+	templatePath := fmt.Sprintf("%s/%s", c.TemplatesDir, templateName)
 	funcMap := template.FuncMap{
 		"packageName": naming.PackageName,
 	}
@@ -102,7 +104,7 @@ func (c *Creator) makeAllDirs(filePath string, err error) error {
 }
 
 func (c *Creator) listOfTemplates(files []string) ([]string, error) {
-	err := filepath.WalkDir("templates", func(path string, entry fs.DirEntry, err error) error {
+	err := filepath.WalkDir(c.TemplatesDir, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
