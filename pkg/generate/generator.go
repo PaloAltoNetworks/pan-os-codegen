@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -51,12 +52,12 @@ func (c *Creator) RenderTemplate() error {
 			}
 		}(outputFile)
 
-		tmpl, err := c.parseTemplate(templateName, err)
+		tmpl, err := c.parseTemplate(templateName)
 		if err != nil {
 			return err
 		}
 
-		err = c.generateOutputFileFromTemplate(err, tmpl, outputFile, c.Spec)
+		err = c.generateOutputFileFromTemplate(tmpl, outputFile, c.Spec)
 		if err != nil {
 			return err
 		}
@@ -64,14 +65,14 @@ func (c *Creator) RenderTemplate() error {
 	return nil
 }
 
-func (c *Creator) generateOutputFileFromTemplate(err error, tmpl *template.Template, outputFile *os.File, spec *properties.Normalization) error {
-	if err = tmpl.Execute(outputFile, spec); err != nil {
+func (c *Creator) generateOutputFileFromTemplate(tmpl *template.Template, output io.Writer, spec *properties.Normalization) error {
+	if err := tmpl.Execute(output, spec); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *Creator) parseTemplate(templateName string, err error) (*template.Template, error) {
+func (c *Creator) parseTemplate(templateName string) (*template.Template, error) {
 	templatePath := fmt.Sprintf("%s/%s", c.TemplatesDir, templateName)
 	funcMap := template.FuncMap{
 		"packageName": naming.PackageName,
@@ -83,24 +84,8 @@ func (c *Creator) parseTemplate(templateName string, err error) (*template.Templ
 	return tmpl, nil
 }
 
-func (c *Creator) createFile(filePath string) (*os.File, error) {
-	outputFile, err := os.Create(filePath)
-	if err != nil {
-		return nil, err
-	}
-	return outputFile, nil
-}
-
 func (c *Creator) createFullFilePath(goOutputDir string, spec *properties.Normalization, templateName string) string {
 	return fmt.Sprintf("%s/%s/%s.go", goOutputDir, strings.Join(spec.GoSdkPath, "/"), strings.Split(templateName, ".")[0])
-}
-
-func (c *Creator) makeAllDirs(filePath string, err error) error {
-	dirPath := filepath.Dir(filePath)
-	if err = os.MkdirAll(dirPath, os.ModePerm); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (c *Creator) listOfTemplates(files []string) ([]string, error) {
@@ -119,4 +104,20 @@ func (c *Creator) listOfTemplates(files []string) ([]string, error) {
 		return nil, err
 	}
 	return files, nil
+}
+
+func (c *Creator) createFile(filePath string) (*os.File, error) {
+	outputFile, err := os.Create(filePath)
+	if err != nil {
+		return nil, err
+	}
+	return outputFile, nil
+}
+
+func (c *Creator) makeAllDirs(filePath string, err error) error {
+	dirPath := filepath.Dir(filePath)
+	if err = os.MkdirAll(dirPath, os.ModePerm); err != nil {
+		return err
+	}
+	return nil
 }
