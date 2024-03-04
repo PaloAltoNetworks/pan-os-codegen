@@ -2,8 +2,8 @@ package generate
 
 import (
 	"fmt"
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate"
 	"io"
 	"io/fs"
 	"os"
@@ -75,7 +75,7 @@ func (c *Creator) generateOutputFileFromTemplate(tmpl *template.Template, output
 func (c *Creator) parseTemplate(templateName string) (*template.Template, error) {
 	templatePath := fmt.Sprintf("%s/%s", c.TemplatesDir, templateName)
 	funcMap := template.FuncMap{
-		"packageName": naming.PackageName,
+		"packageName": translate.PackageName,
 	}
 	tmpl, err := template.New(templateName).Funcs(funcMap).ParseFiles(templatePath)
 	if err != nil {

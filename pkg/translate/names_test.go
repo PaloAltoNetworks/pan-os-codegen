@@ -1,4 +1,4 @@
-package naming
+package translate
 
 import (
 	"github.com/stretchr/testify/assert"
