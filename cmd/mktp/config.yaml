@@ -1,0 +1,3 @@
+output:
+  go_sdk: "../generated/pango"
+  terraform_provider: "../generated/terraform-provider-panos"

@@ -2,7 +2,7 @@ name: 'Address group'
 terraform_provider_suffix: 'address_group'
 go_sdk_path:
   - 'objects'
-  - 'address-group'
+  - 'address_group'
 xpath_suffix:
   - 'address-group'
 locations:
@@ -15,7 +15,8 @@ locations:
   'from_panorama':
     description: 'Located in the config pushed from Panorama.'
     read_only: true
-    device: ['ngfw']
+    device:
+      ngfw: true
     xpath: ['config', 'panorama']
   'vsys':
     description: 'Located in a specific vsys.'

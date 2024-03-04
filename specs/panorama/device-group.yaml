@@ -2,7 +2,7 @@ name: 'Device group'
 terraform_provider_suffix: 'device_group'
 go_sdk_path:
   - 'panorama'
-  - 'device-group'
+  - 'device_group'
 xpath_suffix:
   - 'device-group'
 locations:

@@ -95,95 +95,95 @@ spec:
       profiles:
         -
           xpath: ["protocol"]
-          spec:
-            one_of:
-              tcp:
-                description: 'TCP protocol'
-                profiles:
-                  -
-                    xpath: ["tcp"]
-                    spec:
-                      params:
-                        destination-port:
-                          description: 'The destination port.'
-                          type: 'int'
-                          value:
-                            min: 0
-                            max: 1023
-                          profiles:
-                            - xpath: [ "port" ]
-                        source-port:
-                          description: 'The source port.'
-                          type: 'int'
-                          value:
-                            min: 0
-                            max: 1023
-                          profiles:
-                            - xpath: [ "source-port" ]
-                        override:
-                          description: 'Override session timeout.'
-                          profiles:
-                            - xpath: [ "override" ]
-                              spec:
-                                one_of:
-                                  yes:
-                                    profiles:
-                                      -
-                                        xpath: [ "yes"]
-                                        spec:
-                                          'timeout':
-                                            description: 'TCP session timeout value (in second)'
-                                            profiles:
-                                              - xpath: [ "timeout" ]
-                                          'halfclose-timeout':
-                                            description: 'TCP session half-close timeout value (in second)'
-                                            profiles:
-                                              - xpath: [ "halfclose-timeout" ]
-                                          'timewait-timeout':
-                                            description: 'TCP session time-wait timeout value (in second)'
-                                            profiles:
-                                              - xpath: [ "timewait-timeout" ]
-                                  no:
-                                    profiles:
-                                      - xpath: [ "no" ]
-              udp:
-                description: 'UDP protocol'
-                profiles:
-                  -
-                    xpath: ["udp"]
-                    spec:
-                      params:
-                        destination-port:
-                          description: 'The destination port.'
-                          type: 'int'
-                          value:
-                            min: 0
-                            max: 1023
-                          profiles:
-                            - xpath: [ "port" ]
-                        source-port:
-                          description: 'The source port.'
-                          type: 'int'
-                          value:
-                            min: 0
-                            max: 1023
-                          profiles:
-                            - xpath: [ "source-port" ]
-                        override:
-                          description: 'Override session timeout.'
-                          profiles:
-                            - xpath: [ "override" ]
-                              spec:
-                                one_of:
-                                  yes:
-                                    profiles:
-                                      -
-                                        xpath: [ "yes"]
-                                        spec:
-                                          'timeout':
-                                            description: 'UDP session timeout value (in second)'
-                                            profiles:
-                                              - xpath: [ "timeout" ]
-                                  no:
-                                    profiles:
-                                      - xpath: [ "no" ]
+      spec:
+        one_of:
+          tcp:
+            description: 'TCP protocol'
+            profiles:
+              -
+                xpath: ["tcp"]
+            spec:
+              params:
+                destination-port:
+                  description: 'The destination port.'
+                  type: 'int'
+                  value:
+                    min: 0
+                    max: 1023
+                  profiles:
+                    - xpath: [ "port" ]
+                source-port:
+                  description: 'The source port.'
+                  type: 'int'
+                  value:
+                    min: 0
+                    max: 1023
+                  profiles:
+                    - xpath: [ "source-port" ]
+                override:
+                  description: 'Override session timeout.'
+                  profiles:
+                    - xpath: [ "override" ]
+                  spec:
+                    one_of:
+                      yes:
+                        profiles:
+                          -
+                            xpath: [ "yes"]
+                        spec:
+                          'timeout':
+                            description: 'TCP session timeout value (in second)'
+                            profiles:
+                              - xpath: [ "timeout" ]
+                          'halfclose-timeout':
+                            description: 'TCP session half-close timeout value (in second)'
+                            profiles:
+                              - xpath: [ "halfclose-timeout" ]
+                          'timewait-timeout':
+                            description: 'TCP session time-wait timeout value (in second)'
+                            profiles:
+                              - xpath: [ "timewait-timeout" ]
+                      no:
+                        profiles:
+                          - xpath: [ "no" ]
+          udp:
+            description: 'UDP protocol'
+            profiles:
+              -
+                xpath: ["udp"]
+            spec:
+              params:
+                destination-port:
+                  description: 'The destination port.'
+                  type: 'int'
+                  value:
+                    min: 0
+                    max: 1023
+                  profiles:
+                    - xpath: [ "port" ]
+                source-port:
+                  description: 'The source port.'
+                  type: 'int'
+                  value:
+                    min: 0
+                    max: 1023
+                  profiles:
+                    - xpath: [ "source-port" ]
+                override:
+                  description: 'Override session timeout.'
+                  profiles:
+                    - xpath: [ "override" ]
+                  spec:
+                    one_of:
+                      yes:
+                        profiles:
+                          -
+                            xpath: [ "yes"]
+                        spec:
+                          'timeout':
+                            description: 'UDP session timeout value (in second)'
+                            profiles:
+                              - xpath: [ "timeout" ]
+                      no:
+                        profiles:
+                          - xpath: [ "no" ]

@@ -48,7 +48,7 @@ func (o *Namer) NewSlug(name string) string {
 	rs := rand.New(rand.NewSource(sum))
 
 	var ans string
-	for true {
+	for {
 		var b strings.Builder
 		b.Grow(7)
 
