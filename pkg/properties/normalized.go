@@ -3,12 +3,11 @@ package properties
 import (
 	"errors"
 	"fmt"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/content"
 	"io/fs"
 	"path/filepath"
 	"runtime"
 	"strings"
-
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/load"
 )
 
 type Normalization struct {
@@ -128,9 +127,9 @@ func GetNormalizations() ([]string, error) {
 	return files, nil
 }
 
-func ParseSpec(content []byte) (*Normalization, error) {
+func ParseSpec(input []byte) (*Normalization, error) {
 	var ans Normalization
-	err := load.Unmarshal(content, &ans)
+	err := content.Unmarshal(input, &ans)
 	return &ans, err
 }
 

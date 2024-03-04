@@ -3,6 +3,7 @@ package mktp
 import (
 	"context"
 	"fmt"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/generate"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/load"
 	"io"
 	"os"
@@ -61,37 +62,49 @@ func (c *Cmd) Execute() error {
 	//providerDataSources := make([]string, 0, 200)
 	//providerResources := make([]string, 0, 100)
 
-	fmt.Fprintf(c.Stdout, "Reading configuration file: %s...\n", c.args[0])
-	content, err := load.File(c.args[0])
+	// Check if path to configuration file is passed as argument
+	if len(c.args) == 0 {
+		return fmt.Errorf("path to configuration file is required")
+	}
+	configPath := c.args[0]
+
+	// Load configuration file
+	content, err := load.File(configPath)
+	if err != nil {
+		return fmt.Errorf("error loading %s - %s", configPath, err)
+	}
+
+	// Parse configuration file
 	config, err := properties.ParseConfig(content)
 	if err != nil {
-		return fmt.Errorf("error parsing %s - %s", c.args[0], err)
+		return fmt.Errorf("error parsing %s - %s", configPath, err)
 	}
 
-	fmt.Fprintf(c.Stdout, "Output directory for Go SDK: %s\n", config.Output.GoSdk)
-	if err = os.MkdirAll(config.Output.GoSdk, 0755); err != nil && !os.IsExist(err) {
-		return err
-	}
+	for _, specPath := range c.specs {
+		fmt.Fprintf(c.Stdout, "Parsing %s...\n", specPath)
 
-	fmt.Fprintf(c.Stdout, "Output directory for Terraform provider: %s\n", config.Output.TerraformProvider)
-	if err = os.MkdirAll(config.Output.TerraformProvider, 0755); err != nil && !os.IsExist(err) {
-		return err
-	}
+		// Load YAML file
+		content, err := load.File(specPath)
+		if err != nil {
+			return fmt.Errorf("error loading %s - %s", specPath, err)
+		}
 
-	for _, configPath := range c.specs {
-		fmt.Fprintf(c.Stdout, "Parsing %s...\n", configPath)
-		content, err := load.File(configPath)
+		// Parse content
 		spec, err := properties.ParseSpec(content)
 		if err != nil {
-			return fmt.Errorf("error parsing %s - %s", configPath, err)
+			return fmt.Errorf("error parsing %s - %s", specPath, err)
 		}
 
 		// Sanity check.
 		if err = spec.Sanity(); err != nil {
-			return fmt.Errorf("%s sanity failed: %s", configPath, err)
+			return fmt.Errorf("%s sanity failed: %s", specPath, err)
 		}
 
 		// Output normalization as pango code.
+		generator := generate.NewCreator(config.Output.GoSdk, "templates/sdk", spec)
+		if err = generator.RenderTemplate(); err != nil {
+			return fmt.Errorf("error rendering %s - %s", specPath, err)
+		}
 
 		// Output as Terraform code.
 	}
