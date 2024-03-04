@@ -15,3 +15,15 @@ func TestPackageName(t *testing.T) {
 	// then
 	assert.Equal(t, "address", packageName)
 }
+
+func TestMakeIndentationEqual(t *testing.T) {
+	// given
+	givenItems := []string{"test", "a"}
+	exptectedItems := []string{"test", "a   "}
+
+	// when
+	changedItems := MakeIndentationEqual(givenItems)
+
+	// then
+	assert.Equal(t, exptectedItems, changedItems)
+}
