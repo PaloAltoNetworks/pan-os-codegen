@@ -24,35 +24,25 @@ func StructsDefinitionsForLocation(locations map[string]*properties.Location) (s
 	}
 	builder.WriteString("}\n\n")
 
-	if _, ok := locations["vsys"]; ok {
-		var namesOriginal, namesCamelCaseWithSpaces []string
-		for name := range locations["vsys"].Vars {
-			namesOriginal = append(namesOriginal, name)
-			namesCamelCaseWithSpaces = append(namesCamelCaseWithSpaces, naming.CamelCase("", name, "", true))
-		}
-		namesCamelCaseWithSpaces = MakeIndentationEqual(namesCamelCaseWithSpaces)
-
-		builder.WriteString("type VsysLocation struct {\n")
-		for idx, name := range namesCamelCaseWithSpaces {
-			builder.WriteString("\t" + name + " string  `json:\"" + namesOriginal[idx] + "\"`\n")
-		}
-		builder.WriteString("}\n\n")
-	}
-
-	if _, ok := locations["device_group"]; ok {
-		var namesOriginal, namesCamelCaseWithSpaces []string
-		for name := range locations["device_group"].Vars {
-			namesOriginal = append(namesOriginal, name)
-			namesCamelCaseWithSpaces = append(namesCamelCaseWithSpaces, naming.CamelCase("", name, "", true))
-		}
-		namesCamelCaseWithSpaces = MakeIndentationEqual(namesCamelCaseWithSpaces)
-
-		builder.WriteString("type DeviceGroupLocation struct {\n")
-		for idx, name := range namesCamelCaseWithSpaces {
-			builder.WriteString("\t" + name + " string  `json:\"" + namesOriginal[idx] + "\"`\n")
-		}
-		builder.WriteString("}\n\n")
-	}
+	nestedStructsDefinitionsForLocation(locations, "vsys", "VsysLocation", &builder)
+	nestedStructsDefinitionsForLocation(locations, "device_group", "DeviceGroupLocation", &builder)
 
 	return builder.String(), nil
+}
+
+func nestedStructsDefinitionsForLocation(locations map[string]*properties.Location, locationName string, structName string, builder *strings.Builder) {
+	if _, ok := locations[locationName]; ok {
+		var namesOriginal, namesCamelCaseWithSpaces []string
+		for name := range locations[locationName].Vars {
+			namesOriginal = append(namesOriginal, name)
+			namesCamelCaseWithSpaces = append(namesCamelCaseWithSpaces, naming.CamelCase("", name, "", true))
+		}
+		namesCamelCaseWithSpaces = MakeIndentationEqual(namesCamelCaseWithSpaces)
+
+		builder.WriteString("type " + structName + " struct {\n")
+		for idx, name := range namesCamelCaseWithSpaces {
+			builder.WriteString("\t" + name + " string  `json:\"" + namesOriginal[idx] + "\"`\n")
+		}
+		builder.WriteString("}\n\n")
+	}
 }
