@@ -133,11 +133,11 @@ spec:
 		"\tDeviceGroup  *DeviceGroupLocation `json:\"device_group,omitempty\"`\n" +
 		"}\n" +
 		"\ntype VsysLocation struct {\n" +
-		"\tngfw_device\tstring  `json:\"ngfw_device\"`\n" +
-		"\tvsys       \tstring  `json:\"vsys       \"`\n}\n" +
+		"\tNgfwDevice string  `json:\"ngfw_device\"`\n" +
+		"\tVsys       string  `json:\"vsys\"`\n}\n" +
 		"\ntype DeviceGroupLocation struct {\n" +
-		"\tpanorama_device\tstring  `json:\"panorama_device\"`\n" +
-		"\tdevice_group   \tstring  `json:\"device_group\"`\n" +
+		"\tPanoramaDevice string  `json:\"panorama_device\"`\n" +
+		"\tDeviceGroup    string  `json:\"device_group\"`\n" +
 		"}\n\n"
 
 	// when

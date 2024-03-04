@@ -1,6 +1,7 @@
 package translate
 
 import (
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 	"strings"
 )
@@ -24,29 +25,31 @@ func StructsDefinitionsForLocation(locations map[string]*properties.Location) (s
 	builder.WriteString("}\n\n")
 
 	if _, ok := locations["vsys"]; ok {
-		var vars []string
+		var namesOriginal, namesCamelCaseWithSpaces []string
 		for name := range locations["vsys"].Vars {
-			vars = append(vars, name)
+			namesOriginal = append(namesOriginal, name)
+			namesCamelCaseWithSpaces = append(namesCamelCaseWithSpaces, naming.CamelCase("", name, "", true))
 		}
-		vars = MakeIndentationEqual(vars)
+		namesCamelCaseWithSpaces = MakeIndentationEqual(namesCamelCaseWithSpaces)
 
 		builder.WriteString("type VsysLocation struct {\n")
-		for _, name := range vars {
-			builder.WriteString("\t" + name + "\tstring  `json:\"" + name + "\"`\n")
+		for idx, name := range namesCamelCaseWithSpaces {
+			builder.WriteString("\t" + name + " string  `json:\"" + namesOriginal[idx] + "\"`\n")
 		}
 		builder.WriteString("}\n\n")
 	}
 
 	if _, ok := locations["device_group"]; ok {
-		var vars []string
+		var namesOriginal, namesCamelCaseWithSpaces []string
 		for name := range locations["device_group"].Vars {
-			vars = append(vars, name)
+			namesOriginal = append(namesOriginal, name)
+			namesCamelCaseWithSpaces = append(namesCamelCaseWithSpaces, naming.CamelCase("", name, "", true))
 		}
-		vars = MakeIndentationEqual(vars)
+		namesCamelCaseWithSpaces = MakeIndentationEqual(namesCamelCaseWithSpaces)
 
 		builder.WriteString("type DeviceGroupLocation struct {\n")
-		for _, name := range vars {
-			builder.WriteString("\t" + name + "\tstring  `json:\"" + strings.TrimSpace(name) + "\"`\n")
+		for idx, name := range namesCamelCaseWithSpaces {
+			builder.WriteString("\t" + name + " string  `json:\"" + namesOriginal[idx] + "\"`\n")
 		}
 		builder.WriteString("}\n\n")
 	}
