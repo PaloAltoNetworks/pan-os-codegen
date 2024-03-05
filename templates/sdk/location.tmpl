@@ -20,10 +20,8 @@ type {{locationType $key $location false}} struct {
 	{{camelCase $key}} string `json:"{{$key}}"`
 {{- end}}
 }
+{{end}}
 {{- end}}
-{{- end}}
-
-
 func (o Location) IsValid() error {
 	count := 0
 
