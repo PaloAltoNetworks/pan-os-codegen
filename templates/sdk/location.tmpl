@@ -1,4 +1,4 @@
-package {{packageName .GoSdkPath }}
+package {{packageName .GoSdkPath}}
 
 import (
 	"fmt"
@@ -63,7 +63,7 @@ func (o Location) Xpath(vn version.Number, name string) ([]string, error) {
         ans = []string{
             {{- range $name, $xpath := $location.Xpath}}
             {{- if contains $xpath "Entry"}}
-            {{ asEntryXpath $key $xpath }}
+            {{asEntryXpath $key $xpath}}
             {{- else}}
             "{{$xpath}}",
             {{- end}}
