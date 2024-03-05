@@ -76,9 +76,7 @@ func (c *Creator) generateOutputFileFromTemplate(tmpl *template.Template, output
 func (c *Creator) parseTemplate(templateName string) (*template.Template, error) {
 	templatePath := fmt.Sprintf("%s/%s", c.TemplatesDir, templateName)
 	funcMap := template.FuncMap{
-		"packageName":                   translate.PackageName,
-		"structsDefinitionsForLocation": translate.StructsDefinitionsForLocation,
-		"funcBodyForLocation":           translate.FuncBodyForLocation,
+		"packageName": translate.PackageName,
 		"camelCase": func(name string) string {
 			return naming.CamelCase("", name, "", true)
 		},
