@@ -19,11 +19,11 @@ func TestPackageName(t *testing.T) {
 func TestMakeIndentationEqual(t *testing.T) {
 	// given
 	givenItems := []string{"test", "a"}
-	exptectedItems := []string{"test", "a   "}
+	expectedItems := []string{"test", "a   "}
 
 	// when
 	changedItems := MakeIndentationEqual(givenItems)
 
 	// then
-	assert.Equal(t, exptectedItems, changedItems)
+	assert.Equal(t, expectedItems, changedItems)
 }
