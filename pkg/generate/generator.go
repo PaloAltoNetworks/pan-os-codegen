@@ -79,9 +79,15 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		"packageName":                   translate.PackageName,
 		"structsDefinitionsForLocation": translate.StructsDefinitionsForLocation,
 		"funcBodyForLocation":           translate.FuncBodyForLocation,
-		"camelCase":                     naming.CamelCase,
-		"locationType":                  translate.LocationType,
-		"omitEmpty":                     translate.OmitEmpty,
+		"camelCase": func(name string) string {
+			return naming.CamelCase("", name, "", true)
+		},
+		"locationType": translate.LocationType,
+		"omitEmpty":    translate.OmitEmpty,
+		"contains": func(full, part string) bool {
+			return strings.Contains(full, part)
+		},
+		"asEntryXpath": translate.AsEntryXpath,
 	}
 	tmpl, err := template.New(templateName).Funcs(funcMap).ParseFiles(templatePath)
 	if err != nil {
