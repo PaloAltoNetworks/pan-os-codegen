@@ -1,4 +1,4 @@
-package {{ packageName .GoSdkPath }}
+package {{packageName .GoSdkPath }}
 
 import (
 	"fmt"
@@ -8,5 +8,19 @@ import (
 	"github.com/PaloAltoNetworks/pango/version"
 )
 
-{{ structsDefinitionsForLocation .Locations }}
+type Location struct {
+    {{range $key, $location := .Locations}}
+    {{- camelCase "" $key "" true}} {{locationType $key $location true}} `json:"{{$key}}{{omitEmpty $location}}"`
+    {{end}}
+}
+{{range $key, $location := .Locations}}
+{{- if $location.Vars}}
+type {{locationType $key $location false}} struct {
+{{- range $key, $var := $location.Vars}}
+	{{camelCase "" $key "" true}} string `json:"{{$key}}"`
+{{- end}}
+}
+{{- end}}
+{{- end}}
+
 {{ funcBodyForLocation .Locations }}

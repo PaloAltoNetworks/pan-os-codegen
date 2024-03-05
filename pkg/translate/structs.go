@@ -7,6 +7,26 @@ import (
 	"strings"
 )
 
+func LocationType(name string, location properties.Location, pointer bool) string {
+	prefix := ""
+	if pointer {
+		prefix = "*"
+	}
+	if location.Vars != nil {
+		return prefix + naming.CamelCase("", name, "", true) + "Location"
+	} else {
+		return "bool"
+	}
+}
+
+func OmitEmpty(location properties.Location) string {
+	if location.Vars != nil {
+		return ",omitempty"
+	} else {
+		return ""
+	}
+}
+
 func StructsDefinitionsForLocation(locations map[string]*properties.Location) (string, error) {
 	keys := make([]string, 0, len(locations))
 	for key := range locations {

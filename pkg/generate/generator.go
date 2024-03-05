@@ -2,6 +2,7 @@ package generate
 
 import (
 	"fmt"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate"
 	"io"
@@ -78,6 +79,9 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		"packageName":                   translate.PackageName,
 		"structsDefinitionsForLocation": translate.StructsDefinitionsForLocation,
 		"funcBodyForLocation":           translate.FuncBodyForLocation,
+		"camelCase":                     naming.CamelCase,
+		"locationType":                  translate.LocationType,
+		"omitEmpty":                     translate.OmitEmpty,
 	}
 	tmpl, err := template.New(templateName).Funcs(funcMap).ParseFiles(templatePath)
 	if err != nil {
