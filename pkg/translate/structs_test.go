@@ -133,12 +133,12 @@ spec:
 		"\tVsys         *VsysLocation        `json:\"vsys,omitempty\"`\n" +
 		"}\n" +
 		"\ntype VsysLocation struct {\n" +
-		"\tNgfwDevice string  `json:\"ngfw_device\"`\n" +
-		"\tVsys       string  `json:\"vsys\"`\n}\n" +
+		"\tNgfwDevice string `json:\"ngfw_device\"`\n" +
+		"\tVsys       string `json:\"vsys\"`\n}\n" +
 		"\ntype DeviceGroupLocation struct {\n" +
-		"\tDeviceGroup    string  `json:\"device_group\"`\n" +
-		"\tPanoramaDevice string  `json:\"panorama_device\"`\n" +
-		"}\n\n"
+		"\tDeviceGroup    string `json:\"device_group\"`\n" +
+		"\tPanoramaDevice string `json:\"panorama_device\"`\n" +
+		"}\n"
 
 	// when
 	yamlParsedData, _ := properties.ParseSpec([]byte(sampleSpec))

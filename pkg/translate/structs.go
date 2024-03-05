@@ -28,7 +28,7 @@ func StructsDefinitionsForLocation(locations map[string]*properties.Location) (s
 			builder.WriteString("\tDeviceGroup  *DeviceGroupLocation `json:\"device_group,omitempty\"`\n")
 		}
 	}
-	builder.WriteString("}\n\n")
+	builder.WriteString("}\n")
 
 	nestedStructsDefinitionsForLocation(locations, "vsys", "VsysLocation", &builder)
 	nestedStructsDefinitionsForLocation(locations, "device_group", "DeviceGroupLocation", &builder)
@@ -51,10 +51,10 @@ func nestedStructsDefinitionsForLocation(locations map[string]*properties.Locati
 		}
 		namesCamelCaseWithSpaces = MakeIndentationEqual(namesCamelCaseWithSpaces)
 
-		builder.WriteString("type " + structName + " struct {\n")
+		builder.WriteString("\ntype " + structName + " struct {\n")
 		for idx, name := range namesCamelCaseWithSpaces {
-			builder.WriteString("\t" + name + " string  `json:\"" + namesOriginal[idx] + "\"`\n")
+			builder.WriteString("\t" + name + " string `json:\"" + namesOriginal[idx] + "\"`\n")
 		}
-		builder.WriteString("}\n\n")
+		builder.WriteString("}\n")
 	}
 }

@@ -77,6 +77,7 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 	funcMap := template.FuncMap{
 		"packageName":                   translate.PackageName,
 		"structsDefinitionsForLocation": translate.StructsDefinitionsForLocation,
+		"funcBodyForLocation":           translate.FuncBodyForLocation,
 	}
 	tmpl, err := template.New(templateName).Funcs(funcMap).ParseFiles(templatePath)
 	if err != nil {
