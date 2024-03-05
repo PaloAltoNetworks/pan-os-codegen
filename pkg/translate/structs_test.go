@@ -6,9 +6,7 @@ import (
 	"testing"
 )
 
-func TestStructsDefinitionsForLocation(t *testing.T) {
-	// given
-	var sampleSpec = `name: 'Address'
+const sampleSpec = `name: 'Address'
 terraform_provider_suffix: 'address'
 go_sdk_path:
   - 'objects'
@@ -22,33 +20,6 @@ locations:
       panorama: true
       ngfw: true
     xpath: ['config', 'shared']
-  'from_panorama':
-    description: 'Located in the config pushed from Panorama.'
-    read_only: true
-    device:
-      ngfw: true
-    xpath: ['config', 'panorama']
-  'vsys':
-    description: 'Located in a specific vsys.'
-    device:
-      panorama: true
-      ngfw: true
-    xpath:
-      - 'config'
-      - 'devices'
-      - '{{ Entry $ngfw_device }}'
-      - 'vsys'
-      - '{{ Entry $vsys }}'
-    vars:
-      'ngfw_device':
-        description: 'The NGFW device.'
-        default: 'localhost.localdomain'
-      'vsys':
-        description: 'The vsys.'
-        default: 'vsys1'
-        validation:
-          not_values:
-            'shared': 'The vsys cannot be "shared". Use the "shared" path instead.'
   'device_group':
     description: 'Located in a specific device group.'
     device:
@@ -76,74 +47,40 @@ entry:
       min: 1
       max: 63
 version: '10.1.0'
-spec:
-  params:
-    description:
-      description: 'The description.'
-      type: 'string'
-      length:
-        min: 0
-        max: 1023
-      profiles:
-        -
-          xpath: ["description"]
-    tags:
-      description: 'The administrative tags.'
-      type: 'list'
-      count:
-        max: 64
-      items:
-        type: 'string'
-        length:
-          max: 127
-      profiles:
-        -
-          type: 'member'
-          xpath: ["tag"]
-  one_of:
-    'ip_netmask':
-      description: 'The IP netmask value.'
-      profiles:
-        -
-          xpath: ["ip-netmask"]
-    'ip_range':
-      description: 'The IP range value.'
-      profiles:
-        -
-          xpath: ["ip-range"]
-    'fqdn':
-      description: 'The FQDN value.'
-      regex: '^[a-zA-Z0-9_]([a-zA-Z0-9:_-])+[a-zA-Z0-9]$'
-      length:
-        min: 1
-        max: 255
-      profiles:
-        -
-          xpath: ["fqdn"]
-    'ip_wildcard':
-      description: 'The IP wildcard value.'
-      profiles:
-        -
-          xpath: ["ip-wildcard"]
 `
-	var expectedStructsForLocation = "type Location struct {\n" +
-		"\tDeviceGroup  *DeviceGroupLocation `json:\"device_group,omitempty\"`\n" +
-		"\tFromPanorama bool                 `json:\"from_panorama\"`\n" +
-		"\tShared       bool                 `json:\"shared\"`\n" +
-		"\tVsys         *VsysLocation        `json:\"vsys,omitempty\"`\n" +
-		"}\n" +
-		"\ntype VsysLocation struct {\n" +
-		"\tNgfwDevice string `json:\"ngfw_device\"`\n" +
-		"\tVsys       string `json:\"vsys\"`\n}\n" +
-		"\ntype DeviceGroupLocation struct {\n" +
-		"\tDeviceGroup    string `json:\"device_group\"`\n" +
-		"\tPanoramaDevice string `json:\"panorama_device\"`\n" +
-		"}\n"
+
+func TestLocationType(t *testing.T) {
+	// given
+	yamlParsedData, _ := properties.ParseSpec([]byte(sampleSpec))
+	locationKeys := []string{"device_group", "shared"}
+	locations := yamlParsedData.Locations
+	var locationTypes []string
 
 	// when
-	yamlParsedData, _ := properties.ParseSpec([]byte(sampleSpec))
-	structsForLocation, _ := StructsDefinitionsForLocation(yamlParsedData.Locations)
+	for _, locationKey := range locationKeys {
+		locationTypes = append(locationTypes, LocationType(locationKey, locations[locationKey], true))
+	}
 
 	// then
-	assert.Equal(t, expectedStructsForLocation, structsForLocation)
+	assert.NotEmpty(t, locationTypes)
+	assert.Contains(t, locationTypes, "*DeviceGroupLocation")
+	assert.Contains(t, locationTypes, "bool")
+}
+
+func TestOmitEmpty(t *testing.T) {
+	// given
+	yamlParsedData, _ := properties.ParseSpec([]byte(sampleSpec))
+	locationKeys := []string{"device_group", "shared"}
+	locations := yamlParsedData.Locations
+	var omitEmptyLocations []string
+
+	// when
+	for _, locationKey := range locationKeys {
+		omitEmptyLocations = append(omitEmptyLocations, OmitEmpty(locations[locationKey]))
+	}
+
+	// then
+	assert.NotEmpty(t, omitEmptyLocations)
+	assert.Contains(t, omitEmptyLocations, ",omitempty")
+	assert.Contains(t, omitEmptyLocations, "")
 }

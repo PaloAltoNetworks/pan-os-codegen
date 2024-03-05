@@ -5,7 +5,7 @@ import (
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 )
 
-func LocationType(name string, location properties.Location, pointer bool) string {
+func LocationType(name string, location *properties.Location, pointer bool) string {
 	prefix := ""
 	if pointer {
 		prefix = "*"
@@ -17,7 +17,7 @@ func LocationType(name string, location properties.Location, pointer bool) strin
 	}
 }
 
-func OmitEmpty(location properties.Location) string {
+func OmitEmpty(location *properties.Location) string {
 	if location.Vars != nil {
 		return ",omitempty"
 	} else {
