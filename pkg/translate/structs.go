@@ -3,14 +3,20 @@ package translate
 import (
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
+	"sort"
 	"strings"
 )
 
 func StructsDefinitionsForLocation(locations map[string]*properties.Location) (string, error) {
-	var builder strings.Builder
+	keys := make([]string, 0, len(locations))
+	for key := range locations {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
 
+	var builder strings.Builder
 	builder.WriteString("type Location struct {\n")
-	for name := range locations {
+	for _, name := range keys {
 		switch name {
 		case "shared":
 			builder.WriteString("\tShared       bool                 `json:\"shared\"`\n")
@@ -32,8 +38,14 @@ func StructsDefinitionsForLocation(locations map[string]*properties.Location) (s
 
 func nestedStructsDefinitionsForLocation(locations map[string]*properties.Location, locationName string, structName string, builder *strings.Builder) {
 	if _, ok := locations[locationName]; ok {
+		keys := make([]string, 0, len(locations[locationName].Vars))
+		for key := range locations[locationName].Vars {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+
 		var namesOriginal, namesCamelCaseWithSpaces []string
-		for name := range locations[locationName].Vars {
+		for _, name := range keys {
 			namesOriginal = append(namesOriginal, name)
 			namesCamelCaseWithSpaces = append(namesCamelCaseWithSpaces, naming.CamelCase("", name, "", true))
 		}

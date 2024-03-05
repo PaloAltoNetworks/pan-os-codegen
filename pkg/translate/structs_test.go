@@ -127,17 +127,17 @@ spec:
           xpath: ["ip-wildcard"]
 `
 	var expectedStructsForLocation = "type Location struct {\n" +
-		"\tShared       bool                 `json:\"shared\"`\n" +
-		"\tFromPanorama bool                 `json:\"from_panorama\"`\n" +
-		"\tVsys         *VsysLocation        `json:\"vsys,omitempty\"`\n" +
 		"\tDeviceGroup  *DeviceGroupLocation `json:\"device_group,omitempty\"`\n" +
+		"\tFromPanorama bool                 `json:\"from_panorama\"`\n" +
+		"\tShared       bool                 `json:\"shared\"`\n" +
+		"\tVsys         *VsysLocation        `json:\"vsys,omitempty\"`\n" +
 		"}\n" +
 		"\ntype VsysLocation struct {\n" +
 		"\tNgfwDevice string  `json:\"ngfw_device\"`\n" +
 		"\tVsys       string  `json:\"vsys\"`\n}\n" +
 		"\ntype DeviceGroupLocation struct {\n" +
-		"\tPanoramaDevice string  `json:\"panorama_device\"`\n" +
 		"\tDeviceGroup    string  `json:\"device_group\"`\n" +
+		"\tPanoramaDevice string  `json:\"panorama_device\"`\n" +
 		"}\n\n"
 
 	// when
