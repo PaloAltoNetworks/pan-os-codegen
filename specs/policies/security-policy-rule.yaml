@@ -2,7 +2,8 @@ name: 'Security policy rule'
 terraform_provider_suffix: 'security_policy_rule'
 go_sdk_path:
   - 'policies'
-  - 'security_policy_rule'
+  - 'rules'
+  - 'security'
 xpath_suffix:
   - 'security'
   - 'rules'
