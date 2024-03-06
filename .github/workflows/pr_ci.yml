@@ -36,8 +36,8 @@ jobs:
            exit 0
           fi
 
-      - name: Build
+      - name: Build codegen
         run: go build -v ./...
 
-      - name: Test
+      - name: Test codegen
         run: go test -v ./...
