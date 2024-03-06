@@ -109,6 +109,11 @@ func (c *Cmd) Execute() error {
 		// Output as Terraform code.
 	}
 
+	// Copy assets (static files)
+	if err = generate.CopyAssets(config); err != nil {
+		return fmt.Errorf("error copying assets %s", err)
+	}
+
 	// Finalize pango code:
 	// * make fmt
 

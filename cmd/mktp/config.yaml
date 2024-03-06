@@ -8,3 +8,15 @@ assets:
       go_sdk: true
       terraform_provider: false
     destination: "util"
+  errors_package:
+    source: "assets/errors"
+    target:
+      go_sdk: true
+      terraform_provider: false
+    destination: "errors"
+  version_package:
+    source: "assets/version"
+    target:
+      go_sdk: true
+      terraform_provider: false
+    destination: "version"
