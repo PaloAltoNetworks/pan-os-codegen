@@ -2,7 +2,6 @@ package generate
 
 import (
 	"fmt"
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate"
 	"io"
@@ -76,10 +75,7 @@ func (c *Creator) generateOutputFileFromTemplate(tmpl *template.Template, output
 func (c *Creator) parseTemplate(templateName string) (*template.Template, error) {
 	templatePath := fmt.Sprintf("%s/%s", c.TemplatesDir, templateName)
 	funcMap := template.FuncMap{
-		"packageName": translate.PackageName,
-		"camelCase": func(name string) string {
-			return naming.CamelCase("", name, "", true)
-		},
+		"packageName":  translate.PackageName,
 		"locationType": translate.LocationType,
 		"omitEmpty":    translate.OmitEmpty,
 		"contains": func(full, part string) bool {

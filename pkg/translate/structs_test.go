@@ -58,7 +58,7 @@ func TestLocationType(t *testing.T) {
 
 	// when
 	for _, locationKey := range locationKeys {
-		locationTypes = append(locationTypes, LocationType(locationKey, locations[locationKey], true))
+		locationTypes = append(locationTypes, LocationType(locations[locationKey], true))
 	}
 
 	// then

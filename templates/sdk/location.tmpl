@@ -10,14 +10,14 @@ import (
 
 type Location struct {
     {{range $key, $location := .Locations}}
-    {{- camelCase $key}} {{locationType $key $location true}} `json:"{{$key}}{{omitEmpty $location}}"`
+    {{- $location.Name.CamelCase }} {{locationType $location true}} `json:"{{$location.Name.Underscore}}{{omitEmpty $location}}"`
     {{end}}
 }
 {{range $key, $location := .Locations}}
 {{- if $location.Vars}}
-type {{locationType $key $location false}} struct {
+type {{locationType $location false}} struct {
 {{- range $key, $var := $location.Vars}}
-	{{camelCase $key}} string `json:"{{$key}}"`
+	{{$var.Name.CamelCase}} string `json:"{{$var.Name.Underscore}}"`
 {{- end}}
 }
 {{end}}
@@ -27,10 +27,10 @@ func (o Location) IsValid() error {
 
 	switch {
     {{- range $key, $location := .Locations}}
-    case o.{{- camelCase $key}}{{if ne (locationType $key $location true) "bool"}} != nil{{end}}:
+    case o.{{- $location.Name.CamelCase}}{{if ne (locationType $location true) "bool"}} != nil{{end}}:
         {{- range $name, $var := $location.Vars}}
-        if o.{{camelCase $key}}.{{camelCase $name}} == "" {
-            return fmt.Errorf("{{camelCase $name}} is unspecified")
+        if o.{{$location.Name.CamelCase}}.{{$var.Name.CamelCase}} == "" {
+            return fmt.Errorf("{{$var.Name.CamelCase}} is unspecified")
         }
         {{- end}}
         count++
@@ -54,16 +54,16 @@ func (o Location) Xpath(vn version.Number, name string) ([]string, error) {
 
 	switch {
     {{- range $key, $location := .Locations}}
-    case o.{{- camelCase $key}}{{if ne (locationType $key $location true) "bool"}} != nil{{end}}:
+    case o.{{- $location.Name.CamelCase}}{{if ne (locationType $location true) "bool"}} != nil{{end}}:
         {{- range $name, $var := $location.Vars}}
-        if o.{{camelCase $key}}.{{camelCase $name}} == "" {
-            return nil, fmt.Errorf("{{camelCase $name}} is unspecified")
+        if o.{{$location.Name.CamelCase}}.{{$var.Name.CamelCase}} == "" {
+            return nil, fmt.Errorf("{{$var.Name.CamelCase}} is unspecified")
         }
         {{- end}}
         ans = []string{
             {{- range $name, $xpath := $location.Xpath}}
             {{- if contains $xpath "Entry"}}
-            {{asEntryXpath $key $xpath}}
+            {{asEntryXpath $location.Name.CamelCase $xpath}}
             {{- else}}
             "{{$xpath}}",
             {{- end}}
