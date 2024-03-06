@@ -1,9 +1,9 @@
 # This workflow will build and test a golang project
 
-name: Go
+name: PR CI
+run-name: "CI pipeline for PR - (#${{ github.event.number }}) ${{ github.event.pull_request.title }}"
 
 on:
-  workflow_dispatch:
   pull_request:
     types:
       - opened
@@ -13,6 +13,7 @@ on:
 
 jobs:
   ci:
+    name: Run CI
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
