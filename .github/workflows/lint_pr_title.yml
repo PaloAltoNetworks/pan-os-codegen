@@ -1,6 +1,4 @@
-# DESCRIPTION:
-#  A workflow used to verify if PR titles matches conventional commits strategy.
-# END
+# This workflow is used to verify if PR titles matches conventional commits strategy
 
 name: Lint PR Title
 run-name: "Lint PR - (#${{ github.event.number }}) ${{ github.event.pull_request.title }}"
