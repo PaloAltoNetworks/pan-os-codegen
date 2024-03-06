@@ -197,14 +197,3 @@ func (spec *Normalization) Validate() []error {
 
 	return checks
 }
-
-//func (spec *Normalization) GetCamelCaseLocations() map[string]*Location {
-//	locations := map[string]*Location{}
-//
-//	for key, location := range spec.Locations {
-//		camelCaseKey := naming.CamelCase("", key, "", true)
-//		locations[camelCaseKey] = location
-//	}
-//
-//	return locations
-//}
