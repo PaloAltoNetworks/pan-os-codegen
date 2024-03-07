@@ -1,10 +1,15 @@
 # PAN-OS Code Generation Repository (pan-os-codegen)
 
-Welcome to the PAN-OS Code Generation Repository! This repository provides tools for generating the [pango SDK](https://github.com/PaloAltoNetworks/pango) and the `panos` [Terraform provider](https://github.com/PaloAltoNetworks/terraform-provider-panos) for Palo Alto Networks PAN-OS devices.
+Welcome to the PAN-OS Code Generation Repository! This repository provides tools for generating
+the [pango SDK](https://github.com/PaloAltoNetworks/pango) and
+the `panos` [Terraform provider](https://github.com/PaloAltoNetworks/terraform-provider-panos) for Palo Alto Networks
+PAN-OS devices.
 
 ## Overview
 
-PAN-OS is the operating system for Palo Alto Networks next-generation firewalls and Panorama, providing advanced security features and capabilities. This repository aims to simplify the process of building and maintainging the Go SDK and Terraform provider.
+PAN-OS is the operating system for Palo Alto Networks next-generation firewalls and Panorama, providing advanced
+security features and capabilities. This repository aims to simplify the process of building and maintainging the Go SDK
+and Terraform provider.
 
 The repository contains:
 
@@ -13,7 +18,8 @@ The repository contains:
 
 ## Roadmap
 
-We are maintaining a [public roadmap](https://github.com/orgs/PaloAltoNetworks/projects/62) to help users understand when we will release new features, bug fixes and enhancements.
+We are maintaining a [public roadmap](https://github.com/orgs/PaloAltoNetworks/projects/62) to help users understand
+when we will release new features, bug fixes and enhancements.
 
 ## Getting Help
 

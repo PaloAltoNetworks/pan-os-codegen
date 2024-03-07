@@ -2,67 +2,72 @@ package generate
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 	"github.com/stretchr/testify/assert"
-	"testing"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCreateFullFilePath(t *testing.T) {
-	// given
-	spec := properties.Normalization{
-		GoSdkPath: []string{"go"},
+	spec := &properties.Normalization{
+		GoSdkPath: []string{"path", "to", "go"},
 	}
-	generator := NewCreator("test", "../../templates/sdk", &spec)
+	generator := NewCreator("test_output", "templates", spec)
 
-	// when
-	fullFilePath := generator.createFullFilePath("output", &spec, "template.tmpl")
+	expected := filepath.Join("test_output", "path", "to", "go", "template.go")
+	fullFilePath := generator.createFullFilePath("template.tmpl")
 
-	// then
-	assert.NotNil(t, fullFilePath)
-	assert.Equal(t, "output/go/template.go", fullFilePath)
+	assert.Equal(t, expected, fullFilePath)
 }
 
-// NOTE - unit tests should only touch code inside package, do not reference external resources.
-// Nevertheless, below tests ARE REFERENCING to text templates, because template ARE NOT EMBEDDED into Go files.
-// Technically we could embed them, but then:
-// 1 - we are losing clarity of the code,
-// 2 - we are mixing Golang with templates expressions.
-// Testing generator is crucial, so below tests we can br treated more as integration tests, not unit one.
-
 func TestListOfTemplates(t *testing.T) {
-	// given
-	spec := properties.Normalization{
-		GoSdkPath: []string{"go"},
+	// Setup: Create a temporary directory for templates
+	tempDir := t.TempDir()
+	// Create dummy template files
+	templateNames := []string{"test1.tmpl", "test2.tmpl"}
+	for _, name := range templateNames {
+		file, err := os.Create(filepath.Join(tempDir, name))
+		require.NoError(t, err)
+		file.Close()
 	}
-	generator := NewCreator("test", "../../templates/sdk", &spec)
 
-	// when
-	var templates []string
-	templates, _ = generator.listOfTemplates(templates)
+	spec := &properties.Normalization{}
+	generator := NewCreator("", tempDir, spec)
+	templates, err := generator.listOfTemplates()
 
-	// then
-	assert.Equal(t, 4, len(templates))
+	require.NoError(t, err)
+	assert.Len(t, templates, len(templateNames))
+
+	// Verify template names without directory paths
+	for _, template := range templates {
+		assert.True(t, strings.Contains(strings.Join(templateNames, " "), template))
+	}
 }
 
 func TestParseTemplate(t *testing.T) {
-	// given
-	spec := properties.Normalization{
+	tempDir := t.TempDir()
+	templateContent := `package {{.GoSdkPath}}
+
+type Entry struct {}`
+	templatePath := filepath.Join(tempDir, "test.tmpl")
+	err := os.WriteFile(templatePath, []byte(templateContent), 0644)
+	require.NoError(t, err)
+
+	spec := &properties.Normalization{
 		GoSdkPath: []string{"object", "address"},
 	}
-	generator := NewCreator("test", "../../templates/sdk", &spec)
-	expectedFileContent := `package address
+	generator := NewCreator("", tempDir, spec)
+	template, err := generator.parseTemplate("test.tmpl")
+	require.NoError(t, err)
 
-type Specifier func(Entry) (any, error)
-
-type Normalizer interface {
-    Normalize() ([]Entry, error)
-}`
-
-	// when
-	template, _ := generator.parseTemplate("interfaces.tmpl")
 	var output bytes.Buffer
-	_ = generator.generateOutputFileFromTemplate(template, &output, generator.Spec)
+	err = template.Execute(&output, spec)
+	require.NoError(t, err)
 
-	// then
+	expectedFileContent := "package [object address]\n\ntype Entry struct {}"
 	assert.Equal(t, expectedFileContent, output.String())
 }
