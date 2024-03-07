@@ -255,6 +255,7 @@ spec:
         description:
             description: The description.
             type: string
+            required: false
             length:
                 min: 0
                 max: 1023
@@ -265,6 +266,7 @@ spec:
         tags:
             description: The administrative tags.
             type: list
+            required: false
             count:
                 min: null
                 max: 64
@@ -281,7 +283,8 @@ spec:
     one_of:
         fqdn:
             description: The FQDN value.
-            type: ""
+            type: string
+            required: false
             length:
                 min: 1
                 max: 255
@@ -292,21 +295,24 @@ spec:
             spec: null
         ip_netmask:
             description: The IP netmask value.
-            type: ""
+            type: string
+            required: false
             profiles:
                 - xpath:
                     - ip-netmask
             spec: null
         ip_range:
             description: The IP range value.
-            type: ""
+            type: string
+            required: false
             profiles:
                 - xpath:
                     - ip-range
             spec: null
         ip_wildcard:
             description: The IP wildcard value.
-            type: ""
+            type: string
+            required: false
             profiles:
                 - xpath:
                     - ip-wildcard

@@ -1,1 +1,37 @@
 package {{packageName .GoSdkPath}}
+
+import (
+	"encoding/xml"
+	"fmt"
+
+	"github.com/PaloAltoNetworks/pango/filtering"
+	"github.com/PaloAltoNetworks/pango/generic"
+	"github.com/PaloAltoNetworks/pango/util"
+	"github.com/PaloAltoNetworks/pango/version"
+)
+
+var (
+	_ filtering.Fielder = &Entry{}
+)
+
+var (
+	Suffix = []string{
+	{{- $length := subtract (len .XpathSuffix) 1 }}
+	{{- range $index, $suffix := .XpathSuffix}}"
+	    {{- $suffix}}"{{- if lt $index $length}},{{- end}}
+	{{- end}}}
+)
+
+type Entry struct {
+    {{- if .Entry}}
+    Name string
+    {{- end}}
+    {{- range $key, $param := .Spec.Params}}
+    {{$key}} {{specParamType $param}}
+    {{- end}}
+    {{- range $key, $param := .Spec.OneOf}}
+    {{$key}} {{specParamType $param}}
+    {{- end}}
+
+	Misc map[string][]generic.Xml
+}

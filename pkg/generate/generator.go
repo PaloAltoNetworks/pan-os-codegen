@@ -75,11 +75,15 @@ func (c *Creator) generateOutputFileFromTemplate(tmpl *template.Template, output
 func (c *Creator) parseTemplate(templateName string) (*template.Template, error) {
 	templatePath := fmt.Sprintf("%s/%s", c.TemplatesDir, templateName)
 	funcMap := template.FuncMap{
-		"packageName":  translate.PackageName,
-		"locationType": translate.LocationType,
-		"omitEmpty":    translate.OmitEmpty,
+		"packageName":   translate.PackageName,
+		"locationType":  translate.LocationType,
+		"specParamType": translate.SpecParamType,
+		"omitEmpty":     translate.OmitEmpty,
 		"contains": func(full, part string) bool {
 			return strings.Contains(full, part)
+		},
+		"subtract": func(a, b int) int {
+			return a - b
 		},
 		"asEntryXpath": translate.AsEntryXpath,
 	}

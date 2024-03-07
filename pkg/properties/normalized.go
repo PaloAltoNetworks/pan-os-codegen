@@ -74,6 +74,7 @@ type Spec struct {
 type SpecParam struct {
 	Description string              `json:"description" yaml:"description"`
 	Type        string              `json:"type" yaml:"type"`
+	Required    bool                `json:"required" yaml:"required"`
 	Length      *SpecParamLength    `json:"length" yaml:"length,omitempty"`
 	Count       *SpecParamCount     `json:"count" yaml:"count,omitempty"`
 	Items       *SpecParamItems     `json:"items" yaml:"items,omitempty"`
@@ -142,6 +143,8 @@ func ParseSpec(input []byte) (*Normalization, error) {
 
 	err = spec.AddNameVariants()
 
+	err = spec.AddDefaultTypesForParams()
+
 	return &spec, err
 }
 
@@ -160,6 +163,26 @@ func (spec *Normalization) AddNameVariants() error {
 		}
 	}
 
+	return nil
+}
+
+func (spec *Normalization) AddDefaultTypesForParams() error {
+	if spec.Spec != nil {
+		if spec.Spec.Params != nil {
+			for _, param := range spec.Spec.Params {
+				if param.Type == "" {
+					param.Type = "string"
+				}
+			}
+		}
+		if spec.Spec.OneOf != nil {
+			for _, param := range spec.Spec.OneOf {
+				if param.Type == "" {
+					param.Type = "string"
+				}
+			}
+		}
+	}
 	return nil
 }
 
