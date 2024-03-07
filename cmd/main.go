@@ -24,13 +24,6 @@ func parseFlags() Config {
 	return cfg
 }
 
-func executeCommand(ctx context.Context, cmdArgs []string, setupAndExecute func(context.Context, []string) error) {
-	err := setupAndExecute(ctx, cmdArgs)
-	if err != nil {
-		log.Fatalf("There was an error during the execution: %s", err)
-	}
-}
-
 func main() {
 	cfg := parseFlags()
 
