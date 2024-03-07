@@ -253,6 +253,9 @@ version: 10.1.0
 spec:
     params:
         description:
+            name:
+                underscore: description
+                camelcase: Description
             description: The description.
             type: string
             required: false
@@ -264,6 +267,9 @@ spec:
                     - description
             spec: null
         tags:
+            name:
+                underscore: tags
+                camelcase: Tags
             description: The administrative tags.
             type: list
             required: false
@@ -282,6 +288,9 @@ spec:
             spec: null
     one_of:
         fqdn:
+            name:
+                underscore: fqdn
+                camelcase: Fqdn
             description: The FQDN value.
             type: string
             required: false
@@ -294,6 +303,9 @@ spec:
                     - fqdn
             spec: null
         ip_netmask:
+            name:
+                underscore: ip_netmask
+                camelcase: IpNetmask
             description: The IP netmask value.
             type: string
             required: false
@@ -302,6 +314,9 @@ spec:
                     - ip-netmask
             spec: null
         ip_range:
+            name:
+                underscore: ip_range
+                camelcase: IpRange
             description: The IP range value.
             type: string
             required: false
@@ -310,6 +325,9 @@ spec:
                     - ip-range
             spec: null
         ip_wildcard:
+            name:
+                underscore: ip_wildcard
+                camelcase: IpWildcard
             description: The IP wildcard value.
             type: string
             required: false
