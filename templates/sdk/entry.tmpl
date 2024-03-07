@@ -26,12 +26,44 @@ type Entry struct {
     {{- if .Entry}}
     Name string
     {{- end}}
-    {{- range $key, $param := .Spec.Params}}
-    {{$key}} {{specParamType $param}}
+    {{- range $_, $param := .Spec.Params}}
+    {{$param.Name.CamelCase}} {{specParamType $param}}
     {{- end}}
-    {{- range $key, $param := .Spec.OneOf}}
-    {{$key}} {{specParamType $param}}
+    {{- range $_, $param := .Spec.OneOf}}
+    {{$param.Name.CamelCase}} {{specParamType $param}}
     {{- end}}
 
 	Misc map[string][]generic.Xml
+}
+
+func (e *Entry) CopyMiscFrom(v *Entry) {
+	if v == nil || len(v.Misc) == 0 {
+		return
+	}
+
+	e.Misc = make(map[string][]generic.Xml)
+	for key := range v.Misc {
+		e.Misc[key] = append([]generic.Xml(nil), v.Misc[key]...)
+	}
+}
+
+func (e *Entry) Field(v string) (any, error) {
+    {{- if .Entry}}
+	if v == "name" || v == "Name" {
+		return e.Name, nil
+	}
+    {{- end}}
+
+    {{- range $_, $param := .Spec.Params}}
+    if v == "{{$param.Name.Underscore}}" || v == "{{$param.Name.CamelCase}}" {
+        return e.{{$param.Name.CamelCase}}, nil
+    }
+    {{- end}}
+    {{- range $_, $param := .Spec.OneOf}}
+    if v == "{{$param.Name.Underscore}}" || v == "{{$param.Name.CamelCase}}" {
+        return e.{{$param.Name.CamelCase}}, nil
+    }
+    {{- end}}
+
+	return nil, fmt.Errorf("unknown field")
 }
