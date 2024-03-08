@@ -1,3 +1,28 @@
 output:
   go_sdk: "../generated/pango"
   terraform_provider: "../generated/terraform-provider-panos"
+assets:
+#  generic_package:
+#    source: "assets/generic"
+#    target:
+#      go_sdk: true
+#      terraform_provider: false
+#    destination: "generic"
+#  util_package:
+#    source: "assets/util"
+#    target:
+#      go_sdk: true
+#      terraform_provider: false
+#    destination: "util"
+#  errors_package:
+#    source: "assets/errors"
+#    target:
+#      go_sdk: true
+#      terraform_provider: false
+#    destination: "errors"
+#  version_package:
+#    source: "assets/version"
+#    target:
+#      go_sdk: true
+#      terraform_provider: false
+#    destination: "version"

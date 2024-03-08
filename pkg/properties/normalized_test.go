@@ -154,6 +154,9 @@ xpath_suffix:
     - address
 locations:
     device_group:
+        name:
+            underscore: device_group
+            camelcase: DeviceGroup
         description: Located in a specific device group.
         device:
             panorama: true
@@ -167,16 +170,25 @@ locations:
         read_only: false
         vars:
             device_group:
+                name:
+                    underscore: device_group
+                    camelcase: DeviceGroup
                 description: The device group.
                 required: true
                 validation:
                     not_values:
                         shared: The device group cannot be "shared". Use the "shared" path instead.
             panorama_device:
+                name:
+                    underscore: panorama_device
+                    camelcase: PanoramaDevice
                 description: The panorama device.
                 required: false
                 validation: null
     from_panorama:
+        name:
+            underscore: from_panorama
+            camelcase: FromPanorama
         description: Located in the config pushed from Panorama.
         device:
             panorama: false
@@ -187,6 +199,9 @@ locations:
         read_only: true
         vars: {}
     shared:
+        name:
+            underscore: shared
+            camelcase: Shared
         description: Located in shared.
         device:
             panorama: true
@@ -197,6 +212,9 @@ locations:
         read_only: false
         vars: {}
     vsys:
+        name:
+            underscore: vsys
+            camelcase: Vsys
         description: Located in a specific vsys.
         device:
             panorama: true
@@ -210,10 +228,16 @@ locations:
         read_only: false
         vars:
             ngfw_device:
+                name:
+                    underscore: ngfw_device
+                    camelcase: NgfwDevice
                 description: The NGFW device.
                 required: false
                 validation: null
             vsys:
+                name:
+                    underscore: vsys
+                    camelcase: Vsys
                 description: The vsys.
                 required: false
                 validation:
@@ -229,8 +253,12 @@ version: 10.1.0
 spec:
     params:
         description:
+            name:
+                underscore: description
+                camelcase: Description
             description: The description.
             type: string
+            required: false
             length:
                 min: 0
                 max: 1023
@@ -239,8 +267,12 @@ spec:
                     - description
             spec: null
         tags:
+            name:
+                underscore: tags
+                camelcase: Tags
             description: The administrative tags.
             type: list
+            required: false
             count:
                 min: null
                 max: 64
@@ -256,8 +288,12 @@ spec:
             spec: null
     one_of:
         fqdn:
+            name:
+                underscore: fqdn
+                camelcase: Fqdn
             description: The FQDN value.
-            type: ""
+            type: string
+            required: false
             length:
                 min: 1
                 max: 255
@@ -267,22 +303,34 @@ spec:
                     - fqdn
             spec: null
         ip_netmask:
+            name:
+                underscore: ip_netmask
+                camelcase: IpNetmask
             description: The IP netmask value.
-            type: ""
+            type: string
+            required: false
             profiles:
                 - xpath:
                     - ip-netmask
             spec: null
         ip_range:
+            name:
+                underscore: ip_range
+                camelcase: IpRange
             description: The IP range value.
-            type: ""
+            type: string
+            required: false
             profiles:
                 - xpath:
                     - ip-range
             spec: null
         ip_wildcard:
+            name:
+                underscore: ip_wildcard
+                camelcase: IpWildcard
             description: The IP wildcard value.
-            type: ""
+            type: string
+            required: false
             profiles:
                 - xpath:
                     - ip-wildcard

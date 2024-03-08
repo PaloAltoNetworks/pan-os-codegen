@@ -62,7 +62,7 @@ func TestListOfTemplates(t *testing.T) {
 	}
 }
 
-func TestParseTemplate(t *testing.T) {
+func TestParseTemplateForInterfaces(t *testing.T) {
 	// given
 	tempDir := t.TempDir()
 	templateContent := `package {{.GoSdkPath}}

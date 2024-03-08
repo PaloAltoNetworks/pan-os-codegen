@@ -1,1 +1,69 @@
-package {{ packageName .GoSdkPath }}
+package {{packageName .GoSdkPath}}
+
+import (
+	"encoding/xml"
+	"fmt"
+
+	"github.com/PaloAltoNetworks/pango/filtering"
+	"github.com/PaloAltoNetworks/pango/generic"
+	"github.com/PaloAltoNetworks/pango/util"
+	"github.com/PaloAltoNetworks/pango/version"
+)
+
+var (
+	_ filtering.Fielder = &Entry{}
+)
+
+var (
+	Suffix = []string{
+	{{- $length := subtract (len .XpathSuffix) 1 }}
+	{{- range $index, $suffix := .XpathSuffix}}"
+	    {{- $suffix}}"{{- if lt $index $length}},{{- end}}
+	{{- end}}}
+)
+
+type Entry struct {
+    {{- if .Entry}}
+    Name string
+    {{- end}}
+    {{- range $_, $param := .Spec.Params}}
+    {{$param.Name.CamelCase}} {{specParamType $param}}
+    {{- end}}
+    {{- range $_, $param := .Spec.OneOf}}
+    {{$param.Name.CamelCase}} {{specParamType $param}}
+    {{- end}}
+
+	Misc map[string][]generic.Xml
+}
+
+func (e *Entry) CopyMiscFrom(v *Entry) {
+	if v == nil || len(v.Misc) == 0 {
+		return
+	}
+
+	e.Misc = make(map[string][]generic.Xml)
+	for key := range v.Misc {
+		e.Misc[key] = append([]generic.Xml(nil), v.Misc[key]...)
+	}
+}
+
+func (e *Entry) Field(v string) (any, error) {
+    {{- if .Entry}}
+	if v == "name" || v == "Name" {
+		return e.Name, nil
+	}
+    {{- end}}
+
+    {{- range $_, $param := .Spec.Params}}
+    if v == "{{$param.Name.Underscore}}" || v == "{{$param.Name.CamelCase}}" {
+        return e.{{$param.Name.CamelCase}}, nil
+    }
+    {{- end}}
+    {{- range $_, $param := .Spec.OneOf}}
+    if v == "{{$param.Name.Underscore}}" || v == "{{$param.Name.CamelCase}}" {
+        return e.{{$param.Name.CamelCase}}, nil
+    }
+    {{- end}}
+
+	return nil, fmt.Errorf("unknown field")
+}
