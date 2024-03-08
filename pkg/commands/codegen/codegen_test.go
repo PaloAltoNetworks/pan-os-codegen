@@ -16,8 +16,8 @@ func TestNewCommand(t *testing.T) {
 		commandType CommandType
 		wantPath    string
 	}{
-		{"SDK Command", CommandTypeSDK, "../templates/sdk"},
-		{"Terraform Command", CommandTypeTerraform, "../templates/terraform"},
+		{"SDK Command", CommandTypeSDK, "templates/sdk"},
+		{"Terraform Command", CommandTypeTerraform, "templates/terraform"},
 	}
 
 	for _, tt := range tests {
