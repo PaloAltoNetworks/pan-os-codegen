@@ -30,9 +30,9 @@ func NewCommand(ctx context.Context, commandType CommandType, args ...string) (*
 	var templatePath string
 	switch commandType {
 	case CommandTypeSDK:
-		templatePath = "../templates/sdk"
+		templatePath = "templates/sdk"
 	case CommandTypeTerraform:
-		templatePath = "../templates/terraform"
+		templatePath = "templates/terraform"
 	default:
 		return nil, fmt.Errorf("unsupported command type: %s", commandType)
 	}

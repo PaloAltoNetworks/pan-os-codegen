@@ -17,7 +17,7 @@ type Config struct {
 // parseFlags parses the command line flags
 func parseFlags() Config {
 	var cfg Config
-	flag.StringVar(&cfg.ConfigFile, "config", "./config.yaml", "Path to the configuration file")
+	flag.StringVar(&cfg.ConfigFile, "config", "./cmd/codegen/config.yaml", "Path to the configuration file")
 	flag.StringVar(&cfg.OpType, "t", "", "Operation type: 'mktp', 'mksdk' or leave empty for both")
 	flag.StringVar(&cfg.OpType, "type", "", "Operation type: 'mktp', 'mksdk' or leave empty for both")
 	flag.Parse()
