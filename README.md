@@ -27,6 +27,14 @@ Open an [issue](https://github.com/PaloAltoNetworks/pan-os-codegen/issues) on Gi
 
 ## Usage
 
+The code have run login in `cmd/codegen` directory, to run it with default option please use:
+
 ```bash
-go run cmd/mktp/main.go cmd/mktp/config.yaml
+go run cmd/codegen/main.go
 ```
+This command can be parametrizes using options:
+- `-t/-type` - operation type, default is to create both Terraform  
+  - `mktp` - create only Terraform provider
+  - `mksdk` - create only PAN-OS SDK
+- `config` - specify path for the config file, default is `cmd/codegen/config.yaml`
+ 
