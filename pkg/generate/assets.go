@@ -78,10 +78,7 @@ func copyAsset(target string, asset *properties.Asset, files []string) error {
 			return err
 		}
 		defer func(destinationFile *os.File) {
-			err := destinationFile.Close()
-			if err != nil {
-
-			}
+			_ = destinationFile.Close()
 		}(destinationFile)
 
 		// Write the contents into the destination file
