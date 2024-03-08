@@ -44,7 +44,7 @@ func TestListOfTemplates(t *testing.T) {
 	assert.Equal(t, 4, len(templates))
 }
 
-func TestParseTemplate(t *testing.T) {
+func TestParseTemplateForInterfaces(t *testing.T) {
 	// given
 	spec := properties.Normalization{
 		GoSdkPath: []string{"object", "address"},

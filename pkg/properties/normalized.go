@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/content"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"io/fs"
 	"path/filepath"
 	"runtime"
@@ -21,7 +22,13 @@ type Normalization struct {
 	Spec                    *Spec                `json:"spec" yaml:"spec"`
 }
 
+type NameVariant struct {
+	Underscore string
+	CamelCase  string
+}
+
 type Location struct {
+	Name        *NameVariant
 	Description string                  `json:"description" yaml:"description"`
 	Device      *LocationDevice         `json:"device" yaml:"device"`
 	Xpath       []string                `json:"xpath" yaml:"xpath"`
@@ -35,6 +42,7 @@ type LocationDevice struct {
 }
 
 type LocationVar struct {
+	Name        *NameVariant
 	Description string                 `json:"description" yaml:"description"`
 	Required    bool                   `json:"required" yaml:"required"`
 	Validation  *LocationVarValidation `json:"validation" yaml:"validation"`
@@ -128,9 +136,31 @@ func GetNormalizations() ([]string, error) {
 }
 
 func ParseSpec(input []byte) (*Normalization, error) {
-	var ans Normalization
-	err := content.Unmarshal(input, &ans)
-	return &ans, err
+	var spec Normalization
+
+	err := content.Unmarshal(input, &spec)
+
+	err = spec.AddNameVariants()
+
+	return &spec, err
+}
+
+func (spec *Normalization) AddNameVariants() error {
+	for key, location := range spec.Locations {
+		location.Name = &NameVariant{
+			Underscore: key,
+			CamelCase:  naming.CamelCase("", key, "", true),
+		}
+
+		for subkey, variable := range location.Vars {
+			variable.Name = &NameVariant{
+				Underscore: subkey,
+				CamelCase:  naming.CamelCase("", subkey, "", true),
+			}
+		}
+	}
+
+	return nil
 }
 
 func (spec *Normalization) Sanity() error {

@@ -154,6 +154,9 @@ xpath_suffix:
     - address
 locations:
     device_group:
+        name:
+            underscore: device_group
+            camelcase: DeviceGroup
         description: Located in a specific device group.
         device:
             panorama: true
@@ -167,16 +170,25 @@ locations:
         read_only: false
         vars:
             device_group:
+                name:
+                    underscore: device_group
+                    camelcase: DeviceGroup
                 description: The device group.
                 required: true
                 validation:
                     not_values:
                         shared: The device group cannot be "shared". Use the "shared" path instead.
             panorama_device:
+                name:
+                    underscore: panorama_device
+                    camelcase: PanoramaDevice
                 description: The panorama device.
                 required: false
                 validation: null
     from_panorama:
+        name:
+            underscore: from_panorama
+            camelcase: FromPanorama
         description: Located in the config pushed from Panorama.
         device:
             panorama: false
@@ -187,6 +199,9 @@ locations:
         read_only: true
         vars: {}
     shared:
+        name:
+            underscore: shared
+            camelcase: Shared
         description: Located in shared.
         device:
             panorama: true
@@ -197,6 +212,9 @@ locations:
         read_only: false
         vars: {}
     vsys:
+        name:
+            underscore: vsys
+            camelcase: Vsys
         description: Located in a specific vsys.
         device:
             panorama: true
@@ -210,10 +228,16 @@ locations:
         read_only: false
         vars:
             ngfw_device:
+                name:
+                    underscore: ngfw_device
+                    camelcase: NgfwDevice
                 description: The NGFW device.
                 required: false
                 validation: null
             vsys:
+                name:
+                    underscore: vsys
+                    camelcase: Vsys
                 description: The vsys.
                 required: false
                 validation:
