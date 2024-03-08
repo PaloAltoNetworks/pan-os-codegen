@@ -16,6 +16,25 @@ func LocationType(location *properties.Location, pointer bool) string {
 	}
 }
 
+func SpecParamType(param *properties.SpecParam) string {
+	prefix := ""
+	if !param.Required {
+		prefix = "*"
+	}
+	if param.Type == "list" {
+		prefix = "[]"
+	}
+
+	calculatedType := ""
+	if param.Type == "list" && param.Items != nil {
+		calculatedType = param.Items.Type
+	} else {
+		calculatedType = param.Type
+	}
+
+	return prefix + calculatedType
+}
+
 func OmitEmpty(location *properties.Location) string {
 	if location.Vars != nil {
 		return ",omitempty"

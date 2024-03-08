@@ -67,6 +67,34 @@ func TestLocationType(t *testing.T) {
 	assert.Contains(t, locationTypes, "bool")
 }
 
+func TestSpecParamType(t *testing.T) {
+	// given
+	paramTypeRequiredString := properties.SpecParam{
+		Type:     "string",
+		Required: true,
+	}
+	itemsForParam := properties.SpecParamItems{
+		Type: "string",
+	}
+	paramTypeListString := properties.SpecParam{
+		Type:  "list",
+		Items: &itemsForParam,
+	}
+	paramTypeOptionalString := properties.SpecParam{
+		Type: "string",
+	}
+
+	// when
+	calculatedTypeRequiredString := SpecParamType(&paramTypeRequiredString)
+	calculatedTypeListString := SpecParamType(&paramTypeListString)
+	calculatedTypeOptionalString := SpecParamType(&paramTypeOptionalString)
+
+	// then
+	assert.Equal(t, "string", calculatedTypeRequiredString)
+	assert.Equal(t, "[]string", calculatedTypeListString)
+	assert.Equal(t, "*string", calculatedTypeOptionalString)
+}
+
 func TestOmitEmpty(t *testing.T) {
 	// given
 	yamlParsedData, _ := properties.ParseSpec([]byte(sampleSpec))

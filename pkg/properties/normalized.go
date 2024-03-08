@@ -72,8 +72,10 @@ type Spec struct {
 }
 
 type SpecParam struct {
+	Name        *NameVariant
 	Description string              `json:"description" yaml:"description"`
 	Type        string              `json:"type" yaml:"type"`
+	Required    bool                `json:"required" yaml:"required"`
 	Length      *SpecParamLength    `json:"length" yaml:"length,omitempty"`
 	Count       *SpecParamCount     `json:"count" yaml:"count,omitempty"`
 	Items       *SpecParamItems     `json:"items" yaml:"items,omitempty"`
@@ -140,12 +142,14 @@ func ParseSpec(input []byte) (*Normalization, error) {
 
 	err := content.Unmarshal(input, &spec)
 
-	err = spec.AddNameVariants()
+	err = spec.AddNameVariantsForLocation()
+	err = spec.AddNameVariantsForParams()
+	err = spec.AddDefaultTypesForParams()
 
 	return &spec, err
 }
 
-func (spec *Normalization) AddNameVariants() error {
+func (spec *Normalization) AddNameVariantsForLocation() error {
 	for key, location := range spec.Locations {
 		location.Name = &NameVariant{
 			Underscore: key,
@@ -160,6 +164,62 @@ func (spec *Normalization) AddNameVariants() error {
 		}
 	}
 
+	return nil
+}
+
+func AddNameVariantsForParams(name string, param *SpecParam) error {
+	param.Name = &NameVariant{
+		Underscore: name,
+		CamelCase:  naming.CamelCase("", name, "", true),
+	}
+	if param.Spec != nil {
+		for key, childParam := range param.Spec.Params {
+			if err := AddNameVariantsForParams(key, childParam); err != nil {
+				return err
+			}
+		}
+		for key, childParam := range param.Spec.OneOf {
+			if err := AddNameVariantsForParams(key, childParam); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (spec *Normalization) AddNameVariantsForParams() error {
+	if spec.Spec != nil {
+		for key, param := range spec.Spec.Params {
+			if err := AddNameVariantsForParams(key, param); err != nil {
+				return err
+			}
+		}
+		for key, param := range spec.Spec.OneOf {
+			if err := AddNameVariantsForParams(key, param); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (spec *Normalization) AddDefaultTypesForParams() error {
+	if spec.Spec != nil {
+		if spec.Spec.Params != nil {
+			for _, param := range spec.Spec.Params {
+				if param.Type == "" {
+					param.Type = "string"
+				}
+			}
+		}
+		if spec.Spec.OneOf != nil {
+			for _, param := range spec.Spec.OneOf {
+				if param.Type == "" {
+					param.Type = "string"
+				}
+			}
+		}
+	}
 	return nil
 }
 

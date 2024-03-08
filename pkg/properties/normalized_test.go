@@ -253,8 +253,12 @@ version: 10.1.0
 spec:
     params:
         description:
+            name:
+                underscore: description
+                camelcase: Description
             description: The description.
             type: string
+            required: false
             length:
                 min: 0
                 max: 1023
@@ -263,8 +267,12 @@ spec:
                     - description
             spec: null
         tags:
+            name:
+                underscore: tags
+                camelcase: Tags
             description: The administrative tags.
             type: list
+            required: false
             count:
                 min: null
                 max: 64
@@ -280,8 +288,12 @@ spec:
             spec: null
     one_of:
         fqdn:
+            name:
+                underscore: fqdn
+                camelcase: Fqdn
             description: The FQDN value.
-            type: ""
+            type: string
+            required: false
             length:
                 min: 1
                 max: 255
@@ -291,22 +303,34 @@ spec:
                     - fqdn
             spec: null
         ip_netmask:
+            name:
+                underscore: ip_netmask
+                camelcase: IpNetmask
             description: The IP netmask value.
-            type: ""
+            type: string
+            required: false
             profiles:
                 - xpath:
                     - ip-netmask
             spec: null
         ip_range:
+            name:
+                underscore: ip_range
+                camelcase: IpRange
             description: The IP range value.
-            type: ""
+            type: string
+            required: false
             profiles:
                 - xpath:
                     - ip-range
             spec: null
         ip_wildcard:
+            name:
+                underscore: ip_wildcard
+                camelcase: IpWildcard
             description: The IP wildcard value.
-            type: ""
+            type: string
+            required: false
             profiles:
                 - xpath:
                     - ip-wildcard
