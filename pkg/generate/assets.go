@@ -2,10 +2,10 @@ package generate
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 	"io"
 	"io/fs"
+	"log"
 	"os"
 	"path/filepath"
 )
@@ -64,7 +64,7 @@ func copyAsset(target string, asset *properties.Asset, files []string) error {
 	for _, sourceFilePath := range files {
 		// Prepare destination path
 		destinationFilePath := filepath.Join(destinationDir, filepath.Base(sourceFilePath))
-		fmt.Printf("Copy file from %s to %s\n", sourceFilePath, destinationFilePath)
+		log.Printf("Copy file from %s to %s\n", sourceFilePath, destinationFilePath)
 
 		// Read the contents of the source file
 		data, err := os.ReadFile(sourceFilePath)
