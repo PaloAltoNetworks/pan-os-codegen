@@ -96,7 +96,6 @@ func (c *Command) Execute() error {
 		}
 	}
 
-	// Copy assets (static files)
 	if err = generate.CopyAssets(config); err != nil {
 		return fmt.Errorf("error copying assets %s", err)
 	}
