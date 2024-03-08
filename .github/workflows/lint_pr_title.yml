@@ -1,0 +1,24 @@
+# This workflow is used to verify if PR titles matches conventional commits strategy
+
+name: Lint PR Title
+run-name: "Lint PR - (#${{ github.event.number }}) ${{ github.event.pull_request.title }}"
+
+permissions:
+  pull-requests: read
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - edited
+      - ready_for_review
+
+jobs:
+  lint:
+    name: Validate PR title matches conventional commits
+    runs-on: ubuntu-latest
+    if: github.actor != 'dependabot[bot]'
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
