@@ -115,7 +115,7 @@ func CamelCase(prefix, value, suffix string, capitalizeFirstRune bool) string {
 	return b.String()
 }
 
-// AlphaNumeric returns an alpha numeric version of the given string.
+// AlphaNumeric returns an alphanumeric version of the given string.
 func AlphaNumeric(value string) string {
 	var b strings.Builder
 	b.Grow(len(value))
