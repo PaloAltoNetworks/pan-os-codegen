@@ -105,8 +105,10 @@ type SpecParamItemsLength struct {
 }
 
 type SpecParamProfile struct {
-	Xpath []string `json:"xpath" yaml:"xpath"`
-	Type  string   `json:"type" yaml:"type,omitempty"`
+	Xpath       []string `json:"xpath" yaml:"xpath"`
+	Type        string   `json:"type" yaml:"type,omitempty"`
+	NotPresent  bool     `json:"not_present" yaml:"not_present"`
+	FromVersion string   `json:"from_version" yaml:"from_version"`
 }
 
 func GetNormalizations() ([]string, error) {
@@ -141,10 +143,24 @@ func ParseSpec(input []byte) (*Normalization, error) {
 	var spec Normalization
 
 	err := content.Unmarshal(input, &spec)
+	if err != nil {
+		return nil, err
+	}
 
 	err = spec.AddNameVariantsForLocation()
+	if err != nil {
+		return nil, err
+	}
+
 	err = spec.AddNameVariantsForParams()
+	if err != nil {
+		return nil, err
+	}
+
 	err = spec.AddDefaultTypesForParams()
+	if err != nil {
+		return nil, err
+	}
 
 	return &spec, err
 }

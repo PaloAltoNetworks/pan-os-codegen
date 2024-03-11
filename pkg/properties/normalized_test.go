@@ -265,6 +265,8 @@ spec:
             profiles:
                 - xpath:
                     - description
+                  not_present: false
+                  from_version: ""
             spec: null
         tags:
             name:
@@ -285,6 +287,8 @@ spec:
                 - xpath:
                     - tag
                   type: member
+                  not_present: false
+                  from_version: ""
             spec: null
     one_of:
         fqdn:
@@ -301,6 +305,8 @@ spec:
             profiles:
                 - xpath:
                     - fqdn
+                  not_present: false
+                  from_version: ""
             spec: null
         ip_netmask:
             name:
@@ -312,6 +318,8 @@ spec:
             profiles:
                 - xpath:
                     - ip-netmask
+                  not_present: false
+                  from_version: ""
             spec: null
         ip_range:
             name:
@@ -323,6 +331,8 @@ spec:
             profiles:
                 - xpath:
                     - ip-range
+                  not_present: false
+                  from_version: ""
             spec: null
         ip_wildcard:
             name:
@@ -334,6 +344,8 @@ spec:
             profiles:
                 - xpath:
                     - ip-wildcard
+                  not_present: false
+                  from_version: ""
             spec: null
 `
 
