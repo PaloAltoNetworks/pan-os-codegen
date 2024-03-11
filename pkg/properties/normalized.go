@@ -219,24 +219,25 @@ func (spec *Normalization) AddNameVariantsForParams() error {
 	return nil
 }
 
+// AddDefaultTypesForParams ensures all SpecParams within Spec have a default type if not specified.
 func (spec *Normalization) AddDefaultTypesForParams() error {
-	if spec.Spec != nil {
-		if spec.Spec.Params != nil {
-			for _, param := range spec.Spec.Params {
-				if param.Type == "" {
-					param.Type = "string"
-				}
-			}
-		}
-		if spec.Spec.OneOf != nil {
-			for _, param := range spec.Spec.OneOf {
-				if param.Type == "" {
-					param.Type = "string"
-				}
-			}
+	if spec.Spec == nil {
+		return nil
+	}
+
+	setDefaultParamTypeForMap(spec.Spec.Params)
+	setDefaultParamTypeForMap(spec.Spec.OneOf)
+
+	return nil
+}
+
+// setDefaultParamTypeForMap iterates over a map of SpecParam pointers, setting their Type to "string" if not specified.
+func setDefaultParamTypeForMap(params map[string]*SpecParam) {
+	for _, param := range params {
+		if param.Type == "" {
+			param.Type = "string"
 		}
 	}
-	return nil
 }
 
 func (spec *Normalization) Sanity() error {

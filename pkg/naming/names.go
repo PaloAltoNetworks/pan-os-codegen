@@ -69,50 +69,62 @@ func (o *Namer) NewSlug(name string) string {
 	return ans
 }
 
-// CamelCase returns a camel case version of the given string.
+// CamelCase converts a string to CamelCase format, allowing for optional prefixes/suffixes,
+// and control over the capitalization of the first character. It also skips over templated
+// sections within the string, preserving their original form.
 func CamelCase(prefix, value, suffix string, capitalizeFirstRune bool) string {
-	var b strings.Builder
-	b.Grow(len(prefix) + len(value) + len(suffix))
+	var builder strings.Builder
+	builder.Grow(len(prefix) + len(value) + len(suffix))
 
-	b.WriteString(prefix)
+	builder.WriteString(prefix)
 
-	first := true
-	didFirstRune := false
-	ignoreVar := false
-	for _, r := range value {
-		if ignoreVar {
-			if r == '}' {
-				ignoreVar = false
-			}
+	isFirstCharacter := true
+	hasFirstRuneBeenCapitalized := false
+	isIgnoringTemplate := false
+
+	for _, runeValue := range value {
+		switch runeValue {
+		case '{':
+			isIgnoringTemplate = true
+			isFirstCharacter = true // Reset for the content after template
 			continue
-		} else if r == '{' {
-			ignoreVar = true
-			first = true
+		case '}':
+			isIgnoringTemplate = false
 			continue
 		}
 
-		if r == '_' || r == '-' || r == '|' || r == '/' || r == ':' || r == ' ' {
-			first = true
-		} else if first {
-			if didFirstRune {
-				b.WriteRune(unicode.ToTitle(r))
-			} else {
-				if capitalizeFirstRune {
-					b.WriteRune(unicode.ToTitle(r))
-				} else {
-					b.WriteRune(unicode.ToLower(r))
-				}
-				didFirstRune = true
-			}
-			first = false
+		if isIgnoringTemplate {
+			continue
+		}
+
+		if shouldResetFirstCharacterFlag(runeValue) {
+			isFirstCharacter = true
+		} else if isFirstCharacter {
+			capitalizeAndWriteRune(&builder, runeValue, hasFirstRuneBeenCapitalized || capitalizeFirstRune)
+			hasFirstRuneBeenCapitalized = true
+			isFirstCharacter = false
 		} else {
-			b.WriteRune(r)
+			builder.WriteRune(runeValue)
 		}
 	}
 
-	b.WriteString(suffix)
+	builder.WriteString(suffix)
+	return builder.String()
+}
 
-	return b.String()
+// shouldResetFirstCharacterFlag checks if the given rune is a separator that should trigger
+// the next character to be capitalized in CamelCase conversion.
+func shouldResetFirstCharacterFlag(r rune) bool {
+	return r == '_' || r == '-' || r == '|' || r == '/' || r == ':' || r == ' '
+}
+
+// capitalizeAndWriteRune writes the rune to the builder, capitalizing it if needed.
+func capitalizeAndWriteRune(builder *strings.Builder, r rune, capitalize bool) {
+	if capitalize {
+		builder.WriteRune(unicode.ToTitle(r))
+	} else {
+		builder.WriteRune(unicode.ToLower(r))
+	}
 }
 
 // AlphaNumeric returns an alphanumeric version of the given string.

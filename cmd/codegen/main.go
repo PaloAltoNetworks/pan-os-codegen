@@ -24,6 +24,19 @@ func parseFlags() Config {
 	return cfg
 }
 
+func runCommand(ctx context.Context, cmdType codegen.CommandType, cfg string) {
+	cmd, err := codegen.NewCommand(ctx, cmdType, cfg)
+	if err != nil {
+		log.Fatalf("Failed to create command: %s", err)
+	}
+	if err := cmd.Setup(); err != nil {
+		log.Fatalf("Setup failed: %s", err)
+	}
+	if err := cmd.Execute(); err != nil {
+		log.Fatalf("Execution failed: %s", err)
+	}
+}
+
 func main() {
 	cfg := parseFlags()
 
@@ -48,39 +61,12 @@ func main() {
 	}
 
 	if cfg.OpType == "mktp" || cfg.OpType == "mksdk" {
-		cmd, err := codegen.NewCommand(ctx, cmdType, cfg.ConfigFile)
-		if err != nil {
-			log.Fatalf("Failed to create command: %s", err)
-		}
-		if err := cmd.Setup(); err != nil {
-			log.Fatalf("Setup failed: %s", err)
-		}
-		if err := cmd.Execute(); err != nil {
-			log.Fatalf("Execution failed: %s", err)
-		}
+		runCommand(ctx, cmdType, cfg.ConfigFile)
 	} else { // Default behavior to execute both if no specific OpType is provided
 		// Execute SDK
-		cmdSDK, err := codegen.NewCommand(ctx, codegen.CommandTypeSDK, cfg.ConfigFile)
-		if err != nil {
-			log.Fatalf("Failed to create command: %s", err)
-		}
-		if err := cmdSDK.Setup(); err != nil {
-			log.Fatalf("Setup SDK failed: %s", err)
-		}
-		if err := cmdSDK.Execute(); err != nil {
-			log.Fatalf("Execution SDK failed: %s", err)
-		}
+		runCommand(ctx, codegen.CommandTypeSDK, cfg.ConfigFile)
 
 		// Execute Terraform
-		cmdTP, err := codegen.NewCommand(ctx, codegen.CommandTypeTerraform, cfg.ConfigFile)
-		if err != nil {
-			log.Fatalf("Failed to create command: %s", err)
-		}
-		if err := cmdTP.Setup(); err != nil {
-			log.Fatalf("Setup Terraform failed: %s", err)
-		}
-		if err := cmdTP.Execute(); err != nil {
-			log.Fatalf("Execution Terraform failed: %s", err)
-		}
+		runCommand(ctx, codegen.CommandTypeTerraform, cfg.ConfigFile)
 	}
 }
