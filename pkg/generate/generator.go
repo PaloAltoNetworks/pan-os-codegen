@@ -1,7 +1,9 @@
 package generate
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -42,19 +44,26 @@ func (c *Creator) RenderTemplate() error {
 			return fmt.Errorf("error creating directories for %s: %w", filePath, err)
 		}
 
-		outputFile, err := os.Create(filePath)
-		if err != nil {
-			return fmt.Errorf("error creating file %s: %w", filePath, err)
-		}
-		defer outputFile.Close()
-
 		tmpl, err := c.parseTemplate(templateName)
 		if err != nil {
 			return fmt.Errorf("error parsing template %s: %w", templateName, err)
 		}
 
-		if err := tmpl.Execute(outputFile, c.Spec); err != nil {
+		var data bytes.Buffer
+		if err := tmpl.Execute(&data, c.Spec); err != nil {
 			return fmt.Errorf("error executing template %s: %w", templateName, err)
+		}
+		if data.Len() > 0 {
+			outputFile, err := os.Create(filePath)
+			if err != nil {
+				return fmt.Errorf("error creating file %s: %w", filePath, err)
+			}
+			defer outputFile.Close()
+
+			_, err = io.Copy(outputFile, &data)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
