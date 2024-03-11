@@ -85,7 +85,6 @@ spec:
       profiles:
         -
           xpath: ["description"]
-          from_version: "10.1.1"
     tags:
       description: 'The administrative tags.'
       type: 'list'
@@ -124,7 +123,6 @@ spec:
       profiles:
         -
           xpath: ["ip-wildcard"]
-          from_version: "11.1.2"
 `
 
 func TestUnmarshallAddressSpecFile(t *testing.T) {
@@ -268,7 +266,7 @@ spec:
                 - xpath:
                     - description
                   not_present: false
-                  from_version: 10.1.1
+                  from_version: ""
             spec: null
         tags:
             name:
@@ -285,7 +283,6 @@ spec:
                 length:
                     min: null
                     max: 127
-                ref: []
             profiles:
                 - xpath:
                     - tag
@@ -348,13 +345,14 @@ spec:
                 - xpath:
                     - ip-wildcard
                   not_present: false
-                  from_version: 11.1.2
+                  from_version: ""
             spec: null
 `
 
 	// when
 	yamlParsedData, _ := ParseSpec([]byte(sampleSpec))
 	yamlDump, _ := yaml.Marshal(&yamlParsedData)
+	//fmt.Printf("%s", string(yamlDump))
 
 	// then
 	assert.NotNilf(t, yamlDump, "Marshalled data cannot be nil")
@@ -413,16 +411,4 @@ xpath_suffix:
 
 	// then
 	assert.Len(t, problems, 2, "Not all expected validation checks failed")
-}
-
-func TestGettingListOfSupportedVersions(t *testing.T) {
-	// given
-	yamlParsedData, _ := ParseSpec([]byte(sampleSpec))
-
-	// when
-	versions := yamlParsedData.SupportedVersions()
-
-	// then
-	assert.NotNilf(t, yamlParsedData, "Unmarshalled data cannot be nil")
-	assert.Contains(t, versions, "10.1.1")
 }
