@@ -1,3 +1,4 @@
+{{- if .Entry}}
 package {{packageName .GoSdkPath}}
 
 import (
@@ -23,9 +24,7 @@ var (
 )
 
 type Entry struct {
-    {{- if .Entry}}
     Name string
-    {{- end}}
     {{- range $_, $param := .Spec.Params}}
     {{$param.Name.CamelCase}} {{specParamType $param}}
     {{- end}}
@@ -41,10 +40,8 @@ type EntryXmlContainer struct {
 }
 
 type EntryXml struct {
-    {{- if .Entry}}
 	XMLName xml.Name `xml:"entry"`
 	Name string `xml:"name,attr"`
-    {{- end}}
     {{- range $_, $param := .Spec.Params}}
     {{$param.Name.CamelCase}} {{xmlParamType $param}} {{xmlTag $param}}
     {{- end}}
@@ -67,11 +64,9 @@ func (e *Entry) CopyMiscFrom(v *Entry) {
 }
 
 func (e *Entry) Field(v string) (any, error) {
-    {{- if .Entry}}
 	if v == "name" || v == "Name" {
 		return e.Name, nil
 	}
-    {{- end}}
 
     {{- range $_, $param := .Spec.Params}}
     if v == "{{$param.Name.Underscore}}" || v == "{{$param.Name.CamelCase}}" {
@@ -99,9 +94,7 @@ func Versioning(vn version.Number) (Specifier, Normalizer, error) {
 func SpecifyEntry(o Entry) (any, error) {
 	entry := EntryXml{}
 
-    {{- if .Entry}}
 	entry.Name = o.Name
-    {{- end}}
     {{- range $_, $param := .Spec.Params}}
     entry.{{$param.Name.CamelCase}} = {{specifyEntryAssignment $param}}
     {{- end}}
@@ -120,9 +113,7 @@ func (c *EntryXmlContainer) Normalize() ([]Entry, error) {
 		entry := Entry{
 			Misc: make(map[string][]generic.Xml),
 		}
-        {{- if .Entry}}
 		entry.Name = entryXml.Name
-        {{- end}}
         {{- range $_, $param := .Spec.Params}}
         entry.{{$param.Name.CamelCase}} = entryXml.{{$param.Name.CamelCase}}
         {{- end}}
@@ -159,3 +150,4 @@ func SpecMatches(a, b *Entry) bool {
 
 	return true
 }
+{{- end}}
