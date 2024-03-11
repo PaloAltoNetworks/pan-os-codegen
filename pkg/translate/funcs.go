@@ -223,3 +223,22 @@ func argumentTypeForSpecMatchesFunction(parent []string, param *properties.SpecP
 			strings.Join(parent, ""), param.Name.CamelCase)
 	}
 }
+
+func SpecifyEntryAssignment(param *properties.SpecParam) string {
+	calculatedAssignment := ""
+	if param.Type == "list" && param.Profiles != nil && len(param.Profiles) > 0 && param.Profiles[0].Type == "member" {
+		calculatedAssignment = "util.StrToMem(o." + param.Name.CamelCase + ")"
+	} else {
+		calculatedAssignment = "o." + param.Name.CamelCase
+	}
+
+	return calculatedAssignment
+}
+
+func SpecMatchesFunction(param *properties.SpecParam) string {
+	calculatedFunction := "OptionalStringsMatch"
+	if param.Type == "list" {
+		calculatedFunction = "OrderedListsMatch"
+	}
+	return calculatedFunction
+}

@@ -85,9 +85,9 @@ func TestSpecParamType(t *testing.T) {
 	}
 
 	// when
-	calculatedTypeRequiredString := SpecParamType("", &paramTypeRequiredString)
-	calculatedTypeListString := SpecParamType("", &paramTypeListString)
-	calculatedTypeOptionalString := SpecParamType("", &paramTypeOptionalString)
+	calculatedTypeRequiredString := SpecParamType(&paramTypeRequiredString)
+	calculatedTypeListString := SpecParamType(&paramTypeListString)
+	calculatedTypeOptionalString := SpecParamType(&paramTypeOptionalString)
 
 	// then
 	assert.Equal(t, "string", calculatedTypeRequiredString)
@@ -139,8 +139,8 @@ func TestXmlParamType(t *testing.T) {
 	}
 
 	// when
-	calculatedTypeRequiredString := XmlParamType("", &paramTypeRequiredString)
-	calculatedTypeListString := XmlParamType("", &paramTypeListString)
+	calculatedTypeRequiredString := XmlParamType(&paramTypeRequiredString)
+	calculatedTypeListString := XmlParamType(&paramTypeListString)
 
 	// then
 	assert.Equal(t, "string", calculatedTypeRequiredString)
@@ -179,122 +179,4 @@ func TestXmlTag(t *testing.T) {
 	// then
 	assert.Equal(t, "`xml:\"description,omitempty\"`", calculatedXmlTagRequiredString)
 	assert.Equal(t, "`xml:\"tag,omitempty\"`", calculatedXmlTagListString)
-}
-
-func TestNestedSpecs(t *testing.T) {
-	// given
-	spec := properties.Spec{
-		Params: map[string]*properties.SpecParam{
-			"a": {
-				Name: &properties.NameVariant{
-					Underscore: "a",
-					CamelCase:  "A",
-				},
-				Spec: &properties.Spec{
-					Params: map[string]*properties.SpecParam{
-						"b": {
-							Name: &properties.NameVariant{
-								Underscore: "b",
-								CamelCase:  "B",
-							},
-							Spec: &properties.Spec{
-								Params: map[string]*properties.SpecParam{
-									"c": {
-										Name: &properties.NameVariant{
-											Underscore: "c",
-											CamelCase:  "C",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	// when
-	nestedSpecs, _ := NestedSpecs(&spec)
-
-	// then
-	assert.NotNil(t, nestedSpecs)
-	assert.Contains(t, nestedSpecs, "A")
-	assert.Contains(t, nestedSpecs, "AB")
-}
-
-func TestCreateGoSuffixFromVersion(t *testing.T) {
-	// given
-
-	// when
-	suffix := CreateGoSuffixFromVersion("10.1.1")
-
-	// then
-	assert.Equal(t, "_10_1_1", suffix)
-}
-
-func TestParamSupportedInVersion(t *testing.T) {
-	// given
-	deviceVersion101 := "10.1.1"
-	deviceVersion90 := "9.0.0"
-
-	paramName := properties.NameVariant{
-		CamelCase:  "test",
-		Underscore: "test",
-	}
-
-	profileAlwaysPresent := properties.SpecParamProfile{
-		Xpath: []string{"test"},
-	}
-	profilePresentFrom10 := properties.SpecParamProfile{
-		Xpath:       []string{"test"},
-		FromVersion: "10.0.0",
-	}
-	profileNotPresentFrom10 := properties.SpecParamProfile{
-		Xpath:       []string{"test"},
-		FromVersion: "10.0.0",
-		NotPresent:  true,
-	}
-
-	paramPresentFrom10 := &properties.SpecParam{
-		Type: "string",
-		Name: &paramName,
-		Profiles: []*properties.SpecParamProfile{
-			&profilePresentFrom10,
-		},
-	}
-	paramAlwaysPresent := &properties.SpecParam{
-		Type: "string",
-		Name: &paramName,
-		Profiles: []*properties.SpecParamProfile{
-			&profileAlwaysPresent,
-		},
-	}
-	paramNotPresentFrom10 := &properties.SpecParam{
-		Type: "string",
-		Name: &paramName,
-		Profiles: []*properties.SpecParamProfile{
-			&profileNotPresentFrom10,
-		},
-	}
-
-	// when
-	noVersionAndParamAlwaysPresent := ParamSupportedInVersion(paramAlwaysPresent, "")
-	noVersionAndParamNotPresentFrom10 := ParamSupportedInVersion(paramNotPresentFrom10, "")
-	device10AndParamPresentFrom10 := ParamSupportedInVersion(paramPresentFrom10, deviceVersion101)
-	device10AndParamAlwaysPresent := ParamSupportedInVersion(paramAlwaysPresent, deviceVersion101)
-	device10AndParamNotPresentFrom10 := ParamSupportedInVersion(paramNotPresentFrom10, deviceVersion101)
-	device9AndParamPresentFrom10 := ParamSupportedInVersion(paramPresentFrom10, deviceVersion90)
-	device9AndParamAlwaysPresent := ParamSupportedInVersion(paramAlwaysPresent, deviceVersion90)
-	device9AndParamNotPresentFrom10 := ParamSupportedInVersion(paramNotPresentFrom10, deviceVersion90)
-
-	// then
-	assert.True(t, noVersionAndParamAlwaysPresent)
-	assert.True(t, noVersionAndParamNotPresentFrom10)
-	assert.True(t, device10AndParamPresentFrom10)
-	assert.True(t, device10AndParamAlwaysPresent)
-	assert.False(t, device10AndParamNotPresentFrom10)
-	assert.False(t, device9AndParamPresentFrom10)
-	assert.True(t, device9AndParamAlwaysPresent)
-	assert.True(t, device9AndParamNotPresentFrom10)
 }
