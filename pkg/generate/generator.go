@@ -60,7 +60,6 @@ func (c *Creator) RenderTemplate() error {
 	return nil
 }
 
-
 func (c *Creator) createFullFilePath(templateName string) string {
 	fileBaseName := strings.TrimSuffix(templateName, filepath.Ext(templateName))
 	return filepath.Join(c.GoOutputDir, filepath.Join(c.Spec.GoSdkPath...), fileBaseName+".go")
@@ -99,14 +98,17 @@ func (c *Creator) createFile(filePath string) (*os.File, error) {
 	return outputFile, nil
 }
 
-
 func (c *Creator) parseTemplate(templateName string) (*template.Template, error) {
 	templatePath := filepath.Join(c.TemplatesDir, templateName)
 	funcMap := template.FuncMap{
-		"packageName":   translate.PackageName,
-		"locationType":  translate.LocationType,
-		"specParamType": translate.SpecParamType,
-		"omitEmpty":     translate.OmitEmpty,
+		"packageName":            translate.PackageName,
+		"locationType":           translate.LocationType,
+		"specParamType":          translate.SpecParamType,
+		"xmlParamType":           translate.XmlParamType,
+		"xmlTag":                 translate.XmlTag,
+		"specifyEntryAssignment": translate.SpecifyEntryAssignment,
+		"specMatchesFunction":    translate.SpecMatchesFunction,
+		"omitEmpty":              translate.OmitEmpty,
 		"contains": func(full, part string) bool {
 			return strings.Contains(full, part)
 		},
