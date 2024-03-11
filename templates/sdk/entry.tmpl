@@ -97,45 +97,45 @@ func Versioning(vn version.Number) (Specifier, Normalizer, error) {
 }
 
 func SpecifyEntry(o Entry) (any, error) {
-	ans := EntryXml{}
+	entry := EntryXml{}
 
     {{- if .Entry}}
-	ans.Name = o.Name
+	entry.Name = o.Name
     {{- end}}
     {{- range $_, $param := .Spec.Params}}
-    ans.{{$param.Name.CamelCase}} = {{specifyEntryAssignment $param}}
+    entry.{{$param.Name.CamelCase}} = {{specifyEntryAssignment $param}}
     {{- end}}
     {{- range $_, $param := .Spec.OneOf}}
-    ans.{{$param.Name.CamelCase}} = {{specifyEntryAssignment $param}}
+    entry.{{$param.Name.CamelCase}} = {{specifyEntryAssignment $param}}
     {{- end}}
 
-	ans.Misc = o.Misc[fmt.Sprintf("%s\n%s", "Entry", o.Name)]
+	entry.Misc = o.Misc[fmt.Sprintf("%s\n%s", "Entry", o.Name)]
 
-	return ans, nil
+	return entry, nil
 }
 
 func (c *EntryXmlContainer) Normalize() ([]Entry, error) {
-	ans := make([]Entry, 0, len(c.Answer))
-	for _, var0 := range c.Answer {
-		var1 := Entry{
+	entryList := make([]Entry, 0, len(c.Answer))
+	for _, entryXml := range c.Answer {
+		entry := Entry{
 			Misc: make(map[string][]generic.Xml),
 		}
         {{- if .Entry}}
-		var1.Name = var0.Name
+		entry.Name = entryXml.Name
         {{- end}}
         {{- range $_, $param := .Spec.Params}}
-        var1.{{$param.Name.CamelCase}} = var0.{{$param.Name.CamelCase}}
+        entry.{{$param.Name.CamelCase}} = entryXml.{{$param.Name.CamelCase}}
         {{- end}}
         {{- range $_, $param := .Spec.OneOf}}
-        var1.{{$param.Name.CamelCase}} = var0.{{$param.Name.CamelCase}}
+        entry.{{$param.Name.CamelCase}} = entryXml.{{$param.Name.CamelCase}}
         {{- end}}
 
-		var1.Misc[fmt.Sprintf("%s\n%s", "Entry", var0.Name)] = var0.Misc
+		entry.Misc[fmt.Sprintf("%s\n%s", "Entry", entryXml.Name)] = entryXml.Misc
 
-		ans = append(ans, var1)
+		entryList = append(entryList, entry)
 	}
 
-	return ans, nil
+	return entryList, nil
 }
 
 func SpecMatches(a, b *Entry) bool {
