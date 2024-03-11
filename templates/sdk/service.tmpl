@@ -20,6 +20,7 @@ func NewService(client util.PangoClient) *Service {
 	}
 }
 
+{{- if .Entry}}
 // Create creates the given config object.
 func (s *Service) Create(ctx context.Context, loc Location, entry Entry) (*Entry, error) {
 	if entry.Name == "" {
@@ -440,3 +441,4 @@ func (s *Service) ConfigureGroup(ctx context.Context, loc Location, entries []En
 
 	return ans, nil
 }
+{{- end}}
