@@ -1,6 +1,7 @@
 package translate
 
 import (
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 )
 
@@ -16,6 +17,30 @@ func LocationType(location *properties.Location, pointer bool) string {
 	}
 }
 
+func NestedSpecs(spec *properties.Spec) (map[string]*properties.Spec, error) {
+	nestedSpecs := make(map[string]*properties.Spec)
+
+	checkNestedSpecs(spec, nestedSpecs)
+
+	return nestedSpecs, nil
+}
+
+func checkNestedSpecs(spec *properties.Spec, nestedSpecs map[string]*properties.Spec) {
+	for _, param := range spec.Params {
+		updateNestedSpecs(param, nestedSpecs)
+	}
+	for _, param := range spec.OneOf {
+		updateNestedSpecs(param, nestedSpecs)
+	}
+}
+
+func updateNestedSpecs(param *properties.SpecParam, nestedSpecs map[string]*properties.Spec) {
+	if param.Spec != nil {
+		nestedSpecs[naming.CamelCase("", param.Name.CamelCase, "", true)] = param.Spec
+		checkNestedSpecs(param.Spec, nestedSpecs)
+	}
+}
+
 func SpecParamType(param *properties.SpecParam) string {
 	prefix := ""
 	if !param.Required {
@@ -28,6 +53,8 @@ func SpecParamType(param *properties.SpecParam) string {
 	calculatedType := ""
 	if param.Type == "list" && param.Items != nil {
 		calculatedType = param.Items.Type
+	} else if param.Spec != nil {
+		calculatedType = "Spec" + naming.CamelCase("", param.Name.CamelCase, "", true)
 	} else {
 		calculatedType = param.Type
 	}
@@ -44,6 +71,8 @@ func XmlParamType(param *properties.SpecParam) string {
 	calculatedType := ""
 	if param.Type == "list" && param.Profiles != nil && len(param.Profiles) > 0 && param.Profiles[0].Type == "member" {
 		calculatedType = "util.MemberType"
+	} else if param.Spec != nil {
+		calculatedType = "Spec" + naming.CamelCase("", param.Name.CamelCase, "", true) + "Xml"
 	} else {
 		calculatedType = param.Type
 	}
