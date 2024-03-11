@@ -35,6 +35,17 @@ type Entry struct {
 	Misc map[string][]generic.Xml
 }
 
+{{- range $name, $spec := nestedSpecs .Spec }}
+type Spec{{$name}} struct {
+    {{- range $_, $param := $spec.Params}}
+    {{$param.Name.CamelCase}} {{specParamType $param}}
+    {{- end}}
+    {{- range $_, $param := $spec.OneOf}}
+    {{$param.Name.CamelCase}} {{specParamType $param}}
+    {{- end}}
+}
+{{- end}}
+
 type EntryXmlContainer struct {
 	Answer []EntryXml `xml:"entry"`
 }
@@ -51,6 +62,17 @@ type EntryXml struct {
 
 	Misc []generic.Xml `xml:",any"`
 }
+
+{{- range $name, $spec := nestedSpecs .Spec }}
+type Spec{{$name}}Xml struct {
+    {{- range $_, $param := $spec.Params}}
+    {{$param.Name.CamelCase}} {{xmlParamType $param}} {{xmlTag $param}}
+    {{- end}}
+    {{- range $_, $param := $spec.OneOf}}
+    {{$param.Name.CamelCase}} {{xmlParamType $param}} {{xmlTag $param}}
+    {{- end}}
+}
+{{- end}}
 
 func (e *Entry) CopyMiscFrom(v *Entry) {
 	if v == nil || len(v.Misc) == 0 {

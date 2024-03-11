@@ -180,3 +180,45 @@ func TestXmlTag(t *testing.T) {
 	assert.Equal(t, "`xml:\"description,omitempty\"`", calculatedXmlTagRequiredString)
 	assert.Equal(t, "`xml:\"tag,omitempty\"`", calculatedXmlTagListString)
 }
+
+func TestNestedSpecs(t *testing.T) {
+	// given
+	spec := properties.Spec{
+		Params: map[string]*properties.SpecParam{
+			"a": {
+				Name: &properties.NameVariant{
+					Underscore: "a",
+					CamelCase:  "a",
+				},
+				Spec: &properties.Spec{
+					Params: map[string]*properties.SpecParam{
+						"b": {
+							Name: &properties.NameVariant{
+								Underscore: "b",
+								CamelCase:  "b",
+							},
+							Spec: &properties.Spec{
+								Params: map[string]*properties.SpecParam{
+									"c": {
+										Name: &properties.NameVariant{
+											Underscore: "c",
+											CamelCase:  "c",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// when
+	nestedSpecs, _ := NestedSpecs(&spec)
+
+	// then
+	assert.NotNil(t, nestedSpecs)
+	assert.Contains(t, nestedSpecs, "A")
+	assert.Contains(t, nestedSpecs, "B")
+}

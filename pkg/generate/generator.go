@@ -125,6 +125,7 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 			return a - b
 		},
 		"asEntryXpath": translate.AsEntryXpath,
+		"nestedSpecs":  translate.NestedSpecs,
 	}
 	return template.New(templateName).Funcs(funcMap).ParseFiles(templatePath)
 }

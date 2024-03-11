@@ -219,24 +219,44 @@ func (spec *Normalization) AddNameVariantsForParams() error {
 	return nil
 }
 
-// AddDefaultTypesForParams ensures all SpecParams within Spec have a default type if not specified.
-func (spec *Normalization) AddDefaultTypesForParams() error {
-	if spec.Spec == nil {
-		return nil
+func AddDefaultTypesForParams(param *SpecParam) error {
+	if param.Type == "" {
+		param.Type = "string"
 	}
 
-	setDefaultParamTypeForMap(spec.Spec.Params)
-	setDefaultParamTypeForMap(spec.Spec.OneOf)
-
-	return nil
+	if param.Spec != nil {
+		for _, childParam := range param.Spec.Params {
+			if err := AddDefaultTypesForParams(childParam); err != nil {
+				return err
+			}
+		}
+		for _, childParam := range param.Spec.OneOf {
+			if err := AddDefaultTypesForParams(childParam); err != nil {
+				return err
+			}
+		}
+		return nil
+	} else {
+		return nil
+	}
 }
 
-// setDefaultParamTypeForMap iterates over a map of SpecParam pointers, setting their Type to "string" if not specified.
-func setDefaultParamTypeForMap(params map[string]*SpecParam) {
-	for _, param := range params {
-		if param.Type == "" {
-			param.Type = "string"
+// AddDefaultTypesForParams ensures all SpecParams within Spec have a default type if not specified.
+func (spec *Normalization) AddDefaultTypesForParams() error {
+	if spec.Spec != nil {
+		for _, childParam := range spec.Spec.Params {
+			if err := AddDefaultTypesForParams(childParam); err != nil {
+				return err
+			}
 		}
+		for _, childParam := range spec.Spec.OneOf {
+			if err := AddDefaultTypesForParams(childParam); err != nil {
+				return err
+			}
+		}
+		return nil
+	} else {
+		return nil
 	}
 }
 
