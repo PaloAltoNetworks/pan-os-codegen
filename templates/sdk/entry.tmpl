@@ -131,19 +131,19 @@ func SpecifyEntry(o Entry) (any, error) {
 
 func (c *EntryXmlContainer) Normalize() ([]Entry, error) {
 	entryList := make([]Entry, 0, len(c.Answer))
-	for _, entryXml := range c.Answer {
+	for _, o := range c.Answer {
 		entry := Entry{
 			Misc: make(map[string][]generic.Xml),
 		}
-		entry.Name = entryXml.Name
+		entry.Name = o.Name
         {{- range $_, $param := .Spec.Params}}
-        entry.{{$param.Name.CamelCase}} = entryXml.{{$param.Name.CamelCase}}
+        {{normalizeAssignment $param}}
         {{- end}}
         {{- range $_, $param := .Spec.OneOf}}
-        entry.{{$param.Name.CamelCase}} = entryXml.{{$param.Name.CamelCase}}
+        {{normalizeAssignment $param}}
         {{- end}}
 
-		entry.Misc[fmt.Sprintf("%s\n%s", "Entry", entryXml.Name)] = entryXml.Misc
+		entry.Misc[fmt.Sprintf("%s\n%s", "Entry", o.Name)] = o.Misc
 
 		entryList = append(entryList, entry)
 	}

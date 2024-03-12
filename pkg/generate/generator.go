@@ -116,6 +116,7 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		"xmlParamType":           translate.XmlParamType,
 		"xmlTag":                 translate.XmlTag,
 		"specifyEntryAssignment": translate.SpecifyEntryAssignment,
+		"normalizeAssignment":    translate.NormalizeAssignment,
 		"specMatchesFunction":    translate.SpecMatchesFunction,
 		"omitEmpty":              translate.OmitEmpty,
 		"contains": func(full, part string) bool {

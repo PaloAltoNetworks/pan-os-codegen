@@ -188,21 +188,21 @@ func TestNestedSpecs(t *testing.T) {
 			"a": {
 				Name: &properties.NameVariant{
 					Underscore: "a",
-					CamelCase:  "a",
+					CamelCase:  "A",
 				},
 				Spec: &properties.Spec{
 					Params: map[string]*properties.SpecParam{
 						"b": {
 							Name: &properties.NameVariant{
 								Underscore: "b",
-								CamelCase:  "b",
+								CamelCase:  "B",
 							},
 							Spec: &properties.Spec{
 								Params: map[string]*properties.SpecParam{
 									"c": {
 										Name: &properties.NameVariant{
 											Underscore: "c",
-											CamelCase:  "c",
+											CamelCase:  "C",
 										},
 									},
 								},
