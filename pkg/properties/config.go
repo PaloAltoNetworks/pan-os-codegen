@@ -23,7 +23,7 @@ type Target struct {
 	TerraformProvider bool `json:"terraform_provider" yaml:"terraform_provider"`
 }
 
-// ParseConfig initialize Config instance using input data from YAML file.
+// ParseConfig initialize Config instance using input data from YAML file
 func ParseConfig(input []byte) (*Config, error) {
 	var ans Config
 	err := content.Unmarshal(input, &ans)

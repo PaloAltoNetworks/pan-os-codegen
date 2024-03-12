@@ -8,13 +8,13 @@ import (
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/commands/codegen"
 )
 
-// Config holds the configuration values for the application.
+// Config holds the configuration values for the application
 type Config struct {
 	ConfigFile string
 	OpType     string
 }
 
-// parseFlags parses the command line flags.
+// parseFlags parses the command line flags
 func parseFlags() Config {
 	var cfg Config
 	flag.StringVar(&cfg.ConfigFile, "config", "./cmd/codegen/config.yaml", "Path to the configuration file")
@@ -24,7 +24,7 @@ func parseFlags() Config {
 	return cfg
 }
 
-// runCommand executed command to generate code for SDK or Terraform.
+// runCommand executed command to generate code for SDK or Terraform
 func runCommand(ctx context.Context, cmdType codegen.CommandType, cfg string) {
 	cmd, err := codegen.NewCommand(ctx, cmdType, cfg)
 	if err != nil {
