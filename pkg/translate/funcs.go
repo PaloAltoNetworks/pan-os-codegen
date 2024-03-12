@@ -225,14 +225,90 @@ func argumentTypeForSpecMatchesFunction(parent []string, param *properties.SpecP
 }
 
 func SpecifyEntryAssignment(param *properties.SpecParam) string {
-	calculatedAssignment := ""
+	var builder strings.Builder
+
 	if param.Type == "list" && param.Profiles != nil && len(param.Profiles) > 0 && param.Profiles[0].Type == "member" {
-		calculatedAssignment = "util.StrToMem(o." + param.Name.CamelCase + ")"
+		builder.WriteString("entry." + param.Name.CamelCase + " = util.StrToMem(o." + param.Name.CamelCase + ")")
+	} else if param.Spec != nil {
+		for _, subParam := range param.Spec.Params {
+			builder.WriteString(nestedObjectDeclaration([]string{param.Name.CamelCase}, subParam))
+		}
+		builder.WriteString("entry." + param.Name.CamelCase + " = &Spec" + param.Name.CamelCase + "Xml{\n")
+		for _, subParam := range param.Spec.Params {
+			builder.WriteString(nestedObjectAssignment([]string{param.Name.CamelCase}, subParam))
+		}
+		for _, subParam := range param.Spec.OneOf {
+			builder.WriteString(nestedObjectAssignment([]string{param.Name.CamelCase}, subParam))
+		}
+		builder.WriteString("}\n")
 	} else {
-		calculatedAssignment = "o." + param.Name.CamelCase
+		builder.WriteString("entry." + param.Name.CamelCase + " = o." + param.Name.CamelCase)
 	}
 
-	return calculatedAssignment
+	return builder.String()
+}
+
+func nestedObjectDeclaration(parent []string, param *properties.SpecParam) string {
+	var builder strings.Builder
+
+	if param.Spec != nil {
+		for _, subParam := range param.Spec.Params {
+			builder.WriteString(declareVariableForNestedObject(parent, param, subParam))
+			builder.WriteString(nestedObjectDeclaration(append(parent, param.Name.CamelCase), subParam))
+		}
+		for _, subParam := range param.Spec.OneOf {
+			builder.WriteString(declareVariableForNestedObject(parent, param, subParam))
+			builder.WriteString(nestedObjectDeclaration(append(parent, param.Name.CamelCase), subParam))
+		}
+	}
+
+	return builder.String()
+}
+
+func declareVariableForNestedObject(parent []string, param *properties.SpecParam, subParam *properties.SpecParam) string {
+	if subParam.Spec == nil && parent != nil {
+		return "nested" +
+			strings.Join(parent, "") +
+			param.Name.CamelCase +
+			subParam.Name.CamelCase +
+			" := o." +
+			strings.Join(parent, ".") +
+			"." + param.Name.CamelCase +
+			"." + subParam.Name.CamelCase +
+			"\n"
+	} else {
+		return ""
+	}
+}
+
+func nestedObjectAssignment(parent []string, param *properties.SpecParam) string {
+	var builder strings.Builder
+
+	if param.Type == "list" && param.Profiles != nil && len(param.Profiles) > 0 && param.Profiles[0].Type == "member" {
+		builder.WriteString(param.Name.CamelCase +
+			" : util.StrToMem(o." +
+			param.Name.CamelCase +
+			"),\n")
+	} else if param.Spec != nil {
+		builder.WriteString(param.Name.CamelCase +
+			" : &Spec" +
+			param.Name.CamelCase +
+			"Xml{\n")
+		for _, subParam := range param.Spec.Params {
+			builder.WriteString(nestedObjectAssignment(append(parent, param.Name.CamelCase), subParam))
+		}
+		for _, subParam := range param.Spec.OneOf {
+			builder.WriteString(nestedObjectAssignment(append(parent, param.Name.CamelCase), subParam))
+		}
+		builder.WriteString("},\n")
+	} else {
+		builder.WriteString(param.Name.CamelCase +
+			" : nested" +
+			strings.Join(parent, "") +
+			param.Name.CamelCase + ",\n")
+	}
+
+	return builder.String()
 }
 
 func SpecMatchesFunction(param *properties.SpecParam) string {
