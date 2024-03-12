@@ -118,10 +118,10 @@ func SpecifyEntry(o Entry) (any, error) {
 
 	entry.Name = o.Name
     {{- range $_, $param := .Spec.Params}}
-    entry.{{$param.Name.CamelCase}} = {{specifyEntryAssignment $param}}
+    {{specifyEntryAssignment $param}}
     {{- end}}
     {{- range $_, $param := .Spec.OneOf}}
-    entry.{{$param.Name.CamelCase}} = {{specifyEntryAssignment $param}}
+    {{specifyEntryAssignment $param}}
     {{- end}}
 
 	entry.Misc = o.Misc[fmt.Sprintf("%s\n%s", "Entry", o.Name)]

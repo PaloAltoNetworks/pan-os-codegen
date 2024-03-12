@@ -16,7 +16,7 @@ func TestAsEntryXpath(t *testing.T) {
 	assert.Equal(t, "util.AsEntryXpath([]string{o.DeviceGroup.PanoramaDevice}),", asEntryXpath)
 }
 
-func TestSpecifyEntryAssignment(t *testing.T) {
+func TestSpecifyEntryAssignmentForFlatStructure(t *testing.T) {
 	// given
 	paramTypeString := properties.SpecParam{
 		Name: &properties.NameVariant{
@@ -49,8 +49,54 @@ func TestSpecifyEntryAssignment(t *testing.T) {
 	calculatedAssignmentListString := SpecifyEntryAssignment(&paramTypeListString)
 
 	// then
-	assert.Equal(t, "o.Description", calculatedAssignmentString)
-	assert.Equal(t, "util.StrToMem(o.Tags)", calculatedAssignmentListString)
+	assert.Equal(t, "entry.Description = o.Description", calculatedAssignmentString)
+	assert.Equal(t, "entry.Tags = util.StrToMem(o.Tags)", calculatedAssignmentListString)
+}
+
+func TestSpecifyEntryAssignmentForNestedObject(t *testing.T) {
+	// given
+	spec := properties.Spec{
+		Params: map[string]*properties.SpecParam{
+			"a": {
+				Name: &properties.NameVariant{
+					Underscore: "a",
+					CamelCase:  "A",
+				},
+				Spec: &properties.Spec{
+					Params: map[string]*properties.SpecParam{
+						"b": {
+							Name: &properties.NameVariant{
+								Underscore: "b",
+								CamelCase:  "B",
+							},
+							Spec: &properties.Spec{
+								Params: map[string]*properties.SpecParam{
+									"c": {
+										Name: &properties.NameVariant{
+											Underscore: "c",
+											CamelCase:  "C",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	expectedAssignmentStreing := `nestedABC := o.A.B.C
+entry.A = &SpecAXml{
+B : &SpecBXml{
+C : nestedABC,
+},
+}
+`
+	// when
+	calculatedAssignmentString := SpecifyEntryAssignment(spec.Params["a"])
+
+	// then
+	assert.Equal(t, expectedAssignmentStreing, calculatedAssignmentString)
 }
 
 func TestSpecMatchesFunction(t *testing.T) {
