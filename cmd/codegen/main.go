@@ -24,6 +24,7 @@ func parseFlags() Config {
 	return cfg
 }
 
+// runCommand executed command to generate code for SDK or Terraform
 func runCommand(ctx context.Context, cmdType codegen.CommandType, cfg string) {
 	cmd, err := codegen.NewCommand(ctx, cmdType, cfg)
 	if err != nil {

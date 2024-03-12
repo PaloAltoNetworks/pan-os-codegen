@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// AsEntryXpath functions used in location.tmpl to generate XPath for location
 func AsEntryXpath(location, xpath string) (string, error) {
 	if !strings.Contains(xpath, "$") || !strings.Contains(xpath, "}") {
 		return "", errors.New("$ followed by } should exists in xpath'")
@@ -16,6 +17,38 @@ func AsEntryXpath(location, xpath string) (string, error) {
 	return "util.AsEntryXpath([]string{o." + location + "." + xpath + "}),", nil
 }
 
+// NormalizeAssignment generates a string, which contains entry assignment in Normalize() function
+// in entry.tmpl template. If param contains nested specs, then recursively are executed internal functions,
+// which are declaring additional variables (function nestedObjectDeclaration()) and use them in
+// entry assignment (function nestedObjectAssignment())
+func NormalizeAssignment(param *properties.SpecParam) string {
+	var builder strings.Builder
+
+	if param.Type == "list" && param.Profiles != nil && len(param.Profiles) > 0 && param.Profiles[0].Type == "member" {
+		builder.WriteString("entry." + param.Name.CamelCase + " = entryXml." + param.Name.CamelCase)
+	} else if param.Spec != nil {
+		for _, subParam := range param.Spec.Params {
+			builder.WriteString(nestedObjectDeclaration([]string{param.Name.CamelCase}, subParam))
+		}
+		builder.WriteString("entry." + param.Name.CamelCase + " = &Spec" + param.Name.CamelCase + "{\n")
+		for _, subParam := range param.Spec.Params {
+			builder.WriteString(nestedObjectAssignment([]string{param.Name.CamelCase}, "", subParam))
+		}
+		for _, subParam := range param.Spec.OneOf {
+			builder.WriteString(nestedObjectAssignment([]string{param.Name.CamelCase}, "", subParam))
+		}
+		builder.WriteString("}\n")
+	} else {
+		builder.WriteString("entry." + param.Name.CamelCase + " = entryXml." + param.Name.CamelCase)
+	}
+
+	return builder.String()
+}
+
+// SpecifyEntryAssignment generates a string, which contains entry assignment in SpecifyEntry() function
+// in entry.tmpl template. If param contains nested specs, then recursively are executed internal functions,
+// which are declaring additional variables (function nestedObjectDeclaration()) and use them in
+// entry assignment (function nestedObjectAssignment())
 func SpecifyEntryAssignment(param *properties.SpecParam) string {
 	var builder strings.Builder
 
@@ -103,30 +136,8 @@ func nestedObjectAssignment(parent []string, suffix string, param *properties.Sp
 	return builder.String()
 }
 
-func NormalizeAssignment(param *properties.SpecParam) string {
-	var builder strings.Builder
-
-	if param.Type == "list" && param.Profiles != nil && len(param.Profiles) > 0 && param.Profiles[0].Type == "member" {
-		builder.WriteString("entry." + param.Name.CamelCase + " = entryXml." + param.Name.CamelCase)
-	} else if param.Spec != nil {
-		for _, subParam := range param.Spec.Params {
-			builder.WriteString(nestedObjectDeclaration([]string{param.Name.CamelCase}, subParam))
-		}
-		builder.WriteString("entry." + param.Name.CamelCase + " = &Spec" + param.Name.CamelCase + "{\n")
-		for _, subParam := range param.Spec.Params {
-			builder.WriteString(nestedObjectAssignment([]string{param.Name.CamelCase}, "", subParam))
-		}
-		for _, subParam := range param.Spec.OneOf {
-			builder.WriteString(nestedObjectAssignment([]string{param.Name.CamelCase}, "", subParam))
-		}
-		builder.WriteString("}\n")
-	} else {
-		builder.WriteString("entry." + param.Name.CamelCase + " = entryXml." + param.Name.CamelCase)
-	}
-
-	return builder.String()
-}
-
+// SpecMatchesFunction return a string used in function SpecMatches() in entry.tmpl
+// to compare all items of generated entry
 func SpecMatchesFunction(param *properties.SpecParam) string {
 	calculatedFunction := "OptionalStringsMatch"
 	if param.Type == "list" {

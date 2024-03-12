@@ -5,6 +5,7 @@ import (
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 )
 
+// LocationType function used in template location.tmpl to generate location type name
 func LocationType(location *properties.Location, pointer bool) string {
 	prefix := ""
 	if pointer {
@@ -17,6 +18,7 @@ func LocationType(location *properties.Location, pointer bool) string {
 	}
 }
 
+// NestedSpecs go through all params and one of (recursively) and return map of all nested specs
 func NestedSpecs(spec *properties.Spec) (map[string]*properties.Spec, error) {
 	nestedSpecs := make(map[string]*properties.Spec)
 
@@ -41,6 +43,7 @@ func updateNestedSpecs(param *properties.SpecParam, nestedSpecs map[string]*prop
 	}
 }
 
+// SpecParamType return param type (it can be nested spec) (for struct based on spec from YAML files)
 func SpecParamType(param *properties.SpecParam) string {
 	prefix := ""
 	if !param.Required {
@@ -62,6 +65,7 @@ func SpecParamType(param *properties.SpecParam) string {
 	return prefix + calculatedType
 }
 
+// XmlParamType return param type (it can be nested spec) (for struct based on spec from YAML files)
 func XmlParamType(param *properties.SpecParam) string {
 	prefix := ""
 	if !param.Required {
@@ -80,6 +84,7 @@ func XmlParamType(param *properties.SpecParam) string {
 	return prefix + calculatedType
 }
 
+// XmlTag creates a string with xml tag (e.g. `xml:"description,omitempty"`)
 func XmlTag(param *properties.SpecParam) string {
 	suffix := ""
 	if !param.Required {
@@ -93,6 +98,7 @@ func XmlTag(param *properties.SpecParam) string {
 	return calculatedTag
 }
 
+// OmitEmpty return omitempty in XML tag for location, if there are variables defined
 func OmitEmpty(location *properties.Location) string {
 	if location.Vars != nil {
 		return ",omitempty"
