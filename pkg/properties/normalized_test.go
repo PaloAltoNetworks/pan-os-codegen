@@ -283,6 +283,7 @@ spec:
                 length:
                     min: null
                     max: 127
+                ref: []
             profiles:
                 - xpath:
                     - tag

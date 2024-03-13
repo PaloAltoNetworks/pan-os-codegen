@@ -27,7 +27,7 @@ func NormalizeAssignment(param *properties.SpecParam) string {
 	var builder strings.Builder
 
 	if param.Type == "list" && param.Profiles != nil && len(param.Profiles) > 0 && param.Profiles[0].Type == "member" {
-		builder.WriteString(fmt.Sprintf("entry.%s = entryXml.%s", param.Name.CamelCase, param.Name.CamelCase))
+		builder.WriteString(fmt.Sprintf("entry.%s = o.%s", param.Name.CamelCase, param.Name.CamelCase))
 	} else if param.Spec != nil {
 		for _, subParam := range param.Spec.Params {
 			builder.WriteString(nestedObjectDeclaration([]string{param.Name.CamelCase}, subParam))
@@ -41,7 +41,7 @@ func NormalizeAssignment(param *properties.SpecParam) string {
 		}
 		builder.WriteString("}\n")
 	} else {
-		builder.WriteString(fmt.Sprintf("entry.%s = entryXml.%s", param.Name.CamelCase, param.Name.CamelCase))
+		builder.WriteString(fmt.Sprintf("entry.%s = o.%s", param.Name.CamelCase, param.Name.CamelCase))
 	}
 
 	return builder.String()
