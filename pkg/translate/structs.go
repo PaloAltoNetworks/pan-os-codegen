@@ -56,7 +56,11 @@ func SpecParamType(param *properties.SpecParam) string {
 
 	calculatedType := ""
 	if param.Type == "list" && param.Items != nil {
-		calculatedType = param.Items.Type
+		if param.Items.Type == "object" && param.Items.Ref != nil {
+			calculatedType = "string"
+		} else {
+			calculatedType = param.Items.Type
+		}
 	} else if param.Spec != nil {
 		calculatedType = fmt.Sprintf("Spec%s", naming.CamelCase("", param.Name.CamelCase, "", true))
 	} else {

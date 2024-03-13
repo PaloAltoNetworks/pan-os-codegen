@@ -97,6 +97,7 @@ type SpecParamCount struct {
 type SpecParamItems struct {
 	Type   string                `json:"type" yaml:"type"`
 	Length *SpecParamItemsLength `json:"length" yaml:"length"`
+	Ref    []*string             `json:"ref" yaml:"ref"`
 }
 
 type SpecParamItemsLength struct {
