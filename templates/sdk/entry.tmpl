@@ -118,10 +118,10 @@ func SpecifyEntry(o Entry) (any, error) {
 
 	entry.Name = o.Name
     {{- range $_, $param := .Spec.Params}}
-    {{specifyEntryAssignment $param}}
+    {{specifyEntryAssignment "entry" $param}}
     {{- end}}
     {{- range $_, $param := .Spec.OneOf}}
-    {{specifyEntryAssignment $param}}
+    {{specifyEntryAssignment "entry" $param}}
     {{- end}}
 
 	entry.Misc = o.Misc[fmt.Sprintf("%s\n%s", "Entry", o.Name)]
@@ -137,10 +137,10 @@ func (c *EntryXmlContainer) Normalize() ([]Entry, error) {
 		}
 		entry.Name = o.Name
         {{- range $_, $param := .Spec.Params}}
-        {{normalizeAssignment $param}}
+        {{normalizeAssignment "entry" $param}}
         {{- end}}
         {{- range $_, $param := .Spec.OneOf}}
-        {{normalizeAssignment $param}}
+        {{normalizeAssignment "entry" $param}}
         {{- end}}
 
 		entry.Misc[fmt.Sprintf("%s\n%s", "Entry", o.Name)] = o.Misc
