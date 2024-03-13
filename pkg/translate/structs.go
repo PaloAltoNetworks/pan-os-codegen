@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
+	"strings"
 )
 
 // LocationType function used in template location.tmpl to generate location type name.
@@ -23,29 +24,29 @@ func LocationType(location *properties.Location, pointer bool) string {
 func NestedSpecs(spec *properties.Spec) (map[string]*properties.Spec, error) {
 	nestedSpecs := make(map[string]*properties.Spec)
 
-	checkNestedSpecs(spec, nestedSpecs)
+	checkNestedSpecs([]string{}, spec, nestedSpecs)
 
 	return nestedSpecs, nil
 }
 
-func checkNestedSpecs(spec *properties.Spec, nestedSpecs map[string]*properties.Spec) {
+func checkNestedSpecs(parent []string, spec *properties.Spec, nestedSpecs map[string]*properties.Spec) {
 	for _, param := range spec.Params {
-		updateNestedSpecs(param, nestedSpecs)
+		updateNestedSpecs(append(parent, param.Name.CamelCase), param, nestedSpecs)
 	}
 	for _, param := range spec.OneOf {
-		updateNestedSpecs(param, nestedSpecs)
+		updateNestedSpecs(append(parent, param.Name.CamelCase), param, nestedSpecs)
 	}
 }
 
-func updateNestedSpecs(param *properties.SpecParam, nestedSpecs map[string]*properties.Spec) {
+func updateNestedSpecs(parent []string, param *properties.SpecParam, nestedSpecs map[string]*properties.Spec) {
 	if param.Spec != nil {
-		nestedSpecs[naming.CamelCase("", param.Name.CamelCase, "", true)] = param.Spec
-		checkNestedSpecs(param.Spec, nestedSpecs)
+		nestedSpecs[strings.Join(parent, "")] = param.Spec
+		checkNestedSpecs(parent, param.Spec, nestedSpecs)
 	}
 }
 
 // SpecParamType return param type (it can be nested spec) (for struct based on spec from YAML files).
-func SpecParamType(param *properties.SpecParam) string {
+func SpecParamType(parent string, param *properties.SpecParam) string {
 	prefix := ""
 	if !param.Required {
 		prefix = "*"
@@ -62,7 +63,7 @@ func SpecParamType(param *properties.SpecParam) string {
 			calculatedType = param.Items.Type
 		}
 	} else if param.Spec != nil {
-		calculatedType = fmt.Sprintf("Spec%s", naming.CamelCase("", param.Name.CamelCase, "", true))
+		calculatedType = fmt.Sprintf("Spec%s%s", parent, naming.CamelCase("", param.Name.CamelCase, "", true))
 	} else {
 		calculatedType = param.Type
 	}
@@ -71,7 +72,7 @@ func SpecParamType(param *properties.SpecParam) string {
 }
 
 // XmlParamType return param type (it can be nested spec) (for struct based on spec from YAML files).
-func XmlParamType(param *properties.SpecParam) string {
+func XmlParamType(parent string, param *properties.SpecParam) string {
 	prefix := ""
 	if !param.Required {
 		prefix = "*"
@@ -81,7 +82,7 @@ func XmlParamType(param *properties.SpecParam) string {
 	if param.Type == "list" && param.Profiles != nil && len(param.Profiles) > 0 && param.Profiles[0].Type == "member" {
 		calculatedType = "util.MemberType"
 	} else if param.Spec != nil {
-		calculatedType = fmt.Sprintf("Spec%sXml", naming.CamelCase("", param.Name.CamelCase, "", true))
+		calculatedType = fmt.Sprintf("Spec%s%sXml", parent, naming.CamelCase("", param.Name.CamelCase, "", true))
 	} else {
 		calculatedType = param.Type
 	}
