@@ -19,32 +19,35 @@ func AsEntryXpath(location, xpath string) (string, error) {
 	return asEntryXpath, nil
 }
 
-// NormalizeAssignment generates a string, which contains entry/config assignment in Normalize() function
-// in entry.tmpl/config.tmpl template. If param contains nested specs, then recursively are executed internal functions,
+// NormalizeAssignment generates a string, which contains entry assignment in Normalize() function
+// in entry.tmpl template. If param contains nested specs, then recursively are executed internal functions,
 // which are declaring additional variables (function nestedObjectDeclaration()) and use them in
 // entry assignment (function nestedObjectAssignment()).
-func NormalizeAssignment(objectType string, param *properties.SpecParam) string {
-	return prepareAssignment(objectType, param, "util.MemToStr", "")
+func NormalizeAssignment(param *properties.SpecParam) string {
+	return prepareAssignment(param, "util.MemToStr", "")
 }
 
-// SpecifyEntryAssignment generates a string, which contains entry/config assignment in SpecifyEntry() function
-// in entry.tmpl/config.tmpl template. If param contains nested specs, then recursively are executed internal functions,
+// SpecifyEntryAssignment generates a string, which contains entry assignment in SpecifyEntry() function
+// in entry.tmpl template. If param contains nested specs, then recursively are executed internal functions,
 // which are declaring additional variables (function nestedObjectDeclaration()) and use them in
 // entry assignment (function nestedObjectAssignment()).
-func SpecifyEntryAssignment(objectType string, param *properties.SpecParam) string {
-	return prepareAssignment(objectType, param, "util.StrToMem", "Xml")
+func SpecifyEntryAssignment(param *properties.SpecParam) string {
+	return prepareAssignment(param, "util.StrToMem", "Xml")
 }
 
-func prepareAssignment(objectType string, param *properties.SpecParam, listFunction, specSuffix string) string {
+func prepareAssignment(param *properties.SpecParam, listFunction, specSuffix string) string {
 	var builder strings.Builder
 
 	if param.Type == "list" && param.Profiles != nil && len(param.Profiles) > 0 && param.Profiles[0].Type == "member" {
-		builder.WriteString(fmt.Sprintf("%s.%s = %s(o.%s)", objectType, param.Name.CamelCase, listFunction, param.Name.CamelCase))
+		builder.WriteString(fmt.Sprintf("entry.%s = %s(o.%s)", param.Name.CamelCase, listFunction, param.Name.CamelCase))
 	} else if param.Spec != nil {
 		for _, subParam := range param.Spec.Params {
 			builder.WriteString(nestedObjectDeclaration([]string{param.Name.CamelCase}, subParam))
 		}
-		builder.WriteString(fmt.Sprintf("%s.%s = &Spec%s%s{\n", objectType, param.Name.CamelCase, param.Name.CamelCase, specSuffix))
+		for _, subParam := range param.Spec.OneOf {
+			builder.WriteString(nestedObjectDeclaration([]string{param.Name.CamelCase}, subParam))
+		}
+		builder.WriteString(fmt.Sprintf("entry.%s = &Spec%s%s{\n", param.Name.CamelCase, param.Name.CamelCase, specSuffix))
 		for _, subParam := range param.Spec.Params {
 			builder.WriteString(nestedObjectAssignment([]string{param.Name.CamelCase}, specSuffix, subParam))
 		}
@@ -53,7 +56,7 @@ func prepareAssignment(objectType string, param *properties.SpecParam, listFunct
 		}
 		builder.WriteString("}\n")
 	} else {
-		builder.WriteString(fmt.Sprintf("%s.%s = o.%s", objectType, param.Name.CamelCase, param.Name.CamelCase))
+		builder.WriteString(fmt.Sprintf("entry.%s = o.%s", param.Name.CamelCase, param.Name.CamelCase))
 	}
 
 	return builder.String()
@@ -97,8 +100,8 @@ func nestedObjectAssignment(parent []string, suffix string, param *properties.Sp
 		builder.WriteString(fmt.Sprintf("%s : util.StrToMem(o.%s),\n",
 			param.Name.CamelCase, param.Name.CamelCase))
 	} else if param.Spec != nil {
-		builder.WriteString(fmt.Sprintf("%s : &Spec%s%s{\n",
-			param.Name.CamelCase, param.Name.CamelCase, suffix))
+		builder.WriteString(fmt.Sprintf("%s : &Spec%s%s%s{\n",
+			param.Name.CamelCase, strings.Join(parent, ""), param.Name.CamelCase, suffix))
 		for _, subParam := range param.Spec.Params {
 			builder.WriteString(nestedObjectAssignment(append(parent, param.Name.CamelCase), suffix, subParam))
 		}
@@ -114,7 +117,7 @@ func nestedObjectAssignment(parent []string, suffix string, param *properties.Sp
 	return builder.String()
 }
 
-// SpecMatchesFunction return a string used in function SpecMatches() in entry.tmpl/config.tmpl
+// SpecMatchesFunction return a string used in function SpecMatches() in entry.tmpl
 // to compare all items of generated entry.
 func SpecMatchesFunction(param *properties.SpecParam) string {
 	calculatedFunction := "OptionalStringsMatch"
