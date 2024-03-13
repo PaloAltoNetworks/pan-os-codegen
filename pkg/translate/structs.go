@@ -1,6 +1,7 @@
 package translate
 
 import (
+	"fmt"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 )
@@ -12,7 +13,7 @@ func LocationType(location *properties.Location, pointer bool) string {
 		prefix = "*"
 	}
 	if location.Vars != nil {
-		return prefix + location.Name.CamelCase + "Location"
+		return fmt.Sprintf("%s%sLocation", prefix, location.Name.CamelCase)
 	} else {
 		return "bool"
 	}
@@ -57,7 +58,7 @@ func SpecParamType(param *properties.SpecParam) string {
 	if param.Type == "list" && param.Items != nil {
 		calculatedType = param.Items.Type
 	} else if param.Spec != nil {
-		calculatedType = "Spec" + naming.CamelCase("", param.Name.CamelCase, "", true)
+		calculatedType = fmt.Sprintf("Spec%s", naming.CamelCase("", param.Name.CamelCase, "", true))
 	} else {
 		calculatedType = param.Type
 	}
@@ -76,7 +77,7 @@ func XmlParamType(param *properties.SpecParam) string {
 	if param.Type == "list" && param.Profiles != nil && len(param.Profiles) > 0 && param.Profiles[0].Type == "member" {
 		calculatedType = "util.MemberType"
 	} else if param.Spec != nil {
-		calculatedType = "Spec" + naming.CamelCase("", param.Name.CamelCase, "", true) + "Xml"
+		calculatedType = fmt.Sprintf("Spec%sXml", naming.CamelCase("", param.Name.CamelCase, "", true))
 	} else {
 		calculatedType = param.Type
 	}
@@ -93,7 +94,7 @@ func XmlTag(param *properties.SpecParam) string {
 
 	calculatedTag := ""
 	if param.Profiles != nil && len(param.Profiles) > 0 {
-		calculatedTag = "`xml:\"" + param.Profiles[0].Xpath[len(param.Profiles[0].Xpath)-1] + suffix + "\"`"
+		calculatedTag = fmt.Sprintf("`xml:\"%s%s\"`", param.Profiles[0].Xpath[len(param.Profiles[0].Xpath)-1], suffix)
 	}
 	return calculatedTag
 }
