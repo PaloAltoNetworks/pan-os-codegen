@@ -2,6 +2,7 @@ package generate
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 	"io"
 	"io/fs"
@@ -56,7 +57,7 @@ func listAssets(asset *properties.Asset) ([]string, error) {
 // copyAsset copy single asset, which may contain multiple files
 func copyAsset(target string, asset *properties.Asset, files []string) error {
 	// Prepare destination path
-	destinationDir := target + "/" + asset.Destination
+	destinationDir := fmt.Sprintf("%s/%s", target, asset.Destination)
 
 	// Create the destination directory if it doesn't exist
 	if err := os.MkdirAll(destinationDir, os.ModePerm); err != nil {

@@ -76,7 +76,7 @@ func (c *Creator) RenderTemplate() error {
 // createFullFilePath returns a full path for output file generated from template passed as argument to function
 func (c *Creator) createFullFilePath(templateName string) string {
 	fileBaseName := strings.TrimSuffix(templateName, filepath.Ext(templateName))
-	return filepath.Join(c.GoOutputDir, filepath.Join(c.Spec.GoSdkPath...), fileBaseName+".go")
+	return filepath.Join(c.GoOutputDir, filepath.Join(c.Spec.GoSdkPath...), fmt.Sprintf("%s.go", fileBaseName))
 }
 
 // listOfTemplates return list of templates defined in TemplatesDir
