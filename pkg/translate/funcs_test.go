@@ -45,8 +45,8 @@ func TestSpecifyEntryAssignmentForFlatStructure(t *testing.T) {
 	}
 
 	// when
-	calculatedAssignmentString := SpecifyEntryAssignment(&paramTypeString)
-	calculatedAssignmentListString := SpecifyEntryAssignment(&paramTypeListString)
+	calculatedAssignmentString := SpecifyEntryAssignment("entry", &paramTypeString)
+	calculatedAssignmentListString := SpecifyEntryAssignment("entry", &paramTypeListString)
 
 	// then
 	assert.Equal(t, "entry.Description = o.Description", calculatedAssignmentString)
@@ -93,7 +93,7 @@ C : nestedABC,
 }
 `
 	// when
-	calculatedAssignmentString := SpecifyEntryAssignment(spec.Params["a"])
+	calculatedAssignmentString := SpecifyEntryAssignment("entry", spec.Params["a"])
 
 	// then
 	assert.Equal(t, expectedAssignmentStreing, calculatedAssignmentString)
@@ -139,7 +139,7 @@ C : nestedABC,
 }
 `
 	// when
-	calculatedAssignmentString := NormalizeAssignment(spec.Params["a"])
+	calculatedAssignmentString := NormalizeAssignment("entry", spec.Params["a"])
 
 	// then
 	assert.Equal(t, expectedAssignmentStreing, calculatedAssignmentString)
