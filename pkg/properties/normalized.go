@@ -112,7 +112,7 @@ type SpecParamProfile struct {
 	FromVersion string   `json:"from_version" yaml:"from_version"`
 }
 
-// GetNormalizations get list of all specs (normalizations)
+// GetNormalizations get list of all specs (normalizations).
 func GetNormalizations() ([]string, error) {
 	_, loc, _, ok := runtime.Caller(0)
 	if !ok {
@@ -141,7 +141,7 @@ func GetNormalizations() ([]string, error) {
 	return files, nil
 }
 
-// ParseSpec parse single spec (unmarshal file), add name variants for locations and params, add default types for params
+// ParseSpec parse single spec (unmarshal file), add name variants for locations and params, add default types for params.
 func ParseSpec(input []byte) (*Normalization, error) {
 	var spec Normalization
 
@@ -168,7 +168,7 @@ func ParseSpec(input []byte) (*Normalization, error) {
 	return &spec, err
 }
 
-// AddNameVariantsForLocation add name variants for location (under_score and CamelCase)
+// AddNameVariantsForLocation add name variants for location (under_score and CamelCase).
 func (spec *Normalization) AddNameVariantsForLocation() error {
 	for key, location := range spec.Locations {
 		location.Name = &NameVariant{
@@ -187,7 +187,7 @@ func (spec *Normalization) AddNameVariantsForLocation() error {
 	return nil
 }
 
-// AddNameVariantsForParams recursively add name variants for params for nested specs
+// AddNameVariantsForParams recursively add name variants for params for nested specs.
 func AddNameVariantsForParams(name string, param *SpecParam) error {
 	param.Name = &NameVariant{
 		Underscore: name,
@@ -208,7 +208,7 @@ func AddNameVariantsForParams(name string, param *SpecParam) error {
 	return nil
 }
 
-// AddNameVariantsForParams add name variants for params (under_score and CamelCase)
+// AddNameVariantsForParams add name variants for params (under_score and CamelCase).
 func (spec *Normalization) AddNameVariantsForParams() error {
 	if spec.Spec != nil {
 		for key, param := range spec.Spec.Params {
@@ -225,7 +225,7 @@ func (spec *Normalization) AddNameVariantsForParams() error {
 	return nil
 }
 
-// AddDefaultTypesForParams recursively add default types for params for nested specs
+// AddDefaultTypesForParams recursively add default types for params for nested specs.
 func AddDefaultTypesForParams(param *SpecParam) error {
 	if param.Type == "" {
 		param.Type = "string"
@@ -267,7 +267,7 @@ func (spec *Normalization) AddDefaultTypesForParams() error {
 	}
 }
 
-// Sanity basic checks for specification (normalization) e.g. check if at least 1 location is defined
+// Sanity basic checks for specification (normalization) e.g. check if at least 1 location is defined.
 func (spec *Normalization) Sanity() error {
 	if spec.Name == "" {
 		return errors.New("name is required")
@@ -282,7 +282,7 @@ func (spec *Normalization) Sanity() error {
 	return nil
 }
 
-// Validate validations for specification (normalization) e.g. check if XPath contain /
+// Validate validations for specification (normalization) e.g. check if XPath contain /.
 func (spec *Normalization) Validate() []error {
 	var checks []error
 

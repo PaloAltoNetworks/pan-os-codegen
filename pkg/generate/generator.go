@@ -20,7 +20,7 @@ type Creator struct {
 	Spec         *properties.Normalization
 }
 
-// NewCreator initialize Creator instance
+// NewCreator initialize Creator instance.
 func NewCreator(goOutputDir, templatesDir string, spec *properties.Normalization) *Creator {
 	return &Creator{
 		GoOutputDir:  goOutputDir,
@@ -29,7 +29,7 @@ func NewCreator(goOutputDir, templatesDir string, spec *properties.Normalization
 	}
 }
 
-// RenderTemplate loop through all templates, parse them and render content, which is saved to output file
+// RenderTemplate loop through all templates, parse them and render content, which is saved to output file.
 func (c *Creator) RenderTemplate() error {
 	log.Println("Start rendering templates")
 
@@ -73,13 +73,13 @@ func (c *Creator) RenderTemplate() error {
 	return nil
 }
 
-// createFullFilePath returns a full path for output file generated from template passed as argument to function
+// createFullFilePath returns a full path for output file generated from template passed as argument to function.
 func (c *Creator) createFullFilePath(templateName string) string {
 	fileBaseName := strings.TrimSuffix(templateName, filepath.Ext(templateName))
 	return filepath.Join(c.GoOutputDir, filepath.Join(c.Spec.GoSdkPath...), fmt.Sprintf("%s.go", fileBaseName))
 }
 
-// listOfTemplates return list of templates defined in TemplatesDir
+// listOfTemplates return list of templates defined in TemplatesDir.
 func (c *Creator) listOfTemplates() ([]string, error) {
 	var files []string
 	err := filepath.WalkDir(c.TemplatesDir, func(path string, entry os.DirEntry, err error) error {
@@ -100,13 +100,13 @@ func (c *Creator) listOfTemplates() ([]string, error) {
 	return files, nil
 }
 
-// makeAllDirs creates all required directories, which are in the file path
+// makeAllDirs creates all required directories, which are in the file path.
 func (c *Creator) makeAllDirs(filePath string) error {
 	dirPath := filepath.Dir(filePath)
 	return os.MkdirAll(dirPath, os.ModePerm)
 }
 
-// createFile just create a file and return it
+// createFile just create a file and return it.
 func (c *Creator) createFile(filePath string) (*os.File, error) {
 	outputFile, err := os.Create(filePath)
 	if err != nil {
@@ -115,7 +115,7 @@ func (c *Creator) createFile(filePath string) (*os.File, error) {
 	return outputFile, nil
 }
 
-// parseTemplate parse template passed as argument and with function map defined below
+// parseTemplate parse template passed as argument and with function map defined below.
 func (c *Creator) parseTemplate(templateName string) (*template.Template, error) {
 	templatePath := filepath.Join(c.TemplatesDir, templateName)
 	funcMap := template.FuncMap{
@@ -128,9 +128,7 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		"normalizeAssignment":    translate.NormalizeAssignment,
 		"specMatchesFunction":    translate.SpecMatchesFunction,
 		"omitEmpty":              translate.OmitEmpty,
-		"contains": func(full, part string) bool {
-			return strings.Contains(full, part)
-		},
+		"contains":               strings.Contains,
 		"subtract": func(a, b int) int {
 			return a - b
 		},
