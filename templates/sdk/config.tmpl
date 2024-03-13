@@ -13,10 +13,10 @@ import (
 
 type Config struct {
     {{- range $_, $param := .Spec.Params}}
-    {{$param.Name.CamelCase}} {{specParamType $param}}
+    {{$param.Name.CamelCase}} {{specParamType "" $param}}
     {{- end}}
     {{- range $_, $param := .Spec.OneOf}}
-    {{$param.Name.CamelCase}} {{specParamType $param}}
+    {{$param.Name.CamelCase}} {{specParamType "" $param}}
     {{- end}}
 
 	Misc map[string][]generic.Xml
@@ -25,10 +25,10 @@ type Config struct {
 {{- range $name, $spec := nestedSpecs .Spec }}
 type Spec{{$name}} struct {
     {{- range $_, $param := $spec.Params}}
-    {{$param.Name.CamelCase}} {{specParamType $param}}
+    {{$param.Name.CamelCase}} {{specParamType $name $param}}
     {{- end}}
     {{- range $_, $param := $spec.OneOf}}
-    {{$param.Name.CamelCase}} {{specParamType $param}}
+    {{$param.Name.CamelCase}} {{specParamType $name $param}}
     {{- end}}
 }
 {{- end}}
@@ -39,10 +39,10 @@ type ConfigXmlContainer struct {
 
 type ConfigXml struct {
     {{- range $_, $param := .Spec.Params}}
-    {{$param.Name.CamelCase}} {{xmlParamType $param}} {{xmlTag $param}}
+    {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
     {{- end}}
     {{- range $_, $param := .Spec.OneOf}}
-    {{$param.Name.CamelCase}} {{xmlParamType $param}} {{xmlTag $param}}
+    {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
     {{- end}}
 
 	Misc []generic.Xml `xml:",any"`
@@ -51,10 +51,10 @@ type ConfigXml struct {
 {{- range $name, $spec := nestedSpecs .Spec }}
 type Spec{{$name}}Xml struct {
     {{- range $_, $param := $spec.Params}}
-    {{$param.Name.CamelCase}} {{xmlParamType $param}} {{xmlTag $param}}
+    {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
     {{- end}}
     {{- range $_, $param := $spec.OneOf}}
-    {{$param.Name.CamelCase}} {{xmlParamType $param}} {{xmlTag $param}}
+    {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
     {{- end}}
 }
 {{- end}}
