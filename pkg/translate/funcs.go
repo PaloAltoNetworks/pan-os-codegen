@@ -44,6 +44,9 @@ func prepareAssignment(objectType string, param *properties.SpecParam, listFunct
 		for _, subParam := range param.Spec.Params {
 			builder.WriteString(nestedObjectDeclaration([]string{param.Name.CamelCase}, subParam))
 		}
+		for _, subParam := range param.Spec.OneOf {
+			builder.WriteString(nestedObjectDeclaration([]string{param.Name.CamelCase}, subParam))
+		}
 		builder.WriteString(fmt.Sprintf("%s.%s = &Spec%s%s{\n", objectType, param.Name.CamelCase, param.Name.CamelCase, specSuffix))
 		for _, subParam := range param.Spec.Params {
 			builder.WriteString(nestedObjectAssignment([]string{param.Name.CamelCase}, specSuffix, subParam))
@@ -97,8 +100,8 @@ func nestedObjectAssignment(parent []string, suffix string, param *properties.Sp
 		builder.WriteString(fmt.Sprintf("%s : util.StrToMem(o.%s),\n",
 			param.Name.CamelCase, param.Name.CamelCase))
 	} else if param.Spec != nil {
-		builder.WriteString(fmt.Sprintf("%s : &Spec%s%s{\n",
-			param.Name.CamelCase, param.Name.CamelCase, suffix))
+		builder.WriteString(fmt.Sprintf("%s : &Spec%s%s%s{\n",
+			param.Name.CamelCase, strings.Join(parent, ""), param.Name.CamelCase, suffix))
 		for _, subParam := range param.Spec.Params {
 			builder.WriteString(nestedObjectAssignment(append(parent, param.Name.CamelCase), suffix, subParam))
 		}

@@ -131,18 +131,19 @@ spec:
                           -
                             xpath: [ "yes"]
                         spec:
-                          'timeout':
-                            description: 'TCP session timeout value (in second)'
-                            profiles:
-                              - xpath: [ "timeout" ]
-                          'halfclose-timeout':
-                            description: 'TCP session half-close timeout value (in second)'
-                            profiles:
-                              - xpath: [ "halfclose-timeout" ]
-                          'timewait-timeout':
-                            description: 'TCP session time-wait timeout value (in second)'
-                            profiles:
-                              - xpath: [ "timewait-timeout" ]
+                          params:
+                            'timeout':
+                              description: 'TCP session timeout value (in second)'
+                              profiles:
+                                - xpath: [ "timeout" ]
+                            'halfclose-timeout':
+                              description: 'TCP session half-close timeout value (in second)'
+                              profiles:
+                                - xpath: [ "halfclose-timeout" ]
+                            'timewait-timeout':
+                              description: 'TCP session time-wait timeout value (in second)'
+                              profiles:
+                                - xpath: [ "timewait-timeout" ]
                       no:
                         profiles:
                           - xpath: [ "no" ]
@@ -180,10 +181,11 @@ spec:
                           -
                             xpath: [ "yes"]
                         spec:
-                          'timeout':
-                            description: 'UDP session timeout value (in second)'
-                            profiles:
-                              - xpath: [ "timeout" ]
+                          params:
+                            'timeout':
+                              description: 'UDP session timeout value (in second)'
+                              profiles:
+                                - xpath: [ "timeout" ]
                       no:
                         profiles:
                           - xpath: [ "no" ]
