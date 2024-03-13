@@ -9,5 +9,6 @@ func File(path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return content, err
 }
