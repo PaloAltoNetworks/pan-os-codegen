@@ -22,9 +22,6 @@ func generateXpathForLocation(location string, xpath string) string {
 	xpathPartWithoutBrackets := strings.TrimSpace(strings.Trim(xpathPartWithoutDollar[1], "${}"))
 	xpathPartCamelCase := naming.CamelCase("", xpathPartWithoutBrackets, "", true)
 	asEntryXpath := fmt.Sprintf("util.AsEntryXpath([]string{o.%s.%s}),", location, xpathPartCamelCase)
-	//xpath = strings.TrimSpace(strings.Split(strings.Split(xpath, "$")[1], "}")[0])
-	//xpath = naming.CamelCase("", xpath, "", true)
-	//asEntryXpath := fmt.Sprintf("util.AsEntryXpath([]string{o.%s.%s}),", location, xpath)
 	return asEntryXpath
 }
 
