@@ -129,9 +129,8 @@ func nestedObjectAssignment(parent []string, suffix string, param *properties.Sp
 // SpecMatchesFunction return a string used in function SpecMatches() in entry.tmpl
 // to compare all items of generated entry.
 func SpecMatchesFunction(param *properties.SpecParam) string {
-	calculatedFunction := "OptionalStringsMatch"
 	if param.Type == "list" {
-		calculatedFunction = "OrderedListsMatch"
+		return "OrderedListsMatch"
 	}
-	return calculatedFunction
+	return "OptionalStringsMatch"
 }
