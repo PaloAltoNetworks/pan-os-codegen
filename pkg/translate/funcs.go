@@ -7,16 +7,16 @@ import (
 	"strings"
 )
 
-// AsEntryXpath functions used in location.tmpl to generate XPath for location.
-func AsEntryXpath(location, xpath string) (string, error) {
+// GenerateEntryXpathForLocation functions used in location.tmpl to generate XPath for location.
+func GenerateEntryXpathForLocation(location, xpath string) (string, error) {
 	if !strings.Contains(xpath, "$") || !strings.Contains(xpath, "}") {
 		return "", fmt.Errorf("xpath '%s' is missing '$' followed by '}'", xpath)
 	}
-	asEntryXpath := generateXpathForLocation(location, xpath)
+	asEntryXpath := generateEntryXpathForLocation(location, xpath)
 	return asEntryXpath, nil
 }
 
-func generateXpathForLocation(location string, xpath string) string {
+func generateEntryXpathForLocation(location string, xpath string) string {
 	xpathPartWithoutDollar := strings.SplitAfter(xpath, "$")
 	xpathPartWithoutBrackets := strings.TrimSpace(strings.Trim(xpathPartWithoutDollar[1], "${}"))
 	xpathPartCamelCase := naming.CamelCase("", xpathPartWithoutBrackets, "", true)
@@ -43,7 +43,7 @@ func SpecifyEntryAssignment(param *properties.SpecParam) string {
 func prepareAssignment(param *properties.SpecParam, listFunction, specSuffix string) string {
 	var builder strings.Builder
 
-	if param.Type == "list" && param.Profiles != nil && len(param.Profiles) > 0 && param.Profiles[0].Type == "member" {
+	if isParamListAndProfileTypeIsMember(param) {
 		builder.WriteString(fmt.Sprintf("entry.%s = %s(o.%s)", param.Name.CamelCase, listFunction, param.Name.CamelCase))
 	} else if param.Spec != nil {
 		for _, subParam := range param.Spec.Params {
@@ -65,6 +65,10 @@ func prepareAssignment(param *properties.SpecParam, listFunction, specSuffix str
 	}
 
 	return builder.String()
+}
+
+func isParamListAndProfileTypeIsMember(param *properties.SpecParam) bool {
+	return param.Type == "list" && param.Profiles != nil && len(param.Profiles) > 0 && param.Profiles[0].Type == "member"
 }
 
 func nestedObjectDeclaration(parent []string, param *properties.SpecParam) string {
@@ -101,7 +105,7 @@ func declareVariableForNestedObject(parent []string, param *properties.SpecParam
 func nestedObjectAssignment(parent []string, suffix string, param *properties.SpecParam) string {
 	var builder strings.Builder
 
-	if param.Type == "list" && param.Profiles != nil && len(param.Profiles) > 0 && param.Profiles[0].Type == "member" {
+	if isParamListAndProfileTypeIsMember(param) {
 		builder.WriteString(fmt.Sprintf("%s : util.StrToMem(o.%s),\n",
 			param.Name.CamelCase, param.Name.CamelCase))
 	} else if param.Spec != nil {
