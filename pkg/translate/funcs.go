@@ -1,7 +1,6 @@
 package translate
 
 import (
-	"errors"
 	"fmt"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
@@ -11,7 +10,7 @@ import (
 // AsEntryXpath functions used in location.tmpl to generate XPath for location.
 func AsEntryXpath(location, xpath string) (string, error) {
 	if !strings.Contains(xpath, "$") || !strings.Contains(xpath, "}") {
-		return "", errors.New("$ followed by } should exists in xpath'")
+		return "", fmt.Errorf("xpath '%s' is missing '$' followed by '}'", xpath)
 	}
 	asEntryXpath := generateXpathForLocation(location, xpath)
 	return asEntryXpath, nil
