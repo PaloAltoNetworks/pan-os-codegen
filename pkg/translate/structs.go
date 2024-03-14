@@ -68,7 +68,7 @@ func SpecParamType(parent string, param *properties.SpecParam) string {
 		calculatedType = param.Type
 	}
 
-	return prefix + calculatedType
+	return fmt.Sprintf("%s%s", prefix, calculatedType)
 }
 
 // XmlParamType return param type (it can be nested spec) (for struct based on spec from YAML files).
@@ -79,7 +79,7 @@ func XmlParamType(parent string, param *properties.SpecParam) string {
 	}
 
 	calculatedType := ""
-	if param.Type == "list" && param.Profiles != nil && len(param.Profiles) > 0 && param.Profiles[0].Type == "member" {
+	if isParamListAndProfileTypeIsMember(param) {
 		calculatedType = "util.MemberType"
 	} else if param.Spec != nil {
 		calculatedType = fmt.Sprintf("Spec%s%sXml", parent, naming.CamelCase("", param.Name.CamelCase, "", true))
@@ -87,21 +87,21 @@ func XmlParamType(parent string, param *properties.SpecParam) string {
 		calculatedType = param.Type
 	}
 
-	return prefix + calculatedType
+	return fmt.Sprintf("%s%s", prefix, calculatedType)
 }
 
 // XmlTag creates a string with xml tag (e.g. `xml:"description,omitempty"`).
 func XmlTag(param *properties.SpecParam) string {
-	suffix := ""
-	if !param.Required {
-		suffix = ",omitempty"
+	if param.Profiles != nil && len(param.Profiles) > 0 {
+		suffix := ""
+		if !param.Required {
+			suffix = ",omitempty"
+		}
+
+		return fmt.Sprintf("`xml:\"%s%s\"`", param.Profiles[0].Xpath[len(param.Profiles[0].Xpath)-1], suffix)
 	}
 
-	calculatedTag := ""
-	if param.Profiles != nil && len(param.Profiles) > 0 {
-		calculatedTag = fmt.Sprintf("`xml:\"%s%s\"`", param.Profiles[0].Xpath[len(param.Profiles[0].Xpath)-1], suffix)
-	}
-	return calculatedTag
+	return ""
 }
 
 // OmitEmpty return omitempty in XML tag for location, if there are variables defined.

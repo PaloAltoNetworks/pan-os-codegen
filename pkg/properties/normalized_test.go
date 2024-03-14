@@ -353,7 +353,6 @@ spec:
 	// when
 	yamlParsedData, _ := ParseSpec([]byte(sampleSpec))
 	yamlDump, _ := yaml.Marshal(&yamlParsedData)
-	// fmt.Printf("%s", string(yamlDump))
 
 	// then
 	assert.NotNilf(t, yamlDump, "Marshalled data cannot be nil")

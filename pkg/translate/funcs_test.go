@@ -6,11 +6,11 @@ import (
 	"testing"
 )
 
-func TestAsEntryXpath(t *testing.T) {
+func TestGenerateEntryXpath(t *testing.T) {
 	// given
 
 	// when
-	asEntryXpath, _ := AsEntryXpath("DeviceGroup", "{{ Entry $panorama_device }}")
+	asEntryXpath, _ := GenerateEntryXpathForLocation("DeviceGroup", "{{ Entry $panorama_device }}")
 
 	// then
 	assert.Equal(t, "util.AsEntryXpath([]string{o.DeviceGroup.PanoramaDevice}),", asEntryXpath)

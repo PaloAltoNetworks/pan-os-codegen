@@ -1,7 +1,6 @@
 package properties
 
 import (
-	"errors"
 	"fmt"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/content"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
@@ -225,41 +224,34 @@ func (spec *Normalization) AddNameVariantsForParams() error {
 	return nil
 }
 
-// AddDefaultTypesForParams recursively add default types for params for nested specs.
-func AddDefaultTypesForParams(param *SpecParam) error {
-	if param.Type == "" {
-		param.Type = "string"
+// addDefaultTypesForParams recursively add default types for params for nested specs.
+func addDefaultTypesForParams(params map[string]*SpecParam) error {
+	for _, param := range params {
+		if param.Type == "" {
+			param.Type = "string"
+		}
+
+		if param.Spec != nil {
+			if err := addDefaultTypesForParams(param.Spec.Params); err != nil {
+				return err
+			}
+			if err := addDefaultTypesForParams(param.Spec.OneOf); err != nil {
+				return err
+			}
+		}
 	}
 
-	if param.Spec != nil {
-		for _, childParam := range param.Spec.Params {
-			if err := AddDefaultTypesForParams(childParam); err != nil {
-				return err
-			}
-		}
-		for _, childParam := range param.Spec.OneOf {
-			if err := AddDefaultTypesForParams(childParam); err != nil {
-				return err
-			}
-		}
-		return nil
-	} else {
-		return nil
-	}
+	return nil
 }
 
-// AddDefaultTypesForParams ensures all params within Spec have a default type if not specified.
+// addDefaultTypesForParams ensures all params within Spec have a default type if not specified.
 func (spec *Normalization) AddDefaultTypesForParams() error {
 	if spec.Spec != nil {
-		for _, childParam := range spec.Spec.Params {
-			if err := AddDefaultTypesForParams(childParam); err != nil {
-				return err
-			}
+		if err := addDefaultTypesForParams(spec.Spec.Params); err != nil {
+			return err
 		}
-		for _, childParam := range spec.Spec.OneOf {
-			if err := AddDefaultTypesForParams(childParam); err != nil {
-				return err
-			}
+		if err := addDefaultTypesForParams(spec.Spec.OneOf); err != nil {
+			return err
 		}
 		return nil
 	} else {
@@ -270,13 +262,13 @@ func (spec *Normalization) AddDefaultTypesForParams() error {
 // Sanity basic checks for specification (normalization) e.g. check if at least 1 location is defined.
 func (spec *Normalization) Sanity() error {
 	if spec.Name == "" {
-		return errors.New("name is required")
+		return fmt.Errorf("name is required")
 	}
 	if spec.Locations == nil {
-		return errors.New("at least 1 location is required")
+		return fmt.Errorf("at least 1 location is required")
 	}
 	if spec.GoSdkPath == nil {
-		return errors.New("golang SDK path is required")
+		return fmt.Errorf("golang SDK path is required")
 	}
 
 	return nil
@@ -287,18 +279,18 @@ func (spec *Normalization) Validate() []error {
 	var checks []error
 
 	if strings.Contains(spec.TerraformProviderSuffix, "panos_") {
-		checks = append(checks, errors.New("suffix for Terraform provider cannot contain `panos_`"))
+		checks = append(checks, fmt.Errorf("suffix for Terraform provider cannot contain `panos_`"))
 	}
 	for _, suffix := range spec.XpathSuffix {
 		if strings.Contains(suffix, "/") {
-			checks = append(checks, errors.New("XPath cannot contain /"))
+			checks = append(checks, fmt.Errorf("XPath cannot contain /"))
 		}
 	}
 	if len(spec.Locations) < 1 {
-		checks = append(checks, errors.New("at least 1 location is required"))
+		checks = append(checks, fmt.Errorf("at least 1 location is required"))
 	}
 	if len(spec.GoSdkPath) < 2 {
-		checks = append(checks, errors.New("golang SDK path should contain at least 2 elements of the path"))
+		checks = append(checks, fmt.Errorf("golang SDK path should contain at least 2 elements of the path"))
 	}
 
 	return checks
