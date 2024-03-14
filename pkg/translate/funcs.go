@@ -13,10 +13,19 @@ func AsEntryXpath(location, xpath string) (string, error) {
 	if !strings.Contains(xpath, "$") || !strings.Contains(xpath, "}") {
 		return "", errors.New("$ followed by } should exists in xpath'")
 	}
-	xpath = strings.TrimSpace(strings.Split(strings.Split(xpath, "$")[1], "}")[0])
-	xpath = naming.CamelCase("", xpath, "", true)
-	asEntryXpath := fmt.Sprintf("util.AsEntryXpath([]string{o.%s.%s}),", location, xpath)
+	asEntryXpath := generateXpathForLocation(location, xpath)
 	return asEntryXpath, nil
+}
+
+func generateXpathForLocation(location string, xpath string) string {
+	xpathPartWithoutDollar := strings.SplitAfter(xpath, "$")
+	xpathPartWithoutBrackets := strings.TrimSpace(strings.Trim(xpathPartWithoutDollar[1], "${}"))
+	xpathPartCamelCase := naming.CamelCase("", xpathPartWithoutBrackets, "", true)
+	asEntryXpath := fmt.Sprintf("util.AsEntryXpath([]string{o.%s.%s}),", location, xpathPartCamelCase)
+	//xpath = strings.TrimSpace(strings.Split(strings.Split(xpath, "$")[1], "}")[0])
+	//xpath = naming.CamelCase("", xpath, "", true)
+	//asEntryXpath := fmt.Sprintf("util.AsEntryXpath([]string{o.%s.%s}),", location, xpath)
+	return asEntryXpath
 }
 
 // NormalizeAssignment generates a string, which contains entry assignment in Normalize() function
