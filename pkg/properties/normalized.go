@@ -244,7 +244,7 @@ func addDefaultTypesForParams(params map[string]*SpecParam) error {
 	return nil
 }
 
-// addDefaultTypesForParams ensures all params within Spec have a default type if not specified.
+// AddDefaultTypesForParams ensures all params within Spec have a default type if not specified.
 func (spec *Normalization) AddDefaultTypesForParams() error {
 	if spec.Spec != nil {
 		if err := addDefaultTypesForParams(spec.Spec.Params); err != nil {

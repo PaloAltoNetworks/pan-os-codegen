@@ -43,25 +43,12 @@ func SpecifyEntryAssignment(param *properties.SpecParam) string {
 func prepareAssignment(param *properties.SpecParam, listFunction, specSuffix string) string {
 	var builder strings.Builder
 
-	if isParamListAndProfileTypeIsMember(param) {
-		builder.WriteString(fmt.Sprintf("entry.%s = %s(o.%s)", param.Name.CamelCase, listFunction, param.Name.CamelCase))
-	} else if param.Spec != nil {
-		for _, subParam := range param.Spec.Params {
-			builder.WriteString(nestedObjectDeclaration([]string{param.Name.CamelCase}, subParam))
-		}
-		for _, subParam := range param.Spec.OneOf {
-			builder.WriteString(nestedObjectDeclaration([]string{param.Name.CamelCase}, subParam))
-		}
-		builder.WriteString(fmt.Sprintf("entry.%s = &Spec%s%s{\n", param.Name.CamelCase, param.Name.CamelCase, specSuffix))
-		for _, subParam := range param.Spec.Params {
-			builder.WriteString(nestedObjectAssignment([]string{param.Name.CamelCase}, specSuffix, subParam))
-		}
-		for _, subParam := range param.Spec.OneOf {
-			builder.WriteString(nestedObjectAssignment([]string{param.Name.CamelCase}, specSuffix, subParam))
-		}
-		builder.WriteString("}\n")
+	if param.Spec != nil {
+		appendSpecObjectAssignment(param, specSuffix, &builder)
+	} else if isParamListAndProfileTypeIsMember(param) {
+		appendListFunctionAssignment(param, listFunction, &builder)
 	} else {
-		builder.WriteString(fmt.Sprintf("entry.%s = o.%s", param.Name.CamelCase, param.Name.CamelCase))
+		appendSimpleAssignment(param, &builder)
 	}
 
 	return builder.String()
@@ -71,59 +58,63 @@ func isParamListAndProfileTypeIsMember(param *properties.SpecParam) bool {
 	return param.Type == "list" && param.Profiles != nil && len(param.Profiles) > 0 && param.Profiles[0].Type == "member"
 }
 
-func nestedObjectDeclaration(parent []string, param *properties.SpecParam) string {
-	var builder strings.Builder
+func appendSimpleAssignment(param *properties.SpecParam, builder *strings.Builder) {
+	builder.WriteString(fmt.Sprintf("entry.%s = o.%s", param.Name.CamelCase, param.Name.CamelCase))
+}
 
+func appendListFunctionAssignment(param *properties.SpecParam, listFunction string, builder *strings.Builder) {
+	builder.WriteString(fmt.Sprintf("entry.%s = %s(o.%s)", param.Name.CamelCase, listFunction, param.Name.CamelCase))
+}
+
+func appendSpecObjectAssignment(param *properties.SpecParam, suffix string, builder *strings.Builder) {
+	appendNestedObjectDeclaration([]string{param.Name.CamelCase}, param.Spec.Params, builder)
+	appendNestedObjectDeclaration([]string{param.Name.CamelCase}, param.Spec.OneOf, builder)
+
+	builder.WriteString(fmt.Sprintf("entry.%s = &Spec%s%s{\n", param.Name.CamelCase, param.Name.CamelCase, suffix))
+
+	appendNestedObjectAssignment([]string{param.Name.CamelCase}, param.Spec.Params, suffix, builder)
+	appendNestedObjectAssignment([]string{param.Name.CamelCase}, param.Spec.OneOf, suffix, builder)
+
+	builder.WriteString("}\n")
+}
+
+func appendNestedObjectDeclaration(parent []string, params map[string]*properties.SpecParam, builder *strings.Builder) {
+	for _, subParam := range params {
+		appendDeclarationForNestedObject(parent, subParam, builder)
+	}
+}
+
+func appendDeclarationForNestedObject(parent []string, param *properties.SpecParam, builder *strings.Builder) {
 	if param.Spec != nil {
-		for _, subParam := range param.Spec.Params {
-			builder.WriteString(declareVariableForNestedObject(parent, param, subParam))
-			builder.WriteString(nestedObjectDeclaration(append(parent, param.Name.CamelCase), subParam))
-		}
-		for _, subParam := range param.Spec.OneOf {
-			builder.WriteString(declareVariableForNestedObject(parent, param, subParam))
-			builder.WriteString(nestedObjectDeclaration(append(parent, param.Name.CamelCase), subParam))
-		}
-	}
-
-	return builder.String()
-}
-
-func declareVariableForNestedObject(parent []string, param *properties.SpecParam, subParam *properties.SpecParam) string {
-	if subParam.Spec == nil && parent != nil {
-		return fmt.Sprintf("nested%s%s%s := o.%s.%s.%s\n",
-			strings.Join(parent, ""),
-			param.Name.CamelCase,
-			subParam.Name.CamelCase,
-			strings.Join(parent, "."),
-			param.Name.CamelCase,
-			subParam.Name.CamelCase)
+		appendNestedObjectDeclaration(append(parent, param.Name.CamelCase), param.Spec.Params, builder)
+		appendNestedObjectDeclaration(append(parent, param.Name.CamelCase), param.Spec.OneOf, builder)
 	} else {
-		return ""
+		builder.WriteString(fmt.Sprintf("nested%s%s := o.%s.%s\n",
+			strings.Join(parent, ""), param.Name.CamelCase,
+			strings.Join(parent, "."), param.Name.CamelCase))
 	}
 }
 
-func nestedObjectAssignment(parent []string, suffix string, param *properties.SpecParam) string {
-	var builder strings.Builder
+func appendNestedObjectAssignment(parent []string, params map[string]*properties.SpecParam, suffix string, builder *strings.Builder) {
+	for _, subParam := range params {
+		appendAssignmentForNestedObject(parent, subParam, suffix, builder)
+	}
+}
 
-	if isParamListAndProfileTypeIsMember(param) {
+func appendAssignmentForNestedObject(parent []string, param *properties.SpecParam, suffix string, builder *strings.Builder) {
+	if param.Spec != nil {
+		builder.WriteString(fmt.Sprintf("%s : &Spec%s%s%s{\n", param.Name.CamelCase,
+			strings.Join(parent, ""), param.Name.CamelCase, suffix))
+		appendNestedObjectAssignment(append(parent, param.Name.CamelCase), param.Spec.Params, suffix, builder)
+		appendNestedObjectAssignment(append(parent, param.Name.CamelCase), param.Spec.OneOf, suffix, builder)
+		builder.WriteString("},\n")
+	} else if isParamListAndProfileTypeIsMember(param) {
 		builder.WriteString(fmt.Sprintf("%s : util.StrToMem(o.%s),\n",
 			param.Name.CamelCase, param.Name.CamelCase))
-	} else if param.Spec != nil {
-		builder.WriteString(fmt.Sprintf("%s : &Spec%s%s%s{\n",
-			param.Name.CamelCase, strings.Join(parent, ""), param.Name.CamelCase, suffix))
-		for _, subParam := range param.Spec.Params {
-			builder.WriteString(nestedObjectAssignment(append(parent, param.Name.CamelCase), suffix, subParam))
-		}
-		for _, subParam := range param.Spec.OneOf {
-			builder.WriteString(nestedObjectAssignment(append(parent, param.Name.CamelCase), suffix, subParam))
-		}
-		builder.WriteString("},\n")
 	} else {
 		builder.WriteString(fmt.Sprintf("%s : nested%s%s,\n",
 			param.Name.CamelCase, strings.Join(parent, ""), param.Name.CamelCase))
 	}
-
-	return builder.String()
 }
 
 // SpecMatchesFunction return a string used in function SpecMatches() in entry.tmpl
