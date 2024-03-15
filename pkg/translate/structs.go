@@ -47,23 +47,13 @@ func updateNestedSpecs(parent []string, param *properties.SpecParam, nestedSpecs
 
 // SpecParamType return param type (it can be nested spec) (for struct based on spec from YAML files).
 func SpecParamType(parent string, param *properties.SpecParam) string {
-	prefix := ""
-	if !param.Required {
-		prefix = "*"
-	}
-	if param.Type == "list" {
-		prefix = "[]"
-	}
+	prefix := determinePrefix(param)
 
 	calculatedType := ""
 	if param.Type == "list" && param.Items != nil {
-		if param.Items.Type == "object" && param.Items.Ref != nil {
-			calculatedType = "string"
-		} else {
-			calculatedType = param.Items.Type
-		}
+		calculatedType = determineListType(param)
 	} else if param.Spec != nil {
-		calculatedType = fmt.Sprintf("Spec%s%s", parent, naming.CamelCase("", param.Name.CamelCase, "", true))
+		calculatedType = calculateNestedSpecType(parent, param)
 	} else {
 		calculatedType = param.Type
 	}
@@ -73,21 +63,44 @@ func SpecParamType(parent string, param *properties.SpecParam) string {
 
 // XmlParamType return param type (it can be nested spec) (for struct based on spec from YAML files).
 func XmlParamType(parent string, param *properties.SpecParam) string {
-	prefix := ""
-	if !param.Required {
-		prefix = "*"
-	}
+	prefix := determinePrefix(param)
 
 	calculatedType := ""
 	if isParamListAndProfileTypeIsMember(param) {
 		calculatedType = "util.MemberType"
 	} else if param.Spec != nil {
-		calculatedType = fmt.Sprintf("Spec%s%sXml", parent, naming.CamelCase("", param.Name.CamelCase, "", true))
+		calculatedType = calculateNestedXmlSpecType(parent, param)
 	} else {
 		calculatedType = param.Type
 	}
 
 	return fmt.Sprintf("%s%s", prefix, calculatedType)
+}
+
+func determinePrefix(param *properties.SpecParam) string {
+	prefix := ""
+	if param.Type == "list" {
+		prefix = prefix + "[]"
+	}
+	if !param.Required {
+		prefix = prefix + "*"
+	}
+	return prefix
+}
+
+func determineListType(param *properties.SpecParam) string {
+	if param.Items.Type == "object" && param.Items.Ref != nil {
+		return "string"
+	}
+	return param.Items.Type
+}
+
+func calculateNestedSpecType(parent string, param *properties.SpecParam) string {
+	return fmt.Sprintf("Spec%s%s", parent, naming.CamelCase("", param.Name.CamelCase, "", true))
+}
+
+func calculateNestedXmlSpecType(parent string, param *properties.SpecParam) string {
+	return fmt.Sprintf("Spec%s%sXml", parent, naming.CamelCase("", param.Name.CamelCase, "", true))
 }
 
 // XmlTag creates a string with xml tag (e.g. `xml:"description,omitempty"`).
