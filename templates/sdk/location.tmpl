@@ -63,7 +63,7 @@ func (o Location) Xpath(vn version.Number, name string) ([]string, error) {
         ans = []string{
             {{- range $name, $xpath := $location.Xpath}}
             {{- if contains $xpath "Entry"}}
-            {{asEntryXpath $location.Name.CamelCase $xpath}}
+            {{generateEntryXpath $location.Name.CamelCase $xpath}}
             {{- else}}
             "{{$xpath}}",
             {{- end}}

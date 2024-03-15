@@ -1,7 +1,6 @@
 package properties
 
 import (
-	"errors"
 	"fmt"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/content"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
@@ -97,6 +96,7 @@ type SpecParamCount struct {
 type SpecParamItems struct {
 	Type   string                `json:"type" yaml:"type"`
 	Length *SpecParamItemsLength `json:"length" yaml:"length"`
+	Ref    []*string             `json:"ref" yaml:"ref"`
 }
 
 type SpecParamItemsLength struct {
@@ -105,10 +105,13 @@ type SpecParamItemsLength struct {
 }
 
 type SpecParamProfile struct {
-	Xpath []string `json:"xpath" yaml:"xpath"`
-	Type  string   `json:"type" yaml:"type,omitempty"`
+	Xpath       []string `json:"xpath" yaml:"xpath"`
+	Type        string   `json:"type" yaml:"type,omitempty"`
+	NotPresent  bool     `json:"not_present" yaml:"not_present"`
+	FromVersion string   `json:"from_version" yaml:"from_version"`
 }
 
+// GetNormalizations get list of all specs (normalizations).
 func GetNormalizations() ([]string, error) {
 	_, loc, _, ok := runtime.Caller(0)
 	if !ok {
@@ -137,18 +140,34 @@ func GetNormalizations() ([]string, error) {
 	return files, nil
 }
 
+// ParseSpec parse single spec (unmarshal file), add name variants for locations and params, add default types for params.
 func ParseSpec(input []byte) (*Normalization, error) {
 	var spec Normalization
 
 	err := content.Unmarshal(input, &spec)
+	if err != nil {
+		return nil, err
+	}
 
 	err = spec.AddNameVariantsForLocation()
+	if err != nil {
+		return nil, err
+	}
+
 	err = spec.AddNameVariantsForParams()
+	if err != nil {
+		return nil, err
+	}
+
 	err = spec.AddDefaultTypesForParams()
+	if err != nil {
+		return nil, err
+	}
 
 	return &spec, err
 }
 
+// AddNameVariantsForLocation add name variants for location (under_score and CamelCase).
 func (spec *Normalization) AddNameVariantsForLocation() error {
 	for key, location := range spec.Locations {
 		location.Name = &NameVariant{
@@ -167,6 +186,7 @@ func (spec *Normalization) AddNameVariantsForLocation() error {
 	return nil
 }
 
+// AddNameVariantsForParams recursively add name variants for params for nested specs.
 func AddNameVariantsForParams(name string, param *SpecParam) error {
 	param.Name = &NameVariant{
 		Underscore: name,
@@ -187,6 +207,7 @@ func AddNameVariantsForParams(name string, param *SpecParam) error {
 	return nil
 }
 
+// AddNameVariantsForParams add name variants for params (under_score and CamelCase).
 func (spec *Normalization) AddNameVariantsForParams() error {
 	if spec.Spec != nil {
 		for key, param := range spec.Spec.Params {
@@ -203,57 +224,73 @@ func (spec *Normalization) AddNameVariantsForParams() error {
 	return nil
 }
 
-// AddDefaultTypesForParams ensures all SpecParams within Spec have a default type if not specified.
-func (spec *Normalization) AddDefaultTypesForParams() error {
-	if spec.Spec == nil {
-		return nil
-	}
-
-	setDefaultParamTypeForMap(spec.Spec.Params)
-	setDefaultParamTypeForMap(spec.Spec.OneOf)
-
-	return nil
-}
-
-// setDefaultParamTypeForMap iterates over a map of SpecParam pointers, setting their Type to "string" if not specified.
-func setDefaultParamTypeForMap(params map[string]*SpecParam) {
+// addDefaultTypesForParams recursively add default types for params for nested specs.
+func addDefaultTypesForParams(params map[string]*SpecParam) error {
 	for _, param := range params {
 		if param.Type == "" {
 			param.Type = "string"
 		}
-	}
-}
 
-func (spec *Normalization) Sanity() error {
-	if spec.Name == "" {
-		return errors.New("name is required")
-	}
-	if spec.Locations == nil {
-		return errors.New("at least 1 location is required")
-	}
-	if spec.GoSdkPath == nil {
-		return errors.New("golang SDK path is required")
+		if param.Spec != nil {
+			if err := addDefaultTypesForParams(param.Spec.Params); err != nil {
+				return err
+			}
+			if err := addDefaultTypesForParams(param.Spec.OneOf); err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
 }
 
+// AddDefaultTypesForParams ensures all params within Spec have a default type if not specified.
+func (spec *Normalization) AddDefaultTypesForParams() error {
+	if spec.Spec != nil {
+		if err := addDefaultTypesForParams(spec.Spec.Params); err != nil {
+			return err
+		}
+		if err := addDefaultTypesForParams(spec.Spec.OneOf); err != nil {
+			return err
+		}
+		return nil
+	} else {
+		return nil
+	}
+}
+
+// Sanity basic checks for specification (normalization) e.g. check if at least 1 location is defined.
+func (spec *Normalization) Sanity() error {
+	if spec.Name == "" {
+		return fmt.Errorf("name is required")
+	}
+	if spec.Locations == nil {
+		return fmt.Errorf("at least 1 location is required")
+	}
+	if spec.GoSdkPath == nil {
+		return fmt.Errorf("golang SDK path is required")
+	}
+
+	return nil
+}
+
+// Validate validations for specification (normalization) e.g. check if XPath contain /.
 func (spec *Normalization) Validate() []error {
 	var checks []error
 
 	if strings.Contains(spec.TerraformProviderSuffix, "panos_") {
-		checks = append(checks, errors.New("suffix for Terraform provider cannot contain `panos_`"))
+		checks = append(checks, fmt.Errorf("suffix for Terraform provider cannot contain `panos_`"))
 	}
 	for _, suffix := range spec.XpathSuffix {
 		if strings.Contains(suffix, "/") {
-			checks = append(checks, errors.New("XPath cannot contain /"))
+			checks = append(checks, fmt.Errorf("XPath cannot contain /"))
 		}
 	}
 	if len(spec.Locations) < 1 {
-		checks = append(checks, errors.New("at least 1 location is required"))
+		checks = append(checks, fmt.Errorf("at least 1 location is required"))
 	}
 	if len(spec.GoSdkPath) < 2 {
-		checks = append(checks, errors.New("golang SDK path should contain at least 2 elements of the path"))
+		checks = append(checks, fmt.Errorf("golang SDK path should contain at least 2 elements of the path"))
 	}
 
 	return checks

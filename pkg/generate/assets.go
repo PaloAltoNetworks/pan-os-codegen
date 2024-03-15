@@ -2,6 +2,7 @@ package generate
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 	"io"
 	"io/fs"
@@ -10,6 +11,7 @@ import (
 	"path/filepath"
 )
 
+// CopyAssets copy assets (static files) according to configuration.
 func CopyAssets(config *properties.Config) error {
 	for _, asset := range config.Assets {
 		files, err := listAssets(asset)
@@ -32,10 +34,10 @@ func CopyAssets(config *properties.Config) error {
 	return nil
 }
 
+// listAssets walk through directory and get list of all assets (static files).
 func listAssets(asset *properties.Asset) ([]string, error) {
 	var files []string
 
-	// Walk through directory and get list of all files
 	err := filepath.WalkDir(asset.Source, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -52,9 +54,10 @@ func listAssets(asset *properties.Asset) ([]string, error) {
 	return files, nil
 }
 
+// copyAsset copy single asset, which may contain multiple files.
 func copyAsset(target string, asset *properties.Asset, files []string) error {
 	// Prepare destination path
-	destinationDir := target + "/" + asset.Destination
+	destinationDir := fmt.Sprintf("%s/%s", target, asset.Destination)
 
 	// Create the destination directory if it doesn't exist
 	if err := os.MkdirAll(destinationDir, os.ModePerm); err != nil {

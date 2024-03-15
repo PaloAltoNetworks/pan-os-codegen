@@ -85,13 +85,13 @@ func TestSpecParamType(t *testing.T) {
 	}
 
 	// when
-	calculatedTypeRequiredString := SpecParamType(&paramTypeRequiredString)
-	calculatedTypeListString := SpecParamType(&paramTypeListString)
-	calculatedTypeOptionalString := SpecParamType(&paramTypeOptionalString)
+	calculatedTypeRequiredString := SpecParamType("", &paramTypeRequiredString)
+	calculatedTypeListString := SpecParamType("", &paramTypeListString)
+	calculatedTypeOptionalString := SpecParamType("", &paramTypeOptionalString)
 
 	// then
 	assert.Equal(t, "string", calculatedTypeRequiredString)
-	assert.Equal(t, "[]string", calculatedTypeListString)
+	assert.Equal(t, "[]*string", calculatedTypeListString)
 	assert.Equal(t, "*string", calculatedTypeOptionalString)
 }
 
@@ -111,4 +111,114 @@ func TestOmitEmpty(t *testing.T) {
 	assert.NotEmpty(t, omitEmptyLocations)
 	assert.Contains(t, omitEmptyLocations, ",omitempty")
 	assert.Contains(t, omitEmptyLocations, "")
+}
+
+func TestXmlParamType(t *testing.T) {
+	// given
+	paramTypeRequiredString := properties.SpecParam{
+		Type:     "string",
+		Required: true,
+		Profiles: []*properties.SpecParamProfile{
+			{
+				Type:  "string",
+				Xpath: []string{"description"},
+			},
+		},
+	}
+	paramTypeListString := properties.SpecParam{
+		Type: "list",
+		Items: &properties.SpecParamItems{
+			Type: "string",
+		},
+		Profiles: []*properties.SpecParamProfile{
+			{
+				Type:  "member",
+				Xpath: []string{"tag"},
+			},
+		},
+	}
+
+	// when
+	calculatedTypeRequiredString := XmlParamType("", &paramTypeRequiredString)
+	calculatedTypeListString := XmlParamType("", &paramTypeListString)
+
+	// then
+	assert.Equal(t, "string", calculatedTypeRequiredString)
+	assert.Equal(t, "[]*util.MemberType", calculatedTypeListString)
+}
+
+func TestXmlTag(t *testing.T) {
+	// given
+	paramTypeRequiredString := properties.SpecParam{
+		Type:     "string",
+		Required: false,
+		Profiles: []*properties.SpecParamProfile{
+			{
+				Type:  "string",
+				Xpath: []string{"description"},
+			},
+		},
+	}
+	paramTypeListString := properties.SpecParam{
+		Type: "list",
+		Items: &properties.SpecParamItems{
+			Type: "string",
+		},
+		Profiles: []*properties.SpecParamProfile{
+			{
+				Type:  "member",
+				Xpath: []string{"tag"},
+			},
+		},
+	}
+
+	// when
+	calculatedXmlTagRequiredString := XmlTag(&paramTypeRequiredString)
+	calculatedXmlTagListString := XmlTag(&paramTypeListString)
+
+	// then
+	assert.Equal(t, "`xml:\"description,omitempty\"`", calculatedXmlTagRequiredString)
+	assert.Equal(t, "`xml:\"tag,omitempty\"`", calculatedXmlTagListString)
+}
+
+func TestNestedSpecs(t *testing.T) {
+	// given
+	spec := properties.Spec{
+		Params: map[string]*properties.SpecParam{
+			"a": {
+				Name: &properties.NameVariant{
+					Underscore: "a",
+					CamelCase:  "A",
+				},
+				Spec: &properties.Spec{
+					Params: map[string]*properties.SpecParam{
+						"b": {
+							Name: &properties.NameVariant{
+								Underscore: "b",
+								CamelCase:  "B",
+							},
+							Spec: &properties.Spec{
+								Params: map[string]*properties.SpecParam{
+									"c": {
+										Name: &properties.NameVariant{
+											Underscore: "c",
+											CamelCase:  "C",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// when
+	nestedSpecs, _ := NestedSpecs(&spec)
+
+	// then
+	assert.NotNil(t, nestedSpecs)
+	assert.Contains(t, nestedSpecs, "A")
+	assert.Contains(t, nestedSpecs, "AB")
 }

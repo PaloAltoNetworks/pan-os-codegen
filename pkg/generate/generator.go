@@ -1,7 +1,9 @@
 package generate
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -18,6 +20,7 @@ type Creator struct {
 	Spec         *properties.Normalization
 }
 
+// NewCreator initialize Creator instance.
 func NewCreator(goOutputDir, templatesDir string, spec *properties.Normalization) *Creator {
 	return &Creator{
 		GoOutputDir:  goOutputDir,
@@ -26,6 +29,7 @@ func NewCreator(goOutputDir, templatesDir string, spec *properties.Normalization
 	}
 }
 
+// RenderTemplate loop through all templates, parse them and render content, which is saved to output file.
 func (c *Creator) RenderTemplate() error {
 	log.Println("Start rendering templates")
 
@@ -42,30 +46,40 @@ func (c *Creator) RenderTemplate() error {
 			return fmt.Errorf("error creating directories for %s: %w", filePath, err)
 		}
 
-		outputFile, err := os.Create(filePath)
-		if err != nil {
-			return fmt.Errorf("error creating file %s: %w", filePath, err)
-		}
-		defer outputFile.Close()
-
 		tmpl, err := c.parseTemplate(templateName)
 		if err != nil {
 			return fmt.Errorf("error parsing template %s: %w", templateName, err)
 		}
 
-		if err := tmpl.Execute(outputFile, c.Spec); err != nil {
+		var data bytes.Buffer
+		if err := tmpl.Execute(&data, c.Spec); err != nil {
 			return fmt.Errorf("error executing template %s: %w", templateName, err)
+		}
+		// If from template no data was rendered (e.g. for DNS spec entry should not be created),
+		// then we don't need to create empty file (e.g. `entry.go`) with no content
+		if data.Len() > 0 {
+			outputFile, err := os.Create(filePath)
+			if err != nil {
+				return fmt.Errorf("error creating file %s: %w", filePath, err)
+			}
+			defer outputFile.Close()
+
+			_, err = io.Copy(outputFile, &data)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
-
+// createFullFilePath returns a full path for output file generated from template passed as argument to function.
 func (c *Creator) createFullFilePath(templateName string) string {
 	fileBaseName := strings.TrimSuffix(templateName, filepath.Ext(templateName))
-	return filepath.Join(c.GoOutputDir, filepath.Join(c.Spec.GoSdkPath...), fileBaseName+".go")
+	return filepath.Join(c.GoOutputDir, filepath.Join(c.Spec.GoSdkPath...), fmt.Sprintf("%s.go", fileBaseName))
 }
 
+// listOfTemplates return list of templates defined in TemplatesDir.
 func (c *Creator) listOfTemplates() ([]string, error) {
 	var files []string
 	err := filepath.WalkDir(c.TemplatesDir, func(path string, entry os.DirEntry, err error) error {
@@ -86,11 +100,13 @@ func (c *Creator) listOfTemplates() ([]string, error) {
 	return files, nil
 }
 
+// makeAllDirs creates all required directories, which are in the file path.
 func (c *Creator) makeAllDirs(filePath string) error {
 	dirPath := filepath.Dir(filePath)
 	return os.MkdirAll(dirPath, os.ModePerm)
 }
 
+// createFile just create a file and return it.
 func (c *Creator) createFile(filePath string) (*os.File, error) {
 	outputFile, err := os.Create(filePath)
 	if err != nil {
@@ -99,21 +115,25 @@ func (c *Creator) createFile(filePath string) (*os.File, error) {
 	return outputFile, nil
 }
 
-
+// parseTemplate parse template passed as argument and with function map defined below.
 func (c *Creator) parseTemplate(templateName string) (*template.Template, error) {
 	templatePath := filepath.Join(c.TemplatesDir, templateName)
 	funcMap := template.FuncMap{
-		"packageName":   translate.PackageName,
-		"locationType":  translate.LocationType,
-		"specParamType": translate.SpecParamType,
-		"omitEmpty":     translate.OmitEmpty,
-		"contains": func(full, part string) bool {
-			return strings.Contains(full, part)
-		},
+		"packageName":            translate.PackageName,
+		"locationType":           translate.LocationType,
+		"specParamType":          translate.SpecParamType,
+		"xmlParamType":           translate.XmlParamType,
+		"xmlTag":                 translate.XmlTag,
+		"specifyEntryAssignment": translate.SpecifyEntryAssignment,
+		"normalizeAssignment":    translate.NormalizeAssignment,
+		"specMatchesFunction":    translate.SpecMatchesFunction,
+		"omitEmpty":              translate.OmitEmpty,
+		"contains":               strings.Contains,
 		"subtract": func(a, b int) int {
 			return a - b
 		},
-		"asEntryXpath": translate.AsEntryXpath,
+		"generateEntryXpath": translate.GenerateEntryXpathForLocation,
+		"nestedSpecs":        translate.NestedSpecs,
 	}
 	return template.New(templateName).Funcs(funcMap).ParseFiles(templatePath)
 }
