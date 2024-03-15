@@ -32,45 +32,50 @@ func NewCreator(goOutputDir, templatesDir string, spec *properties.Normalization
 // RenderTemplate loop through all templates, parse them and render content, which is saved to output file.
 func (c *Creator) RenderTemplate() error {
 	log.Println("Start rendering templates")
-
 	templates, err := c.listOfTemplates()
 	if err != nil {
 		return fmt.Errorf("error listing templates: %w", err)
 	}
-
 	for _, templateName := range templates {
-		filePath := c.createFullFilePath(templateName)
-		log.Printf("Creating file: %s\n", filePath)
-
-		if err := c.makeAllDirs(filePath); err != nil {
-			return fmt.Errorf("error creating directories for %s: %w", filePath, err)
-		}
-
-		tmpl, err := c.parseTemplate(templateName)
-		if err != nil {
-			return fmt.Errorf("error parsing template %s: %w", templateName, err)
-		}
-
-		var data bytes.Buffer
-		if err := tmpl.Execute(&data, c.Spec); err != nil {
-			return fmt.Errorf("error executing template %s: %w", templateName, err)
-		}
-		// If from template no data was rendered (e.g. for DNS spec entry should not be created),
-		// then we don't need to create empty file (e.g. `entry.go`) with no content
-		if data.Len() > 0 {
-			outputFile, err := os.Create(filePath)
-			if err != nil {
-				return fmt.Errorf("error creating file %s: %w", filePath, err)
-			}
-			defer outputFile.Close()
-
-			_, err = io.Copy(outputFile, &data)
-			if err != nil {
-				return err
-			}
+		if err := c.processTemplate(templateName); err != nil {
+			return err
 		}
 	}
 	return nil
+}
+
+func (c *Creator) processTemplate(templateName string) error {
+	filePath := c.createFullFilePath(templateName)
+	log.Printf("Creating file: %s\n", filePath)
+	if err := c.makeAllDirs(filePath); err != nil {
+		return fmt.Errorf("error creating directories for %s: %w", filePath, err)
+	}
+	tmpl, err := c.parseTemplate(templateName)
+	if err != nil {
+		return fmt.Errorf("error parsing template %s: %w", templateName, err)
+	}
+	var data bytes.Buffer
+	if err := tmpl.Execute(&data, c.Spec); err != nil {
+		return fmt.Errorf("error executing template %s: %w", templateName, err)
+	}
+	// If from template no data was rendered (e.g. for DNS spec entry should not be created),
+	// then we don't need to create empty file (e.g. `entry.go`) with no content
+	if data.Len() > 0 {
+		if err := c.writeDataToFile(filePath, &data); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *Creator) writeDataToFile(filePath string, data *bytes.Buffer) error {
+	outputFile, err := os.Create(filePath)
+	if err != nil {
+		return fmt.Errorf("error creating file %s: %w", filePath, err)
+	}
+	defer outputFile.Close()
+	_, err = io.Copy(outputFile, data)
+	return err
 }
 
 // createFullFilePath returns a full path for output file generated from template passed as argument to function.
