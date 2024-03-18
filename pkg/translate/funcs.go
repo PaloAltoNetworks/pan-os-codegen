@@ -69,9 +69,6 @@ func appendListFunctionAssignment(param *properties.SpecParam, objectType string
 }
 
 func appendSpecObjectAssignment(param *properties.SpecParam, objectType string, suffix string, builder *strings.Builder) {
-	appendNestedObjectDeclaration([]string{param.Name.CamelCase}, param.Spec.Params, builder)
-	appendNestedObjectDeclaration([]string{param.Name.CamelCase}, param.Spec.OneOf, builder)
-
 	builder.WriteString(fmt.Sprintf("%s.%s = &Spec%s%s{\n", objectType, param.Name.CamelCase, param.Name.CamelCase, suffix))
 
 	appendNestedObjectAssignment([]string{param.Name.CamelCase}, param.Spec.Params, suffix, builder)
@@ -80,24 +77,9 @@ func appendSpecObjectAssignment(param *properties.SpecParam, objectType string, 
 	builder.WriteString("}\n")
 }
 
-func appendNestedObjectDeclaration(parent []string, params map[string]*properties.SpecParam, builder *strings.Builder) {
-	for _, subParam := range params {
-		appendDeclarationForNestedObject(parent, subParam, builder)
-	}
-}
-
-func appendDeclarationForNestedObject(parent []string, param *properties.SpecParam, builder *strings.Builder) {
-	if param.Spec != nil {
-		appendNestedObjectDeclaration(append(parent, param.Name.CamelCase), param.Spec.Params, builder)
-		appendNestedObjectDeclaration(append(parent, param.Name.CamelCase), param.Spec.OneOf, builder)
-	} else {
-		builder.WriteString(fmt.Sprintf("nested%s%s := o.%s.%s\n",
-			strings.Join(parent, ""), param.Name.CamelCase,
-			strings.Join(parent, "."), param.Name.CamelCase))
-	}
-}
-
 func appendNestedObjectAssignment(parent []string, params map[string]*properties.SpecParam, suffix string, builder *strings.Builder) {
+	// TODO: for one_of e.g. UDP or TCP, we need to generate additional if, because we cannot specify both TCP and UDP
+	// TODO: above applies not only for one, but also for any pointers to structs !!!
 	for _, subParam := range params {
 		appendAssignmentForNestedObject(parent, subParam, suffix, builder)
 	}
@@ -114,8 +96,8 @@ func appendAssignmentForNestedObject(parent []string, param *properties.SpecPara
 		builder.WriteString(fmt.Sprintf("%s : util.StrToMem(o.%s),\n",
 			param.Name.CamelCase, param.Name.CamelCase))
 	} else {
-		builder.WriteString(fmt.Sprintf("%s : nested%s%s,\n",
-			param.Name.CamelCase, strings.Join(parent, ""), param.Name.CamelCase))
+		builder.WriteString(fmt.Sprintf("%s : o.%s.%s,\n",
+			param.Name.CamelCase, strings.Join(parent, "."), param.Name.CamelCase))
 	}
 }
 
