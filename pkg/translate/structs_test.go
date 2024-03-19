@@ -91,7 +91,7 @@ func TestSpecParamType(t *testing.T) {
 
 	// then
 	assert.Equal(t, "string", calculatedTypeRequiredString)
-	assert.Equal(t, "[]*string", calculatedTypeListString)
+	assert.Equal(t, "[]string", calculatedTypeListString)
 	assert.Equal(t, "*string", calculatedTypeOptionalString)
 }
 
@@ -144,7 +144,7 @@ func TestXmlParamType(t *testing.T) {
 
 	// then
 	assert.Equal(t, "string", calculatedTypeRequiredString)
-	assert.Equal(t, "[]*util.MemberType", calculatedTypeListString)
+	assert.Equal(t, "*util.MemberType", calculatedTypeListString)
 }
 
 func TestXmlTag(t *testing.T) {

@@ -24,20 +24,16 @@ func generateEntryXpathForLocation(location string, xpath string) string {
 	return asEntryXpath
 }
 
-// NormalizeAssignment generates a string, which contains entry assignment in Normalize() function
-// in entry.tmpl template. If param contains nested specs, then recursively are executed internal functions,
 // NormalizeAssignment generates a string, which contains entry/config assignment in Normalize() function
-// in entry.tmpl/config.tmpl template. If param contains nested specs, then recursively are executed internal functions,
-// which are declaring additional variables (function nestedObjectDeclaration()) and use them in
-// entry assignment (function nestedObjectAssignment()).
+// in entry.tmpl/config.tmpl template. If param contains nested specs, then recursively are executed
+// internal functions, which are creating entry assignment.
 func NormalizeAssignment(objectType string, param *properties.SpecParam) string {
 	return prepareAssignment(objectType, param, "util.MemToStr", "")
 }
 
 // SpecifyEntryAssignment generates a string, which contains entry/config assignment in SpecifyEntry() function
-// in entry.tmpl/config.tmpl template. If param contains nested specs, then recursively are executed internal functions,
-// which are declaring additional variables (function nestedObjectDeclaration()) and use them in
-// entry assignment (function nestedObjectAssignment()).
+// in entry.tmpl/config.tmpl template. If param contains nested specs, then recursively are executed
+// internal functions, which are creating entry assignment.
 func SpecifyEntryAssignment(objectType string, param *properties.SpecParam) string {
 	return prepareAssignment(objectType, param, "util.StrToMem", "Xml")
 }
@@ -78,8 +74,6 @@ func appendSpecObjectAssignment(param *properties.SpecParam, objectType string, 
 }
 
 func appendNestedObjectAssignment(parent []string, params map[string]*properties.SpecParam, suffix string, builder *strings.Builder) {
-	// TODO: for one_of e.g. UDP or TCP, we need to generate additional if, because we cannot specify both TCP and UDP
-	// TODO: above applies not only for one, but also for any pointers to structs !!!
 	for _, subParam := range params {
 		appendAssignmentForNestedObject(parent, subParam, suffix, builder)
 	}
