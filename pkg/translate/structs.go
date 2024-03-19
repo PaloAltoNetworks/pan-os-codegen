@@ -47,7 +47,7 @@ func updateNestedSpecs(parent []string, param *properties.SpecParam, nestedSpecs
 
 // SpecParamType return param type (it can be nested spec) (for struct based on spec from YAML files).
 func SpecParamType(parent string, param *properties.SpecParam) string {
-	prefix := determinePrefix(param)
+	prefix := determinePrefix(param, false)
 
 	calculatedType := ""
 	if param.Type == "list" && param.Items != nil {
@@ -63,7 +63,7 @@ func SpecParamType(parent string, param *properties.SpecParam) string {
 
 // XmlParamType return param type (it can be nested spec) (for struct based on spec from YAML files).
 func XmlParamType(parent string, param *properties.SpecParam) string {
-	prefix := determinePrefix(param)
+	prefix := determinePrefix(param, true)
 
 	calculatedType := ""
 	if isParamListAndProfileTypeIsMember(param) {
@@ -77,15 +77,13 @@ func XmlParamType(parent string, param *properties.SpecParam) string {
 	return fmt.Sprintf("%s%s", prefix, calculatedType)
 }
 
-func determinePrefix(param *properties.SpecParam) string {
-	prefix := ""
-	if param.Type == "list" {
-		prefix = prefix + "[]"
+func determinePrefix(param *properties.SpecParam, useMemberTypeStruct bool) string {
+	if param.Type == "list" && !(useMemberTypeStruct && isParamListAndProfileTypeIsMember(param)) {
+		return "[]"
+	} else if !param.Required {
+		return "*"
 	}
-	if !param.Required {
-		prefix = prefix + "*"
-	}
-	return prefix
+	return ""
 }
 
 func determineListType(param *properties.SpecParam) string {

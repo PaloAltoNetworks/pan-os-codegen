@@ -24,23 +24,21 @@ func generateEntryXpathForLocation(location string, xpath string) string {
 	return asEntryXpath
 }
 
-// NormalizeAssignment generates a string, which contains entry assignment in Normalize() function
-// in entry.tmpl template. If param contains nested specs, then recursively are executed internal functions,
-// which are declaring additional variables (function nestedObjectDeclaration()) and use them in
-// entry assignment (function nestedObjectAssignment()).
-func NormalizeAssignment(param *properties.SpecParam) string {
-	return prepareAssignment(param, "util.MemToStr", "")
+// NormalizeAssignment generates a string, which contains entry/config assignment in Normalize() function
+// in entry.tmpl/config.tmpl template. If param contains nested specs, then recursively are executed
+// internal functions, which are creating entry assignment.
+func NormalizeAssignment(objectType string, param *properties.SpecParam) string {
+	return prepareAssignment(objectType, param, "util.MemToStr", "")
 }
 
-// SpecifyEntryAssignment generates a string, which contains entry assignment in SpecifyEntry() function
-// in entry.tmpl template. If param contains nested specs, then recursively are executed internal functions,
-// which are declaring additional variables (function nestedObjectDeclaration()) and use them in
-// entry assignment (function nestedObjectAssignment()).
-func SpecifyEntryAssignment(param *properties.SpecParam) string {
-	return prepareAssignment(param, "util.StrToMem", "Xml")
+// SpecifyEntryAssignment generates a string, which contains entry/config assignment in SpecifyEntry() function
+// in entry.tmpl/config.tmpl template. If param contains nested specs, then recursively are executed
+// internal functions, which are creating entry assignment.
+func SpecifyEntryAssignment(objectType string, param *properties.SpecParam) string {
+	return prepareAssignment(objectType, param, "util.StrToMem", "Xml")
 }
 
-func prepareAssignment(param *properties.SpecParam, listFunction, specSuffix string) string {
+func prepareAssignment(objectType string, param *properties.SpecParam, listFunction, specSuffix string) string {
 	var builder strings.Builder
 
 	if param.Spec != nil {
@@ -76,8 +74,6 @@ func appendSpecObjectAssignment(param *properties.SpecParam, objectType string, 
 }
 
 func appendNestedObjectAssignment(parent []string, params map[string]*properties.SpecParam, suffix string, builder *strings.Builder) {
-	// TODO: for one_of e.g. UDP or TCP, we need to generate additional if, because we cannot specify both TCP and UDP
-	// TODO: above applies not only for one, but also for any pointers to structs !!!
 	for _, subParam := range params {
 		appendAssignmentForNestedObject(parent, subParam, suffix, builder)
 	}
@@ -99,7 +95,7 @@ func appendAssignmentForNestedObject(parent []string, param *properties.SpecPara
 	}
 }
 
-// SpecMatchesFunction return a string used in function SpecMatches() in entry.tmpl
+// SpecMatchesFunction return a string used in function SpecMatches() in entry.tmpl/config.tmpl
 // to compare all items of generated entry.
 func SpecMatchesFunction(param *properties.SpecParam) string {
 	if param.Type == "list" {
