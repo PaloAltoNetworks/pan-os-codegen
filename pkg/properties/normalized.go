@@ -227,7 +227,7 @@ func (spec *Normalization) AddNameVariantsForParams() error {
 // addDefaultTypesForParams recursively add default types for params for nested specs.
 func addDefaultTypesForParams(params map[string]*SpecParam) error {
 	for _, param := range params {
-		if param.Type == "" {
+		if param.Type == "" && param.Spec == nil {
 			param.Type = "string"
 		}
 

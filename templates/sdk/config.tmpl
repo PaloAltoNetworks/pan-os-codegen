@@ -139,14 +139,18 @@ func SpecMatches(a, b *Config) bool {
 
 	// Don't compare Name.
     {{- range $_, $param := .Spec.Params}}
+    {{- if or (eq $param.Type "list") (eq $param.Type "string")}}
     if !util.{{specMatchesFunction $param}}(a.{{$param.Name.CamelCase}}, b.{{$param.Name.CamelCase}}) {
         return false
     }
     {{- end}}
+    {{- end}}
     {{- range $_, $param := .Spec.OneOf}}
+    {{- if or (eq $param.Type "list") (eq $param.Type "string")}}
     if !util.{{specMatchesFunction $param}}(a.{{$param.Name.CamelCase}}, b.{{$param.Name.CamelCase}}) {
         return false
     }
+    {{- end}}
     {{- end}}
 
 	return true
