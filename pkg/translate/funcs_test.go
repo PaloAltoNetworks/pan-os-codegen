@@ -85,9 +85,10 @@ func TestSpecifyEntryAssignmentForNestedObject(t *testing.T) {
 			},
 		},
 	}
-	expectedAssignmentStreing := `entry.A = &SpecAXml{
+	expectedAssignmentStreing := `nestedABC := o.A.B.C
+entry.A = &SpecAXml{
 B : &SpecABXml{
-C : o.A.B.C,
+C : nestedABC,
 },
 }
 `
@@ -130,9 +131,10 @@ func TestNormalizeAssignmentForNestedObject(t *testing.T) {
 			},
 		},
 	}
-	expectedAssignmentStreing := `entry.A = &SpecA{
+	expectedAssignmentStreing := `nestedABC := o.A.B.C
+entry.A = &SpecA{
 B : &SpecAB{
-C : o.A.B.C,
+C : nestedABC,
 },
 }
 `
