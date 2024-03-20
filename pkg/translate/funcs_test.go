@@ -85,12 +85,16 @@ func TestSpecifyEntryAssignmentForNestedObject(t *testing.T) {
 			},
 		},
 	}
-	expectedAssignmentStreing := `nestedABC := o.A.B.C
-entry.A = &SpecAXml{
-B : &SpecABXml{
-C : nestedABC,
-},
+	expectedAssignmentStreing := `nestedA := &SpecAXml{}
+if o.A != nil {
+if o.A.B != nil {
+nestedA.B = &SpecABXml{}
+if o.A.B.C != nil {
+nestedA.B.C = o.A.B.C
 }
+}
+}
+entry.A = nestedA
 `
 	// when
 	calculatedAssignmentString := SpecifyEntryAssignment("entry", spec.Params["a"])
@@ -131,12 +135,16 @@ func TestNormalizeAssignmentForNestedObject(t *testing.T) {
 			},
 		},
 	}
-	expectedAssignmentStreing := `nestedABC := o.A.B.C
-entry.A = &SpecA{
-B : &SpecAB{
-C : nestedABC,
-},
+	expectedAssignmentStreing := `nestedA := &SpecA{}
+if o.A != nil {
+if o.A.B != nil {
+nestedA.B = &SpecAB{}
+if o.A.B.C != nil {
+nestedA.B.C = o.A.B.C
 }
+}
+}
+entry.A = nestedA
 `
 	// when
 	calculatedAssignmentString := NormalizeAssignment("entry", spec.Params["a"])
