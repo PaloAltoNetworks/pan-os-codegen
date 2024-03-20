@@ -74,6 +74,7 @@ func (o Location) Xpath(vn version.Number, name string) ([]string, error) {
 		return nil, errors.NoLocationSpecifiedError
 	}
 
+    ans = append(ans, Suffix...)
 	ans = append(ans, util.AsEntryXpath([]string{name}))
 
 	return ans, nil
