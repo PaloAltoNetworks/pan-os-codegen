@@ -424,5 +424,5 @@ func TestNamesOfStructsForVersioning(t *testing.T) {
 
 	// then
 	assert.NotNilf(t, yamlParsedData, "Unmarshalled data cannot be nil")
-	assert.Contains(t, versions, "10.1.1")
+	assert.Contains(t, versions, "_10_1_1")
 }
