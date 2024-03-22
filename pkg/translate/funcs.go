@@ -96,6 +96,24 @@ func assignEmptyStructForNestedObject(parent []string, builder *strings.Builder,
 		builder.WriteString(fmt.Sprintf("nested%s = &Spec%s%s{}\n",
 			strings.Join(parent, "."),
 			strings.Join(parent, ""), suffix))
+
+		if suffix == "Xml" {
+			builder.WriteString(fmt.Sprintf("if o.%s.Misc != nil {\n", strings.Join(parent, ".")))
+			builder.WriteString(fmt.Sprintf("nested%s.Misc = o.%s.Misc[\"%s\"]\n",
+				strings.Join(parent, "."),
+				strings.Join(parent, "."),
+				strings.Join(parent, ""),
+			))
+			builder.WriteString("}\n")
+		} else {
+			builder.WriteString(fmt.Sprintf("if o.%s.Misc != nil {\n", strings.Join(parent, ".")))
+			builder.WriteString(fmt.Sprintf("nested%s.Misc[\"%s\"] = o.%s.Misc\n",
+				strings.Join(parent, "."),
+				strings.Join(parent, ""),
+				strings.Join(parent, "."),
+			))
+			builder.WriteString("}\n")
+		}
 	}
 }
 

@@ -30,6 +30,8 @@ type Spec{{$name}} struct {
     {{- range $_, $param := $spec.OneOf}}
     {{$param.Name.CamelCase}} {{specParamType $name $param}}
     {{- end}}
+
+    Misc map[string][]generic.Xml
 }
 {{- end}}
 
@@ -57,7 +59,7 @@ type Spec{{$name}}Xml struct {
     {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
     {{- end}}
 
-    Misc []generic.Xml `xml:",any"
+    Misc []generic.Xml `xml:",any"`
 }
 {{- end}}
 
@@ -106,7 +108,7 @@ func SpecifyConfig(o Config) (any, error) {
     {{specifyEntryAssignment "config" $param}}
     {{- end}}
 
-	config.Misc = o.Misc[fmt.Sprintf("%s", "Config")]
+	config.Misc = o.Misc["Config"]
 
 	return config, nil
 }
@@ -124,7 +126,7 @@ func (c *ConfigXmlContainer) Normalize() ([]Config, error) {
         {{normalizeAssignment "config" $param}}
         {{- end}}
 
-		config.Misc[fmt.Sprintf("%s", "Config")] = o.Misc
+		config.Misc["Config"] = o.Misc
 
 		configList = append(configList, config)
 	}
