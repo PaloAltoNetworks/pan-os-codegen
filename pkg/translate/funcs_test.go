@@ -89,6 +89,9 @@ func TestSpecifyEntryAssignmentForNestedObject(t *testing.T) {
 if o.A != nil {
 if o.A.B != nil {
 nestedA.B = &SpecABXml{}
+if o.A.B.Misc != nil {
+nestedA.B.Misc = o.A.B.Misc["AB"]
+}
 if o.A.B.C != nil {
 nestedA.B.C = o.A.B.C
 }
@@ -139,6 +142,9 @@ func TestNormalizeAssignmentForNestedObject(t *testing.T) {
 if o.A != nil {
 if o.A.B != nil {
 nestedA.B = &SpecAB{}
+if o.A.B.Misc != nil {
+nestedA.B.Misc["AB"] = o.A.B.Misc
+}
 if o.A.B.C != nil {
 nestedA.B.C = o.A.B.C
 }
