@@ -85,9 +85,9 @@ func TestSpecParamType(t *testing.T) {
 	}
 
 	// when
-	calculatedTypeRequiredString := SpecParamType("", &paramTypeRequiredString)
-	calculatedTypeListString := SpecParamType("", &paramTypeListString)
-	calculatedTypeOptionalString := SpecParamType("", &paramTypeOptionalString)
+	calculatedTypeRequiredString := SpecParamType("", &paramTypeRequiredString, "")
+	calculatedTypeListString := SpecParamType("", &paramTypeListString, "")
+	calculatedTypeOptionalString := SpecParamType("", &paramTypeOptionalString, "")
 
 	// then
 	assert.Equal(t, "string", calculatedTypeRequiredString)
@@ -139,8 +139,8 @@ func TestXmlParamType(t *testing.T) {
 	}
 
 	// when
-	calculatedTypeRequiredString := XmlParamType("", &paramTypeRequiredString)
-	calculatedTypeListString := XmlParamType("", &paramTypeListString)
+	calculatedTypeRequiredString := XmlParamType("", &paramTypeRequiredString, "")
+	calculatedTypeListString := XmlParamType("", &paramTypeListString, "")
 
 	// then
 	assert.Equal(t, "string", calculatedTypeRequiredString)
