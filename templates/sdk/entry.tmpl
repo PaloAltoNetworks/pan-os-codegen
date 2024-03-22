@@ -23,59 +23,69 @@ var (
 	{{- end}}}
 )
 
-type Entry struct {
+{{- range $version := .SupportedVersions }}
+    type Entry{{$version}} struct {
     Name string
-    {{- range $_, $param := .Spec.Params}}
-    {{$param.Name.CamelCase}} {{specParamType "" $param}}
+    {{- range $_, $param := $.Spec.Params}}
+        {{$param.Name.CamelCase}} {{specParamType "" $param $version}}
     {{- end}}
-    {{- range $_, $param := .Spec.OneOf}}
-    {{$param.Name.CamelCase}} {{specParamType "" $param}}
-    {{- end}}
-
-	Misc map[string][]generic.Xml
-}
-
-{{- range $name, $spec := nestedSpecs .Spec }}
-type Spec{{$name}} struct {
-    {{- range $_, $param := $spec.Params}}
-    {{$param.Name.CamelCase}} {{specParamType $name $param}}
-    {{- end}}
-    {{- range $_, $param := $spec.OneOf}}
-    {{$param.Name.CamelCase}} {{specParamType $name $param}}
+    {{- range $_, $param := $.Spec.OneOf}}
+        {{$param.Name.CamelCase}} {{specParamType "" $param $version}}
     {{- end}}
 
     Misc map[string][]generic.Xml
 }
 {{- end}}
 
-type entryXmlContainer struct {
-	Answer []entryXml `xml:"entry"`
-}
+{{- range $version := .SupportedVersions }}
+    {{- range $name, $spec := nestedSpecs $.Spec }}
+        type Spec{{$name}}{{$version}} struct {
+    {{- range $_, $param := $spec.Params}}
+        {{$param.Name.CamelCase}} {{specParamType $name $param $version}}
+    {{- end}}
+    {{- range $_, $param := $spec.OneOf}}
+        {{$param.Name.CamelCase}} {{specParamType $name $param $version}}
+    {{- end}}
 
-type entryXml struct {
+    Misc map[string][]generic.Xml
+}
+{{- end}}
+{{- end}}
+
+{{- range $version := .SupportedVersions }}
+    type entryXmlContainer{{$version}} struct {
+    Answer []entryXml{{$version}} `xml:"entry"`
+}
+{{- end}}
+
+{{- range $version := .SupportedVersions }}
+    type entryXml{{$version}} struct {
 	XMLName xml.Name `xml:"entry"`
 	Name string `xml:"name,attr"`
-    {{- range $_, $param := .Spec.Params}}
-    {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
+    {{- range $_, $param := $.Spec.Params}}
+        {{$param.Name.CamelCase}} {{xmlParamType "" $param $version}} {{xmlTag $param}}
     {{- end}}
-    {{- range $_, $param := .Spec.OneOf}}
-    {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
+    {{- range $_, $param := $.Spec.OneOf}}
+        {{$param.Name.CamelCase}} {{xmlParamType "" $param $version}} {{xmlTag $param}}
     {{- end}}
 
 	Misc []generic.Xml `xml:",any"`
 }
+{{- end}}
 
-{{- range $name, $spec := nestedSpecs .Spec }}
-type spec{{$name}}Xml struct {
+{{- range $version := .SupportedVersions }}
+    {{- range $name, $spec := nestedSpecs $.Spec }}
+        type spec{{$name}}Xml{{$version}} struct {
     {{- range $_, $param := $spec.Params}}
-    {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
+        {{$param.Name.CamelCase}} {{xmlParamType $name $param $version}} {{xmlTag $param}}
     {{- end}}
     {{- range $_, $param := $spec.OneOf}}
-    {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
+        {{$param.Name.CamelCase}} {{xmlParamType $name $param $version}} {{xmlTag $param}}
     {{- end}}
 
     Misc []generic.Xml `xml:",any"`
 }
+{{- end}}
 {{- end}}
 
 func (e *Entry) CopyMiscFrom(v *Entry) {

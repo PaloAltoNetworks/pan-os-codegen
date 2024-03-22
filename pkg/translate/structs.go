@@ -46,7 +46,7 @@ func updateNestedSpecs(parent []string, param *properties.SpecParam, nestedSpecs
 }
 
 // SpecParamType return param type (it can be nested spec) (for struct based on spec from YAML files).
-func SpecParamType(parent string, param *properties.SpecParam) string {
+func SpecParamType(parent string, param *properties.SpecParam, version string) string {
 	prefix := determinePrefix(param, false)
 
 	calculatedType := ""
@@ -62,7 +62,7 @@ func SpecParamType(parent string, param *properties.SpecParam) string {
 }
 
 // XmlParamType return param type (it can be nested spec) (for struct based on spec from YAML files).
-func XmlParamType(parent string, param *properties.SpecParam) string {
+func XmlParamType(parent string, param *properties.SpecParam, version string) string {
 	prefix := determinePrefix(param, true)
 
 	calculatedType := ""

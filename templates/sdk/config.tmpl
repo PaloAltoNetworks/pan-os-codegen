@@ -11,56 +11,66 @@ import (
 	"github.com/PaloAltoNetworks/pango/version"
 )
 
+{{- range $version := .SupportedVersions }}
 type Config struct {
-    {{- range $_, $param := .Spec.Params}}
-    {{$param.Name.CamelCase}} {{specParamType "" $param}}
+{{- range $_, $param := $.Spec.Params}}
+    {{$param.Name.CamelCase}} {{specParamType "" $param $version}}
     {{- end}}
-    {{- range $_, $param := .Spec.OneOf}}
-    {{$param.Name.CamelCase}} {{specParamType "" $param}}
+{{- range $_, $param := $.Spec.OneOf}}
+    {{$param.Name.CamelCase}} {{specParamType "" $param $version}}
     {{- end}}
 
 	Misc map[string][]generic.Xml
 }
+{{- end}}
 
-{{- range $name, $spec := nestedSpecs .Spec }}
+{{- range $version := .SupportedVersions }}
+    {{- range $name, $spec := nestedSpecs $.Spec }}
 type Spec{{$name}} struct {
     {{- range $_, $param := $spec.Params}}
-    {{$param.Name.CamelCase}} {{specParamType $name $param}}
+        {{$param.Name.CamelCase}} {{specParamType $name $param $version}}
     {{- end}}
     {{- range $_, $param := $spec.OneOf}}
-    {{$param.Name.CamelCase}} {{specParamType $name $param}}
+        {{$param.Name.CamelCase}} {{specParamType $name $param $version}}
     {{- end}}
 
     Misc map[string][]generic.Xml
 }
 {{- end}}
+{{- end}}
 
-type ConfigXmlContainer struct {
-	Answer []ConfigXml `xml:"config"`
+{{- range $version := .SupportedVersions }}
+    type configXmlContainer{{$version}} struct {
+    Answer []configXml{{$version}} `xml:"config"`
 }
+{{- end}}
 
-type ConfigXml struct {
-    {{- range $_, $param := .Spec.Params}}
-    {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
+{{- range $version := .SupportedVersions }}
+    type configXml{{$version}} struct {
+    {{- range $_, $param := $.Spec.Params}}
+        {{$param.Name.CamelCase}} {{xmlParamType "" $param $version}} {{xmlTag $param}}
     {{- end}}
-    {{- range $_, $param := .Spec.OneOf}}
-    {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
+    {{- range $_, $param := $.Spec.OneOf}}
+        {{$param.Name.CamelCase}} {{xmlParamType "" $param $version}} {{xmlTag $param}}
     {{- end}}
 
 	Misc []generic.Xml `xml:",any"`
 }
+{{- end}}
 
-{{- range $name, $spec := nestedSpecs .Spec }}
-type spec{{$name}}Xml struct {
+{{- range $version := .SupportedVersions }}
+    {{- range $name, $spec := nestedSpecs $.Spec }}
+        type spec{{$name}}Xml{{$version}} struct {
     {{- range $_, $param := $spec.Params}}
-    {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
+        {{$param.Name.CamelCase}} {{xmlParamType $name $param $version}} {{xmlTag $param}}
     {{- end}}
     {{- range $_, $param := $spec.OneOf}}
-    {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
+        {{$param.Name.CamelCase}} {{xmlParamType $name $param $version}} {{xmlTag $param}}
     {{- end}}
 
     Misc []generic.Xml `xml:",any"`
 }
+{{- end}}
 {{- end}}
 
 func (e *Config) CopyMiscFrom(v *Config) {
@@ -95,11 +105,11 @@ func (e *Config) Field(v string) (any, error) {
 }
 
 func Versioning(vn version.Number) (Specifier, Normalizer, error) {
-	return SpecifyConfig, &ConfigXmlContainer{}, nil
+return SpecifyConfig, &configXmlContainer{}, nil
 }
 
 func SpecifyConfig(o Config) (any, error) {
-	config := ConfigXml{}
+config := configXml{}
 
     {{- range $_, $param := .Spec.Params}}
     {{specifyEntryAssignment "config" $param}}
@@ -113,7 +123,7 @@ func SpecifyConfig(o Config) (any, error) {
 	return config, nil
 }
 
-func (c *ConfigXmlContainer) Normalize() ([]Config, error) {
+func (c *configXmlContainer) Normalize() ([]Config, error) {
 	configList := make([]Config, 0, len(c.Answer))
 	for _, o := range c.Answer {
 		config := Config{
