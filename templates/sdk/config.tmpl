@@ -51,7 +51,7 @@ type ConfigXml struct {
 }
 
 {{- range $name, $spec := nestedSpecs .Spec }}
-type Spec{{$name}}Xml struct {
+type spec{{$name}}Xml struct {
     {{- range $_, $param := $spec.Params}}
     {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
     {{- end}}

@@ -48,11 +48,11 @@ type Spec{{$name}} struct {
 }
 {{- end}}
 
-type EntryXmlContainer struct {
-	Answer []EntryXml `xml:"entry"`
+type entryXmlContainer struct {
+	Answer []entryXml `xml:"entry"`
 }
 
-type EntryXml struct {
+type entryXml struct {
 	XMLName xml.Name `xml:"entry"`
 	Name string `xml:"name,attr"`
     {{- range $_, $param := .Spec.Params}}
@@ -66,7 +66,7 @@ type EntryXml struct {
 }
 
 {{- range $name, $spec := nestedSpecs .Spec }}
-type Spec{{$name}}Xml struct {
+type spec{{$name}}Xml struct {
     {{- range $_, $param := $spec.Params}}
     {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
     {{- end}}
@@ -114,14 +114,11 @@ func (e *Entry) Field(v string) (any, error) {
 }
 
 func Versioning(vn version.Number) (Specifier, Normalizer, error) {
-	return SpecifyEntry, &EntryXmlContainer{}, nil
+	return SpecifyEntry, &entryXmlContainer{}, nil
 }
 
-// TODO: think if struct EntryXml1 / E_0_0 has to be public or not ???
-// maybe it's good to make it hidden and do not have in public documentation ...
-
 func SpecifyEntry(o Entry) (any, error) {
-	entry := EntryXml{}
+	entry := entryXml{}
 
 	entry.Name = o.Name
     {{- range $_, $param := .Spec.Params}}
@@ -136,7 +133,7 @@ func SpecifyEntry(o Entry) (any, error) {
 	return entry, nil
 }
 
-func (c *EntryXmlContainer) Normalize() ([]Entry, error) {
+func (c *entryXmlContainer) Normalize() ([]Entry, error) {
 	entryList := make([]Entry, 0, len(c.Answer))
 	for _, o := range c.Answer {
 		entry := Entry{
@@ -153,8 +150,8 @@ func (c *EntryXmlContainer) Normalize() ([]Entry, error) {
 		entry.Misc["Entry"] = o.Misc
 
 		// TODO: start thinking about versioning e.g:
-		// 1 approach: EntryXml1, EntryXml2, EntryXml3, ...
-		// 2 approach: EntryXml_10_0_0, EntryXml_10_1_0, EntryXml_11_0_0, ...
+		// 1 approach: entryXml1, entryXml2, entryXml3, ...
+		// 2 approach: entryXml_10_0_0, entryXml_10_1_0, entryXml_11_0_0, ...
 
 		entryList = append(entryList, entry)
 	}

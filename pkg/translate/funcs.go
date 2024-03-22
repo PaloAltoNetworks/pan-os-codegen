@@ -28,21 +28,21 @@ func generateEntryXpathForLocation(location string, xpath string) string {
 // in entry.tmpl/config.tmpl template. If param contains nested specs, then recursively are executed
 // internal functions, which are creating entry assignment.
 func NormalizeAssignment(objectType string, param *properties.SpecParam) string {
-	return prepareAssignment(objectType, param, "util.MemToStr", "")
+	return prepareAssignment(objectType, param, "util.MemToStr", "Spec", "")
 }
 
 // SpecifyEntryAssignment generates a string, which contains entry/config assignment in SpecifyEntry() function
 // in entry.tmpl/config.tmpl template. If param contains nested specs, then recursively are executed
 // internal functions, which are creating entry assignment.
 func SpecifyEntryAssignment(objectType string, param *properties.SpecParam) string {
-	return prepareAssignment(objectType, param, "util.StrToMem", "Xml")
+	return prepareAssignment(objectType, param, "util.StrToMem", "spec", "Xml")
 }
 
-func prepareAssignment(objectType string, param *properties.SpecParam, listFunction, specSuffix string) string {
+func prepareAssignment(objectType string, param *properties.SpecParam, listFunction, specPrefix, specSuffix string) string {
 	var builder strings.Builder
 
 	if param.Spec != nil {
-		appendSpecObjectAssignment(param, objectType, specSuffix, &builder)
+		appendSpecObjectAssignment(param, objectType, specPrefix, specSuffix, &builder)
 	} else if isParamListAndProfileTypeIsMember(param) {
 		appendListFunctionAssignment(param, objectType, listFunction, &builder)
 	} else {
@@ -64,37 +64,37 @@ func appendListFunctionAssignment(param *properties.SpecParam, objectType string
 	builder.WriteString(fmt.Sprintf("%s.%s = %s(o.%s)", objectType, param.Name.CamelCase, listFunction, param.Name.CamelCase))
 }
 
-func appendSpecObjectAssignment(param *properties.SpecParam, objectType string, suffix string, builder *strings.Builder) {
-	defineNestedObject([]string{param.Name.CamelCase}, param, objectType, suffix, builder)
+func appendSpecObjectAssignment(param *properties.SpecParam, objectType string, prefix, suffix string, builder *strings.Builder) {
+	defineNestedObject([]string{param.Name.CamelCase}, param, objectType, prefix, suffix, builder)
 	builder.WriteString(fmt.Sprintf("%s.%s = nested%s\n", objectType, param.Name.CamelCase, param.Name.CamelCase))
 }
 
-func defineNestedObject(parent []string, param *properties.SpecParam, objectType string, suffix string, builder *strings.Builder) {
-	declareRootOfNestedObject(parent, builder, suffix)
+func defineNestedObject(parent []string, param *properties.SpecParam, objectType string, prefix, suffix string, builder *strings.Builder) {
+	declareRootOfNestedObject(parent, builder, prefix, suffix)
 
 	builder.WriteString(fmt.Sprintf("if o.%s != nil {\n", strings.Join(parent, ".")))
 	if param.Spec != nil {
-		assignEmptyStructForNestedObject(parent, builder, suffix)
-		defineNestedObjectForChildParams(parent, param.Spec.Params, objectType, suffix, builder)
-		defineNestedObjectForChildParams(parent, param.Spec.OneOf, objectType, suffix, builder)
+		assignEmptyStructForNestedObject(parent, builder, prefix, suffix)
+		defineNestedObjectForChildParams(parent, param.Spec.Params, objectType, prefix, suffix, builder)
+		defineNestedObjectForChildParams(parent, param.Spec.OneOf, objectType, prefix, suffix, builder)
 	} else {
 		assignValueForNestedObject(parent, builder)
 	}
 	builder.WriteString("}\n")
 }
 
-func declareRootOfNestedObject(parent []string, builder *strings.Builder, suffix string) {
+func declareRootOfNestedObject(parent []string, builder *strings.Builder, prefix, suffix string) {
 	if len(parent) == 1 {
-		builder.WriteString(fmt.Sprintf("nested%s := &Spec%s%s{}\n",
-			strings.Join(parent, "."),
+		builder.WriteString(fmt.Sprintf("nested%s := &%s%s%s{}\n",
+			strings.Join(parent, "."), prefix,
 			strings.Join(parent, ""), suffix))
 	}
 }
 
-func assignEmptyStructForNestedObject(parent []string, builder *strings.Builder, suffix string) {
+func assignEmptyStructForNestedObject(parent []string, builder *strings.Builder, prefix, suffix string) {
 	if len(parent) > 1 {
-		builder.WriteString(fmt.Sprintf("nested%s = &Spec%s%s{}\n",
-			strings.Join(parent, "."),
+		builder.WriteString(fmt.Sprintf("nested%s = &%s%s%s{}\n",
+			strings.Join(parent, "."), prefix,
 			strings.Join(parent, ""), suffix))
 
 		if suffix == "Xml" {
@@ -123,9 +123,9 @@ func assignValueForNestedObject(parent []string, builder *strings.Builder) {
 		strings.Join(parent, ".")))
 }
 
-func defineNestedObjectForChildParams(parent []string, params map[string]*properties.SpecParam, objectType string, suffix string, builder *strings.Builder) {
+func defineNestedObjectForChildParams(parent []string, params map[string]*properties.SpecParam, objectType string, prefix, suffix string, builder *strings.Builder) {
 	for _, param := range params {
-		defineNestedObject(append(parent, param.Name.CamelCase), param, objectType, suffix, builder)
+		defineNestedObject(append(parent, param.Name.CamelCase), param, objectType, prefix, suffix, builder)
 	}
 }
 
