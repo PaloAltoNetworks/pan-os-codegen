@@ -46,7 +46,7 @@ func updateNestedSpecs(parent []string, param *properties.SpecParam, nestedSpecs
 }
 
 // SpecParamType return param type (it can be nested spec) (for struct based on spec from YAML files).
-func SpecParamType(parent string, param *properties.SpecParam, version string) string {
+func SpecParamType(parent string, param *properties.SpecParam) string {
 	prefix := determinePrefix(param, false)
 
 	calculatedType := ""
@@ -62,7 +62,7 @@ func SpecParamType(parent string, param *properties.SpecParam, version string) s
 }
 
 // XmlParamType return param type (it can be nested spec) (for struct based on spec from YAML files).
-func XmlParamType(parent string, param *properties.SpecParam, version string) string {
+func XmlParamType(parent string, param *properties.SpecParam) string {
 	prefix := determinePrefix(param, true)
 
 	calculatedType := ""
@@ -121,5 +121,14 @@ func OmitEmpty(location *properties.Location) string {
 		return ",omitempty"
 	} else {
 		return ""
+	}
+}
+
+// CreateGoSuffixFromVersion convert version into Go suffix e.g. 10.1.1 into _10_1_1
+func CreateGoSuffixFromVersion(version string) string {
+	if len(version) > 0 {
+		return fmt.Sprintf("_%s", strings.ReplaceAll(version, ".", "_"))
+	} else {
+		return version
 	}
 }

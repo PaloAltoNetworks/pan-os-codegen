@@ -132,8 +132,9 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		"subtract": func(a, b int) int {
 			return a - b
 		},
-		"generateEntryXpath": translate.GenerateEntryXpathForLocation,
-		"nestedSpecs":        translate.NestedSpecs,
+		"generateEntryXpath":        translate.GenerateEntryXpathForLocation,
+		"nestedSpecs":               translate.NestedSpecs,
+		"createGoSuffixFromVersion": translate.CreateGoSuffixFromVersion,
 	}
 	return template.New(templateName).Funcs(funcMap).ParseFiles(templatePath)
 }
