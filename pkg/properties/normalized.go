@@ -296,7 +296,7 @@ func (spec *Normalization) Validate() []error {
 	return checks
 }
 
-// SupportedVersions provides list of all supported versions
+// SupportedVersions provides list of all supported versions in format _MAJOR_MINOR_PATCH
 func (spec *Normalization) SupportedVersions() []string {
 	if spec.Spec != nil {
 		versions := supportedVersions(spec.Spec.Params, []string{""})
@@ -310,7 +310,15 @@ func supportedVersions(params map[string]*SpecParam, versions []string) []string
 	for _, param := range params {
 		for _, profile := range param.Profiles {
 			if profile.FromVersion != "" {
-				versions = append(versions, profile.FromVersion)
+				notExist := true
+				for _, version := range versions {
+					if version == profile.FromVersion {
+						notExist = false
+					}
+				}
+				if notExist {
+					versions = append(versions, fmt.Sprintf("_%s", strings.ReplaceAll(profile.FromVersion, ".", "_")))
+				}
 			}
 		}
 		if param.Spec != nil {
