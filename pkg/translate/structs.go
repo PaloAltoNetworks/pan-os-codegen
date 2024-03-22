@@ -98,7 +98,7 @@ func calculateNestedSpecType(parent string, param *properties.SpecParam) string 
 }
 
 func calculateNestedXmlSpecType(parent string, param *properties.SpecParam) string {
-	return fmt.Sprintf("Spec%s%sXml", parent, naming.CamelCase("", param.Name.CamelCase, "", true))
+	return fmt.Sprintf("spec%s%sXml", parent, naming.CamelCase("", param.Name.CamelCase, "", true))
 }
 
 // XmlTag creates a string with xml tag (e.g. `xml:"description,omitempty"`).

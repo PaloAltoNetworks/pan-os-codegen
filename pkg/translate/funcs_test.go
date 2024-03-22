@@ -85,10 +85,10 @@ func TestSpecifyEntryAssignmentForNestedObject(t *testing.T) {
 			},
 		},
 	}
-	expectedAssignmentStreing := `nestedA := &SpecAXml{}
+	expectedAssignmentStreing := `nestedA := &specAXml{}
 if o.A != nil {
 if o.A.B != nil {
-nestedA.B = &SpecABXml{}
+nestedA.B = &specABXml{}
 if o.A.B.Misc != nil {
 nestedA.B.Misc = o.A.B.Misc["AB"]
 }
