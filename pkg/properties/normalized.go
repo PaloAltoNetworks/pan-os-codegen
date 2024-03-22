@@ -295,3 +295,28 @@ func (spec *Normalization) Validate() []error {
 
 	return checks
 }
+
+// SupportedVersions provides list of all supported versions
+func (spec *Normalization) SupportedVersions() []string {
+	if spec.Spec != nil {
+		versions := supportedVersions(spec.Spec.Params, []string{""})
+		versions = supportedVersions(spec.Spec.OneOf, versions)
+		return versions
+	}
+	return nil
+}
+
+func supportedVersions(params map[string]*SpecParam, versions []string) []string {
+	for _, param := range params {
+		for _, profile := range param.Profiles {
+			if profile.FromVersion != "" {
+				versions = append(versions, profile.FromVersion)
+			}
+		}
+		if param.Spec != nil {
+			versions = supportedVersions(param.Spec.Params, versions)
+			versions = supportedVersions(param.Spec.OneOf, versions)
+		}
+	}
+	return versions
+}

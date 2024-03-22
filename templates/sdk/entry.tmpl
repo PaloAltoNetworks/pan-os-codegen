@@ -149,10 +149,6 @@ func (c *entryXmlContainer) Normalize() ([]Entry, error) {
 
 		entry.Misc["Entry"] = o.Misc
 
-		// TODO: start thinking about versioning e.g:
-		// 1 approach: entryXml1, entryXml2, entryXml3, ...
-		// 2 approach: entryXml_10_0_0, entryXml_10_1_0, entryXml_11_0_0, ...
-
 		entryList = append(entryList, entry)
 	}
 
