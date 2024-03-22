@@ -56,6 +56,8 @@ type Spec{{$name}}Xml struct {
     {{- range $_, $param := $spec.OneOf}}
     {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
     {{- end}}
+
+    Misc []generic.Xml `xml:",any"
 }
 {{- end}}
 
