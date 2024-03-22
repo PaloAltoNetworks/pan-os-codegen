@@ -1,81 +1,81 @@
 package {{packageName .GoSdkPath}}
 
 import (
-	"fmt"
+"fmt"
 
-	"github.com/PaloAltoNetworks/pango/errors"
-	"github.com/PaloAltoNetworks/pango/util"
-	"github.com/PaloAltoNetworks/pango/version"
+"github.com/PaloAltoNetworks/pango/errors"
+"github.com/PaloAltoNetworks/pango/util"
+"github.com/PaloAltoNetworks/pango/version"
 )
 
 type Location struct {
-    {{range $key, $location := .Locations}}
+{{range $key, $location := .Locations}}
     {{- $location.Name.CamelCase }} {{locationType $location true}} `json:"{{$location.Name.Underscore}}{{omitEmpty $location}}"`
-    {{end}}
+{{end}}
 }
 {{range $key, $location := .Locations}}
-{{- if $location.Vars}}
-type {{locationType $location false}} struct {
-{{- range $key, $var := $location.Vars}}
-	{{$var.Name.CamelCase}} string `json:"{{$var.Name.Underscore}}"`
-{{- end}}
-}
-{{end}}
+    {{- if $location.Vars}}
+        type {{locationType $location false}} struct {
+        {{- range $key, $var := $location.Vars}}
+            {{$var.Name.CamelCase}} string `json:"{{$var.Name.Underscore}}"`
+        {{- end}}
+        }
+    {{end}}
 {{- end}}
 func (o Location) IsValid() error {
-	count := 0
+count := 0
 
-	switch {
-    {{- range $key, $location := .Locations}}
+switch {
+{{- range $key, $location := .Locations}}
     case o.{{- $location.Name.CamelCase}}{{if ne (locationType $location true) "bool"}} != nil{{end}}:
-        {{- range $name, $var := $location.Vars}}
+    {{- range $name, $var := $location.Vars}}
         if o.{{$location.Name.CamelCase}}.{{$var.Name.CamelCase}} == "" {
-            return fmt.Errorf("{{$var.Name.CamelCase}} is unspecified")
+        return fmt.Errorf("{{$var.Name.CamelCase}} is unspecified")
         }
-        {{- end}}
-        count++
     {{- end}}
-    }
+    count++
+{{- end}}
+}
 
-	if count == 0 {
-		return fmt.Errorf("no path specified")
-	}
+if count == 0 {
+return fmt.Errorf("no path specified")
+}
 
-	if count > 1 {
-		return fmt.Errorf("multiple paths specified: only one should be specified")
-	}
+if count > 1 {
+return fmt.Errorf("multiple paths specified: only one should be specified")
+}
 
-	return nil
+return nil
 }
 
 func (o Location) Xpath(vn version.Number, name string) ([]string, error) {
 
-	var ans []string
+var ans []string
 
-	switch {
-    {{- range $key, $location := .Locations}}
+switch {
+{{- range $key, $location := .Locations}}
     case o.{{- $location.Name.CamelCase}}{{if ne (locationType $location true) "bool"}} != nil{{end}}:
-        {{- range $name, $var := $location.Vars}}
+    {{- range $name, $var := $location.Vars}}
         if o.{{$location.Name.CamelCase}}.{{$var.Name.CamelCase}} == "" {
-            return nil, fmt.Errorf("{{$var.Name.CamelCase}} is unspecified")
-        }
-        {{- end}}
-        ans = []string{
-            {{- range $name, $xpath := $location.Xpath}}
-            {{- if contains $xpath "Entry"}}
-            {{generateEntryXpath $location.Name.CamelCase $xpath}}
-            {{- else}}
-            "{{$xpath}}",
-            {{- end}}
-            {{- end}}
+        return nil, fmt.Errorf("{{$var.Name.CamelCase}} is unspecified")
         }
     {{- end}}
-	default:
-		return nil, errors.NoLocationSpecifiedError
-	}
+    ans = []string{
+    {{- range $name, $xpath := $location.Xpath}}
+        {{- if contains $xpath "Entry"}}
+            {{generateEntryXpath $location.Name.CamelCase $xpath}}
+        {{- else}}
+            "{{$xpath}}",
+        {{- end}}
+    {{- end}}
+    }
+{{- end}}
+default:
+return nil, errors.NoLocationSpecifiedError
+}
 
-    ans = append(ans, Suffix...)
-	ans = append(ans, util.AsEntryXpath([]string{name}))
+ans = append(ans, Suffix...)
+ans = append(ans, util.AsEntryXpath([]string{name}))
 
-	return ans, nil
+return ans, nil
 }
