@@ -71,6 +71,8 @@ type Spec{{$name}}Xml struct {
     {{- range $_, $param := $spec.OneOf}}
     {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
     {{- end}}
+
+    Misc []generic.Xml `xml:",any"`
 }
 {{- end}}
 
@@ -113,7 +115,10 @@ func Versioning(vn version.Number) (Specifier, Normalizer, error) {
 	return SpecifyEntry, &EntryXmlContainer{}, nil
 }
 
-func SpecifyEntry(o Entry) (any, error) {
+// TODO: think if struct EntryXml1 / E_0_0 has to be public or not ???
+// maybe it's good to make it hidden and do not have in public documentation ...
+
+func SpecifyEntry(o Entry) (any,
 	entry := EntryXml{}
 
 	entry.Name = o.Name
@@ -125,6 +130,8 @@ func SpecifyEntry(o Entry) (any, error) {
     {{- end}}
 
 	entry.Misc = o.Misc[fmt.Sprintf("%s\n%s", "Entry", o.Name)]
+
+	// TODO: we use name of the struct for single objects, but if we have a list, we combine name of the struct + index
 
 	return entry, nil
 }
@@ -144,6 +151,12 @@ func (c *EntryXmlContainer) Normalize() ([]Entry, error) {
         {{- end}}
 
 		entry.Misc[fmt.Sprintf("%s\n%s", "Entry", o.Name)] = o.Misc
+
+		// TODO: similary as for SpecifyEntry(), it has to be name of the struct e.g. EntryXml for address
+
+		// TODO: start thinking about versioning e.g:
+		// 1 approach: EntryXml1, EntryXml2, EntryXml3, ...
+		// 2 approach: EntryXml_10_0_0, EntryXml_10_1_0, EntryXml_11_0_0, ...
 
 		entryList = append(entryList, entry)
 	}
