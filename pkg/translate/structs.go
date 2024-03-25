@@ -138,37 +138,50 @@ func CreateGoSuffixFromVersion(version string) string {
 func ParamSupportedInVersion(param *properties.SpecParam, deviceVersionStr string) bool {
 	var supported []bool
 	if deviceVersionStr == "" {
-		for _, profile := range param.Profiles {
-			if profile.FromVersion != "" {
-				supported = append(supported, profile.NotPresent)
-			} else {
-				supported = append(supported, true)
-			}
-		}
+		supported = listOfProfileSupportForNotDefinedDeviceVersion(param, supported)
 	} else {
 		deviceVersion, err := version.New(deviceVersionStr)
 		if err != nil {
 			return false
 		}
 
-		for _, profile := range param.Profiles {
-			if profile.FromVersion != "" {
-				paramProfileVersion, err := version.New(profile.FromVersion)
-				if err != nil {
-					return false
-				}
-
-				if deviceVersion.Gte(paramProfileVersion) {
-					supported = append(supported, !profile.NotPresent)
-				} else {
-					supported = append(supported, profile.NotPresent)
-				}
-			} else {
-				supported = append(supported, !profile.NotPresent)
-			}
+		supported, err = listOfProfileSupportForDefinedDeviceVersion(param, supported, deviceVersion)
+		if err != nil {
+			return false
 		}
 	}
 	return allTrue(supported)
+}
+
+func listOfProfileSupportForNotDefinedDeviceVersion(param *properties.SpecParam, supported []bool) []bool {
+	for _, profile := range param.Profiles {
+		if profile.FromVersion != "" {
+			supported = append(supported, profile.NotPresent)
+		} else {
+			supported = append(supported, true)
+		}
+	}
+	return supported
+}
+
+func listOfProfileSupportForDefinedDeviceVersion(param *properties.SpecParam, supported []bool, deviceVersion version.Version) ([]bool, error) {
+	for _, profile := range param.Profiles {
+		if profile.FromVersion != "" {
+			paramProfileVersion, err := version.New(profile.FromVersion)
+			if err != nil {
+				return nil, err
+			}
+
+			if deviceVersion.Gte(paramProfileVersion) {
+				supported = append(supported, !profile.NotPresent)
+			} else {
+				supported = append(supported, profile.NotPresent)
+			}
+		} else {
+			supported = append(supported, !profile.NotPresent)
+		}
+	}
+	return supported, nil
 }
 
 func allTrue(values []bool) bool {
