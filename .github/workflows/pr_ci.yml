@@ -67,11 +67,15 @@ jobs:
           echo "Generated Files:"
           ls ../generated/pango
 
+      - name: Workaround actions/upload-artifact#176
+        run: |
+          echo "artifacts_path=$(realpath ../generated/pango)" >> $GITHUB_ENV
+
       - name: Upload generated files for PANGO SDK
         uses: actions/upload-artifact@v4
         with:
           name: generated-pango
           path: |
-            ../generated/pango
+            ${{ env.artifacts_path }}
           retention-days: 1
           if-no-files-found: error
