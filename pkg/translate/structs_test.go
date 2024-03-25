@@ -222,3 +222,13 @@ func TestNestedSpecs(t *testing.T) {
 	assert.Contains(t, nestedSpecs, "A")
 	assert.Contains(t, nestedSpecs, "AB")
 }
+
+func TestCreateGoSuffixFromVersion(t *testing.T) {
+	// given
+
+	// when
+	suffix := CreateGoSuffixFromVersion("10.1.1")
+
+	// then
+	assert.Equal(t, "_10_1_1", suffix)
+}
