@@ -13,13 +13,13 @@ on:
 
 jobs:
   ci:
-    name: Run CI
+    name: Continuous integration
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: '1.21'
 
@@ -41,3 +41,41 @@ jobs:
 
       - name: Test codegen
         run: go test -v ./...
+  generate:
+    needs: ci
+    name: Generate code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Download Go dependencies
+        run: go get  ./... && go mod tidy
+
+      - name: Build codegen
+        run: go build -v ./...
+
+      - name: Execute codegen for PANGO SDK
+        run: go run cmd/codegen/main.go -t mksdk
+
+      - name: List generated PANGO SDK files
+        run: |
+          echo "Generated Files:"
+          ls ../generated/pango
+
+      - name: Workaround actions/upload-artifact#176
+        run: |
+          echo "artifacts_path=$(realpath ../generated/pango)" >> $GITHUB_ENV
+
+      - name: Upload generated files for PANGO SDK
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-pango
+          path: |
+            ${{ env.artifacts_path }}
+          retention-days: 3
+          if-no-files-found: error
