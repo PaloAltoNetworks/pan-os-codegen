@@ -77,5 +77,5 @@ jobs:
           name: generated-pango
           path: |
             ${{ env.artifacts_path }}
-          retention-days: 1
+          retention-days: 3
           if-no-files-found: error
