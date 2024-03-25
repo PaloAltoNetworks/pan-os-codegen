@@ -12,7 +12,7 @@ on:
       - ready_for_review
 
 jobs:
-  test:
+  ci:
     name: Continuous integration
     runs-on: ubuntu-latest
     steps:
