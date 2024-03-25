@@ -12,8 +12,8 @@ on:
       - ready_for_review
 
 jobs:
-  ci:
-    name: Run CI
+  test:
+    name: Continuous integration
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -42,6 +42,7 @@ jobs:
       - name: Test codegen
         run: go test -v ./...
   generate:
+    needs: ci
     name: Generate code
     runs-on: ubuntu-latest
     steps:
@@ -58,8 +59,8 @@ jobs:
       - name: Build codegen
         run: go build -v ./...
 
-      - name: Execute codegen
-        run: go run cmd/codegen/main.go
+      - name: Execute codegen for SDK
+        run: go run cmd/codegen/main.go -t mksdk
 
       - name: List Generated Files
         run: |
