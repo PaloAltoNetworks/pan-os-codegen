@@ -85,9 +85,9 @@ func TestSpecParamType(t *testing.T) {
 	}
 
 	// when
-	calculatedTypeRequiredString := SpecParamType("", &paramTypeRequiredString)
-	calculatedTypeListString := SpecParamType("", &paramTypeListString)
-	calculatedTypeOptionalString := SpecParamType("", &paramTypeOptionalString)
+	calculatedTypeRequiredString := SpecParamType("", &paramTypeRequiredString, "")
+	calculatedTypeListString := SpecParamType("", &paramTypeListString, "")
+	calculatedTypeOptionalString := SpecParamType("", &paramTypeOptionalString, "")
 
 	// then
 	assert.Equal(t, "string", calculatedTypeRequiredString)
@@ -139,8 +139,8 @@ func TestXmlParamType(t *testing.T) {
 	}
 
 	// when
-	calculatedTypeRequiredString := XmlParamType("", &paramTypeRequiredString)
-	calculatedTypeListString := XmlParamType("", &paramTypeListString)
+	calculatedTypeRequiredString := XmlParamType("", &paramTypeRequiredString, "")
+	calculatedTypeListString := XmlParamType("", &paramTypeListString, "")
 
 	// then
 	assert.Equal(t, "string", calculatedTypeRequiredString)
@@ -231,4 +231,66 @@ func TestCreateGoSuffixFromVersion(t *testing.T) {
 
 	// then
 	assert.Equal(t, "_10_1_1", suffix)
+}
+
+func TestParamSupportedInVersion(t *testing.T) {
+	// given
+	deviceVersion101 := "10.1.1"
+	deviceVersion90 := "9.0.0"
+
+	paramName := properties.NameVariant{
+		CamelCase:  "test",
+		Underscore: "test",
+	}
+
+	profileAlwaysPresent := properties.SpecParamProfile{
+		Xpath: []string{"test"},
+	}
+	profilePresentFrom10 := properties.SpecParamProfile{
+		Xpath:       []string{"test"},
+		FromVersion: "10.0.0",
+	}
+	profileNotPresentFrom10 := properties.SpecParamProfile{
+		Xpath:       []string{"test"},
+		FromVersion: "10.0.0",
+		NotPresent:  true,
+	}
+
+	paramPresentFrom10 := &properties.SpecParam{
+		Type: "string",
+		Name: &paramName,
+		Profiles: []*properties.SpecParamProfile{
+			&profilePresentFrom10,
+		},
+	}
+	paramAlwaysPresent := &properties.SpecParam{
+		Type: "string",
+		Name: &paramName,
+		Profiles: []*properties.SpecParamProfile{
+			&profileAlwaysPresent,
+		},
+	}
+	paramNotPresentFrom10 := &properties.SpecParam{
+		Type: "string",
+		Name: &paramName,
+		Profiles: []*properties.SpecParamProfile{
+			&profileNotPresentFrom10,
+		},
+	}
+
+	// when
+	device10AndParamPresentFrom10 := ParamSupportedInVersion(paramPresentFrom10, deviceVersion101)
+	device10AndParamAlwaysPresent := ParamSupportedInVersion(paramAlwaysPresent, deviceVersion101)
+	device10AndParamNotPresentFrom10 := ParamSupportedInVersion(paramNotPresentFrom10, deviceVersion101)
+	device9AndParamPresentFrom10 := ParamSupportedInVersion(paramPresentFrom10, deviceVersion90)
+	device9AndParamAlwaysPresent := ParamSupportedInVersion(paramAlwaysPresent, deviceVersion90)
+	device9AndParamNotPresentFrom10 := ParamSupportedInVersion(paramNotPresentFrom10, deviceVersion90)
+
+	// then
+	assert.True(t, device10AndParamPresentFrom10)
+	assert.True(t, device10AndParamAlwaysPresent)
+	assert.False(t, device10AndParamNotPresentFrom10)
+	assert.False(t, device9AndParamPresentFrom10)
+	assert.True(t, device9AndParamAlwaysPresent)
+	assert.True(t, device9AndParamNotPresentFrom10)
 }
