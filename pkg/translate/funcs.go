@@ -27,26 +27,28 @@ func generateEntryXpathForLocation(location string, xpath string) string {
 // NormalizeAssignment generates a string, which contains entry/config assignment in Normalize() function
 // in entry.tmpl/config.tmpl template. If param contains nested specs, then recursively are executed
 // internal functions, which are creating entry assignment.
-func NormalizeAssignment(objectType string, param *properties.SpecParam) string {
-	return prepareAssignment(objectType, param, "util.MemToStr", "Spec", "")
+func NormalizeAssignment(objectType string, param *properties.SpecParam, version string) string {
+	return prepareAssignment(objectType, param, "util.MemToStr", "Spec", "", version)
 }
 
 // SpecifyEntryAssignment generates a string, which contains entry/config assignment in SpecifyEntry() function
 // in entry.tmpl/config.tmpl template. If param contains nested specs, then recursively are executed
 // internal functions, which are creating entry assignment.
-func SpecifyEntryAssignment(objectType string, param *properties.SpecParam) string {
-	return prepareAssignment(objectType, param, "util.StrToMem", "spec", "Xml")
+func SpecifyEntryAssignment(objectType string, param *properties.SpecParam, version string) string {
+	return prepareAssignment(objectType, param, "util.StrToMem", "spec", "Xml", version)
 }
 
-func prepareAssignment(objectType string, param *properties.SpecParam, listFunction, specPrefix, specSuffix string) string {
+func prepareAssignment(objectType string, param *properties.SpecParam, listFunction, specPrefix, specSuffix string, version string) string {
 	var builder strings.Builder
 
-	if param.Spec != nil {
-		appendSpecObjectAssignment(param, objectType, specPrefix, specSuffix, &builder)
-	} else if isParamListAndProfileTypeIsMember(param) {
-		appendListFunctionAssignment(param, objectType, listFunction, &builder)
-	} else {
-		appendSimpleAssignment(param, objectType, &builder)
+	if ParamSupportedInVersion(param, version) {
+		if param.Spec != nil {
+			appendSpecObjectAssignment(param, objectType, specPrefix, specSuffix, &builder)
+		} else if isParamListAndProfileTypeIsMember(param) {
+			appendListFunctionAssignment(param, objectType, listFunction, &builder)
+		} else {
+			appendSimpleAssignment(param, objectType, &builder)
+		}
 	}
 
 	return builder.String()
