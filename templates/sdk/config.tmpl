@@ -84,28 +84,34 @@
     }
     }
 
-    func (e *Config) Field(v string) (any, error) {
-    {{- range $_, $param := .Spec.Params}}
-        if v == "{{$param.Name.Underscore}}" || v == "{{$param.Name.CamelCase}}" {
-        return e.{{$param.Name.CamelCase}}, nil
-        }
-        {{- if eq $param.Type "list"}}
-            if v == "{{$param.Name.Underscore}}|LENGTH" || v == "{{$param.Name.CamelCase}}|LENGTH" {
-            return int64(len(e.{{$param.Name.CamelCase}})), nil
-            }
-        {{- end}}
-    {{- end}}
-    {{- range $_, $param := .Spec.OneOf}}
-        if v == "{{$param.Name.Underscore}}" || v == "{{$param.Name.CamelCase}}" {
-        return e.{{$param.Name.CamelCase}}, nil
-        }
-    {{- end}}
-
-    return nil, fmt.Errorf("unknown field")
-    }
-
     func Versioning(vn version.Number) (Specifier, Normalizer, error) {
+    {{- $numberOfVersions := len .SupportedVersions }}
+    {{- if gt $numberOfVersions 1}}
+        {{- range $index, $version := .SupportedVersions }}
+            {{- if ne $version ""}}
+                version{{createGoSuffixFromVersion $version}}, err := version.New("{{$version}}")
+                if err != nil {
+                return nil, nil, err
+                }
+            {{- end}}
+        {{- end}}
+        {{- range $index, $version := .SupportedVersions }}
+            {{- if ne $version ""}}
+                {{- if eq $index 1}}
+                    if vn.Gte(version{{createGoSuffixFromVersion $version}}) {
+                    return SpecifyConfig, &configXmlContainer{{createGoSuffixFromVersion $version}}{}, nil
+                {{- else}}
+                    } else if vn.Gte(version{{createGoSuffixFromVersion $version}}) {
+                    return SpecifyConfig, &configXmlContainer{{createGoSuffixFromVersion $version}}{}, nil
+                {{- end}}
+            {{- end}}
+        {{- end}}
+        } else {
+    {{- end}}
     return SpecifyConfig, &configXmlContainer{}, nil
+    {{- if gt $numberOfVersions 1}}
+        }
+    {{- end}}
     }
 
     func SpecifyConfig(o Config) (any, error) {
@@ -123,26 +129,28 @@
     return config, nil
     }
 
-    func (c *configXmlContainer) Normalize() ([]Config, error) {
-    configList := make([]Config, 0, len(c.Answer))
-    for _, o := range c.Answer {
-    config := Config{
-    Misc: make(map[string][]generic.Xml),
-    }
-    {{- range $_, $param := .Spec.Params}}
-        {{normalizeAssignment "config" $param}}
+    {{- range $version := .SupportedVersions }}
+        func (c *configXmlContainer{{createGoSuffixFromVersion $version}}) Normalize() ([]Config, error) {
+        configList := make([]Config, 0, len(c.Answer))
+        for _, o := range c.Answer {
+        config := Config{
+        Misc: make(map[string][]generic.Xml),
+        }
+        {{- range $_, $param := $.Spec.Params}}
+            {{normalizeAssignment "config" $param}}
+        {{- end}}
+        {{- range $_, $param := $.Spec.OneOf}}
+            {{normalizeAssignment "config" $param}}
+        {{- end}}
+
+        config.Misc["Config"] = o.Misc
+
+        configList = append(configList, config)
+        }
+
+        return configList, nil
+        }
     {{- end}}
-    {{- range $_, $param := .Spec.OneOf}}
-        {{normalizeAssignment "config" $param}}
-    {{- end}}
-
-    config.Misc["Config"] = o.Misc
-
-    configList = append(configList, config)
-    }
-
-    return configList, nil
-    }
 
     func SpecMatches(a, b *Config) bool {
     if a == nil && b != nil || a != nil && b == nil {

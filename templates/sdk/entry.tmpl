@@ -124,7 +124,33 @@
     }
 
     func Versioning(vn version.Number) (Specifier, Normalizer, error) {
+    {{- $numberOfVersions := len .SupportedVersions }}
+    {{- if gt $numberOfVersions 1}}
+        {{- range $index, $version := .SupportedVersions }}
+            {{- if ne $version ""}}
+                version{{createGoSuffixFromVersion $version}}, err := version.New("{{$version}}")
+                if err != nil {
+                return nil, nil, err
+                }
+            {{- end}}
+        {{- end}}
+        {{- range $index, $version := .SupportedVersions }}
+            {{- if ne $version ""}}
+                {{- if eq $index 1}}
+                    if vn.Gte(version{{createGoSuffixFromVersion $version}}) {
+                    return SpecifyEntry, &entryXmlContainer{{createGoSuffixFromVersion $version}}{}, nil
+                {{- else}}
+                    } else if vn.Gte(version{{createGoSuffixFromVersion $version}}) {
+                    return SpecifyEntry, &entryXmlContainer{{createGoSuffixFromVersion $version}}{}, nil
+                {{- end}}
+            {{- end}}
+        {{- end}}
+        } else {
+    {{- end}}
     return SpecifyEntry, &entryXmlContainer{}, nil
+    {{- if gt $numberOfVersions 1}}
+        }
+    {{- end}}
     }
 
     func SpecifyEntry(o Entry) (any, error) {
@@ -143,27 +169,29 @@
     return entry, nil
     }
 
-    func (c *entryXmlContainer) Normalize() ([]Entry, error) {
-    entryList := make([]Entry, 0, len(c.Answer))
-    for _, o := range c.Answer {
-    entry := Entry{
-    Misc: make(map[string][]generic.Xml),
-    }
-    entry.Name = o.Name
-    {{- range $_, $param := .Spec.Params}}
-        {{normalizeAssignment "entry" $param}}
+    {{- range $version := .SupportedVersions }}
+        func (c *entryXmlContainer{{createGoSuffixFromVersion $version}}) Normalize() ([]Entry, error) {
+        entryList := make([]Entry, 0, len(c.Answer))
+        for _, o := range c.Answer {
+        entry := Entry{
+        Misc: make(map[string][]generic.Xml),
+        }
+        entry.Name = o.Name
+        {{- range $_, $param := $.Spec.Params}}
+            {{normalizeAssignment "entry" $param}}
+        {{- end}}
+        {{- range $_, $param := $.Spec.OneOf}}
+            {{normalizeAssignment "entry" $param}}
+        {{- end}}
+
+        entry.Misc["Entry"] = o.Misc
+
+        entryList = append(entryList, entry)
+        }
+
+        return entryList, nil
+        }
     {{- end}}
-    {{- range $_, $param := .Spec.OneOf}}
-        {{normalizeAssignment "entry" $param}}
-    {{- end}}
-
-    entry.Misc["Entry"] = o.Misc
-
-    entryList = append(entryList, entry)
-    }
-
-    return entryList, nil
-    }
 
     func SpecMatches(a, b *Entry) bool {
     if a == nil && b != nil || a != nil && b == nil {
