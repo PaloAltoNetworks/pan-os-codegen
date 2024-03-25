@@ -47,7 +47,7 @@ func updateNestedSpecs(parent []string, param *properties.SpecParam, nestedSpecs
 }
 
 // SpecParamType return param type (it can be nested spec) (for struct based on spec from YAML files).
-func SpecParamType(parent string, param *properties.SpecParam, version string) string {
+func SpecParamType(parent string, param *properties.SpecParam) string {
 	prefix := determinePrefix(param, false)
 
 	calculatedType := ""
@@ -63,7 +63,7 @@ func SpecParamType(parent string, param *properties.SpecParam, version string) s
 }
 
 // XmlParamType return param type (it can be nested spec) (for struct based on spec from YAML files).
-func XmlParamType(parent string, param *properties.SpecParam, version string) string {
+func XmlParamType(parent string, param *properties.SpecParam) string {
 	prefix := determinePrefix(param, true)
 
 	calculatedType := ""
@@ -136,27 +136,46 @@ func CreateGoSuffixFromVersion(version string) string {
 
 // ParamSupportedInVersion checks if param is supported in specific PAN-OS version
 func ParamSupportedInVersion(param *properties.SpecParam, deviceVersionStr string) bool {
-	deviceVersion, err := version.New(deviceVersionStr)
-	if err != nil {
-		return false
-	}
-
-	for _, profile := range param.Profiles {
-		if profile.FromVersion != "" {
-			paramProfileVersion, err := version.New(profile.FromVersion)
-			if err != nil {
-				return false
-			}
-
-			if deviceVersion.Gte(paramProfileVersion) {
-				return !profile.NotPresent
+	var supported []bool
+	if deviceVersionStr == "" {
+		for _, profile := range param.Profiles {
+			if profile.FromVersion != "" {
+				supported = append(supported, profile.NotPresent)
 			} else {
-				return profile.NotPresent
+				supported = append(supported, true)
 			}
-		} else {
-			return !profile.NotPresent
+		}
+	} else {
+		deviceVersion, err := version.New(deviceVersionStr)
+		if err != nil {
+			return false
+		}
+
+		for _, profile := range param.Profiles {
+			if profile.FromVersion != "" {
+				paramProfileVersion, err := version.New(profile.FromVersion)
+				if err != nil {
+					return false
+				}
+
+				if deviceVersion.Gte(paramProfileVersion) {
+					supported = append(supported, !profile.NotPresent)
+				} else {
+					supported = append(supported, profile.NotPresent)
+				}
+			} else {
+				supported = append(supported, !profile.NotPresent)
+			}
 		}
 	}
+	return allTrue(supported)
+}
 
-	return false
+func allTrue(values []bool) bool {
+	for _, value := range values {
+		if !value {
+			return false
+		}
+	}
+	return true
 }

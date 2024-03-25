@@ -85,9 +85,9 @@ func TestSpecParamType(t *testing.T) {
 	}
 
 	// when
-	calculatedTypeRequiredString := SpecParamType("", &paramTypeRequiredString, "")
-	calculatedTypeListString := SpecParamType("", &paramTypeListString, "")
-	calculatedTypeOptionalString := SpecParamType("", &paramTypeOptionalString, "")
+	calculatedTypeRequiredString := SpecParamType("", &paramTypeRequiredString)
+	calculatedTypeListString := SpecParamType("", &paramTypeListString)
+	calculatedTypeOptionalString := SpecParamType("", &paramTypeOptionalString)
 
 	// then
 	assert.Equal(t, "string", calculatedTypeRequiredString)
@@ -139,8 +139,8 @@ func TestXmlParamType(t *testing.T) {
 	}
 
 	// when
-	calculatedTypeRequiredString := XmlParamType("", &paramTypeRequiredString, "")
-	calculatedTypeListString := XmlParamType("", &paramTypeListString, "")
+	calculatedTypeRequiredString := XmlParamType("", &paramTypeRequiredString)
+	calculatedTypeListString := XmlParamType("", &paramTypeListString)
 
 	// then
 	assert.Equal(t, "string", calculatedTypeRequiredString)
@@ -279,6 +279,8 @@ func TestParamSupportedInVersion(t *testing.T) {
 	}
 
 	// when
+	noVersionAndParamAlwaysPresent := ParamSupportedInVersion(paramAlwaysPresent, "")
+	noVersionAndParamNotPresentFrom10 := ParamSupportedInVersion(paramNotPresentFrom10, "")
 	device10AndParamPresentFrom10 := ParamSupportedInVersion(paramPresentFrom10, deviceVersion101)
 	device10AndParamAlwaysPresent := ParamSupportedInVersion(paramAlwaysPresent, deviceVersion101)
 	device10AndParamNotPresentFrom10 := ParamSupportedInVersion(paramNotPresentFrom10, deviceVersion101)
@@ -287,6 +289,8 @@ func TestParamSupportedInVersion(t *testing.T) {
 	device9AndParamNotPresentFrom10 := ParamSupportedInVersion(paramNotPresentFrom10, deviceVersion90)
 
 	// then
+	assert.True(t, noVersionAndParamAlwaysPresent)
+	assert.True(t, noVersionAndParamNotPresentFrom10)
 	assert.True(t, device10AndParamPresentFrom10)
 	assert.True(t, device10AndParamAlwaysPresent)
 	assert.False(t, device10AndParamNotPresentFrom10)
