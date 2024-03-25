@@ -59,10 +59,19 @@ jobs:
       - name: Build codegen
         run: go build -v ./...
 
-      - name: Execute codegen for SDK
+      - name: Execute codegen for PANGO SDK
         run: go run cmd/codegen/main.go -t mksdk
 
-      - name: List Generated Files
+      - name: List generated PANGO SDK files
         run: |
           echo "Generated Files:"
           ls ../generated/pango
+
+      - name: Upload generated files for PANGO SDK
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-pango
+          path: |
+            ../generated/pango
+          retention-days: 1
+          if-no-files-found: error
