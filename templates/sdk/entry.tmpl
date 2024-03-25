@@ -23,33 +23,29 @@
     {{- end}}}
     )
 
-    {{- range $version := .SupportedVersions }}
-        type Entry{{createGoSuffixFromVersion $version}} struct {
-        Name string
-        {{- range $_, $param := $.Spec.Params}}
-            {{$param.Name.CamelCase}} {{specParamType "" $param}}
+    type Entry{{createGoSuffixFromVersion ""}} struct {
+    Name string
+    {{- range $_, $param := $.Spec.Params}}
+        {{$param.Name.CamelCase}} {{specParamType "" $param}}
+    {{- end}}
+    {{- range $_, $param := $.Spec.OneOf}}
+        {{$param.Name.CamelCase}} {{specParamType "" $param}}
+    {{- end}}
+
+    Misc map[string][]generic.Xml
+    }
+
+    {{- range $name, $spec := nestedSpecs $.Spec }}
+        type Spec{{$name}}{{createGoSuffixFromVersion ""}} struct {
+        {{- range $_, $param := $spec.Params}}
+            {{$param.Name.CamelCase}} {{specParamType $name $param}}
         {{- end}}
-        {{- range $_, $param := $.Spec.OneOf}}
-            {{$param.Name.CamelCase}} {{specParamType "" $param}}
+        {{- range $_, $param := $spec.OneOf}}
+            {{$param.Name.CamelCase}} {{specParamType $name $param}}
         {{- end}}
 
         Misc map[string][]generic.Xml
         }
-    {{- end}}
-
-    {{- range $version := .SupportedVersions }}
-        {{- range $name, $spec := nestedSpecs $.Spec }}
-            type Spec{{$name}}{{createGoSuffixFromVersion $version}} struct {
-            {{- range $_, $param := $spec.Params}}
-                {{$param.Name.CamelCase}} {{specParamType $name $param}}
-            {{- end}}
-            {{- range $_, $param := $spec.OneOf}}
-                {{$param.Name.CamelCase}} {{specParamType $name $param}}
-            {{- end}}
-
-            Misc map[string][]generic.Xml
-            }
-        {{- end}}
     {{- end}}
 
     {{- range $version := .SupportedVersions }}
@@ -63,10 +59,14 @@
         XMLName xml.Name `xml:"entry"`
         Name string `xml:"name,attr"`
         {{- range $_, $param := $.Spec.Params}}
-            {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
+            {{- if paramSupportedInVersion $param $version}}
+                {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
+            {{- end}}
         {{- end}}
         {{- range $_, $param := $.Spec.OneOf}}
-            {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
+            {{- if paramSupportedInVersion $param $version}}
+                {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
+            {{- end}}
         {{- end}}
 
         Misc []generic.Xml `xml:",any"`
@@ -77,10 +77,14 @@
         {{- range $name, $spec := nestedSpecs $.Spec }}
             type spec{{$name}}Xml{{createGoSuffixFromVersion $version}} struct {
             {{- range $_, $param := $spec.Params}}
-                {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
+                {{- if paramSupportedInVersion $param $version}}
+                    {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
+                {{- end}}
             {{- end}}
             {{- range $_, $param := $spec.OneOf}}
-                {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
+                {{- if paramSupportedInVersion $param $version}}
+                    {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
+                {{- end}}
             {{- end}}
 
             Misc []generic.Xml `xml:",any"`
