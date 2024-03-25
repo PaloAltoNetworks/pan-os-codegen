@@ -96,26 +96,20 @@ func declareRootOfNestedObject(parent []string, builder *strings.Builder, prefix
 func assignEmptyStructForNestedObject(parent []string, builder *strings.Builder, prefix, suffix string) {
 	if len(parent) > 1 {
 		builder.WriteString(fmt.Sprintf("nested%s = &%s%s%s{}\n",
-			strings.Join(parent, "."), prefix,
-			strings.Join(parent, ""), suffix))
+			strings.Join(parent, "."), prefix, strings.Join(parent, ""), suffix))
 
+		builder.WriteString(fmt.Sprintf("if o.%s.Misc != nil {\n",
+			strings.Join(parent, ".")))
 		if suffix == "Xml" {
-			builder.WriteString(fmt.Sprintf("if o.%s.Misc != nil {\n", strings.Join(parent, ".")))
 			builder.WriteString(fmt.Sprintf("nested%s.Misc = o.%s.Misc[\"%s\"]\n",
-				strings.Join(parent, "."),
-				strings.Join(parent, "."),
-				strings.Join(parent, ""),
+				strings.Join(parent, "."), strings.Join(parent, "."), strings.Join(parent, ""),
 			))
-			builder.WriteString("}\n")
 		} else {
-			builder.WriteString(fmt.Sprintf("if o.%s.Misc != nil {\n", strings.Join(parent, ".")))
 			builder.WriteString(fmt.Sprintf("nested%s.Misc[\"%s\"] = o.%s.Misc\n",
-				strings.Join(parent, "."),
-				strings.Join(parent, ""),
-				strings.Join(parent, "."),
+				strings.Join(parent, "."), strings.Join(parent, ""), strings.Join(parent, "."),
 			))
-			builder.WriteString("}\n")
 		}
+		builder.WriteString("}\n")
 	}
 }
 

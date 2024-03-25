@@ -310,13 +310,7 @@ func supportedVersions(params map[string]*SpecParam, versions []string) []string
 	for _, param := range params {
 		for _, profile := range param.Profiles {
 			if profile.FromVersion != "" {
-				notExist := true
-				for _, version := range versions {
-					if version == profile.FromVersion {
-						notExist = false
-					}
-				}
-				if notExist {
+				if notExist := listContains(versions, profile.FromVersion); notExist {
 					versions = append(versions, profile.FromVersion)
 				}
 			}
@@ -327,4 +321,13 @@ func supportedVersions(params map[string]*SpecParam, versions []string) []string
 		}
 	}
 	return versions
+}
+
+func listContains(versions []string, checkedVersion string) bool {
+	for _, version := range versions {
+		if version == checkedVersion {
+			return false
+		}
+	}
+	return true
 }

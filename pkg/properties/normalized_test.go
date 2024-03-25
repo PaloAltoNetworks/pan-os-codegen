@@ -415,7 +415,7 @@ xpath_suffix:
 	assert.Len(t, problems, 2, "Not all expected validation checks failed")
 }
 
-func TestNamesOfStructsForVersioning(t *testing.T) {
+func TestGettingListOfSupportedVersions(t *testing.T) {
 	// given
 	yamlParsedData, _ := ParseSpec([]byte(sampleSpec))
 
