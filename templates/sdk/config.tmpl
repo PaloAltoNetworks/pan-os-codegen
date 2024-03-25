@@ -103,10 +103,10 @@
             {{- if ne $version ""}}
                 {{- if eq $index 1}}
                     if vn.Gte(version{{createGoSuffixFromVersion $version}}) {
-                    return SpecifyConfig, &configXmlContainer{{createGoSuffixFromVersion $version}}{}, nil
+                    return SpecifyConfig{{createGoSuffixFromVersion $version}}, &configXmlContainer{{createGoSuffixFromVersion $version}}{}, nil
                 {{- else}}
                     } else if vn.Gte(version{{createGoSuffixFromVersion $version}}) {
-                    return SpecifyConfig, &configXmlContainer{{createGoSuffixFromVersion $version}}{}, nil
+                    return SpecifyConfig{{createGoSuffixFromVersion $version}}, &configXmlContainer{{createGoSuffixFromVersion $version}}{}, nil
                 {{- end}}
             {{- end}}
         {{- end}}
@@ -118,20 +118,22 @@
     {{- end}}
     }
 
-    func SpecifyConfig(o Config) (any, error) {
-    config := configXml{}
+    {{- range $version := .SupportedVersions }}
+        func SpecifyConfig{{createGoSuffixFromVersion $version}}(o Config) (any, error) {
+        config := configXml{{createGoSuffixFromVersion $version}}{}
 
-    {{- range $_, $param := .Spec.Params}}
-        {{specifyEntryAssignment "config" $param}}
+        {{- range $_, $param := $.Spec.Params}}
+            {{specifyEntryAssignment "config" $param $version}}
+        {{- end}}
+        {{- range $_, $param := $.Spec.OneOf}}
+            {{specifyEntryAssignment "config" $param $version}}
+        {{- end}}
+
+        config.Misc = o.Misc["Config"]
+
+        return config, nil
+        }
     {{- end}}
-    {{- range $_, $param := .Spec.OneOf}}
-        {{specifyEntryAssignment "config" $param}}
-    {{- end}}
-
-    config.Misc = o.Misc["Config"]
-
-    return config, nil
-    }
 
     {{- range $version := .SupportedVersions }}
         func (c *configXmlContainer{{createGoSuffixFromVersion $version}}) Normalize() ([]Config, error) {
@@ -141,10 +143,10 @@
         Misc: make(map[string][]generic.Xml),
         }
         {{- range $_, $param := $.Spec.Params}}
-            {{normalizeAssignment "config" $param}}
+            {{normalizeAssignment "config" $param $version}}
         {{- end}}
         {{- range $_, $param := $.Spec.OneOf}}
-            {{normalizeAssignment "config" $param}}
+            {{normalizeAssignment "config" $param $version}}
         {{- end}}
 
         config.Misc["Config"] = o.Misc
