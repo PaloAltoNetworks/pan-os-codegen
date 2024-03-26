@@ -74,17 +74,6 @@
         {{- end}}
     {{- end}}
 
-    func (e *Config) CopyMiscFrom(v *Config) {
-    if v == nil || len(v.Misc) == 0 {
-    return
-    }
-
-    e.Misc = make(map[string][]generic.Xml)
-    for key := range v.Misc {
-    e.Misc[key] = append([]generic.Xml(nil), v.Misc[key]...)
-    }
-    }
-
     func Versioning(vn version.Number) (Specifier, Normalizer, error) {
     {{- $numberOfVersions := len .SupportedVersions }}
     {{- if gt $numberOfVersions 1}}
@@ -155,56 +144,32 @@
         }
     {{- end}}
 
-    func SpecMatches(a, b *Config) bool {
-    if a == nil && b != nil || a != nil && b == nil {
-    return false
-    } else if a == nil && b == nil {
-    return true
-    }
-
-    // Don't compare Name.
-    {{- range $_, $param := .Spec.Params}}
-        {{- if or (eq $param.Type "list") (eq $param.Type "string")}}
-            if !util.{{specMatchesFunction $param}}(a.{{$param.Name.CamelCase}}, b.{{$param.Name.CamelCase}}) {
-            return false
+    // MarshalXML customized implementation of XML marshal due to requirement to skip
+    <system> as root for configuration settings
+        func (c configXml) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+        {{- range $_, $param := $.Spec.Params}}
+            if c.{{$param.Name.CamelCase}} != nil {
+            start.Name = xml.Name{Local: "{{xmlName $param}}"}
+            if err := e.EncodeElement(c.{{$param.Name.CamelCase}}, start); err != nil {
+            return err
+            }
             }
         {{- end}}
-    {{- end}}
-    {{- range $_, $param := .Spec.OneOf}}
-        {{- if or (eq $param.Type "list") (eq $param.Type "string")}}
-            if !util.{{specMatchesFunction $param}}(a.{{$param.Name.CamelCase}}, b.{{$param.Name.CamelCase}}) {
-            return false
+        {{- range $_, $param := $.Spec.OneOf}}
+            if c.{{$param.Name.CamelCase}} != nil {
+            start.Name = xml.Name{Local: "{{xmlName $param}}"}
+            if err := e.EncodeElement(c.{{$param.Name.CamelCase}}, start); err != nil {
+            return err
+            }
             }
         {{- end}}
-    {{- end}}
 
-    return true
-    }
+        for _, v := range c.Misc {
+        if err := e.Encode(v); err != nil {
+        return err
+        }
+        }
+
+        return nil
+        }
 {{- end}}
-
-func (c configXml) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-{{- range $_, $param := $.Spec.Params}}
-    if c.{{$param.Name.CamelCase}} != nil {
-    start.Name = xml.Name{Local: "{{xmlName $param}}"}
-    if err := e.EncodeElement(c.{{$param.Name.CamelCase}}, start); err != nil {
-    return err
-    }
-    }
-{{- end}}
-{{- range $_, $param := $.Spec.OneOf}}
-    if c.{{$param.Name.CamelCase}} != nil {
-    start.Name = xml.Name{Local: "{{xmlName $param}}"}
-    if err := e.EncodeElement(c.{{$param.Name.CamelCase}}, start); err != nil {
-    return err
-    }
-    }
-{{- end}}
-
-for _, v := range c.Misc {
-if err := e.Encode(v); err != nil {
-return err
-}
-}
-
-return nil
-}
