@@ -144,32 +144,31 @@
         }
     {{- end}}
 
-    // MarshalXML customized implementation of XML marshal due to requirement to skip
-    <system> as root for configuration settings
-        func (c configXml) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-        {{- range $_, $param := $.Spec.Params}}
-            if c.{{$param.Name.CamelCase}} != nil {
-            start.Name = xml.Name{Local: "{{xmlName $param}}"}
-            if err := e.EncodeElement(c.{{$param.Name.CamelCase}}, start); err != nil {
-            return err
-            }
-            }
-        {{- end}}
-        {{- range $_, $param := $.Spec.OneOf}}
-            if c.{{$param.Name.CamelCase}} != nil {
-            start.Name = xml.Name{Local: "{{xmlName $param}}"}
-            if err := e.EncodeElement(c.{{$param.Name.CamelCase}}, start); err != nil {
-            return err
-            }
-            }
-        {{- end}}
-
-        for _, v := range c.Misc {
-        if err := e.Encode(v); err != nil {
+    // MarshalXML customized implementation of XML marshal due to requirement to skip 'system' as root for configuration settings
+    func (c configXml) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+    {{- range $_, $param := $.Spec.Params}}
+        if c.{{$param.Name.CamelCase}} != nil {
+        start.Name = xml.Name{Local: "{{xmlName $param}}"}
+        if err := e.EncodeElement(c.{{$param.Name.CamelCase}}, start); err != nil {
         return err
         }
         }
-
-        return nil
+    {{- end}}
+    {{- range $_, $param := $.Spec.OneOf}}
+        if c.{{$param.Name.CamelCase}} != nil {
+        start.Name = xml.Name{Local: "{{xmlName $param}}"}
+        if err := e.EncodeElement(c.{{$param.Name.CamelCase}}, start); err != nil {
+        return err
         }
+        }
+    {{- end}}
+
+    for _, v := range c.Misc {
+    if err := e.Encode(v); err != nil {
+    return err
+    }
+    }
+
+    return nil
+    }
 {{- end}}
