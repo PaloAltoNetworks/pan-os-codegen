@@ -71,15 +71,12 @@ spec:
               -
                 xpath: ["servers"]
             spec:
-              properties:
-                params:
-                  primary:
-                    description: 'Primary DNS server IP address'
-                    profiles:
-                      -
-                        xpath: ["primary"]
-                  secondary:
-                    description: 'Secondary DNS server IP address'
-                    profiles:
-                      -
-                        xpath: ["secondary"]
+              params:
+                primary:
+                  description: 'Primary DNS server IP address'
+                  profiles:
+                    - xpath: [ "primary" ]
+                secondary:
+                  description: 'Secondary DNS server IP address'
+                  profiles:
+                    - xpath: [ "secondary" ]

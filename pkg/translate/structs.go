@@ -102,6 +102,15 @@ func calculateNestedXmlSpecType(parent string, param *properties.SpecParam) stri
 	return fmt.Sprintf("spec%s%sXml", parent, naming.CamelCase("", param.Name.CamelCase, "", true))
 }
 
+// XmlName creates a string with xml name (e.g. `description`).
+func XmlName(param *properties.SpecParam) string {
+	if param.Profiles != nil && len(param.Profiles) > 0 {
+		return param.Profiles[0].Xpath[len(param.Profiles[0].Xpath)-1]
+	}
+
+	return ""
+}
+
 // XmlTag creates a string with xml tag (e.g. `xml:"description,omitempty"`).
 func XmlTag(param *properties.SpecParam) string {
 	if param.Profiles != nil && len(param.Profiles) > 0 {
@@ -110,7 +119,7 @@ func XmlTag(param *properties.SpecParam) string {
 			suffix = ",omitempty"
 		}
 
-		return fmt.Sprintf("`xml:\"%s%s\"`", param.Profiles[0].Xpath[len(param.Profiles[0].Xpath)-1], suffix)
+		return fmt.Sprintf("`xml:\"%s%s\"`", XmlName(param), suffix)
 	}
 
 	return ""

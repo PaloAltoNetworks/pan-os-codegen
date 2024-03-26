@@ -123,6 +123,7 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		"locationType":           translate.LocationType,
 		"specParamType":          translate.SpecParamType,
 		"xmlParamType":           translate.XmlParamType,
+		"xmlName":                translate.XmlName,
 		"xmlTag":                 translate.XmlTag,
 		"specifyEntryAssignment": translate.SpecifyEntryAssignment,
 		"normalizeAssignment":    translate.NormalizeAssignment,
