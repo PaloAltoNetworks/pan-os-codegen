@@ -74,7 +74,9 @@ default:
 return nil, errors.NoLocationSpecifiedError
 }
 
-ans = append(ans, Suffix...)
+{{- if .Entry}}
+    ans = append(ans, Suffix...)
+{{- end}}
 ans = append(ans, util.AsEntryXpath([]string{name}))
 
 return ans, nil
