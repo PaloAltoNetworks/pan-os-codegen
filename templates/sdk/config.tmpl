@@ -3,11 +3,7 @@
 
     import (
     "encoding/xml"
-    "fmt"
-
-    "github.com/PaloAltoNetworks/pango/filtering"
     "github.com/PaloAltoNetworks/pango/generic"
-    "github.com/PaloAltoNetworks/pango/util"
     "github.com/PaloAltoNetworks/pango/version"
     )
 
@@ -37,7 +33,8 @@
 
     {{- range $version := .SupportedVersions }}
         type configXmlContainer{{createGoSuffixFromVersion $version}} struct {
-        Answer []configXml{{createGoSuffixFromVersion $version}} `xml:"config"`
+        XMLName xml.Name `xml:"result"`
+        Answer []configXml{{createGoSuffixFromVersion $version}} `xml:"system"`
         }
     {{- end}}
 
@@ -184,3 +181,20 @@
     return true
     }
 {{- end}}
+
+func (c configXml) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+if c.NtpServers != nil {
+start.Name = xml.Name{Local: "ntp-servers"}
+if err := e.EncodeElement(c.NtpServers, start); err != nil {
+return err
+}
+}
+
+for _, v := range c.Misc {
+if err := e.Encode(v); err != nil {
+return err
+}
+}
+
+return nil
+}
