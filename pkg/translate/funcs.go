@@ -141,7 +141,7 @@ func specMatchFunctionName(parent []string, param *properties.SpecParam) string 
 	}
 }
 
-// NestedSpecMatchesFunction ..........
+// NestedSpecMatchesFunction return a string with body of specMach* functions required for nested params
 func NestedSpecMatchesFunction(spec *properties.Spec) string {
 	var builder strings.Builder
 
@@ -157,48 +157,48 @@ func defineSpecMatchesFunction(parent []string, params map[string]*properties.Sp
 			defineSpecMatchesFunction(append(parent, param.Name.CamelCase), param.Spec.Params, builder)
 			defineSpecMatchesFunction(append(parent, param.Name.CamelCase), param.Spec.OneOf, builder)
 
-			builder.WriteString(fmt.Sprintf("func specMatch%s%s(a *%s, b *%s) bool {",
-				strings.Join(parent, ""), param.Name.CamelCase,
-				argumentTypeForSpecMatchesFunction(parent, param),
-				argumentTypeForSpecMatchesFunction(parent, param)))
+			renderSpecMatchesFunctionNameWithArguments(parent, builder, param)
+			checkInSpecMatchesFunctionIfVariablesAreNil(builder)
 
-			builder.WriteString("if a == nil && b != nil || a != nil && b == nil {\n")
-			builder.WriteString("	return false\n")
-			builder.WriteString("} else if a == nil && b == nil {\n")
-			builder.WriteString("	return true\n")
-			builder.WriteString("}\n")
-
-			for _, subparam := range param.Spec.Params {
-				builder.WriteString(fmt.Sprintf("if !%s(a.%s, b.%s) {\n",
-					specMatchFunctionName(append(parent, param.Name.CamelCase), subparam), subparam.Name.CamelCase, subparam.Name.CamelCase))
-				builder.WriteString("	return false\n")
-				builder.WriteString("}\n")
+			for _, subParam := range param.Spec.Params {
+				renderInSpecMatchesFunctionIfToCheckIfVariablesMatches(parent, builder, param, subParam)
 			}
-			for _, subparam := range param.Spec.OneOf {
-				builder.WriteString(fmt.Sprintf("if !%s(a.%s, b.%s) {\n",
-					specMatchFunctionName(append(parent, param.Name.CamelCase), subparam), subparam.Name.CamelCase, subparam.Name.CamelCase))
-				builder.WriteString("	return false\n")
-				builder.WriteString("}\n")
+			for _, subParam := range param.Spec.OneOf {
+				renderInSpecMatchesFunctionIfToCheckIfVariablesMatches(parent, builder, param, subParam)
 			}
 
 			builder.WriteString("return true\n")
 			builder.WriteString("}\n")
 		} else if param.Type != "list" && param.Type != "string" {
-			builder.WriteString(fmt.Sprintf("func specMatch%s%s(a *%s, b *%s) bool {",
-				strings.Join(parent, ""), param.Name.CamelCase,
-				argumentTypeForSpecMatchesFunction(parent, param),
-				argumentTypeForSpecMatchesFunction(parent, param)))
-
-			builder.WriteString("if a == nil && b != nil || a != nil && b == nil {\n")
-			builder.WriteString("	return false\n")
-			builder.WriteString("} else if a == nil && b == nil {\n")
-			builder.WriteString("	return true\n")
-			builder.WriteString("}\n")
+			renderSpecMatchesFunctionNameWithArguments(parent, builder, param)
+			checkInSpecMatchesFunctionIfVariablesAreNil(builder)
 
 			builder.WriteString("return *a == *b\n")
 			builder.WriteString("}\n")
 		}
 	}
+}
+
+func renderSpecMatchesFunctionNameWithArguments(parent []string, builder *strings.Builder, param *properties.SpecParam) {
+	builder.WriteString(fmt.Sprintf("func specMatch%s%s(a *%s, b *%s) bool {",
+		strings.Join(parent, ""), param.Name.CamelCase,
+		argumentTypeForSpecMatchesFunction(parent, param),
+		argumentTypeForSpecMatchesFunction(parent, param)))
+}
+
+func checkInSpecMatchesFunctionIfVariablesAreNil(builder *strings.Builder) {
+	builder.WriteString("if a == nil && b != nil || a != nil && b == nil {\n")
+	builder.WriteString("	return false\n")
+	builder.WriteString("} else if a == nil && b == nil {\n")
+	builder.WriteString("	return true\n")
+	builder.WriteString("}\n")
+}
+
+func renderInSpecMatchesFunctionIfToCheckIfVariablesMatches(parent []string, builder *strings.Builder, param *properties.SpecParam, subparam *properties.SpecParam) {
+	builder.WriteString(fmt.Sprintf("if !%s(a.%s, b.%s) {\n",
+		specMatchFunctionName(append(parent, param.Name.CamelCase), subparam), subparam.Name.CamelCase, subparam.Name.CamelCase))
+	builder.WriteString("	return false\n")
+	builder.WriteString("}\n")
 }
 
 func argumentTypeForSpecMatchesFunction(parent []string, param *properties.SpecParam) string {
