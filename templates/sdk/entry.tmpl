@@ -60,12 +60,20 @@
         Name string `xml:"name,attr"`
         {{- range $_, $param := $.Spec.Params}}
             {{- if paramSupportedInVersion $param $version}}
-                {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
+                {{- if $param.Spec}}
+                    {{$param.Name.CamelCase}} {{xmlParamType "" $param}}{{createGoSuffixFromVersion $version}} {{xmlTag $param}}
+                {{- else}}
+                    {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
+                {{- end}}
             {{- end}}
         {{- end}}
         {{- range $_, $param := $.Spec.OneOf}}
             {{- if paramSupportedInVersion $param $version}}
-                {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
+                {{- if $param.Spec}}
+                    {{$param.Name.CamelCase}} {{xmlParamType "" $param}}{{createGoSuffixFromVersion $version}} {{xmlTag $param}}
+                {{- else}}
+                    {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
+                {{- end}}
             {{- end}}
         {{- end}}
 
@@ -78,12 +86,20 @@
             type spec{{$name}}Xml{{createGoSuffixFromVersion $version}} struct {
             {{- range $_, $param := $spec.Params}}
                 {{- if paramSupportedInVersion $param $version}}
-                    {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
+                    {{- if $param.Spec}}
+                        {{$param.Name.CamelCase}} {{xmlParamType $name $param}}{{createGoSuffixFromVersion $version}} {{xmlTag $param}}
+                    {{- else}}
+                        {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
+                    {{- end}}
                 {{- end}}
             {{- end}}
             {{- range $_, $param := $spec.OneOf}}
                 {{- if paramSupportedInVersion $param $version}}
-                    {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
+                    {{- if $param.Spec}}
+                        {{$param.Name.CamelCase}} {{xmlParamType $name $param}}{{createGoSuffixFromVersion $version}} {{xmlTag $param}}
+                    {{- else}}
+                        {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
+                    {{- end}}
                 {{- end}}
             {{- end}}
 
