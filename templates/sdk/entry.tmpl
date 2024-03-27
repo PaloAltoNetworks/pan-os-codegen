@@ -208,20 +208,18 @@
 
     // Don't compare Name.
     {{- range $_, $param := .Spec.Params}}
-        {{- if or (eq $param.Type "list") (eq $param.Type "string")}}
-            if !util.{{specMatchesFunction $param}}(a.{{$param.Name.CamelCase}}, b.{{$param.Name.CamelCase}}) {
-            return false
-            }
-        {{- end}}
+        if !{{specMatchesFunction $param}}(a.{{$param.Name.CamelCase}}, b.{{$param.Name.CamelCase}}) {
+        return false
+        }
     {{- end}}
     {{- range $_, $param := .Spec.OneOf}}
-        {{- if or (eq $param.Type "list") (eq $param.Type "string")}}
-            if !util.{{specMatchesFunction $param}}(a.{{$param.Name.CamelCase}}, b.{{$param.Name.CamelCase}}) {
-            return false
-            }
-        {{- end}}
+        if !{{specMatchesFunction $param}}(a.{{$param.Name.CamelCase}}, b.{{$param.Name.CamelCase}}) {
+        return false
+        }
     {{- end}}
 
     return true
     }
+
+    {{nestedSpecMatchesFunction $.Spec}}
 {{- end}}

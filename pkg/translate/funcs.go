@@ -128,8 +128,86 @@ func defineNestedObjectForChildParams(parent []string, params map[string]*proper
 // SpecMatchesFunction return a string used in function SpecMatches() in entry.tmpl/config.tmpl
 // to compare all items of generated entry.
 func SpecMatchesFunction(param *properties.SpecParam) string {
+	return specMatchFunctionName([]string{}, param)
+}
+
+func specMatchFunctionName(parent []string, param *properties.SpecParam) string {
 	if param.Type == "list" {
-		return "OrderedListsMatch"
+		return "util.OrderedListsMatch"
+	} else if param.Type == "string" {
+		return "util.OptionalStringsMatch"
+	} else {
+		return fmt.Sprintf("specMatch%s%s", strings.Join(parent, ""), param.Name.CamelCase)
 	}
-	return "OptionalStringsMatch"
+}
+
+// NestedSpecMatchesFunction ..........
+func NestedSpecMatchesFunction(spec *properties.Spec) string {
+	var builder strings.Builder
+
+	defineSpecMatchesFunction([]string{}, spec.Params, &builder)
+	defineSpecMatchesFunction([]string{}, spec.OneOf, &builder)
+
+	return builder.String()
+}
+
+func defineSpecMatchesFunction(parent []string, params map[string]*properties.SpecParam, builder *strings.Builder) {
+	for _, param := range params {
+		if param.Spec != nil {
+			defineSpecMatchesFunction(append(parent, param.Name.CamelCase), param.Spec.Params, builder)
+			defineSpecMatchesFunction(append(parent, param.Name.CamelCase), param.Spec.OneOf, builder)
+
+			builder.WriteString(fmt.Sprintf("func specMatch%s%s(a *%s, b *%s) bool {",
+				strings.Join(parent, ""), param.Name.CamelCase,
+				argumentTypeForSpecMatchesFunction(parent, param),
+				argumentTypeForSpecMatchesFunction(parent, param)))
+
+			builder.WriteString("if a == nil && b != nil || a != nil && b == nil {\n")
+			builder.WriteString("	return false\n")
+			builder.WriteString("} else if a == nil && b == nil {\n")
+			builder.WriteString("	return true\n")
+			builder.WriteString("}\n")
+
+			for _, subparam := range param.Spec.Params {
+				builder.WriteString(fmt.Sprintf("if !%s(a.%s, b.%s) {\n",
+					specMatchFunctionName(append(parent, param.Name.CamelCase), subparam), subparam.Name.CamelCase, subparam.Name.CamelCase))
+				builder.WriteString("	return false\n")
+				builder.WriteString("}\n")
+			}
+			for _, subparam := range param.Spec.OneOf {
+				builder.WriteString(fmt.Sprintf("if !%s(a.%s, b.%s) {\n",
+					specMatchFunctionName(append(parent, param.Name.CamelCase), subparam), subparam.Name.CamelCase, subparam.Name.CamelCase))
+				builder.WriteString("	return false\n")
+				builder.WriteString("}\n")
+			}
+
+			builder.WriteString("return true\n")
+			builder.WriteString("}\n")
+		} else if param.Type != "list" && param.Type != "string" {
+			builder.WriteString(fmt.Sprintf("func specMatch%s%s(a *%s, b *%s) bool {",
+				strings.Join(parent, ""), param.Name.CamelCase,
+				argumentTypeForSpecMatchesFunction(parent, param),
+				argumentTypeForSpecMatchesFunction(parent, param)))
+
+			builder.WriteString("if a == nil && b != nil || a != nil && b == nil {\n")
+			builder.WriteString("	return false\n")
+			builder.WriteString("} else if a == nil && b == nil {\n")
+			builder.WriteString("	return true\n")
+			builder.WriteString("}\n")
+
+			builder.WriteString("return *a == *b\n")
+			builder.WriteString("}\n")
+		}
+	}
+}
+
+func argumentTypeForSpecMatchesFunction(parent []string, param *properties.SpecParam) string {
+	if param.Type == "bool" {
+		return "bool"
+	} else if param.Type == "int" {
+		return "int"
+	} else {
+		return fmt.Sprintf("Spec%s%s",
+			strings.Join(parent, ""), param.Name.CamelCase)
+	}
 }
