@@ -176,3 +176,71 @@ func TestSpecMatchesFunction(t *testing.T) {
 	assert.Equal(t, "util.OptionalStringsMatch", calculatedSpecMatchFunctionString)
 	assert.Equal(t, "util.OrderedListsMatch", calculatedSpecMatchFunctionListString)
 }
+
+func TestNestedSpecMatchesFunction(t *testing.T) {
+	// given
+	spec := properties.Spec{
+		Params: map[string]*properties.SpecParam{
+			"a": {
+				Name: &properties.NameVariant{
+					Underscore: "a",
+					CamelCase:  "A",
+				},
+				Spec: &properties.Spec{
+					Params: map[string]*properties.SpecParam{
+						"b": {
+							Name: &properties.NameVariant{
+								Underscore: "b",
+								CamelCase:  "B",
+							},
+							Spec: &properties.Spec{
+								Params: map[string]*properties.SpecParam{
+									"c": {
+										Name: &properties.NameVariant{
+											Underscore: "c",
+											CamelCase:  "C",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	expectedNestedSpec := `func specMatchABC(a *SpecABC, b *SpecABC) bool {if a == nil && b != nil || a != nil && b == nil {
+	return false
+} else if a == nil && b == nil {
+	return true
+}
+return *a == *b
+}
+func specMatchAB(a *SpecAB, b *SpecAB) bool {if a == nil && b != nil || a != nil && b == nil {
+	return false
+} else if a == nil && b == nil {
+	return true
+}
+if !specMatchABC(a.C, b.C) {
+	return false
+}
+return true
+}
+func specMatchA(a *SpecA, b *SpecA) bool {if a == nil && b != nil || a != nil && b == nil {
+	return false
+} else if a == nil && b == nil {
+	return true
+}
+if !specMatchAB(a.B, b.B) {
+	return false
+}
+return true
+}
+`
+
+	// when
+	renderedNestedSpecMatches := NestedSpecMatchesFunction(&spec)
+
+	// then
+	assert.Equal(t, expectedNestedSpec, renderedNestedSpecMatches)
+}
