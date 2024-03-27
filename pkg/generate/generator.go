@@ -119,17 +119,18 @@ func (c *Creator) createFile(filePath string) (*os.File, error) {
 func (c *Creator) parseTemplate(templateName string) (*template.Template, error) {
 	templatePath := filepath.Join(c.TemplatesDir, templateName)
 	funcMap := template.FuncMap{
-		"packageName":            translate.PackageName,
-		"locationType":           translate.LocationType,
-		"specParamType":          translate.SpecParamType,
-		"xmlParamType":           translate.XmlParamType,
-		"xmlName":                translate.XmlName,
-		"xmlTag":                 translate.XmlTag,
-		"specifyEntryAssignment": translate.SpecifyEntryAssignment,
-		"normalizeAssignment":    translate.NormalizeAssignment,
-		"specMatchesFunction":    translate.SpecMatchesFunction,
-		"omitEmpty":              translate.OmitEmpty,
-		"contains":               strings.Contains,
+		"packageName":               translate.PackageName,
+		"locationType":              translate.LocationType,
+		"specParamType":             translate.SpecParamType,
+		"xmlParamType":              translate.XmlParamType,
+		"xmlName":                   translate.XmlName,
+		"xmlTag":                    translate.XmlTag,
+		"specifyEntryAssignment":    translate.SpecifyEntryAssignment,
+		"normalizeAssignment":       translate.NormalizeAssignment,
+		"specMatchesFunction":       translate.SpecMatchesFunction,
+		"nestedSpecMatchesFunction": translate.NestedSpecMatchesFunction,
+		"omitEmpty":                 translate.OmitEmpty,
+		"contains":                  strings.Contains,
 		"subtract": func(a, b int) int {
 			return a - b
 		},
