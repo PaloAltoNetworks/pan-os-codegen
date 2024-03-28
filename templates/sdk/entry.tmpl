@@ -156,23 +156,23 @@
             {{- if ne $version ""}}
                 {{- if eq $index 1}}
                     if vn.Gte(version{{createGoSuffixFromVersion $version}}) {
-                    return SpecifyEntry{{createGoSuffixFromVersion $version}}, &entryXmlContainer{{createGoSuffixFromVersion $version}}{}, nil
+                    return specifyEntry{{createGoSuffixFromVersion $version}}, &entryXmlContainer{{createGoSuffixFromVersion $version}}{}, nil
                 {{- else}}
                     } else if vn.Gte(version{{createGoSuffixFromVersion $version}}) {
-                    return SpecifyEntry{{createGoSuffixFromVersion $version}}, &entryXmlContainer{{createGoSuffixFromVersion $version}}{}, nil
+                    return specifyEntry{{createGoSuffixFromVersion $version}}, &entryXmlContainer{{createGoSuffixFromVersion $version}}{}, nil
                 {{- end}}
             {{- end}}
         {{- end}}
         } else {
     {{- end}}
-    return SpecifyEntry, &entryXmlContainer{}, nil
+    return specifyEntry, &entryXmlContainer{}, nil
     {{- if gt $numberOfVersions 1}}
         }
     {{- end}}
     }
 
     {{- range $version := .SupportedVersions }}
-        func SpecifyEntry{{createGoSuffixFromVersion $version}}(o Entry) (any, error) {
+        func specifyEntry{{createGoSuffixFromVersion $version}}(o Entry) (any, error) {
         entry := entryXml{{createGoSuffixFromVersion $version}}{}
 
         entry.Name = o.Name

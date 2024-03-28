@@ -87,23 +87,23 @@
             {{- if ne $version ""}}
                 {{- if eq $index 1}}
                     if vn.Gte(version{{createGoSuffixFromVersion $version}}) {
-                    return SpecifyConfig{{createGoSuffixFromVersion $version}}, &configXmlContainer{{createGoSuffixFromVersion $version}}{}, nil
+                    return specifyConfig{{createGoSuffixFromVersion $version}}, &configXmlContainer{{createGoSuffixFromVersion $version}}{}, nil
                 {{- else}}
                     } else if vn.Gte(version{{createGoSuffixFromVersion $version}}) {
-                    return SpecifyConfig{{createGoSuffixFromVersion $version}}, &configXmlContainer{{createGoSuffixFromVersion $version}}{}, nil
+                    return specifyConfig{{createGoSuffixFromVersion $version}}, &configXmlContainer{{createGoSuffixFromVersion $version}}{}, nil
                 {{- end}}
             {{- end}}
         {{- end}}
         } else {
     {{- end}}
-    return SpecifyConfig, &configXmlContainer{}, nil
+    return specifyConfig, &configXmlContainer{}, nil
     {{- if gt $numberOfVersions 1}}
         }
     {{- end}}
     }
 
     {{- range $version := .SupportedVersions }}
-        func SpecifyConfig{{createGoSuffixFromVersion $version}}(o Config) (any, error) {
+        func specifyConfig{{createGoSuffixFromVersion $version}}(o Config) (any, error) {
         config := configXml{{createGoSuffixFromVersion $version}}{}
 
         {{- range $_, $param := $.Spec.Params}}
