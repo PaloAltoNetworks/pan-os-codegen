@@ -43,8 +43,6 @@
         {{- range $_, $param := $spec.OneOf}}
             {{$param.Name.CamelCase}} {{specParamType $name $param}}
         {{- end}}
-
-        Misc map[string][]generic.Xml
         }
     {{- end}}
 

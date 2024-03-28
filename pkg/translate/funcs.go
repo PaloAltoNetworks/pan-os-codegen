@@ -80,7 +80,7 @@ func defineNestedObject(parent []string, param *properties.SpecParam, objectType
 
 	builder.WriteString(fmt.Sprintf("if o.%s != nil {\n", strings.Join(parent, ".")))
 	if param.Spec != nil {
-		assignEmptyStructForNestedObject(parent, builder, version, prefix, suffix)
+		assignEmptyStructForNestedObject(parent, builder, objectType, version, prefix, suffix)
 		defineNestedObjectForChildParams(parent, param.Spec.Params, objectType, version, prefix, suffix, builder)
 		defineNestedObjectForChildParams(parent, param.Spec.OneOf, objectType, version, prefix, suffix, builder)
 	} else {
@@ -98,21 +98,23 @@ func declareRootOfNestedObject(parent []string, builder *strings.Builder, versio
 	}
 }
 
-func assignEmptyStructForNestedObject(parent []string, builder *strings.Builder, version, prefix, suffix string) {
+func assignEmptyStructForNestedObject(parent []string, builder *strings.Builder, objectType, version, prefix, suffix string) {
 	if len(parent) > 1 {
 		builder.WriteString(fmt.Sprintf("nested%s = &%s%s%s%s{}\n",
 			strings.Join(parent, "."), prefix, strings.Join(parent, ""), suffix,
 			CreateGoSuffixFromVersion(version)))
 
-		builder.WriteString(fmt.Sprintf("if o.%s.Misc != nil {\n",
-			strings.Join(parent, ".")))
 		if suffix == "Xml" {
-			builder.WriteString(fmt.Sprintf("nested%s.Misc = o.%s.Misc[\"%s\"]\n",
-				strings.Join(parent, "."), strings.Join(parent, "."), strings.Join(parent, ""),
+			builder.WriteString(fmt.Sprintf("if _, ok := o.Misc[\"%s\"]; ok {\n",
+				strings.Join(parent, "")))
+			builder.WriteString(fmt.Sprintf("nested%s.Misc = o.Misc[\"%s\"]\n",
+				strings.Join(parent, "."), strings.Join(parent, ""),
 			))
 		} else {
-			builder.WriteString(fmt.Sprintf("nested%s.Misc[\"%s\"] = o.%s.Misc\n",
-				strings.Join(parent, "."), strings.Join(parent, ""), strings.Join(parent, "."),
+			builder.WriteString(fmt.Sprintf("if o.%s.Misc != nil {\n",
+				strings.Join(parent, ".")))
+			builder.WriteString(fmt.Sprintf("%s.Misc[\"%s\"] = o.%s.Misc\n",
+				objectType, strings.Join(parent, ""), strings.Join(parent, "."),
 			))
 		}
 		builder.WriteString("}\n")
@@ -176,6 +178,8 @@ func defineSpecMatchesFunction(parent []string, params map[string]*properties.Sp
 			builder.WriteString("return true\n")
 			builder.WriteString("}\n")
 		} else if param.Type != "list" && param.Type != "string" {
+			// whole section should be removed, when there will be dedicated function to compare integers
+			// in file https://github.com/PaloAltoNetworks/pango/blob/develop/util/comparison.go
 			renderSpecMatchesFunctionNameWithArguments(parent, builder, param)
 			checkInSpecMatchesFunctionIfVariablesAreNil(builder)
 
