@@ -1,5 +1,8 @@
 name: 'Device group'
 terraform_provider_suffix: 'device_group'
+terraform_provider_path:
+  - 'internal'
+  - 'provider'
 go_sdk_path:
   - 'panorama'
   - 'device_group'

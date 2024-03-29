@@ -13,9 +13,10 @@ import (
 
 type Normalization struct {
 	Name                    string               `json:"name" yaml:"name"`
+	Exclusive               string               `json:"exclusive" yaml:"exclusive"`
 	TerraformProviderSuffix string               `json:"terraform_provider_suffix" yaml:"terraform_provider_suffix"`
-	GoSdkPath               []string             `json:"go_sdk_path" yaml:"go_sdk_path"`
 	TerraformProviderPath   []string             `json:"terraform_provider_path" yaml:"terraform_provider_path"`
+	GoSdkPath               []string             `json:"go_sdk_path" yaml:"go_sdk_path"`
 	XpathSuffix             []string             `json:"xpath_suffix" yaml:"xpath_suffix"`
 	Locations               map[string]*Location `json:"locations" yaml:"locations"`
 	Entry                   *Entry               `json:"entry" yaml:"entry"`
@@ -267,6 +268,9 @@ func (spec *Normalization) AddDefaultTypesForParams() error {
 
 // Sanity basic checks for specification (normalization) e.g. check if at least 1 location is defined.
 func (spec *Normalization) Sanity(commandType string) error {
+	if spec.Exclusive == "terraform" || spec.Exclusive == "sdk" {
+		return nil // we exclusively pass sanity test if the spec file is exclusive for one
+	}
 	switch commandType {
 	case "sdk":
 		if spec.Name == "" {

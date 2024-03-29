@@ -1,5 +1,6 @@
 name: 'Provider'
 terraform_provider_suffix: ''
+exclusive: 'terraform'
 terraform_provider_path:
   - 'internal'
   - 'provider'

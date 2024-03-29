@@ -1,5 +1,8 @@
 name: 'Security policy rule'
 terraform_provider_suffix: 'security_policy_rule'
+terraform_provider_path:
+  - 'internal'
+  - 'provider'
 go_sdk_path:
   - 'policies'
   - 'rules'

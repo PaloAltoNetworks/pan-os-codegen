@@ -1,5 +1,8 @@
 name: 'Tag'
 terraform_provider_suffix: 'tag'
+terraform_provider_path:
+  - 'internal'
+  - 'provider'
 go_sdk_path:
   - 'objects'
   - 'tag'

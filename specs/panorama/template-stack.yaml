@@ -1,5 +1,8 @@
 name: 'Template stack'
 terraform_provider_suffix: 'template_stack'
+terraform_provider_path:
+  - 'internal'
+  - 'provider'
 go_sdk_path:
   - 'panorama'
   - 'template_stack'

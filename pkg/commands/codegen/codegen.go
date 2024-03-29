@@ -130,15 +130,20 @@ func (c *Command) validateSpec(spec *properties.Normalization, specPath string) 
 
 // generateOutput generate the output with the spec and config
 func (c *Command) generateOutput(config *properties.Config, spec *properties.Normalization, specPath string) error {
-	outputPath := config.Output
-	log.Printf("[DEBUG] print List of outputList -> %s \n", outputPath)
+	var output string
 
-	for _, output := range outputPath.PathList() {
-		log.Printf("[DEBUG] print List of output -> %s \n", output)
-		generator := generate.NewCreator(output, c.templatePath, spec)
-		if err := generator.RenderTemplate(string(c.commandType)); err != nil {
-			return fmt.Errorf("error rendering %s - %s", specPath, err)
-		}
+	switch c.commandType {
+	case CommandTypeSDK:
+		output = config.Output.GoSdk
+	case CommandTypeTerraform:
+		output = config.Output.TerraformProvider
+	}
+
+	log.Printf("[DEBUG] print output -> %s \n", output)
+
+	generator := generate.NewCreator(output, c.templatePath, spec)
+	if err := generator.RenderTemplate(string(c.commandType)); err != nil {
+		return fmt.Errorf("error rendering %s - %s", specPath, err)
 	}
 
 	return nil

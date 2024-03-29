@@ -1,5 +1,8 @@
 name: 'Template'
 terraform_provider_suffix: 'template'
+terraform_provider_path:
+  - 'internal'
+  - 'provider'
 go_sdk_path:
   - 'panorama'
   - 'template'

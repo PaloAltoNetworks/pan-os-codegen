@@ -1,5 +1,8 @@
 name: 'Service'
 terraform_provider_suffix: 'service'
+terraform_provider_path:
+  - 'internal'
+  - 'provider'
 go_sdk_path:
   - 'objects'
   - 'service'
