@@ -2,7 +2,12 @@ output:
   go_sdk: "./generated/pango"
   terraform_provider: "./generated/terraform-provider-panos"
 assets:
-
+  internal_provider_package:
+    source: "assets/internal/provider"
+    target:
+      go_sdk: false
+      terraform_provider: true
+    destination: "internal/provider"
 #  generic_package:
 #    source: "assets/generic"
 #    target:
