@@ -1,0 +1,50 @@
+name: 'Provider'
+terraform_provider_suffix: ''
+terraform_provider_path:
+  - 'internal'
+  - 'provider'
+spec:
+  params:
+    description:
+      description: 'The description.'
+      type: 'string'
+      length:
+        min: 0
+        max: 1023
+      profiles:
+        -
+          xpath: ["description"]
+    tags:
+      description: 'The administrative tags.'
+      type: 'list'
+      count:
+        max: 64
+      items:
+        type: 'string'
+        length:
+          max: 127
+      profiles:
+        -
+          type: 'member'
+          xpath: ["tag"]
+  one_of:
+    'static':
+      type: 'list'
+      count:
+        min: 1
+      items:
+        type: 'object'
+        ref:
+          - '#/specs/objects/address.yaml'
+          - '#/specs/objects/address-group.yaml'
+      profiles:
+        -
+          type: 'member'
+          xpath: ["static"]
+    'dynamic':
+      length:
+        min: 1
+        max: 2047
+      profiles:
+        -
+          xpath: ["dynamic/filter"]

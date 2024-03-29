@@ -29,3 +29,11 @@ func ParseConfig(input []byte) (*Config, error) {
 	err := content.Unmarshal(input, &ans)
 	return &ans, err
 }
+
+// PathList returns a slice of string from OutputPaths
+func (op *OutputPaths) PathList() []string {
+	var paths []string
+	paths = append(paths, op.GoSdk)
+	paths = append(paths, op.TerraformProvider)
+	return paths
+}

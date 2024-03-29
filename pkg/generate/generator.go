@@ -30,22 +30,23 @@ func NewCreator(goOutputDir, templatesDir string, spec *properties.Normalization
 }
 
 // RenderTemplate loop through all templates, parse them and render content, which is saved to output file.
-func (c *Creator) RenderTemplate() error {
+func (c *Creator) RenderTemplate(pathType string) error {
 	log.Println("Start rendering templates")
 	templates, err := c.listOfTemplates()
+	log.Printf("[DEBUG] print List of templates -> %s \n", templates)
 	if err != nil {
 		return fmt.Errorf("error listing templates: %w", err)
 	}
 	for _, templateName := range templates {
-		if err := c.processTemplate(templateName); err != nil {
+		if err := c.processTemplate(templateName, pathType); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (c *Creator) processTemplate(templateName string) error {
-	filePath := c.createFullFilePath(templateName)
+func (c *Creator) processTemplate(templateName string, pathType string) error {
+	filePath := c.createFullFilePath(templateName, pathType)
 	log.Printf("Creating file: %s\n", filePath)
 	if err := c.makeAllDirs(filePath); err != nil {
 		return fmt.Errorf("error creating directories for %s: %w", filePath, err)
@@ -78,10 +79,19 @@ func (c *Creator) writeDataToFile(filePath string, data *bytes.Buffer) error {
 	return err
 }
 
+//TODO: createFullFilePath was hardcoded for GoSdkPath
+
 // createFullFilePath returns a full path for output file generated from template passed as argument to function.
-func (c *Creator) createFullFilePath(templateName string) string {
+func (c *Creator) createFullFilePath(templateName string, pathType string) string {
 	fileBaseName := strings.TrimSuffix(templateName, filepath.Ext(templateName))
-	return filepath.Join(c.GoOutputDir, filepath.Join(c.Spec.GoSdkPath...), fmt.Sprintf("%s.go", fileBaseName))
+	log.Printf("[DEBUG] print fileBaseName -> %s \n", fileBaseName)
+	switch pathType {
+	case "sdk":
+		return filepath.Join(c.GoOutputDir, filepath.Join(c.Spec.GoSdkPath...), fmt.Sprintf("%s.go", fileBaseName))
+	case "terraform":
+		return filepath.Join(c.GoOutputDir, filepath.Join(c.Spec.TerraformProviderPath...), fmt.Sprintf("%s.go", fileBaseName))
+	}
+	return ""
 }
 
 // listOfTemplates return list of templates defined in TemplatesDir.

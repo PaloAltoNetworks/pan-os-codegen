@@ -3,11 +3,10 @@ package codegen
 import (
 	"context"
 	"fmt"
-	"log"
-
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/generate"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/load"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
+	"log"
 )
 
 type CommandType string
@@ -56,14 +55,24 @@ func (c *Command) Setup() error {
 	return nil
 }
 
+// Execute the command and generate the outputs
 func (c *Command) Execute() error {
 	log.Printf("Generating %s\n", c.commandType)
-
 	if len(c.args) == 0 {
 		return fmt.Errorf("path to configuration file is required")
 	}
 	configPath := c.args[0]
 
+	if err := c.processConfig(configPath); err != nil {
+		return err
+	}
+
+	log.Printf("Finish generating %s.", c.commandType)
+	return nil
+}
+
+// processConfig process the configuration and spec files
+func (c *Command) processConfig(configPath string) error {
 	content, err := load.File(configPath)
 	if err != nil {
 		return fmt.Errorf("error loading %s - %s", configPath, err)
@@ -75,24 +84,8 @@ func (c *Command) Execute() error {
 	}
 
 	for _, specPath := range c.specs {
-		log.Printf("Parsing %s...\n", specPath)
-		content, err := load.File(specPath)
-		if err != nil {
-			return fmt.Errorf("error loading %s - %s", specPath, err)
-		}
-
-		spec, err := properties.ParseSpec(content)
-		if err != nil {
-			return fmt.Errorf("error parsing %s - %s", specPath, err)
-		}
-
-		if err = spec.Sanity(); err != nil {
-			return fmt.Errorf("%s sanity failed: %s", specPath, err)
-		}
-
-		generator := generate.NewCreator(config.Output.GoSdk, c.templatePath, spec)
-		if err = generator.RenderTemplate(); err != nil {
-			return fmt.Errorf("error rendering %s - %s", specPath, err)
+		if err := c.processSpec(config, specPath); err != nil {
+			return err
 		}
 	}
 
@@ -100,6 +93,53 @@ func (c *Command) Execute() error {
 		return fmt.Errorf("error copying assets %s", err)
 	}
 
-	log.Println("Generation complete.")
+	return nil
+}
+
+// processSpec process individual spec
+func (c *Command) processSpec(config *properties.Config, specPath string) error {
+	log.Printf("Parsing %s...\n", specPath)
+
+	content, err := load.File(specPath)
+	if err != nil {
+		return fmt.Errorf("error loading %s - %s", specPath, err)
+	}
+
+	spec, err := properties.ParseSpec(content)
+	if err != nil {
+		return fmt.Errorf("error parsing %s - %s", specPath, err)
+	}
+
+	// validate the spec
+	if err := c.validateSpec(spec, specPath); err != nil {
+		return err
+	}
+
+	// Generate the output
+	return c.generateOutput(config, spec, specPath)
+}
+
+// validateSpec validate the spec file with Sanity function
+func (c *Command) validateSpec(spec *properties.Normalization, specPath string) error {
+	if err := spec.Sanity(string(c.commandType)); err != nil {
+		return fmt.Errorf("%s sanity failed: %s", specPath, err)
+	}
+
+	return nil
+}
+
+// generateOutput generate the output with the spec and config
+func (c *Command) generateOutput(config *properties.Config, spec *properties.Normalization, specPath string) error {
+	outputPath := config.Output
+	log.Printf("[DEBUG] print List of outputList -> %s \n", outputPath)
+
+	for _, output := range outputPath.PathList() {
+		log.Printf("[DEBUG] print List of output -> %s \n", output)
+		generator := generate.NewCreator(output, c.templatePath, spec)
+		if err := generator.RenderTemplate(string(c.commandType)); err != nil {
+			return fmt.Errorf("error rendering %s - %s", specPath, err)
+		}
+	}
+
 	return nil
 }

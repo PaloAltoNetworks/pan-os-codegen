@@ -5,6 +5,7 @@ import (
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/content"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"io/fs"
+	"log"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -14,6 +15,7 @@ type Normalization struct {
 	Name                    string               `json:"name" yaml:"name"`
 	TerraformProviderSuffix string               `json:"terraform_provider_suffix" yaml:"terraform_provider_suffix"`
 	GoSdkPath               []string             `json:"go_sdk_path" yaml:"go_sdk_path"`
+	TerraformProviderPath   []string             `json:"terraform_provider_path" yaml:"terraform_provider_path"`
 	XpathSuffix             []string             `json:"xpath_suffix" yaml:"xpath_suffix"`
 	Locations               map[string]*Location `json:"locations" yaml:"locations"`
 	Entry                   *Entry               `json:"entry" yaml:"entry"`
@@ -119,6 +121,8 @@ func GetNormalizations() ([]string, error) {
 	}
 
 	basePath := filepath.Join(filepath.Dir(filepath.Dir(filepath.Dir(loc))), "specs")
+
+	log.Printf("[DEBUG] print basepath -> %s \n", basePath)
 
 	files := make([]string, 0, 100)
 
@@ -259,18 +263,29 @@ func (spec *Normalization) AddDefaultTypesForParams() error {
 	}
 }
 
-// Sanity basic checks for specification (normalization) e.g. check if at least 1 location is defined.
-func (spec *Normalization) Sanity() error {
-	if spec.Name == "" {
-		return fmt.Errorf("name is required")
-	}
-	if spec.Locations == nil {
-		return fmt.Errorf("at least 1 location is required")
-	}
-	if spec.GoSdkPath == nil {
-		return fmt.Errorf("golang SDK path is required")
-	}
+//TODO: it is relevant only for SDK, this need to handle both
 
+// Sanity basic checks for specification (normalization) e.g. check if at least 1 location is defined.
+func (spec *Normalization) Sanity(commandType string) error {
+	switch commandType {
+	case "sdk":
+		if spec.Name == "" {
+			return fmt.Errorf("name is required")
+		}
+		if spec.Locations == nil {
+			return fmt.Errorf("at least 1 location is required")
+		}
+		if spec.GoSdkPath == nil {
+			return fmt.Errorf("golang SDK path is required")
+		}
+	case "terraform":
+		if spec.Name == "" {
+			return fmt.Errorf("name is required")
+		}
+		if spec.TerraformProviderPath == nil {
+			return fmt.Errorf("tf provider path is required")
+		}
+	}
 	return nil
 }
 
