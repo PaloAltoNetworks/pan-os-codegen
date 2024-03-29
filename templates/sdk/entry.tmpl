@@ -106,17 +106,6 @@
         {{- end}}
     {{- end}}
 
-    func (e *Entry) CopyMiscFrom(v *Entry) {
-    if v == nil || len(v.Misc) == 0 {
-    return
-    }
-
-    e.Misc = make(map[string][]generic.Xml)
-    for key := range v.Misc {
-    e.Misc[key] = append([]generic.Xml(nil), v.Misc[key]...)
-    }
-    }
-
     func (e *Entry) Field(v string) (any, error) {
     if v == "name" || v == "Name" {
     return e.Name, nil

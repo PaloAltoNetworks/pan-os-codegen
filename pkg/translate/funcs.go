@@ -78,15 +78,17 @@ func appendSpecObjectAssignment(param *properties.SpecParam, objectType string, 
 func defineNestedObject(parent []string, param *properties.SpecParam, objectType string, version, prefix, suffix string, builder *strings.Builder) {
 	declareRootOfNestedObject(parent, builder, version, prefix, suffix)
 
-	builder.WriteString(fmt.Sprintf("if o.%s != nil {\n", strings.Join(parent, ".")))
-	if param.Spec != nil {
-		assignEmptyStructForNestedObject(parent, builder, objectType, version, prefix, suffix)
-		defineNestedObjectForChildParams(parent, param.Spec.Params, objectType, version, prefix, suffix, builder)
-		defineNestedObjectForChildParams(parent, param.Spec.OneOf, objectType, version, prefix, suffix, builder)
-	} else {
-		assignValueForNestedObject(parent, builder)
+	if ParamSupportedInVersion(param, version) {
+		builder.WriteString(fmt.Sprintf("if o.%s != nil {\n", strings.Join(parent, ".")))
+		if param.Spec != nil {
+			assignEmptyStructForNestedObject(parent, builder, objectType, version, prefix, suffix)
+			defineNestedObjectForChildParams(parent, param.Spec.Params, objectType, version, prefix, suffix, builder)
+			defineNestedObjectForChildParams(parent, param.Spec.OneOf, objectType, version, prefix, suffix, builder)
+		} else {
+			assignValueForNestedObject(parent, builder)
+		}
+		builder.WriteString("}\n")
 	}
-	builder.WriteString("}\n")
 }
 
 func declareRootOfNestedObject(parent []string, builder *strings.Builder, version, prefix, suffix string) {
