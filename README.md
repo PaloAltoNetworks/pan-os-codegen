@@ -37,4 +37,13 @@ This command can be parametrizes using options:
   - `mktp` - create only Terraform provider
   - `mksdk` - create only PAN-OS SDK
 - `config` - specify path for the config file, default is `cmd/codegen/config.yaml`
- 
+
+## Generate SDK
+
+In order to use generated SDK code, go to directory defined in `config.yaml` e.g. `../generated/pango` and execute
+example code:
+
+```
+cd ../generated/pango
+PANOS_HOSTNAME='***' PANOS_USERNAME='***' PANOS_PASSWORD='***' go run codegen/main.go
+```
