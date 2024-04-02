@@ -84,6 +84,7 @@ func (c *Command) processConfig(configPath string) error {
 	}
 
 	for _, specPath := range c.specs {
+		log.Printf("[DEBUG] print specPath -> %s \n", specPath)
 		if err := c.processSpec(config, specPath); err != nil {
 			return err
 		}

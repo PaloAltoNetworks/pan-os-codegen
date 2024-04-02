@@ -169,6 +169,7 @@ func ParseSpec(input []byte) (*Normalization, error) {
 		return nil, err
 	}
 
+	log.Printf("[DEBUG] print spec -> %s \n", &spec)
 	return &spec, err
 }
 
