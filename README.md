@@ -44,6 +44,7 @@ In order to use generated SDK code, go to directory defined in `config.yaml` e.g
 example code:
 
 ```
+go run cmd/codegen/main.go -t mksdk
 cd ../generated/pango
 PANOS_HOSTNAME='***' PANOS_USERNAME='***' PANOS_PASSWORD='***' go run example/main.go
 ```
