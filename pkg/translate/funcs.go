@@ -224,8 +224,8 @@ func argumentTypeForSpecMatchesFunction(parent []string, param *properties.SpecP
 	}
 }
 
-// XmlPathSuffix return XML path suffixes created from profiles.
-func XmlPathSuffix(param *properties.SpecParam) []string {
+// XmlPathSuffixes return XML path suffixes created from profiles.
+func XmlPathSuffixes(param *properties.SpecParam) []string {
 	xmlPathSuffixes := []string{}
 	if param.Profiles != nil {
 		for _, profile := range param.Profiles {
