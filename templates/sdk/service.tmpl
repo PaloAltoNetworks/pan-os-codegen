@@ -532,7 +532,7 @@ package {{packageName .GoSdkPath}}
         {{- range $_, $param := $.Spec.Params}}
             {{- if paramSupportedInVersion $param $version}}
                 {{- range $_, $profile := $param.Profiles}}
-                    {{- range $_, $xpath := xmlPathSuffix $param}}
+                    {{- range $_, $xpath := xmlPathSuffixes $param}}
                         "{{$xpath}}",
                     {{- end}}
                 {{- end}}
