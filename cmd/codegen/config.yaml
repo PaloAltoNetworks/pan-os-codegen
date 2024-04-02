@@ -26,12 +26,12 @@ assets:
       go_sdk: true
       terraform_provider: false
     destination: "version"
-  codegen_package:
-    source: "assets/codegen"
+  example_package:
+    source: "assets/example"
     target:
       go_sdk: true
       terraform_provider: false
-    destination: "codegen"
+    destination: "example"
   sdk_package:
     source: "assets/sdk"
     target:

@@ -45,5 +45,5 @@ example code:
 
 ```
 cd ../generated/pango
-PANOS_HOSTNAME='***' PANOS_USERNAME='***' PANOS_PASSWORD='***' go run codegen/main.go
+PANOS_HOSTNAME='***' PANOS_USERNAME='***' PANOS_PASSWORD='***' go run example/main.go
 ```
