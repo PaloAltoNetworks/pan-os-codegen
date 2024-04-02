@@ -138,6 +138,7 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		"nestedSpecs":               translate.NestedSpecs,
 		"createGoSuffixFromVersion": translate.CreateGoSuffixFromVersion,
 		"paramSupportedInVersion":   translate.ParamSupportedInVersion,
+		"xmlPathSuffix":             translate.XmlPathSuffix,
 	}
 	return template.New(templateName).Funcs(funcMap).ParseFiles(templatePath)
 }
