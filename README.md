@@ -46,5 +46,7 @@ example code:
 ```
 go run cmd/codegen/main.go -t mksdk
 cd ../generated/pango
+go mod init github.com/PaloAltoNetworks/pango
+go mod tidy
 PANOS_HOSTNAME='***' PANOS_USERNAME='***' PANOS_PASSWORD='***' go run example/main.go
 ```
