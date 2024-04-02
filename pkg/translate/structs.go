@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/version"
 	"strings"
 )
 
@@ -47,7 +48,7 @@ func updateNestedSpecs(parent []string, param *properties.SpecParam, nestedSpecs
 
 // SpecParamType return param type (it can be nested spec) (for struct based on spec from YAML files).
 func SpecParamType(parent string, param *properties.SpecParam) string {
-	prefix := determinePrefix(param)
+	prefix := determinePrefix(param, false)
 
 	calculatedType := ""
 	if param.Type == "list" && param.Items != nil {
@@ -63,7 +64,7 @@ func SpecParamType(parent string, param *properties.SpecParam) string {
 
 // XmlParamType return param type (it can be nested spec) (for struct based on spec from YAML files).
 func XmlParamType(parent string, param *properties.SpecParam) string {
-	prefix := determinePrefix(param)
+	prefix := determinePrefix(param, true)
 
 	calculatedType := ""
 	if isParamListAndProfileTypeIsMember(param) {
@@ -77,15 +78,13 @@ func XmlParamType(parent string, param *properties.SpecParam) string {
 	return fmt.Sprintf("%s%s", prefix, calculatedType)
 }
 
-func determinePrefix(param *properties.SpecParam) string {
-	prefix := ""
-	if param.Type == "list" {
-		prefix = prefix + "[]"
+func determinePrefix(param *properties.SpecParam, useMemberTypeStruct bool) string {
+	if param.Type == "list" && !(useMemberTypeStruct && isParamListAndProfileTypeIsMember(param)) {
+		return "[]"
+	} else if !param.Required {
+		return "*"
 	}
-	if !param.Required {
-		prefix = prefix + "*"
-	}
-	return prefix
+	return ""
 }
 
 func determineListType(param *properties.SpecParam) string {
@@ -100,7 +99,16 @@ func calculateNestedSpecType(parent string, param *properties.SpecParam) string 
 }
 
 func calculateNestedXmlSpecType(parent string, param *properties.SpecParam) string {
-	return fmt.Sprintf("Spec%s%sXml", parent, naming.CamelCase("", param.Name.CamelCase, "", true))
+	return fmt.Sprintf("spec%s%sXml", parent, naming.CamelCase("", param.Name.CamelCase, "", true))
+}
+
+// XmlName creates a string with xml name (e.g. `description`).
+func XmlName(param *properties.SpecParam) string {
+	if param.Profiles != nil && len(param.Profiles) > 0 {
+		return param.Profiles[0].Xpath[len(param.Profiles[0].Xpath)-1]
+	}
+
+	return ""
 }
 
 // XmlTag creates a string with xml tag (e.g. `xml:"description,omitempty"`).
@@ -111,7 +119,7 @@ func XmlTag(param *properties.SpecParam) string {
 			suffix = ",omitempty"
 		}
 
-		return fmt.Sprintf("`xml:\"%s%s\"`", param.Profiles[0].Xpath[len(param.Profiles[0].Xpath)-1], suffix)
+		return fmt.Sprintf("`xml:\"%s%s\"`", XmlName(param), suffix)
 	}
 
 	return ""
@@ -124,4 +132,72 @@ func OmitEmpty(location *properties.Location) string {
 	} else {
 		return ""
 	}
+}
+
+// CreateGoSuffixFromVersion convert version into Go suffix e.g. 10.1.1 into _10_1_1
+func CreateGoSuffixFromVersion(version string) string {
+	if len(version) > 0 {
+		return fmt.Sprintf("_%s", strings.ReplaceAll(version, ".", "_"))
+	} else {
+		return version
+	}
+}
+
+// ParamSupportedInVersion checks if param is supported in specific PAN-OS version
+func ParamSupportedInVersion(param *properties.SpecParam, deviceVersionStr string) bool {
+	var supported []bool
+	if deviceVersionStr == "" {
+		supported = listOfProfileSupportForNotDefinedDeviceVersion(param, supported)
+	} else {
+		deviceVersion, err := version.New(deviceVersionStr)
+		if err != nil {
+			return false
+		}
+
+		supported, err = listOfProfileSupportForDefinedDeviceVersion(param, supported, deviceVersion)
+		if err != nil {
+			return false
+		}
+	}
+	return allTrue(supported)
+}
+
+func listOfProfileSupportForNotDefinedDeviceVersion(param *properties.SpecParam, supported []bool) []bool {
+	for _, profile := range param.Profiles {
+		if profile.FromVersion != "" {
+			supported = append(supported, profile.NotPresent)
+		} else {
+			supported = append(supported, true)
+		}
+	}
+	return supported
+}
+
+func listOfProfileSupportForDefinedDeviceVersion(param *properties.SpecParam, supported []bool, deviceVersion version.Version) ([]bool, error) {
+	for _, profile := range param.Profiles {
+		if profile.FromVersion != "" {
+			paramProfileVersion, err := version.New(profile.FromVersion)
+			if err != nil {
+				return nil, err
+			}
+
+			if deviceVersion.Gte(paramProfileVersion) {
+				supported = append(supported, !profile.NotPresent)
+			} else {
+				supported = append(supported, profile.NotPresent)
+			}
+		} else {
+			supported = append(supported, !profile.NotPresent)
+		}
+	}
+	return supported, nil
+}
+
+func allTrue(values []bool) bool {
+	for _, value := range values {
+		if !value {
+			return false
+		}
+	}
+	return true
 }

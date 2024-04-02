@@ -227,7 +227,7 @@ func (spec *Normalization) AddNameVariantsForParams() error {
 // addDefaultTypesForParams recursively add default types for params for nested specs.
 func addDefaultTypesForParams(params map[string]*SpecParam) error {
 	for _, param := range params {
-		if param.Type == "" {
+		if param.Type == "" && param.Spec == nil {
 			param.Type = "string"
 		}
 
@@ -294,4 +294,40 @@ func (spec *Normalization) Validate() []error {
 	}
 
 	return checks
+}
+
+// SupportedVersions provides list of all supported versions in format MAJOR.MINOR.PATCH
+func (spec *Normalization) SupportedVersions() []string {
+	if spec.Spec != nil {
+		versions := supportedVersions(spec.Spec.Params, []string{""})
+		versions = supportedVersions(spec.Spec.OneOf, versions)
+		return versions
+	}
+	return nil
+}
+
+func supportedVersions(params map[string]*SpecParam, versions []string) []string {
+	for _, param := range params {
+		for _, profile := range param.Profiles {
+			if profile.FromVersion != "" {
+				if notExist := listContains(versions, profile.FromVersion); notExist {
+					versions = append(versions, profile.FromVersion)
+				}
+			}
+		}
+		if param.Spec != nil {
+			versions = supportedVersions(param.Spec.Params, versions)
+			versions = supportedVersions(param.Spec.OneOf, versions)
+		}
+	}
+	return versions
+}
+
+func listContains(versions []string, checkedVersion string) bool {
+	for _, version := range versions {
+		if version == checkedVersion {
+			return false
+		}
+	}
+	return true
 }
