@@ -124,6 +124,8 @@ spec:
       type: list
       count:
         max: 31
+      items:
+        type: 'string'
       profiles:
         -
           type: 'member'
@@ -133,6 +135,8 @@ spec:
       type: list
       count:
         max: 31
+      items:
+        type: 'string'
       profiles:
         -
           type: 'member'
@@ -142,6 +146,8 @@ spec:
       type: list
       count:
         max: 63
+      items:
+        type: 'string'
       profiles:
         -
           type: 'member'
@@ -151,6 +157,8 @@ spec:
       type: list
       count:
         max: 63
+      items:
+        type: 'string'
       profiles:
         -
           type: 'member'
@@ -160,6 +168,8 @@ spec:
       type: list
       count:
         max: 1023
+      items:
+        type: 'string'
       profiles:
         -
           type: 'member'
@@ -169,6 +179,8 @@ spec:
       type: list
       count:
         max: 63
+      items:
+        type: 'string'
       profiles:
         -
           type: 'member'
@@ -178,6 +190,8 @@ spec:
       type: list
       count:
         max: 63
+      items:
+        type: 'string'
       profiles:
         -
           type: 'member'
@@ -187,6 +201,8 @@ spec:
       type: list
       count:
         max: 63
+      items:
+        type: 'string'
       profiles:
         -
           type: 'member'
@@ -196,6 +212,8 @@ spec:
       type: list
       count:
         max: 63
+      items:
+        type: 'string'
       profiles:
         -
           type: 'member'
@@ -205,6 +223,8 @@ spec:
       type: list
       count:
         max: 63
+      items:
+        type: 'string'
       profiles:
         -
           type: 'member'
@@ -287,6 +307,8 @@ spec:
       type: list
       count:
         max: 1
+      items:
+        type: 'string'
       profiles:
         -
           type: 'member'
@@ -296,6 +318,8 @@ spec:
       type: list
       count:
         max: 1
+      items:
+        type: 'string'
       profiles:
         -
           type: 'member'
@@ -305,6 +329,8 @@ spec:
       type: list
       count:
         max: 1
+      items:
+        type: 'string'
       profiles:
         -
           type: 'member'
@@ -314,6 +340,8 @@ spec:
       type: list
       count:
         max: 1
+      items:
+        type: 'string'
       profiles:
         -
           type: 'member'
@@ -323,6 +351,8 @@ spec:
       type: list
       count:
         max: 1
+      items:
+        type: 'string'
       profiles:
         -
           type: 'member'
@@ -332,6 +362,8 @@ spec:
       type: list
       count:
         max: 1
+      items:
+        type: 'string'
       profiles:
         -
           type: 'member'
@@ -341,6 +373,8 @@ spec:
       type: list
       count:
         max: 1
+      items:
+        type: 'string'
       profiles:
         -
           type: 'member'
