@@ -11,9 +11,9 @@ func TestRenderImports(t *testing.T) {
 import (
     "fmt"
 
-    errors "github.com/PaloAltoNetworks/pango/errors"
-    util "github.com/PaloAltoNetworks/pango/util"
-    version "github.com/PaloAltoNetworks/pango/version"
+    "github.com/PaloAltoNetworks/pango/errors"
+    "github.com/PaloAltoNetworks/pango/util"
+    "github.com/PaloAltoNetworks/pango/version"
 )`
 
 	// when
