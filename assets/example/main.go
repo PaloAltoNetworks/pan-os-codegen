@@ -15,7 +15,7 @@ import (
 
 func main() {
 	var err error
-	x := context.Background()
+	ctx := context.Background()
 
 	// FW
 	c := &pango.XmlApiClient{
@@ -28,7 +28,7 @@ func main() {
 	}
 	log.Printf("Setup client %s (%s)", c.Hostname, c.Username)
 
-	if err = c.Initialize(x); err != nil {
+	if err = c.Initialize(ctx); err != nil {
 		log.Printf("Failed to initialize client: %s", err)
 		return
 	}
@@ -46,7 +46,7 @@ func main() {
 	}
 
 	tagApi := tag.NewService(c)
-	tagReply, err := tagApi.Create(x, tagLocation, tagObject)
+	tagReply, err := tagApi.Create(ctx, tagLocation, tagObject)
 	if err != nil {
 		log.Printf("Failed to create object: %s", err)
 		return
@@ -54,7 +54,7 @@ func main() {
 	log.Printf("Tag '%s' created", tagReply.Name)
 
 	// TAG - DELETE
-	err = tagApi.Delete(x, tagLocation, tagName)
+	err = tagApi.Delete(ctx, tagLocation, tagName)
 	if err != nil {
 		log.Printf("Failed to delete object: %s", err)
 		return
@@ -74,7 +74,7 @@ func main() {
 	}
 
 	addressApi := address.NewService(c)
-	addressReply, err := addressApi.Create(x, addressLocation, addressObject)
+	addressReply, err := addressApi.Create(ctx, addressLocation, addressObject)
 	if err != nil {
 		log.Printf("Failed to create object: %s", err)
 		return
@@ -82,7 +82,7 @@ func main() {
 	log.Printf("Address '%s=%s' created", addressReply.Name, *addressReply.IpNetmask)
 
 	// ADDRESS - DELETE
-	err = addressApi.Delete(x, addressLocation, addressName)
+	err = addressApi.Delete(ctx, addressLocation, addressName)
 	if err != nil {
 		log.Printf("Failed to delete object: %s", err)
 		return
@@ -116,7 +116,7 @@ func main() {
 	}
 
 	serviceApi := service.NewService(c)
-	serviceReply, err := serviceApi.Create(x, serviceLocation, serviceObject)
+	serviceReply, err := serviceApi.Create(ctx, serviceLocation, serviceObject)
 	if err != nil {
 		log.Printf("Failed to create object: %s", err)
 		return
@@ -127,7 +127,7 @@ func main() {
 	serviceDescription = "changed description"
 	serviceObject.Description = &serviceDescription
 
-	serviceReply, err = serviceApi.Update(x, serviceLocation, serviceObject, serviceName)
+	serviceReply, err = serviceApi.Update(ctx, serviceLocation, serviceObject, serviceName)
 	if err != nil {
 		log.Printf("Failed to update object: %s", err)
 		return
@@ -138,7 +138,7 @@ func main() {
 	servicePort = 1234
 	serviceObject.Protocol.Tcp.DestinationPort = &servicePort
 
-	serviceReply, err = serviceApi.Update(x, serviceLocation, serviceObject, serviceName)
+	serviceReply, err = serviceApi.Update(ctx, serviceLocation, serviceObject, serviceName)
 	if err != nil {
 		log.Printf("Failed to update object: %s", err)
 		return
@@ -149,7 +149,7 @@ func main() {
 	newServiceName := "codegen_service_test2"
 	serviceObject.Name = newServiceName
 
-	serviceReply, err = serviceApi.Update(x, serviceLocation, serviceObject, serviceName)
+	serviceReply, err = serviceApi.Update(ctx, serviceLocation, serviceObject, serviceName)
 	if err != nil {
 		log.Printf("Failed to update object: %s", err)
 		return
@@ -157,7 +157,7 @@ func main() {
 	log.Printf("Service '%s=%d' renamed", serviceReply.Name, *serviceReply.Protocol.Tcp.DestinationPort)
 
 	// SERVICE - DELETE
-	err = serviceApi.Delete(x, serviceLocation, newServiceName)
+	err = serviceApi.Delete(ctx, serviceLocation, newServiceName)
 	if err != nil {
 		log.Printf("Failed to delete object: %s", err)
 		return
@@ -174,7 +174,7 @@ func main() {
 	}
 
 	serviceApi = service.NewService(c)
-	serviceReply, err = serviceApi.Read(x, serviceLocation, "test", "get")
+	serviceReply, err = serviceApi.Read(ctx, serviceLocation, "test", "get")
 	if err != nil {
 		log.Printf("Failed to read object: %s", err)
 		return
@@ -197,7 +197,7 @@ func main() {
 	serviceDescription = "some text changed now"
 	serviceReply.Description = &serviceDescription
 
-	serviceReply, err = serviceApi.Update(x, serviceLocation, *serviceReply, "test")
+	serviceReply, err = serviceApi.Update(ctx, serviceLocation, *serviceReply, "test")
 	if err != nil {
 		log.Printf("Failed to update object: %s", err)
 		return
@@ -233,7 +233,7 @@ func main() {
 	}
 
 	ntpApi := ntp.NewService(c)
-	ntpReply, err := ntpApi.Create(x, ntpLocation, ntpConfig)
+	ntpReply, err := ntpApi.Create(ctx, ntpLocation, ntpConfig)
 	if err != nil {
 		log.Printf("Failed to create NTP: %s", err)
 		return
@@ -241,7 +241,7 @@ func main() {
 	log.Printf("NTP '%s' created", *ntpReply.NtpServers.PrimaryNtpServer.NtpServerAddress)
 
 	// NTP - DELETE
-	err = ntpApi.Delete(x, ntpLocation, ntpConfig)
+	err = ntpApi.Delete(ctx, ntpLocation, ntpConfig)
 	if err != nil {
 		log.Printf("Failed to delete object: %s", err)
 		return
@@ -269,7 +269,7 @@ func main() {
 	}
 
 	dnsApi := dns.NewService(c)
-	dnsReply, err := dnsApi.Create(x, dnsLocation, dnsConfig)
+	dnsReply, err := dnsApi.Create(ctx, dnsLocation, dnsConfig)
 	if err != nil {
 		log.Printf("Failed to create DNS: %s", err)
 		return
@@ -277,7 +277,7 @@ func main() {
 	log.Printf("DNS '%s, %s' created", *dnsReply.DnsSetting.Servers.Primary, *dnsReply.DnsSetting.Servers.Secondary)
 
 	// DNS - DELETE
-	err = dnsApi.Delete(x, dnsLocation, dnsConfig)
+	err = dnsApi.Delete(ctx, dnsLocation, dnsConfig)
 	if err != nil {
 		log.Printf("Failed to delete object: %s", err)
 		return

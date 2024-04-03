@@ -125,7 +125,7 @@ spec:
         -
           xpath: ["ip-wildcard"]
           from_version: "11.1.2"
-types:
+const:
   color:
     values:
       red:
@@ -359,7 +359,7 @@ spec:
                   not_present: false
                   from_version: 11.1.2
             spec: null
-types:
+const:
     color:
         name:
             underscore: color
@@ -464,7 +464,7 @@ func TestCustomType(t *testing.T) {
 	yamlParsedData, _ := ParseSpec([]byte(sampleSpec))
 
 	// then
-	assert.NotNil(t, yamlParsedData.Types)
-	assert.Equal(t, "Red", yamlParsedData.Types["color"].Values["red"].Name.CamelCase)
-	assert.Equal(t, "color1", yamlParsedData.Types["color"].Values["red"].Value)
+	assert.NotNil(t, yamlParsedData.Const)
+	assert.Equal(t, "Red", yamlParsedData.Const["color"].Values["red"].Name.CamelCase)
+	assert.Equal(t, "color1", yamlParsedData.Const["color"].Values["red"].Value)
 }

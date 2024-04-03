@@ -98,10 +98,10 @@
         {{- end}}
     {{- end}}
 
-    {{- range $name, $type := .Types}}
+    {{- range $name, $const := .Const}}
         const (
-        {{- range $value := $type.Values}}
-            {{$type.Name.CamelCase}}{{$value.Name.CamelCase}} = "{{$value.Value}}"
+        {{- range $value := $const.Values}}
+            {{$const.Name.CamelCase}}{{$value.Name.CamelCase}} = "{{$value.Value}}"
         {{- end}}
         )
     {{- end}}

@@ -19,7 +19,7 @@ type Normalization struct {
 	Entry                   *Entry               `json:"entry" yaml:"entry"`
 	Version                 string               `json:"version" yaml:"version"`
 	Spec                    *Spec                `json:"spec" yaml:"spec"`
-	Types                   map[string]*Type     `json:"types" yaml:"types"`
+	Const                   map[string]*Const    `json:"const" yaml:"const"`
 }
 
 type NameVariant struct {
@@ -71,12 +71,12 @@ type Spec struct {
 	OneOf  map[string]*SpecParam `json:"one_of" yaml:"one_of,omitempty"`
 }
 
-type Type struct {
+type Const struct {
 	Name   *NameVariant
-	Values map[string]*TypeValue `json:"values" yaml:"values"`
+	Values map[string]*ConstValue `json:"values" yaml:"values"`
 }
 
-type TypeValue struct {
+type ConstValue struct {
 	Name  *NameVariant
 	Value string `json:"value" yaml:"value"`
 }
@@ -242,8 +242,8 @@ func (spec *Normalization) AddNameVariantsForParams() error {
 
 // AddNameVariantsForTypes add name variants for types (under_score and CamelCase).
 func (spec *Normalization) AddNameVariantsForTypes() error {
-	if spec.Types != nil {
-		for nameType, customType := range spec.Types {
+	if spec.Const != nil {
+		for nameType, customType := range spec.Const {
 			customType.Name = &NameVariant{
 				Underscore: naming.Underscore("", nameType, ""),
 				CamelCase:  naming.CamelCase("", nameType, "", true),

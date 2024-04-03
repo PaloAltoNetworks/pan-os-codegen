@@ -83,7 +83,7 @@ spec:
       profiles:
         -
           xpath: ["comments"]
-types:
+const:
   color:
     values:
       red:
