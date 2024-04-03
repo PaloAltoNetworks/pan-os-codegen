@@ -70,7 +70,7 @@ spec:
   params:
     color:
       description: 'The color.'
-      type: 'color'
+      type: 'string'
       profiles:
         -
           xpath: ["color"]
@@ -83,128 +83,88 @@ spec:
       profiles:
         -
           xpath: ["comments"]
-type:
+types:
   color:
-    -
-      name: red
-      value: color1
-    -
-      name: green
-      value: color2
-    -
-      name: blue
-      value: color3
-    -
-      name: yellow
-      value: color4
-    -
-      name: copper
-      value: color5
-    -
-      name: orange
-      value: color6
-    -
-      name: purple
-      value: color7
-    -
-      name: gray
-      value: color8
-    -
-      name: light green
-      value: color9
-    -
-      name: cyan
-      value: color10
-    -
-      name: light gray
-      value: color11
-    -
-      name: blue gray
-      value: color12
-    -
-      name: lime
-      value: color13
-    -
-      name: black
-      value: color14
-    -
-      name: gold
-      value: color15
-    -
-      name: brown
-      value: color16
-    -
-      name: olive
-      value: color17
-    -
-      name: maroon
-      value: color19
-    -
-      name: red-orange
-      value: color20
-    -
-      name: yellow-orange
-      value: color21
-    -
-      name: forest green
-      value: color22
-    -
-      name: turquoise blue
-      value: color23
-    -
-      name: azure blue
-      value: color24
-    -
-      name: cerulean blue
-      value: color25
-    -
-      name: midnight blue
-      value: color26
-    -
-      name: medium blue
-      value: color27
-    -
-      name: cobalt blue
-      value: color28
-    -
-      name: violet blue
-      value: color29
-    -
-      name: blue violet
-      value: color30
-    -
-      name: medium violet
-      value: color31
-    -
-      name: medium rose
-      value: color32
-    -
-      name: lavender
-      value: color33
-    -
-      name: orchid
-      value: color34
-    -
-      name: thistle
-      value: color35
-    -
-      name: peach
-      value: color36
-    -
-      name: salmon
-      value: color37
-    -
-      name: magenta
-      value: color38
-    -
-      name: red violet
-      value: color39
-    -
-      name: mahogany
-      value: color40
-    -
-      name: burnt sienna
-      value: color41
-    -
-      name: chestnut
-      value: color42
+    values:
+      red:
+        value: color1
+      green:
+        value: color2
+      blue:
+        value: color3
+      yellow:
+        value: color4
+      copper:
+        value: color5
+      orange:
+        value: color6
+      purple:
+        value: color7
+      gray:
+        value: color8
+      light green:
+        value: color9
+      cyan:
+        value: color10
+      light gray:
+        value: color11
+      blue gray:
+        value: color12
+      lime:
+        value: color13
+      black:
+        value: color14
+      gold:
+        value: color15
+      brown:
+        value: color16
+      olive:
+        value: color17
+      maroon:
+        value: color19
+      red-orange:
+        value: color20
+      yellow-orange:
+        value: color21
+      forest green:
+        value: color22
+      turquoise blue:
+        value: color23
+      azure blue:
+        value: color24
+      cerulean blue:
+        value: color25
+      midnight blue:
+        value: color26
+      medium blue:
+        value: color27
+      cobalt blue:
+        value: color28
+      violet blue:
+        value: color29
+      blue violet:
+        value: color30
+      medium violet:
+        value: color31
+      medium rose:
+        value: color32
+      lavender:
+        value: color33
+      orchid:
+        value: color34
+      thistle:
+        value: color35
+      peach:
+        value: color36
+      salmon:
+        value: color37
+      magenta:
+        value: color38
+      red violet:
+        value: color39
+      mahogany:
+        value: color40
+      burnt sienna:
+        value: color41
+      chestnut:
+        value: color42
