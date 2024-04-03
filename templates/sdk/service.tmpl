@@ -2,7 +2,6 @@ package {{packageName .GoSdkPath}}
 {{- if .Entry}}
     {{renderImports "service"}}
 
-
     type Service struct {
     client util.PangoClient
     }
