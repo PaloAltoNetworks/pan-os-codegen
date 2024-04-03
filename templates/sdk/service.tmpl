@@ -1,14 +1,6 @@
 package {{packageName .GoSdkPath}}
 {{- if .Entry}}
-    import (
-    "context"
-    "fmt"
-
-    "github.com/PaloAltoNetworks/pango/errors"
-    "github.com/PaloAltoNetworks/pango/filtering"
-    "github.com/PaloAltoNetworks/pango/util"
-    "github.com/PaloAltoNetworks/pango/xmlapi"
-    )
+    {{renderImports "service"}}
 
     type Service struct {
     client util.PangoClient
@@ -155,6 +147,7 @@ package {{packageName .GoSdkPath}}
     Action:  "rename",
     Xpath:   util.AsXpath(path),
     NewName: entry.Name,
+    Target:  s.client.GetTarget(),
     })
     } else {
     old, err = s.Read(ctx, loc, entry.Name, "get")
@@ -178,6 +171,7 @@ package {{packageName .GoSdkPath}}
     Action:  "edit",
     Xpath:   util.AsXpath(path),
     Element: updateSpec,
+    Target:  s.client.GetTarget(),
     })
     }
 
@@ -357,6 +351,7 @@ package {{packageName .GoSdkPath}}
     Action:  "edit",
     Xpath:   util.AsXpath(path),
     Element: elm,
+    Target:  s.client.GetTarget(),
     })
     }
     break
@@ -378,6 +373,7 @@ package {{packageName .GoSdkPath}}
     Action:  "set",
     Xpath:   util.AsXpath(path),
     Element: elm,
+    Target:  s.client.GetTarget(),
     })
     }
     }

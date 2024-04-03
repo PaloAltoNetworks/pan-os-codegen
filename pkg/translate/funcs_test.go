@@ -173,7 +173,7 @@ func TestSpecMatchesFunction(t *testing.T) {
 	calculatedSpecMatchFunctionListString := SpecMatchesFunction(&paramTypeListString)
 
 	// then
-	assert.Equal(t, "util.OptionalStringsMatch", calculatedSpecMatchFunctionString)
+	assert.Equal(t, "util.StringsMatch", calculatedSpecMatchFunctionString)
 	assert.Equal(t, "util.OrderedListsMatch", calculatedSpecMatchFunctionListString)
 }
 

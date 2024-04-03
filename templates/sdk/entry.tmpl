@@ -1,15 +1,7 @@
 {{- if .Entry}}
     package {{packageName .GoSdkPath}}
 
-    import (
-    "encoding/xml"
-    "fmt"
-
-    "github.com/PaloAltoNetworks/pango/filtering"
-    "github.com/PaloAltoNetworks/pango/generic"
-    "github.com/PaloAltoNetworks/pango/util"
-    "github.com/PaloAltoNetworks/pango/version"
-    )
+    {{renderImports "entry"}}
 
     var (
     _ filtering.Fielder = &Entry{}

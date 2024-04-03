@@ -145,7 +145,7 @@ func specMatchFunctionName(parent []string, param *properties.SpecParam) string 
 	if param.Type == "list" {
 		return "util.OrderedListsMatch"
 	} else if param.Type == "string" {
-		return "util.OptionalStringsMatch"
+		return "util.StringsMatch"
 	} else {
 		return fmt.Sprintf("specMatch%s%s", strings.Join(parent, ""), param.Name.CamelCase)
 	}

@@ -898,14 +898,14 @@ func (c *XmlApiClient) ImportFile(ctx context.Context, cmd *xmlapi.Import, conte
 }
 
 // ExportFile retrieves a file from PAN-OS.
-func (c *XmlApiClient) ExportFile(ctx context.Context, cmd *xmlapi.Export, ans any) (string, []byte, error) {
+func (c *XmlApiClient) ExportFile(ctx context.Context, cmd *xmlapi.Export, ans any) (string, []byte, *http.Response, error) {
 	if cmd == nil {
-		return "", nil, fmt.Errorf("cmd is nil")
+		return "", nil, nil, fmt.Errorf("cmd is nil")
 	}
 
 	data, err := cmd.AsUrlValues()
 	if err != nil {
-		return "", nil, err
+		return "", nil, nil, err
 	}
 
 	if c.ApiKeyInRequest && c.ApiKey != "" && data.Get("key") == "" {
@@ -914,12 +914,12 @@ func (c *XmlApiClient) ExportFile(ctx context.Context, cmd *xmlapi.Export, ans a
 
 	req, err := http.NewRequestWithContext(ctx, "POST", c.api_url, strings.NewReader(data.Encode()))
 	if err != nil {
-		return "", nil, err
+		return "", nil, nil, err
 	}
 
 	b, resp, err := c.sendRequest(ctx, req, false, ans)
 	if err != nil {
-		return "", b, err
+		return "", b, resp, err
 	}
 
 	var filename string
@@ -928,7 +928,7 @@ func (c *XmlApiClient) ExportFile(ctx context.Context, cmd *xmlapi.Export, ans a
 		filename = params["filename"]
 	}
 
-	return filename, b, nil
+	return filename, b, resp, nil
 }
 
 // GetTechSupportFile returns the tech support file .tgz file.
@@ -950,7 +950,7 @@ func (c *XmlApiClient) GetTechSupportFile(ctx context.Context) (string, []byte, 
 	for {
 		resp = util.BasicJob{}
 
-		if _, _, err = c.ExportFile(ctx, cmd, &resp); err != nil {
+		if _, _, _, err = c.ExportFile(ctx, cmd, &resp); err != nil {
 			return "", nil, err
 		}
 
@@ -974,7 +974,7 @@ func (c *XmlApiClient) GetTechSupportFile(ctx context.Context) (string, []byte, 
 
 	cmd.Action = "get"
 
-	filename, b, err := c.ExportFile(ctx, cmd, nil)
+	filename, b, _, err := c.ExportFile(ctx, cmd, nil)
 	return filename, b, err
 }
 
@@ -1035,8 +1035,6 @@ func (c *XmlApiClient) sendRequest(ctx context.Context, req *http.Request, strip
 			}
 		}
 	}
-
-	// log.Printf("REPLY: %s\n", string(body))
 
 	if ans == nil {
 		return body, resp, nil
