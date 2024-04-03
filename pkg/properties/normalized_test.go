@@ -125,6 +125,15 @@ spec:
         -
           xpath: ["ip-wildcard"]
           from_version: "11.1.2"
+types:
+  color:
+    values:
+      red:
+        value: color1
+      light green:
+        value: color9
+      blue:
+        value: color3
 `
 
 func TestUnmarshallAddressSpecFile(t *testing.T) {
@@ -350,6 +359,27 @@ spec:
                   not_present: false
                   from_version: 11.1.2
             spec: null
+types:
+    color:
+        name:
+            underscore: color
+            camelcase: Color
+        values:
+            blue:
+                name:
+                    underscore: blue
+                    camelcase: Blue
+                value: color3
+            light green:
+                name:
+                    underscore: light_green
+                    camelcase: LightGreen
+                value: color9
+            red:
+                name:
+                    underscore: red
+                    camelcase: Red
+                value: color1
 `
 
 	// when
@@ -425,4 +455,16 @@ func TestGettingListOfSupportedVersions(t *testing.T) {
 	// then
 	assert.NotNilf(t, yamlParsedData, "Unmarshalled data cannot be nil")
 	assert.Contains(t, versions, "10.1.1")
+}
+
+func TestCustomType(t *testing.T) {
+	// given
+
+	// when
+	yamlParsedData, _ := ParseSpec([]byte(sampleSpec))
+
+	// then
+	assert.NotNil(t, yamlParsedData.Types)
+	assert.Equal(t, "Red", yamlParsedData.Types["color"].Values["red"].Name.CamelCase)
+	assert.Equal(t, "color1", yamlParsedData.Types["color"].Values["red"].Value)
 }
