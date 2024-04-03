@@ -10,10 +10,11 @@ import (
 	"github.com/PaloAltoNetworks/pango/device/services/ntp"
 	"github.com/PaloAltoNetworks/pango/objects/address"
 	"github.com/PaloAltoNetworks/pango/objects/service"
+	"github.com/PaloAltoNetworks/pango/objects/tag"
 )
 
 func main() {
-	var e error
+	var err error
 	x := context.Background()
 
 	// FW
@@ -21,18 +22,46 @@ func main() {
 		CheckEnvironment:      true,
 		SkipVerifyCertificate: true,
 	}
-	if e = c.Setup(); e != nil {
-		log.Printf("Failed to setup client: %s", e)
+	if err = c.Setup(); err != nil {
+		log.Printf("Failed to setup client: %s", err)
 		return
 	}
 	log.Printf("Setup client %s (%s)", c.Hostname, c.Username)
 
-	if e = c.Initialize(x); e != nil {
-		log.Printf("Failed to initialize client: %s", e)
+	if err = c.Initialize(x); err != nil {
+		log.Printf("Failed to initialize client: %s", err)
 		return
 	}
 
-	// ADDRESS
+	// TAG - CREATE
+	tagName := "codegen_color"
+	tagColor := tag.ColorAzureBlue
+	tagObject := tag.Entry{
+		Name:  tagName,
+		Color: &tagColor,
+	}
+
+	tagLocation := tag.Location{
+		Shared: true,
+	}
+
+	tagApi := tag.NewService(c)
+	tagReply, err := tagApi.Create(x, tagLocation, tagObject)
+	if err != nil {
+		log.Printf("Failed to create object: %s", err)
+		return
+	}
+	log.Printf("Tag '%s' created", tagReply.Name)
+
+	// TAG - DELETE
+	err = tagApi.Delete(x, tagLocation, tagName)
+	if err != nil {
+		log.Printf("Failed to delete object: %s", err)
+		return
+	}
+	log.Printf("Tag '%s' deleted", tagName)
+
+	// ADDRESS - CREATE
 	addressValue := "12.13.14.25"
 	addressName := "codegen_address_test1"
 	addressObject := address.Entry{
@@ -45,15 +74,15 @@ func main() {
 	}
 
 	addressApi := address.NewService(c)
-	addressReply, e := addressApi.Create(x, addressLocation, addressObject)
-	if e != nil {
-		log.Printf("Failed to create object: %s", e)
+	addressReply, err := addressApi.Create(x, addressLocation, addressObject)
+	if err != nil {
+		log.Printf("Failed to create object: %s", err)
 		return
 	}
 	log.Printf("Address '%s=%s' created", addressReply.Name, *addressReply.IpNetmask)
 
 	// ADDRESS - DELETE
-	err := addressApi.Delete(x, addressLocation, addressName)
+	err = addressApi.Delete(x, addressLocation, addressName)
 	if err != nil {
 		log.Printf("Failed to delete object: %s", err)
 		return
