@@ -112,6 +112,50 @@ func CamelCase(prefix, value, suffix string, capitalizeFirstRune bool) string {
 	return builder.String()
 }
 
+// Underscore converts a string to under_score format, allowing for optional prefixes/suffixes.
+// It also skips over templated sections within the string, preserving their original form.
+func Underscore(prefix, value, suffix string) string {
+	var builder strings.Builder
+	builder.Grow(len(prefix) + len(value) + len(suffix))
+
+	builder.WriteString(prefix)
+
+	isFirstCharacter := true
+	isIgnoringTemplate := false
+
+	for _, runeValue := range value {
+		switch runeValue {
+		case '{':
+			isIgnoringTemplate = true
+			isFirstCharacter = true // Reset for the content after template
+			continue
+		case '}':
+			isIgnoringTemplate = false
+			continue
+		}
+
+		if isIgnoringTemplate {
+			continue
+		}
+
+		if shouldResetFirstCharacterFlag(runeValue) {
+			builder.WriteRune('_')
+			isFirstCharacter = true
+		} else if isFirstCharacter {
+			builder.WriteRune(unicode.ToLower(runeValue))
+			isFirstCharacter = false
+		} else if unicode.IsUpper(runeValue) {
+			builder.WriteRune('_')
+			builder.WriteRune(unicode.ToLower(runeValue))
+		} else {
+			builder.WriteRune(unicode.ToLower(runeValue))
+		}
+	}
+
+	builder.WriteString(suffix)
+	return builder.String()
+}
+
 // shouldResetFirstCharacterFlag checks if the given rune is a separator that should trigger
 // the next character to be capitalized in CamelCase conversion.
 func shouldResetFirstCharacterFlag(r rune) bool {
