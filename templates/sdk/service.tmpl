@@ -397,6 +397,7 @@ package {{packageName .GoSdkPath}}
     updates.Add(&xmlapi.Config{
     Action: "delete",
     Xpath:  util.AsXpath(path),
+    Target:  s.client.GetTarget(),
     })
     }
     }
