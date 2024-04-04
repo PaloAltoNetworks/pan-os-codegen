@@ -12,19 +12,19 @@ import (
 )
 
 // CopyAssets copy assets (static files) according to configuration.
-func CopyAssets(config *properties.Config) error {
+func CopyAssets(config *properties.Config, runType string) error {
 	for _, asset := range config.Assets {
 		files, err := listAssets(asset)
 		if err != nil {
 			return err
 		}
 
-		if asset.Target.GoSdk {
+		if asset.Target.GoSdk && runType == "sdk" {
 			if err = copyAsset(config.Output.GoSdk, asset, files); err != nil {
 				return err
 			}
 		}
-		if asset.Target.TerraformProvider {
+		if asset.Target.TerraformProvider && runType == "terraform" {
 			if err = copyAsset(config.Output.TerraformProvider, asset, files); err != nil {
 				return err
 			}
