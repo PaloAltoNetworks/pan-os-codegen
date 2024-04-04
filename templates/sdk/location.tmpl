@@ -1,12 +1,6 @@
 package {{packageName .GoSdkPath}}
 
-import (
-"fmt"
-
-"github.com/PaloAltoNetworks/pango/errors"
-"github.com/PaloAltoNetworks/pango/util"
-"github.com/PaloAltoNetworks/pango/version"
-)
+{{renderImports "location"}}
 
 type Location struct {
 {{range $key, $location := .Locations}}

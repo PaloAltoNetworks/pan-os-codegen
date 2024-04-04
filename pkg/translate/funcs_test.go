@@ -244,3 +244,27 @@ return true
 	// then
 	assert.Equal(t, expectedNestedSpec, renderedNestedSpecMatches)
 }
+
+func TestXmlPathSuffixes(t *testing.T) {
+	// given
+	spec := properties.Spec{
+		Params: map[string]*properties.SpecParam{
+			"a": {
+				Profiles: []*properties.SpecParamProfile{{
+					Xpath: []string{"test", "a"},
+				}},
+				Name: &properties.NameVariant{
+					Underscore: "a",
+					CamelCase:  "A",
+				},
+			},
+		},
+	}
+	expectedXpathSuffixes := []string{"test/a"}
+
+	// when
+	actualXpathSuffixes := XmlPathSuffixes(spec.Params["a"])
+
+	// then
+	assert.Equal(t, expectedXpathSuffixes, actualXpathSuffixes)
+}

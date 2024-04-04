@@ -119,6 +119,7 @@ func (c *Creator) createFile(filePath string) (*os.File, error) {
 func (c *Creator) parseTemplate(templateName string) (*template.Template, error) {
 	templatePath := filepath.Join(c.TemplatesDir, templateName)
 	funcMap := template.FuncMap{
+		"renderImports":             translate.RenderImports,
 		"packageName":               translate.PackageName,
 		"locationType":              translate.LocationType,
 		"specParamType":             translate.SpecParamType,
@@ -138,6 +139,7 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		"nestedSpecs":               translate.NestedSpecs,
 		"createGoSuffixFromVersion": translate.CreateGoSuffixFromVersion,
 		"paramSupportedInVersion":   translate.ParamSupportedInVersion,
+		"xmlPathSuffixes":           translate.XmlPathSuffixes,
 	}
 	return template.New(templateName).Funcs(funcMap).ParseFiles(templatePath)
 }
