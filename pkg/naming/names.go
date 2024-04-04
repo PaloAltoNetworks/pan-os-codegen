@@ -74,42 +74,96 @@ func (o *Namer) NewSlug(name string) string {
 // sections within the string, preserving their original form.
 func CamelCase(prefix, value, suffix string, capitalizeFirstRune bool) string {
 	var builder strings.Builder
-	builder.Grow(len(prefix) + len(value) + len(suffix))
-
-	builder.WriteString(prefix)
+	prepareStringBuilder(prefix, value, suffix, builder)
 
 	isFirstCharacter := true
 	hasFirstRuneBeenCapitalized := false
 	isIgnoringTemplate := false
 
 	for _, runeValue := range value {
-		switch runeValue {
-		case '{':
-			isIgnoringTemplate = true
-			isFirstCharacter = true // Reset for the content after template
-			continue
-		case '}':
-			isIgnoringTemplate = false
+		if isTemplateDelimiter(runeValue, &isIgnoringTemplate) {
 			continue
 		}
 
-		if isIgnoringTemplate {
-			continue
-		}
-
-		if shouldResetFirstCharacterFlag(runeValue) {
-			isFirstCharacter = true
-		} else if isFirstCharacter {
-			capitalizeAndWriteRune(&builder, runeValue, hasFirstRuneBeenCapitalized || capitalizeFirstRune)
-			hasFirstRuneBeenCapitalized = true
-			isFirstCharacter = false
-		} else {
-			builder.WriteRune(runeValue)
-		}
+		writeRuneAndApplyChangesForCamelCase(runeValue, &builder, &isFirstCharacter, &hasFirstRuneBeenCapitalized, &capitalizeFirstRune)
 	}
 
 	builder.WriteString(suffix)
 	return builder.String()
+}
+
+// writeRuneAndApplyChangesForCamelCase contains logic to check all conditions for create CamelCase names and writes rune value.
+func writeRuneAndApplyChangesForCamelCase(runeValue int32, builder *strings.Builder, isFirstCharacter *bool, hasFirstRuneBeenCapitalized *bool, capitalizeFirstRune *bool) {
+	if shouldResetFirstCharacterFlag(runeValue) {
+		*isFirstCharacter = true
+	} else if *isFirstCharacter {
+		capitalizeAndWriteRune(builder, runeValue, *hasFirstRuneBeenCapitalized || *capitalizeFirstRune)
+		*hasFirstRuneBeenCapitalized = true
+		*isFirstCharacter = false
+	} else {
+		builder.WriteRune(runeValue)
+	}
+}
+
+// Underscore converts a string to under_score format, allowing for optional prefixes/suffixes.
+// It also skips over templated sections within the string, preserving their original form.
+func Underscore(prefix, value, suffix string) string {
+	var builder strings.Builder
+	prepareStringBuilder(prefix, value, suffix, builder)
+
+	isFirstCharacter := true
+	isIgnoringTemplate := false
+
+	for _, runeValue := range value {
+		if isTemplateDelimiter(runeValue, &isIgnoringTemplate) {
+			continue
+		}
+
+		writeRuneAndApplyChangesForUnderscore(runeValue, &builder, &isFirstCharacter)
+	}
+
+	builder.WriteString(suffix)
+	return builder.String()
+}
+
+// writeRuneAndApplyChangesForUnderscore contains logic to check all conditions for create under_score names and writes rune value.
+func writeRuneAndApplyChangesForUnderscore(runeValue int32, builder *strings.Builder, isFirstCharacter *bool) {
+	if shouldResetFirstCharacterFlag(runeValue) {
+		appendUnderscore(builder)
+		*isFirstCharacter = true
+	} else if *isFirstCharacter {
+		capitalizeAndWriteRune(builder, runeValue, false)
+		*isFirstCharacter = false
+	} else if unicode.IsUpper(runeValue) {
+		appendUnderscore(builder)
+		capitalizeAndWriteRune(builder, runeValue, false)
+	} else {
+		capitalizeAndWriteRune(builder, runeValue, false)
+	}
+}
+
+// appendUnderscore add _ to builder, from which final result is built.
+func appendUnderscore(builder *strings.Builder) {
+	builder.WriteRune('_')
+}
+
+// isTemplateDelimiter return true, if { or } are runeValue or isIgnoringTemplate is set to true.
+func isTemplateDelimiter(runeValue int32, isIgnoringTemplate *bool) bool {
+	switch runeValue {
+	case '{':
+		*isIgnoringTemplate = true
+		return true
+	case '}':
+		*isIgnoringTemplate = false
+		return true // if we finish template, then we always ignore that character, even if set isIgnoringTemplate to false
+	}
+
+	return *isIgnoringTemplate
+}
+
+func prepareStringBuilder(prefix string, value string, suffix string, builder strings.Builder) {
+	builder.Grow(len(prefix) + len(value) + len(suffix))
+	builder.WriteString(prefix)
 }
 
 // shouldResetFirstCharacterFlag checks if the given rune is a separator that should trigger

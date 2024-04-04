@@ -98,6 +98,14 @@
         {{- end}}
     {{- end}}
 
+    {{- range $name, $const := .Const}}
+        const (
+        {{- range $value := $const.Values}}
+            {{$const.Name.CamelCase}}{{$value.Name.CamelCase}} = "{{$value.Value}}"
+        {{- end}}
+        )
+    {{- end}}
+
     func (e *Entry) Field(v string) (any, error) {
     if v == "name" || v == "Name" {
     return e.Name, nil
