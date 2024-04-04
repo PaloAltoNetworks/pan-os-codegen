@@ -85,6 +85,7 @@ spec:
       profiles:
         -
           xpath: ["description"]
+          from_version: "10.1.1"
     tags:
       description: 'The administrative tags.'
       type: 'list'
@@ -123,6 +124,16 @@ spec:
       profiles:
         -
           xpath: ["ip-wildcard"]
+          from_version: "11.1.2"
+const:
+  color:
+    values:
+      red:
+        value: color1
+      light green:
+        value: color9
+      blue:
+        value: color3
 `
 
 func TestUnmarshallAddressSpecFile(t *testing.T) {
@@ -266,7 +277,7 @@ spec:
                 - xpath:
                     - description
                   not_present: false
-                  from_version: ""
+                  from_version: 10.1.1
             spec: null
         tags:
             name:
@@ -346,8 +357,29 @@ spec:
                 - xpath:
                     - ip-wildcard
                   not_present: false
-                  from_version: ""
+                  from_version: 11.1.2
             spec: null
+const:
+    color:
+        name:
+            underscore: color
+            camelcase: Color
+        values:
+            blue:
+                name:
+                    underscore: blue
+                    camelcase: Blue
+                value: color3
+            light green:
+                name:
+                    underscore: light_green
+                    camelcase: LightGreen
+                value: color9
+            red:
+                name:
+                    underscore: red
+                    camelcase: Red
+                value: color1
 `
 
 	// when
@@ -411,4 +443,28 @@ xpath_suffix:
 
 	// then
 	assert.Len(t, problems, 2, "Not all expected validation checks failed")
+}
+
+func TestGettingListOfSupportedVersions(t *testing.T) {
+	// given
+	yamlParsedData, _ := ParseSpec([]byte(sampleSpec))
+
+	// when
+	versions := yamlParsedData.SupportedVersions()
+
+	// then
+	assert.NotNilf(t, yamlParsedData, "Unmarshalled data cannot be nil")
+	assert.Contains(t, versions, "10.1.1")
+}
+
+func TestCustomType(t *testing.T) {
+	// given
+
+	// when
+	yamlParsedData, _ := ParseSpec([]byte(sampleSpec))
+
+	// then
+	assert.NotNil(t, yamlParsedData.Const)
+	assert.Equal(t, "Red", yamlParsedData.Const["color"].Values["red"].Name.CamelCase)
+	assert.Equal(t, "color1", yamlParsedData.Const["color"].Values["red"].Value)
 }

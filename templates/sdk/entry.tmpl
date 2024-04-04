@@ -1,175 +1,228 @@
 {{- if .Entry}}
-package {{packageName .GoSdkPath}}
+    package {{packageName .GoSdkPath}}
 
-import (
-	"encoding/xml"
-	"fmt"
+    {{renderImports "entry"}}
 
-	"github.com/PaloAltoNetworks/pango/filtering"
-	"github.com/PaloAltoNetworks/pango/generic"
-	"github.com/PaloAltoNetworks/pango/util"
-	"github.com/PaloAltoNetworks/pango/version"
-)
+    var (
+    _ filtering.Fielder = &Entry{}
+    )
 
-var (
-	_ filtering.Fielder = &Entry{}
-)
+    var (
+    Suffix = []string{
+    {{- $length := subtract (len .XpathSuffix) 1 }}
+    {{- range $index, $suffix := .XpathSuffix}}"
+    {{- $suffix}}"{{- if lt $index $length}},{{- end}}
+    {{- end}}}
+    )
 
-var (
-	Suffix = []string{
-	{{- $length := subtract (len .XpathSuffix) 1 }}
-	{{- range $index, $suffix := .XpathSuffix}}"
-	    {{- $suffix}}"{{- if lt $index $length}},{{- end}}
-	{{- end}}}
-)
-
-type Entry struct {
+    type Entry{{createGoSuffixFromVersion ""}} struct {
     Name string
-    {{- range $_, $param := .Spec.Params}}
-    {{$param.Name.CamelCase}} {{specParamType "" $param}}
+    {{- range $_, $param := $.Spec.Params}}
+        {{$param.Name.CamelCase}} {{specParamType "" $param}}
     {{- end}}
-    {{- range $_, $param := .Spec.OneOf}}
-    {{$param.Name.CamelCase}} {{specParamType "" $param}}
-    {{- end}}
-
-	Misc map[string][]generic.Xml
-}
-
-{{- range $name, $spec := nestedSpecs .Spec }}
-type Spec{{$name}} struct {
-    {{- range $_, $param := $spec.Params}}
-    {{$param.Name.CamelCase}} {{specParamType $name $param}}
-    {{- end}}
-    {{- range $_, $param := $spec.OneOf}}
-    {{$param.Name.CamelCase}} {{specParamType $name $param}}
-    {{- end}}
-}
-{{- end}}
-
-type EntryXmlContainer struct {
-	Answer []EntryXml `xml:"entry"`
-}
-
-type EntryXml struct {
-	XMLName xml.Name `xml:"entry"`
-	Name string `xml:"name,attr"`
-    {{- range $_, $param := .Spec.Params}}
-    {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
-    {{- end}}
-    {{- range $_, $param := .Spec.OneOf}}
-    {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
+    {{- range $_, $param := $.Spec.OneOf}}
+        {{$param.Name.CamelCase}} {{specParamType "" $param}}
     {{- end}}
 
-	Misc []generic.Xml `xml:",any"`
-}
-
-{{- range $name, $spec := nestedSpecs .Spec }}
-type Spec{{$name}}Xml struct {
-    {{- range $_, $param := $spec.Params}}
-    {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
-    {{- end}}
-    {{- range $_, $param := $spec.OneOf}}
-    {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
-    {{- end}}
-}
-{{- end}}
-
-func (e *Entry) CopyMiscFrom(v *Entry) {
-	if v == nil || len(v.Misc) == 0 {
-		return
-	}
-
-	e.Misc = make(map[string][]generic.Xml)
-	for key := range v.Misc {
-		e.Misc[key] = append([]generic.Xml(nil), v.Misc[key]...)
-	}
-}
-
-func (e *Entry) Field(v string) (any, error) {
-	if v == "name" || v == "Name" {
-		return e.Name, nil
-	}
-
-    {{- range $_, $param := .Spec.Params}}
-    if v == "{{$param.Name.Underscore}}" || v == "{{$param.Name.CamelCase}}" {
-        return e.{{$param.Name.CamelCase}}, nil
+    Misc map[string][]generic.Xml
     }
-    {{- if eq $param.Type "list"}}
-	if v == "{{$param.Name.Underscore}}|LENGTH" || v == "{{$param.Name.CamelCase}}|LENGTH" {
-        return int64(len(e.{{$param.Name.CamelCase}})), nil
-    }
-    {{- end}}
-    {{- end}}
-    {{- range $_, $param := .Spec.OneOf}}
-    if v == "{{$param.Name.Underscore}}" || v == "{{$param.Name.CamelCase}}" {
-        return e.{{$param.Name.CamelCase}}, nil
-    }
-    {{- end}}
 
-	return nil, fmt.Errorf("unknown field")
-}
-
-func Versioning(vn version.Number) (Specifier, Normalizer, error) {
-	return SpecifyEntry, &EntryXmlContainer{}, nil
-}
-
-func SpecifyEntry(o Entry) (any, error) {
-	entry := EntryXml{}
-
-	entry.Name = o.Name
-    {{- range $_, $param := .Spec.Params}}
-    {{specifyEntryAssignment $param}}
-    {{- end}}
-    {{- range $_, $param := .Spec.OneOf}}
-    {{specifyEntryAssignment $param}}
-    {{- end}}
-
-	entry.Misc = o.Misc[fmt.Sprintf("%s\n%s", "Entry", o.Name)]
-
-	return entry, nil
-}
-
-func (c *EntryXmlContainer) Normalize() ([]Entry, error) {
-	entryList := make([]Entry, 0, len(c.Answer))
-	for _, o := range c.Answer {
-		entry := Entry{
-			Misc: make(map[string][]generic.Xml),
-		}
-		entry.Name = o.Name
-        {{- range $_, $param := .Spec.Params}}
-        {{normalizeAssignment $param}}
+    {{- range $name, $spec := nestedSpecs $.Spec }}
+        type Spec{{$name}}{{createGoSuffixFromVersion ""}} struct {
+        {{- range $_, $param := $spec.Params}}
+            {{$param.Name.CamelCase}} {{specParamType $name $param}}
         {{- end}}
-        {{- range $_, $param := .Spec.OneOf}}
-        {{normalizeAssignment $param}}
+        {{- range $_, $param := $spec.OneOf}}
+            {{$param.Name.CamelCase}} {{specParamType $name $param}}
+        {{- end}}
+        }
+    {{- end}}
+
+    {{- range $version := .SupportedVersions }}
+        type entryXmlContainer{{createGoSuffixFromVersion $version}} struct {
+        Answer []entryXml{{createGoSuffixFromVersion $version}} `xml:"entry"`
+        }
+    {{- end}}
+
+    {{- range $version := .SupportedVersions }}
+        type entryXml{{createGoSuffixFromVersion $version}} struct {
+        XMLName xml.Name `xml:"entry"`
+        Name string `xml:"name,attr"`
+        {{- range $_, $param := $.Spec.Params}}
+            {{- if paramSupportedInVersion $param $version}}
+                {{- if $param.Spec}}
+                    {{$param.Name.CamelCase}} {{xmlParamType "" $param}}{{createGoSuffixFromVersion $version}} {{xmlTag $param}}
+                {{- else}}
+                    {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
+                {{- end}}
+            {{- end}}
+        {{- end}}
+        {{- range $_, $param := $.Spec.OneOf}}
+            {{- if paramSupportedInVersion $param $version}}
+                {{- if $param.Spec}}
+                    {{$param.Name.CamelCase}} {{xmlParamType "" $param}}{{createGoSuffixFromVersion $version}} {{xmlTag $param}}
+                {{- else}}
+                    {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
+                {{- end}}
+            {{- end}}
         {{- end}}
 
-		entry.Misc[fmt.Sprintf("%s\n%s", "Entry", o.Name)] = o.Misc
+        Misc []generic.Xml `xml:",any"`
+        }
+    {{- end}}
 
-		entryList = append(entryList, entry)
-	}
+    {{- range $version := .SupportedVersions }}
+        {{- range $name, $spec := nestedSpecs $.Spec }}
+            type spec{{$name}}Xml{{createGoSuffixFromVersion $version}} struct {
+            {{- range $_, $param := $spec.Params}}
+                {{- if paramSupportedInVersion $param $version}}
+                    {{- if $param.Spec}}
+                        {{$param.Name.CamelCase}} {{xmlParamType $name $param}}{{createGoSuffixFromVersion $version}} {{xmlTag $param}}
+                    {{- else}}
+                        {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
+                    {{- end}}
+                {{- end}}
+            {{- end}}
+            {{- range $_, $param := $spec.OneOf}}
+                {{- if paramSupportedInVersion $param $version}}
+                    {{- if $param.Spec}}
+                        {{$param.Name.CamelCase}} {{xmlParamType $name $param}}{{createGoSuffixFromVersion $version}} {{xmlTag $param}}
+                    {{- else}}
+                        {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
+                    {{- end}}
+                {{- end}}
+            {{- end}}
 
-	return entryList, nil
-}
+            Misc []generic.Xml `xml:",any"`
+            }
+        {{- end}}
+    {{- end}}
 
-func SpecMatches(a, b *Entry) bool {
-	if a == nil && b != nil || a != nil && b == nil {
-		return false
-	} else if a == nil && b == nil {
-		return true
-	}
+    {{- range $name, $const := .Const}}
+        const (
+        {{- range $value := $const.Values}}
+            {{$const.Name.CamelCase}}{{$value.Name.CamelCase}} = "{{$value.Value}}"
+        {{- end}}
+        )
+    {{- end}}
 
-	// Don't compare Name.
-    {{- range $_, $param := .Spec.Params}}
-    if !util.{{specMatchesFunction $param}}(a.{{$param.Name.CamelCase}}, b.{{$param.Name.CamelCase}}) {
-        return false
+    func (e *Entry) Field(v string) (any, error) {
+    if v == "name" || v == "Name" {
+    return e.Name, nil
     }
+
+    {{- range $_, $param := .Spec.Params}}
+        if v == "{{$param.Name.Underscore}}" || v == "{{$param.Name.CamelCase}}" {
+        return e.{{$param.Name.CamelCase}}, nil
+        }
+        {{- if eq $param.Type "list"}}
+            if v == "{{$param.Name.Underscore}}|LENGTH" || v == "{{$param.Name.CamelCase}}|LENGTH" {
+            return int64(len(e.{{$param.Name.CamelCase}})), nil
+            }
+        {{- end}}
     {{- end}}
     {{- range $_, $param := .Spec.OneOf}}
-    if !util.{{specMatchesFunction $param}}(a.{{$param.Name.CamelCase}}, b.{{$param.Name.CamelCase}}) {
-        return false
-    }
+        if v == "{{$param.Name.Underscore}}" || v == "{{$param.Name.CamelCase}}" {
+        return e.{{$param.Name.CamelCase}}, nil
+        }
     {{- end}}
 
-	return true
-}
+    return nil, fmt.Errorf("unknown field")
+    }
+
+    func Versioning(vn version.Number) (Specifier, Normalizer, error) {
+    {{- $numberOfVersions := len .SupportedVersions }}
+    {{- if gt $numberOfVersions 1}}
+        {{- range $index, $version := .SupportedVersions }}
+            {{- if ne $version ""}}
+                version{{createGoSuffixFromVersion $version}}, err := version.New("{{$version}}")
+                if err != nil {
+                return nil, nil, err
+                }
+            {{- end}}
+        {{- end}}
+        {{- range $index, $version := .SupportedVersions }}
+            {{- if ne $version ""}}
+                {{- if eq $index 1}}
+                    if vn.Gte(version{{createGoSuffixFromVersion $version}}) {
+                    return specifyEntry{{createGoSuffixFromVersion $version}}, &entryXmlContainer{{createGoSuffixFromVersion $version}}{}, nil
+                {{- else}}
+                    } else if vn.Gte(version{{createGoSuffixFromVersion $version}}) {
+                    return specifyEntry{{createGoSuffixFromVersion $version}}, &entryXmlContainer{{createGoSuffixFromVersion $version}}{}, nil
+                {{- end}}
+            {{- end}}
+        {{- end}}
+        } else {
+    {{- end}}
+    return specifyEntry, &entryXmlContainer{}, nil
+    {{- if gt $numberOfVersions 1}}
+        }
+    {{- end}}
+    }
+
+    {{- range $version := .SupportedVersions }}
+        func specifyEntry{{createGoSuffixFromVersion $version}}(o Entry) (any, error) {
+        entry := entryXml{{createGoSuffixFromVersion $version}}{}
+
+        entry.Name = o.Name
+        {{- range $_, $param := $.Spec.Params}}
+            {{specifyEntryAssignment "entry" $param $version}}
+        {{- end}}
+        {{- range $_, $param := $.Spec.OneOf}}
+            {{specifyEntryAssignment "entry" $param $version}}
+        {{- end}}
+
+        entry.Misc = o.Misc["Entry"]
+
+        return entry, nil
+        }
+    {{- end}}
+
+    {{- range $version := .SupportedVersions }}
+        func (c *entryXmlContainer{{createGoSuffixFromVersion $version}}) Normalize() ([]Entry, error) {
+        entryList := make([]Entry, 0, len(c.Answer))
+        for _, o := range c.Answer {
+        entry := Entry{
+        Misc: make(map[string][]generic.Xml),
+        }
+        entry.Name = o.Name
+        {{- range $_, $param := $.Spec.Params}}
+            {{normalizeAssignment "entry" $param $version}}
+        {{- end}}
+        {{- range $_, $param := $.Spec.OneOf}}
+            {{normalizeAssignment "entry" $param $version}}
+        {{- end}}
+
+        entry.Misc["Entry"] = o.Misc
+
+        entryList = append(entryList, entry)
+        }
+
+        return entryList, nil
+        }
+    {{- end}}
+
+    func SpecMatches(a, b *Entry) bool {
+    if a == nil && b != nil || a != nil && b == nil {
+    return false
+    } else if a == nil && b == nil {
+    return true
+    }
+
+    // Don't compare Name.
+    {{- range $_, $param := .Spec.Params}}
+        if !{{specMatchesFunction $param}}(a.{{$param.Name.CamelCase}}, b.{{$param.Name.CamelCase}}) {
+        return false
+        }
+    {{- end}}
+    {{- range $_, $param := .Spec.OneOf}}
+        if !{{specMatchesFunction $param}}(a.{{$param.Name.CamelCase}}, b.{{$param.Name.CamelCase}}) {
+        return false
+        }
+    {{- end}}
+
+    return true
+    }
+
+    {{nestedSpecMatchesFunction $.Spec}}
 {{- end}}

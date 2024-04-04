@@ -22,6 +22,7 @@ type Normalization struct {
 	Entry                   *Entry               `json:"entry" yaml:"entry"`
 	Version                 string               `json:"version" yaml:"version"`
 	Spec                    *Spec                `json:"spec" yaml:"spec"`
+	Const                   map[string]*Const    `json:"const" yaml:"const"`
 }
 
 type NameVariant struct {
@@ -71,6 +72,16 @@ type EntryNameLength struct {
 type Spec struct {
 	Params map[string]*SpecParam `json:"params" yaml:"params"`
 	OneOf  map[string]*SpecParam `json:"one_of" yaml:"one_of,omitempty"`
+}
+
+type Const struct {
+	Name   *NameVariant
+	Values map[string]*ConstValue `json:"values" yaml:"values"`
+}
+
+type ConstValue struct {
+	Name  *NameVariant
+	Value string `json:"value" yaml:"value"`
 }
 
 type SpecParam struct {
@@ -169,6 +180,11 @@ func ParseSpec(input []byte) (*Normalization, error) {
 		return nil, err
 	}
 
+	err = spec.AddNameVariantsForTypes()
+	if err != nil {
+		return nil, err
+	}
+
 	log.Printf("[DEBUG] print spec -> %s \n", &spec)
 	return &spec, err
 }
@@ -177,13 +193,13 @@ func ParseSpec(input []byte) (*Normalization, error) {
 func (spec *Normalization) AddNameVariantsForLocation() error {
 	for key, location := range spec.Locations {
 		location.Name = &NameVariant{
-			Underscore: key,
+			Underscore: naming.Underscore("", key, ""),
 			CamelCase:  naming.CamelCase("", key, "", true),
 		}
 
 		for subkey, variable := range location.Vars {
 			variable.Name = &NameVariant{
-				Underscore: subkey,
+				Underscore: naming.Underscore("", subkey, ""),
 				CamelCase:  naming.CamelCase("", subkey, "", true),
 			}
 		}
@@ -195,7 +211,7 @@ func (spec *Normalization) AddNameVariantsForLocation() error {
 // AddNameVariantsForParams recursively add name variants for params for nested specs.
 func AddNameVariantsForParams(name string, param *SpecParam) error {
 	param.Name = &NameVariant{
-		Underscore: name,
+		Underscore: naming.Underscore("", name, ""),
 		CamelCase:  naming.CamelCase("", name, "", true),
 	}
 	if param.Spec != nil {
@@ -230,10 +246,29 @@ func (spec *Normalization) AddNameVariantsForParams() error {
 	return nil
 }
 
+// AddNameVariantsForTypes add name variants for types (under_score and CamelCase).
+func (spec *Normalization) AddNameVariantsForTypes() error {
+	if spec.Const != nil {
+		for nameType, customType := range spec.Const {
+			customType.Name = &NameVariant{
+				Underscore: naming.Underscore("", nameType, ""),
+				CamelCase:  naming.CamelCase("", nameType, "", true),
+			}
+			for nameValue, customValue := range customType.Values {
+				customValue.Name = &NameVariant{
+					Underscore: naming.Underscore("", nameValue, ""),
+					CamelCase:  naming.CamelCase("", nameValue, "", true),
+				}
+			}
+		}
+	}
+	return nil
+}
+
 // addDefaultTypesForParams recursively add default types for params for nested specs.
 func addDefaultTypesForParams(params map[string]*SpecParam) error {
 	for _, param := range params {
-		if param.Type == "" {
+		if param.Type == "" && param.Spec == nil {
 			param.Type = "string"
 		}
 
@@ -291,6 +326,7 @@ func (spec *Normalization) Sanity(commandType string) error {
 			return fmt.Errorf("tf provider path is required")
 		}
 	}
+
 	return nil
 }
 
@@ -314,4 +350,40 @@ func (spec *Normalization) Validate() []error {
 	}
 
 	return checks
+}
+
+// SupportedVersions provides list of all supported versions in format MAJOR.MINOR.PATCH
+func (spec *Normalization) SupportedVersions() []string {
+	if spec.Spec != nil {
+		versions := supportedVersions(spec.Spec.Params, []string{""})
+		versions = supportedVersions(spec.Spec.OneOf, versions)
+		return versions
+	}
+	return nil
+}
+
+func supportedVersions(params map[string]*SpecParam, versions []string) []string {
+	for _, param := range params {
+		for _, profile := range param.Profiles {
+			if profile.FromVersion != "" {
+				if notExist := listContains(versions, profile.FromVersion); notExist {
+					versions = append(versions, profile.FromVersion)
+				}
+			}
+		}
+		if param.Spec != nil {
+			versions = supportedVersions(param.Spec.Params, versions)
+			versions = supportedVersions(param.Spec.OneOf, versions)
+		}
+	}
+	return versions
+}
+
+func listContains(versions []string, checkedVersion string) bool {
+	for _, version := range versions {
+		if version == checkedVersion {
+			return false
+		}
+	}
+	return true
 }

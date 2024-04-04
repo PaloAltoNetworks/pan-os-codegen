@@ -45,8 +45,8 @@ func TestSpecifyEntryAssignmentForFlatStructure(t *testing.T) {
 	}
 
 	// when
-	calculatedAssignmentString := SpecifyEntryAssignment(&paramTypeString)
-	calculatedAssignmentListString := SpecifyEntryAssignment(&paramTypeListString)
+	calculatedAssignmentString := SpecifyEntryAssignment("entry", &paramTypeString, "")
+	calculatedAssignmentListString := SpecifyEntryAssignment("entry", &paramTypeListString, "")
 
 	// then
 	assert.Equal(t, "entry.Description = o.Description", calculatedAssignmentString)
@@ -85,15 +85,22 @@ func TestSpecifyEntryAssignmentForNestedObject(t *testing.T) {
 			},
 		},
 	}
-	expectedAssignmentStreing := `nestedABC := o.A.B.C
-entry.A = &SpecAXml{
-B : &SpecABXml{
-C : nestedABC,
-},
+	expectedAssignmentStreing := `nestedA := &specAXml{}
+if o.A != nil {
+if o.A.B != nil {
+nestedA.B = &specABXml{}
+if _, ok := o.Misc["AB"]; ok {
+nestedA.B.Misc = o.Misc["AB"]
 }
+if o.A.B.C != nil {
+nestedA.B.C = o.A.B.C
+}
+}
+}
+entry.A = nestedA
 `
 	// when
-	calculatedAssignmentString := SpecifyEntryAssignment(spec.Params["a"])
+	calculatedAssignmentString := SpecifyEntryAssignment("entry", spec.Params["a"], "")
 
 	// then
 	assert.Equal(t, expectedAssignmentStreing, calculatedAssignmentString)
@@ -131,15 +138,22 @@ func TestNormalizeAssignmentForNestedObject(t *testing.T) {
 			},
 		},
 	}
-	expectedAssignmentStreing := `nestedABC := o.A.B.C
-entry.A = &SpecA{
-B : &SpecAB{
-C : nestedABC,
-},
+	expectedAssignmentStreing := `nestedA := &SpecA{}
+if o.A != nil {
+if o.A.B != nil {
+nestedA.B = &SpecAB{}
+if o.A.B.Misc != nil {
+entry.Misc["AB"] = o.A.B.Misc
 }
+if o.A.B.C != nil {
+nestedA.B.C = o.A.B.C
+}
+}
+}
+entry.A = nestedA
 `
 	// when
-	calculatedAssignmentString := NormalizeAssignment(spec.Params["a"])
+	calculatedAssignmentString := NormalizeAssignment("entry", spec.Params["a"], "")
 
 	// then
 	assert.Equal(t, expectedAssignmentStreing, calculatedAssignmentString)
@@ -159,6 +173,98 @@ func TestSpecMatchesFunction(t *testing.T) {
 	calculatedSpecMatchFunctionListString := SpecMatchesFunction(&paramTypeListString)
 
 	// then
-	assert.Equal(t, "OptionalStringsMatch", calculatedSpecMatchFunctionString)
-	assert.Equal(t, "OrderedListsMatch", calculatedSpecMatchFunctionListString)
+	assert.Equal(t, "util.StringsMatch", calculatedSpecMatchFunctionString)
+	assert.Equal(t, "util.OrderedListsMatch", calculatedSpecMatchFunctionListString)
+}
+
+func TestNestedSpecMatchesFunction(t *testing.T) {
+	// given
+	spec := properties.Spec{
+		Params: map[string]*properties.SpecParam{
+			"a": {
+				Name: &properties.NameVariant{
+					Underscore: "a",
+					CamelCase:  "A",
+				},
+				Spec: &properties.Spec{
+					Params: map[string]*properties.SpecParam{
+						"b": {
+							Name: &properties.NameVariant{
+								Underscore: "b",
+								CamelCase:  "B",
+							},
+							Spec: &properties.Spec{
+								Params: map[string]*properties.SpecParam{
+									"c": {
+										Name: &properties.NameVariant{
+											Underscore: "c",
+											CamelCase:  "C",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	expectedNestedSpec := `func specMatchABC(a *SpecABC, b *SpecABC) bool {if a == nil && b != nil || a != nil && b == nil {
+	return false
+} else if a == nil && b == nil {
+	return true
+}
+return *a == *b
+}
+func specMatchAB(a *SpecAB, b *SpecAB) bool {if a == nil && b != nil || a != nil && b == nil {
+	return false
+} else if a == nil && b == nil {
+	return true
+}
+if !specMatchABC(a.C, b.C) {
+	return false
+}
+return true
+}
+func specMatchA(a *SpecA, b *SpecA) bool {if a == nil && b != nil || a != nil && b == nil {
+	return false
+} else if a == nil && b == nil {
+	return true
+}
+if !specMatchAB(a.B, b.B) {
+	return false
+}
+return true
+}
+`
+
+	// when
+	renderedNestedSpecMatches := NestedSpecMatchesFunction(&spec)
+
+	// then
+	assert.Equal(t, expectedNestedSpec, renderedNestedSpecMatches)
+}
+
+func TestXmlPathSuffixes(t *testing.T) {
+	// given
+	spec := properties.Spec{
+		Params: map[string]*properties.SpecParam{
+			"a": {
+				Profiles: []*properties.SpecParamProfile{{
+					Xpath: []string{"test", "a"},
+				}},
+				Name: &properties.NameVariant{
+					Underscore: "a",
+					CamelCase:  "A",
+				},
+			},
+		},
+	}
+	expectedXpathSuffixes := []string{"test/a"}
+
+	// when
+	actualXpathSuffixes := XmlPathSuffixes(spec.Params["a"])
+
+	// then
+	assert.Equal(t, expectedXpathSuffixes, actualXpathSuffixes)
 }

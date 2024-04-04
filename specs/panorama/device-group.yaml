@@ -64,8 +64,7 @@ spec:
       items:
         type: 'string'
       profiles:
-        -
-          type: 'entry'
+        - type: 'member'
           xpath: ["devices"]
     authorization_code:
       description: 'Authorization code'

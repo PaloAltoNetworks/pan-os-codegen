@@ -1,7 +1,15 @@
 package {{packageName .GoSdkPath}}
 
-type Specifier func(Entry) (any, error)
+{{- if .Entry}}
+    type Specifier func(Entry) (any, error)
+{{- else}}
+    type Specifier func(Config) (any, error)
+{{- end}}
 
 type Normalizer interface {
+{{- if .Entry}}
     Normalize() ([]Entry, error)
+{{- else}}
+    Normalize() ([]Config, error)
+{{- end}}
 }
