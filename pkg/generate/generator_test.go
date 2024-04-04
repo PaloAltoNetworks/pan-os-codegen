@@ -21,7 +21,7 @@ func TestCreateFullFilePath(t *testing.T) {
 	// when
 
 	generator := NewCreator("test_output", "templates", spec)
-	fullFilePath := generator.createFullFilePath("template.tmpl")
+	fullFilePath := generator.createFullFilePath("template.tmpl", "sdk")
 
 	// then
 	assert.Equal(t, expected, fullFilePath)

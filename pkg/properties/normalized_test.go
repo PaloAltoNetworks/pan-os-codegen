@@ -157,7 +157,9 @@ func TestUnmarshallAddressSpecFile(t *testing.T) {
 func TestMarshallAddressSpecFile(t *testing.T) {
 	// given
 	var expectedMarshalledData = `name: Address
+exclusive: ""
 terraform_provider_suffix: address
+terraform_provider_path: []
 go_sdk_path:
     - objects
     - address
@@ -419,7 +421,7 @@ xpath_suffix:
 	if err != nil {
 		t.Fatalf("error: %v", err)
 	}
-	err = yamlParsedData.Sanity()
+	err = yamlParsedData.Sanity("sdk")
 
 	// then
 	assert.ErrorContainsf(t, err, "at least 1 location is required", "error message %s", err)

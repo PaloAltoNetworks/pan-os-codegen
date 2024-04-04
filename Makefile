@@ -1,4 +1,4 @@
-all: build test_sdk
+all: test_go build test_sdk
 
 build:
 	go run ./cmd/codegen/main.go
@@ -9,3 +9,6 @@ test_sdk:
 
 clean:
 	rm -rf ../generated
+
+test_go:
+	go test -v ./...
