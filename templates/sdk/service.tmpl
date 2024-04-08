@@ -25,7 +25,7 @@ package {{packageName .GoSdkPath}}
     return nil, err
     }
 
-    path, err := loc.Xpath(vn, entry.Name)
+    path, err := loc.XpathWithEntryName(vn, entry.Name)
     if err != nil {
     return nil, err
     }
@@ -61,7 +61,7 @@ package {{packageName .GoSdkPath}}
     return nil, err
     }
 
-    path, err := loc.Xpath(vn, name)
+    path, err := loc.XpathWithEntryName(vn, name)
     if err != nil {
     return nil, err
     }
@@ -102,7 +102,7 @@ package {{packageName .GoSdkPath}}
     return nil, err
     }
 
-    path, err := loc.Xpath(vn, name)
+    path, err := loc.XpathWithEntryName(vn, name)
     if err != nil {
     return nil, err
     }
@@ -136,7 +136,7 @@ package {{packageName .GoSdkPath}}
 
     var old *Entry
     if oldName != "" && oldName != entry.Name {
-    path, err := loc.Xpath(vn, oldName)
+    path, err := loc.XpathWithEntryName(vn, oldName)
     if err != nil {
     return nil, err
     }
@@ -157,7 +157,7 @@ package {{packageName .GoSdkPath}}
     }
 
     if !SpecMatches(&entry, old) {
-    path, err := loc.Xpath(vn, entry.Name)
+    path, err := loc.XpathWithEntryName(vn, entry.Name)
     if err != nil {
     return nil, err
     }
@@ -192,7 +192,7 @@ package {{packageName .GoSdkPath}}
 
     vn := s.client.Versioning()
 
-    path, err := loc.Xpath(vn, name)
+    path, err := loc.XpathWithEntryName(vn, name)
     if err != nil {
     return err
     }
@@ -228,7 +228,7 @@ package {{packageName .GoSdkPath}}
     return nil, err
     }
 
-    path, err := loc.Xpath(vn, "")
+    path, err := loc.XpathWithEntryName(vn, "")
     if err != nil {
     return nil, err
     }
@@ -286,7 +286,7 @@ package {{packageName .GoSdkPath}}
     return nil, err
     }
 
-    path, err := loc.Xpath(vn, "")
+    path, err := loc.XpathWithEntryName(vn, "")
     if err != nil {
     return nil, err
     }
@@ -337,7 +337,7 @@ package {{packageName .GoSdkPath}}
     if entry.Name == live.Name {
     found = true
     if !SpecMatches(&entry, &live) {
-    path, err := loc.Xpath(vn, entry.Name)
+    path, err := loc.XpathWithEntryName(vn, entry.Name)
     if err != nil {
     return nil, err
     }
@@ -359,7 +359,7 @@ package {{packageName .GoSdkPath}}
     }
 
     if !found {
-    path, err := loc.Xpath(vn, entry.Name)
+    path, err := loc.XpathWithEntryName(vn, entry.Name)
     if err != nil {
     return nil, err
     }
@@ -389,7 +389,7 @@ package {{packageName .GoSdkPath}}
     }
 
     if !found {
-    path, err := loc.Xpath(vn, name)
+    path, err := loc.XpathWithEntryName(vn, name)
     if err != nil {
     return nil, err
     }
