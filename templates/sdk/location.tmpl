@@ -57,7 +57,9 @@ switch {
     ans = []string{
     {{- range $name, $xpath := $location.Xpath}}
         {{- if contains $xpath "Entry"}}
-            {{generateEntryXpath $location.Name.CamelCase $xpath}}
+            {{generateEntryXpath "util.AsEntryXpath([]string{" "})" $location.Name.CamelCase $xpath}}
+        {{- else if contains $xpath "Object"}}
+            {{generateEntryXpath "" "" $location.Name.CamelCase $xpath}}
         {{- else}}
             "{{$xpath}}",
         {{- end}}

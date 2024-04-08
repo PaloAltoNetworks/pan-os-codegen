@@ -10,7 +10,7 @@ func TestGenerateEntryXpath(t *testing.T) {
 	// given
 
 	// when
-	asEntryXpath, _ := GenerateEntryXpathForLocation("DeviceGroup", "{{ Entry $panorama_device }}")
+	asEntryXpath, _ := GenerateEntryXpathForLocation("util.AsEntryXpath([]string{", "})", "DeviceGroup", "{{ Entry $panorama_device }}")
 
 	// then
 	assert.Equal(t, "util.AsEntryXpath([]string{o.DeviceGroup.PanoramaDevice}),", asEntryXpath)
