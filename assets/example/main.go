@@ -89,6 +89,16 @@ func main() {
 	}
 	log.Printf("Address '%s' deleted", addressName)
 
+	// ADDRESS - LIST
+	addresses, err := addressApi.List(ctx, addressLocation, "get", "name starts-with 'wu'", "'")
+	if err != nil {
+		log.Printf("Failed to list object: %s", err)
+	} else {
+		for index, item := range addresses {
+			log.Printf("Address %d: '%s'", index, item.Name)
+		}
+	}
+
 	// SERVICE - ADD
 	serviceName := "codegen_service_test1"
 	servicePort := 8642
@@ -155,6 +165,17 @@ func main() {
 		return
 	}
 	log.Printf("Service '%s=%d' renamed", serviceReply.Name, *serviceReply.Protocol.Tcp.DestinationPort)
+
+	// SERViCE - LIST
+	//services, err := serviceApi.List(ctx, serviceLocation, "get", "name starts-with 'test'", "'")
+	services, err := serviceApi.List(ctx, serviceLocation, "get", "", "")
+	if err != nil {
+		log.Printf("Failed to list object: %s", err)
+	} else {
+		for index, item := range services {
+			log.Printf("Service %d: '%s'", index, item.Name)
+		}
+	}
 
 	// SERVICE - DELETE
 	err = serviceApi.Delete(ctx, serviceLocation, newServiceName)
