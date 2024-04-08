@@ -16,7 +16,7 @@ locations:
     xpath:
       - 'config'
       - 'shared'
-      - '{{ Entry $rulebase }}'
+      - '{{ Object $rulebase }}'
     vars:
       'rulebase':
         description: 'The rulebase.'
@@ -34,7 +34,7 @@ locations:
       - '{{ Entry $ngfw_device }}'
       - 'vsys'
       - '{{ Entry $vsys }}'
-      - '{{ Entry $rulebase }}'
+      - 'rulebase'
     vars:
       'ngfw_device':
         description: 'The NGFW device.'
@@ -60,7 +60,7 @@ locations:
       - '{{ Entry $panorama_device }}'
       - 'device-group'
       - '{{ Entry $device_group }}'
-      - '{{ Entry $rulebase }}'
+      - '{{ Object $rulebase }}'
     vars:
       'panorama_device':
         description: 'The panorama device.'
