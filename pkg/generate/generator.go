@@ -109,10 +109,11 @@ func (c *Creator) listOfTemplates() ([]string, error) {
 			return nil
 		}
 
-		log.Printf("[DEBUG] print entry.Name() -> %s \n", entry.Name())
-		log.Printf("[DEBUG] print entry.Name() -> %s \n", entry.Name())
-		log.Printf("[DEBUG] print specName -> %s \n", c.Spec.Name)
-		log.Printf("[DEBUG] print TemplatesDir -> %s \n", c.TemplatesDir)
+		if strings.Contains(path, "exclusive") {
+			if strings.ToLower(c.Spec.Name) != strings.TrimSuffix(entry.Name(), ".tmpl") {
+				return nil
+			}
+		}
 		if strings.HasSuffix(entry.Name(), ".tmpl") {
 			files = append(files, entry.Name())
 		}
