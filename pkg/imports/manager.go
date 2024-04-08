@@ -16,12 +16,12 @@ const (
 	Other
 )
 
-type Managerv2 struct {
+type ImportManager struct {
 	Imports map[ImportType]map[string]string
 }
 
-func NewManagerv2() *Managerv2 {
-	return &Managerv2{
+func NewImportManager() *ImportManager {
+	return &ImportManager{
 		Imports: map[ImportType]map[string]string{
 			Standard:  make(map[string]string),
 			Sdk:       make(map[string]string),
@@ -31,11 +31,11 @@ func NewManagerv2() *Managerv2 {
 	}
 }
 
-func (o *Managerv2) AddImport(importType ImportType, path, shortName string) {
+func (o *ImportManager) AddImport(importType ImportType, path, shortName string) {
 	o.Imports[importType][path] = shortName
 }
 
-func (o *Managerv2) Merge(v *Managerv2) {
+func (o *ImportManager) Merge(v *ImportManager) {
 	if v == nil {
 		return
 	}
@@ -45,7 +45,7 @@ func (o *Managerv2) Merge(v *Managerv2) {
 		}
 	}
 }
-func (o *Managerv2) RenderImports() (string, error) {
+func (o *ImportManager) RenderImports() (string, error) {
 	needSpacing := false
 	fm := template.FuncMap{
 		"SortLibs": func(v map[string]string) []string { return sortImports(v) },
@@ -80,92 +80,6 @@ import (
 	)
 	var b strings.Builder
 	err := t.Execute(&b, o)
-	return b.String(), err
-}
-
-func NewManager() *Manager {
-	return &Manager{
-		Standard:  make(map[string]string),
-		Sdk:       make(map[string]string),
-		Hashicorp: make(map[string]string),
-		Other:     make(map[string]string),
-	}
-}
-
-type Manager struct {
-	Standard  map[string]string
-	Sdk       map[string]string
-	Hashicorp map[string]string
-	Other     map[string]string
-}
-
-func (o *Manager) AddStandardImport(path, shortName string)  { o.Standard[path] = shortName }
-func (o *Manager) AddSdkImport(path, shortName string)       { o.Sdk[path] = shortName }
-func (o *Manager) AddHashicorpImport(path, shortName string) { o.Hashicorp[path] = shortName }
-func (o *Manager) AddOtherImport(path, shortName string)     { o.Other[path] = shortName }
-
-func (o *Manager) Merge(v *Manager) {
-	if v == nil {
-		return
-	}
-
-	for key, value := range v.Standard {
-		o.Standard[key] = value
-	}
-
-	for key, value := range v.Sdk {
-		o.Sdk[key] = value
-	}
-
-	for key, value := range v.Hashicorp {
-		o.Hashicorp[key] = value
-	}
-
-	for key, value := range v.Other {
-		o.Other[key] = value
-	}
-}
-
-func (o *Manager) RenderImports() (string, error) {
-	needSpacing := false
-
-	fm := template.FuncMap{
-		"SortLibs": func(v map[string]string) []string { return sortImports(v) },
-		"Render": func(v map[string]string) (string, error) {
-			list := sortImports(v)
-			ans, err := renderBlock(list)
-			if ans != "" {
-				if needSpacing {
-					ans = fmt.Sprintf("\n%s", ans)
-				} else {
-					needSpacing = true
-				}
-			}
-			return ans, err
-		},
-	}
-
-	t := template.Must(
-		template.New(
-			"import-render",
-		).Funcs(
-			fm,
-		).Parse(`
-{{- /* Begin */ -}}
-{{- $obj := . }}
-import (
-{{- Render $obj.Standard }}
-{{- Render $obj.Sdk }}
-{{- Render $obj.Hashicorp }}
-{{- Render $obj.Other }}
-)
-{{- /* Done */ -}}`,
-		),
-	)
-
-	var b strings.Builder
-	err := t.Execute(&b, o)
-
 	return b.String(), err
 }
 

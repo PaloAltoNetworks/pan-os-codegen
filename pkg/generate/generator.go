@@ -18,14 +18,16 @@ type Creator struct {
 	GoOutputDir  string
 	TemplatesDir string
 	Spec         *properties.Normalization
+	CommandType  string
 }
 
 // NewCreator initialize Creator instance.
-func NewCreator(goOutputDir, templatesDir string, spec *properties.Normalization) *Creator {
+func NewCreator(goOutputDir, templatesDir string, spec *properties.Normalization, commandType string) *Creator {
 	return &Creator{
 		GoOutputDir:  goOutputDir,
 		TemplatesDir: templatesDir,
 		Spec:         spec,
+		CommandType:  commandType,
 	}
 }
 
@@ -70,6 +72,7 @@ func (c *Creator) processTemplate(templateName string, pathType string) error {
 }
 
 func (c *Creator) writeDataToFile(filePath string, data *bytes.Buffer) error {
+	//TODO: We have function createFile to handle creation of the file
 	outputFile, err := os.Create(filePath)
 	if err != nil {
 		return fmt.Errorf("error creating file %s: %w", filePath, err)
@@ -83,6 +86,7 @@ func (c *Creator) writeDataToFile(filePath string, data *bytes.Buffer) error {
 
 // createFullFilePath returns a full path for output file generated from template passed as argument to function.
 func (c *Creator) createFullFilePath(templateName string, pathType string) string {
+	//TODO: file base name maybe is ok for the SDK but for Terraform Provider name should be created by spec.Name atr.
 	fileBaseName := strings.TrimSuffix(templateName, filepath.Ext(templateName))
 	log.Printf("[DEBUG] print fileBaseName -> %s \n", fileBaseName)
 	switch pathType {
@@ -104,6 +108,11 @@ func (c *Creator) listOfTemplates() ([]string, error) {
 		if entry.IsDir() {
 			return nil
 		}
+
+		log.Printf("[DEBUG] print entry.Name() -> %s \n", entry.Name())
+		log.Printf("[DEBUG] print entry.Name() -> %s \n", entry.Name())
+		log.Printf("[DEBUG] print specName -> %s \n", c.Spec.Name)
+		log.Printf("[DEBUG] print TemplatesDir -> %s \n", c.TemplatesDir)
 		if strings.HasSuffix(entry.Name(), ".tmpl") {
 			files = append(files, entry.Name())
 		}

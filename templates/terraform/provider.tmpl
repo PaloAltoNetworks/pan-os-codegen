@@ -216,15 +216,18 @@ func (p *PanosProvider) Configure(ctx context.Context, req provider.ConfigureReq
 func (p *PanosProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewTfidDataSource,
-		NewNestedAddressObjectListDataSource,
+    {{- range $_, $param := $.Specs}}
+        {{$param.Name.CamelCase}}ObjectListDataSource,
+    {{- end}}
 	}
 }
 
 // Resources defines the data sources for this provider.
 func (p *PanosProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewNestedAddressObjectResource,
-		NewFlatAddressObjectResource,
+    {{- range $_, $param := $.Specs}}
+        {{$param.Name.CamelCase}}ObjectResource,
+    {{- end}}
 	}
 }
 

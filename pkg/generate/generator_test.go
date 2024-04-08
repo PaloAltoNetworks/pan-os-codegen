@@ -20,7 +20,7 @@ func TestCreateFullFilePath(t *testing.T) {
 	expected := filepath.Join("test_output", "path", "to", "go", "template.go")
 	// when
 
-	generator := NewCreator("test_output", "templates", spec)
+	generator := NewCreator("test_output", "templates", spec, "sdk")
 	fullFilePath := generator.createFullFilePath("template.tmpl", "sdk")
 
 	// then
@@ -50,7 +50,7 @@ func TestListOfTemplates(t *testing.T) {
 
 	// when
 	spec := &properties.Normalization{}
-	generator := NewCreator("", tempDir, spec)
+	generator := NewCreator("", tempDir, spec, "")
 	templates, err := generator.listOfTemplates()
 
 	require.NoError(t, err)
@@ -75,7 +75,7 @@ type Entry struct {}`
 	spec := &properties.Normalization{
 		GoSdkPath: []string{"object", "address"},
 	}
-	generator := NewCreator("", tempDir, spec)
+	generator := NewCreator("", tempDir, spec, "")
 	template, err := generator.parseTemplate("test.tmpl")
 	assert.NoError(t, err)
 

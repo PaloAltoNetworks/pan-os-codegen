@@ -143,7 +143,8 @@ func (c *Command) generateOutput(config *properties.Config, spec *properties.Nor
 	log.Printf("[DEBUG] print output -> %s \n", output)
 
 	if c.checkExclusiveSpecRunType(string(c.commandType), spec) {
-		generator := generate.NewCreator(output, c.templatePath, spec)
+		log.Printf("[DEBUG] print spec.Name -> %s \n", spec.Name)
+		generator := generate.NewCreator(output, c.templatePath, spec, string(c.commandType))
 		if err := generator.RenderTemplate(string(c.commandType)); err != nil {
 			return fmt.Errorf("error rendering %s - %s", specPath, err)
 		}
@@ -156,7 +157,6 @@ func (c *Command) checkExclusiveSpecRunType(commandType string, spec *properties
 	if spec.Exclusive != commandType && spec.Exclusive != "" {
 		log.Printf("[DEBUG] %s will not be created for %s run due to be exclusive for %s \n", spec.Name, commandType, spec.Exclusive)
 		return false
-	} else {
-		return true
 	}
+	return true
 }
