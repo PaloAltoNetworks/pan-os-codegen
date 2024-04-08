@@ -151,11 +151,25 @@ func TestXmlTag(t *testing.T) {
 	// given
 	paramTypeRequiredString := properties.SpecParam{
 		Type:     "string",
-		Required: false,
+		Required: true,
 		Profiles: []*properties.SpecParamProfile{
 			{
 				Type:  "string",
 				Xpath: []string{"description"},
+			},
+		},
+	}
+	paramTypeUuid := properties.SpecParam{
+		Type:     "string",
+		Required: false,
+		Name: &properties.NameVariant{
+			CamelCase:  "Uuid",
+			Underscore: "uuid",
+		},
+		Profiles: []*properties.SpecParamProfile{
+			{
+				Type:  "string",
+				Xpath: []string{"uuid"},
 			},
 		},
 	}
@@ -175,10 +189,12 @@ func TestXmlTag(t *testing.T) {
 	// when
 	calculatedXmlTagRequiredString := XmlTag(&paramTypeRequiredString)
 	calculatedXmlTagListString := XmlTag(&paramTypeListString)
+	calculatedXmlTagUuid := XmlTag(&paramTypeUuid)
 
 	// then
-	assert.Equal(t, "`xml:\"description,omitempty\"`", calculatedXmlTagRequiredString)
+	assert.Equal(t, "`xml:\"description\"`", calculatedXmlTagRequiredString)
 	assert.Equal(t, "`xml:\"tag,omitempty\"`", calculatedXmlTagListString)
+	assert.Equal(t, "`xml:\"uuid,attr,omitempty\"`", calculatedXmlTagUuid)
 }
 
 func TestNestedSpecs(t *testing.T) {
