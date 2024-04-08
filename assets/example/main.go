@@ -33,6 +33,34 @@ func main() {
 		return
 	}
 
+	// SECURITY POLICY RULE
+	securityPolicyRuleName := "codegen_rule"
+	securityPolicyRuleAction := "allow"
+	securityPolicyRuleSourceZones := []string{"any"}
+	securityPolicyRuleDestinationZones := []string{"any"}
+	securityPolicyRuleEntry := security.Entry{
+		Name:            securityPolicyRuleName,
+		Action:          &securityPolicyRuleAction,
+		SourceZone:      securityPolicyRuleSourceZones,
+		DestinationZone: securityPolicyRuleDestinationZones,
+	}
+
+	securityPolicyRuleLocation := security.Location{
+		Vsys: &security.VsysLocation{
+			NgfwDevice: "localhost.localdomain",
+			Rulebase:   "post-rulebase",
+			Vsys:       "vsys1",
+		},
+	}
+
+	securityPolicyRuleApi := security.NewService(c)
+	securityPolicyRuleReply, err := securityPolicyRuleApi.Create(ctx, securityPolicyRuleLocation, securityPolicyRuleEntry)
+	if err != nil {
+		log.Printf("Failed to create security policy rule: %s", err)
+		return
+	}
+	log.Printf("Security policy rule '%s' created", securityPolicyRuleReply.Name)
+
 	// TAG - CREATE
 	tagName := "codegen_color"
 	tagColor := tag.ColorAzureBlue
