@@ -33,7 +33,7 @@ func main() {
 		return
 	}
 
-	// SECURITY POLICY RULE
+	// SECURITY POLICY RULE - ADD
 	securityPolicyRuleName := "codegen_rule"
 	securityPolicyRuleAction := "allow"
 	securityPolicyRuleSourceZones := []string{"any"}
@@ -59,7 +59,15 @@ func main() {
 		log.Printf("Failed to create security policy rule: %s", err)
 		return
 	}
-	log.Printf("Security policy rule '%s' created", securityPolicyRuleReply.Name)
+	log.Printf("Security policy rule '%s:%s' created", *securityPolicyRuleReply.Uuid, securityPolicyRuleReply.Name)
+
+	// SECURITY POLICY RULE - DELETE
+	err = securityPolicyRuleApi.Delete(ctx, securityPolicyRuleLocation, securityPolicyRuleName)
+	if err != nil {
+		log.Printf("Failed to delete security policy rule: %s", err)
+		return
+	}
+	log.Printf("Security policy rule '%s' deleted", securityPolicyRuleName)
 
 	// TAG - CREATE
 	tagName := "codegen_color"
