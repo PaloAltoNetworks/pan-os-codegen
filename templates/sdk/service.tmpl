@@ -1,94 +1,128 @@
 package {{packageName .GoSdkPath}}
+{{renderImports "service"}}
 {{- if .Entry}}
-    {{renderImports "service"}}
+    {{renderImports "filtering"}}
+{{- end}}
 
-    type Service struct {
-    client util.PangoClient
-    }
+type Service struct {
+client util.PangoClient
+}
 
-    func NewService(client util.PangoClient) *Service {
-    return &Service{
-    client: client,
-    }
-    }
+func NewService(client util.PangoClient) *Service {
+return &Service{
+client: client,
+}
+}
 
-    // Create adds new entry, then returns the result.
+// Create adds new item, then returns the result.
+{{- if .Entry}}
     func (s *Service) Create(ctx context.Context, loc Location, entry Entry) (*Entry, error) {
+{{- else}}
+    func (s *Service) Create(ctx context.Context, loc Location, config Config) (*Config, error) {
+{{- end}}
+
+{{- if .Entry}}
     if entry.Name == "" {
     return nil, errors.NameNotSpecifiedError
     }
+{{- end}}
 
-    vn := s.client.Versioning()
+vn := s.client.Versioning()
 
-    specifier, _, err := Versioning(vn)
-    if err != nil {
-    return nil, err
-    }
+specifier, _, err := Versioning(vn)
+if err != nil {
+return nil, err
+}
 
+{{- if .Entry}}
     path, err := loc.XpathWithEntryName(vn, entry.Name)
-    if err != nil {
-    return nil, err
-    }
+{{- else}}
+    path, err := loc.Xpath(vn)
+{{- end}}
+if err != nil {
+return nil, err
+}
 
+{{- if .Entry}}
     createSpec, err := specifier(entry)
-    if err != nil {
-    return nil, err
-    }
+{{- else}}
+    createSpec, err := specifier(config)
+{{- end}}
+if err != nil {
+return nil, err
+}
 
-    cmd := &xmlapi.Config{
-    Action:  "set",
+cmd := &xmlapi.Config{
+Action:  "set",
+{{- if .Entry}}
     Xpath:   util.AsXpath(path[:len(path)-1]),
-    Element: createSpec,
-    Target:  s.client.GetTarget(),
-    }
+{{- else}}
+    Xpath:   util.AsXpath(path),
+{{- end}}
+Element: createSpec,
+Target:  s.client.GetTarget(),
+}
 
-    if _, _, err = s.client.Communicate(ctx, cmd, false, nil); err != nil {
-    return nil, err
-    }
+if _, _, err = s.client.Communicate(ctx, cmd, false, nil); err != nil {
+return nil, err
+}
 
+{{- if .Entry}}
     return s.Read(ctx, loc, entry.Name, "get")
-    }
+{{- else}}
+    return s.Read(ctx, loc, "get")
+{{- end}}
+}
 
-    // Read returns the given config object, using the specified action ("get" or "show").
+// Read returns the given config object, using the specified action ("get" or "show").
+{{- if .Entry}}
     func (s *Service) Read(ctx context.Context, loc Location, name, action string) (*Entry, error) {
     if name == "" {
     return nil, errors.NameNotSpecifiedError
     }
+{{- else}}
+    func (s *Service) Read(ctx context.Context, loc Location, action string) (*Config, error) {
+{{- end}}
 
-    vn := s.client.Versioning()
-    _, normalizer, err := Versioning(vn)
-    if err != nil {
-    return nil, err
-    }
+vn := s.client.Versioning()
+_, normalizer, err := Versioning(vn)
+if err != nil {
+return nil, err
+}
 
+{{- if .Entry}}
     path, err := loc.XpathWithEntryName(vn, name)
-    if err != nil {
-    return nil, err
-    }
+{{- else}}
+    path, err := loc.Xpath(vn)
+{{- end}}
+if err != nil {
+return nil, err
+}
 
-    cmd := &xmlapi.Config{
-    Action: action,
-    Xpath:  util.AsXpath(path),
-    Target: s.client.GetTarget(),
-    }
+cmd := &xmlapi.Config{
+Action: action,
+Xpath:  util.AsXpath(path),
+Target: s.client.GetTarget(),
+}
 
-    if _, _, err = s.client.Communicate(ctx, cmd, true, normalizer); err != nil {
-    if err.Error() == "No such node" && action == "show" {
-    return nil, errors.ObjectNotFound()
-    }
-    return nil, err
-    }
+if _, _, err = s.client.Communicate(ctx, cmd, true, normalizer); err != nil {
+if err.Error() == "No such node" && action == "show" {
+return nil, errors.ObjectNotFound()
+}
+return nil, err
+}
 
-    list, err := normalizer.Normalize()
-    if err != nil {
-    return nil, err
-    } else if len(list) != 1 {
-    return nil, fmt.Errorf("expected to %q 1 entry, got %d", action, len(list))
-    }
+list, err := normalizer.Normalize()
+if err != nil {
+return nil, err
+} else if len(list) != 1 {
+return nil, fmt.Errorf("expected to %q 1 entry, got %d", action, len(list))
+}
 
-    return &list[0], nil
-    }
+return &list[0], nil
+}
 
+{{- if .Entry}}
     // ReadFromConfig returns the given config object from the loaded XML config.
     // Requires that client.LoadPanosConfig() has been invoked.
     func (s *Service) ReadFromConfig(ctx context.Context, loc Location, name string) (*Entry, error) {
@@ -183,20 +217,32 @@ package {{packageName .GoSdkPath}}
 
     return s.Read(ctx, loc, entry.Name, "get")
     }
+{{- end}}
 
-    // Delete deletes the given item.
+// Delete deletes the given item.
+{{- if .Entry}}
     func (s *Service) Delete(ctx context.Context, loc Location, name string) error {
+{{- else}}
+    func (s *Service) Delete(ctx context.Context, loc Location, config Config) error {
+{{- end}}
+{{- if .Entry}}
     if name == "" {
     return errors.NameNotSpecifiedError
     }
+{{- end}}
 
-    vn := s.client.Versioning()
+vn := s.client.Versioning()
 
+{{- if .Entry}}
     path, err := loc.XpathWithEntryName(vn, name)
-    if err != nil {
-    return err
-    }
+{{- else}}
+    path, err := loc.Xpath(vn)
+{{- end}}
+if err != nil {
+return err
+}
 
+{{- if .Entry}}
     cmd := &xmlapi.Config{
     Action: "delete",
     Xpath:  util.AsXpath(path),
@@ -206,8 +252,41 @@ package {{packageName .GoSdkPath}}
     _, _, err = s.client.Communicate(ctx, cmd, false, nil)
 
     return err
+{{- else}}
+    deleteSuffixes := []string{
+    {{- range $version := .SupportedVersions }}
+        {{- range $_, $param := $.Spec.Params}}
+            {{- if paramSupportedInVersion $param $version}}
+                {{- range $_, $profile := $param.Profiles}}
+                    {{- range $_, $xpath := xmlPathSuffixes $param}}
+                        "{{$xpath}}",
+                    {{- end}}
+                {{- end}}
+            {{- end}}
+        {{- end}}
+        {{- range $_, $param := $.Spec.OneOf}}
+        {{- end}}
+    {{- end}}
     }
 
+    for _, suffix := range deleteSuffixes {
+    cmd := &xmlapi.Config{
+    Action: "delete",
+    Xpath:  util.AsXpath(append(path, suffix)),
+    Target: s.client.GetTarget(),
+    }
+
+    _, _, err = s.client.Communicate(ctx, cmd, false, nil)
+
+    if err != nil {
+    return err
+    }
+    }
+    return nil
+{{- end}}
+}
+
+{{- if .Entry}}
     // List returns a list of objects using the given action ("get" or "show").
     // Params filter and quote are for client side filtering.
     func (s *Service) List(ctx context.Context, loc Location, action, filter, quote string) ([]Entry, error) {
@@ -425,134 +504,5 @@ package {{packageName .GoSdkPath}}
     }
 
     return ans, nil
-    }
-{{- else}}
-    import (
-    "context"
-    "fmt"
-
-    "github.com/PaloAltoNetworks/pango/errors"
-    "github.com/PaloAltoNetworks/pango/util"
-    "github.com/PaloAltoNetworks/pango/xmlapi"
-    )
-
-    type Service struct {
-    client util.PangoClient
-    }
-
-    func NewService(client util.PangoClient) *Service {
-    return &Service{
-    client: client,
-    }
-    }
-
-    // Create creates the given config object.
-    func (s *Service) Create(ctx context.Context, loc Location, config Config) (*Config, error) {
-    vn := s.client.Versioning()
-
-    specifier, _, err := Versioning(vn)
-    if err != nil {
-    return nil, err
-    }
-
-    path, err := loc.Xpath(vn)
-    if err != nil {
-    return nil, err
-    }
-
-    createSpec, err := specifier(config)
-    if err != nil {
-    return nil, err
-    }
-
-    cmd := &xmlapi.Config{
-    Action:  "set",
-    Xpath:   util.AsXpath(path),
-    Element: createSpec,
-    Target:  s.client.GetTarget(),
-    }
-
-    if _, _, err = s.client.Communicate(ctx, cmd, false, nil); err != nil {
-    return nil, err
-    }
-
-    return s.Read(ctx, loc, "get")
-    }
-
-    // Read returns the given config object, using the specified action ("get" or "show").
-    func (s *Service) Read(ctx context.Context, loc Location, action string) (*Config, error) {
-    vn := s.client.Versioning()
-    _, normalizer, err := Versioning(vn)
-    if err != nil {
-    return nil, err
-    }
-
-    path, err := loc.Xpath(vn)
-    if err != nil {
-    return nil, err
-    }
-
-    cmd := &xmlapi.Config{
-    Action: action,
-    Xpath:  util.AsXpath(path),
-    Target: s.client.GetTarget(),
-    }
-
-    if _, _, err = s.client.Communicate(ctx, cmd, true, normalizer); err != nil {
-    if err.Error() == "No such node" && action == "show" {
-    return nil, errors.ObjectNotFound()
-    }
-    return nil, err
-    }
-
-    list, err := normalizer.Normalize()
-    if err != nil {
-    return nil, err
-    } else if len(list) != 1 {
-    return nil, fmt.Errorf("expected to %q 1 entry, got %d", action, len(list))
-    }
-
-    return &list[0], nil
-    }
-
-    // Delete deletes the given item.
-    func (s *Service) Delete(ctx context.Context, loc Location, config Config) error {
-    vn := s.client.Versioning()
-
-    path, err := loc.Xpath(vn)
-    if err != nil {
-    return err
-    }
-
-    deleteSuffixes := []string{
-    {{- range $version := .SupportedVersions }}
-        {{- range $_, $param := $.Spec.Params}}
-            {{- if paramSupportedInVersion $param $version}}
-                {{- range $_, $profile := $param.Profiles}}
-                    {{- range $_, $xpath := xmlPathSuffixes $param}}
-                        "{{$xpath}}",
-                    {{- end}}
-                {{- end}}
-            {{- end}}
-        {{- end}}
-        {{- range $_, $param := $.Spec.OneOf}}
-        {{- end}}
-    {{- end}}
-    }
-
-    for _, suffix := range deleteSuffixes {
-    cmd := &xmlapi.Config{
-    Action: "delete",
-    Xpath:  util.AsXpath(append(path, suffix)),
-    Target: s.client.GetTarget(),
-    }
-
-    _, _, err = s.client.Communicate(ctx, cmd, false, nil)
-
-    if err != nil {
-    return err
-    }
-    }
-    return nil
     }
 {{- end}}
