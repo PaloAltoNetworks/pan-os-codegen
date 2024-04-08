@@ -62,3 +62,9 @@ assets:
       go_sdk: false
       terraform_provider: true
     destination: "internal/provider"
+  tf_provider_package:
+    source: "assets/tf_provider"
+    target:
+      go_sdk: false
+      terraform_provider: true
+    destination: ""

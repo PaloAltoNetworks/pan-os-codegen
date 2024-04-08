@@ -7,6 +7,82 @@ import (
 	"text/template"
 )
 
+type ImportType int
+
+const (
+	Standard ImportType = iota
+	Sdk
+	Hashicorp
+	Other
+)
+
+type Managerv2 struct {
+	Imports map[ImportType]map[string]string
+}
+
+func NewManagerv2() *Managerv2 {
+	return &Managerv2{
+		Imports: map[ImportType]map[string]string{
+			Standard:  make(map[string]string),
+			Sdk:       make(map[string]string),
+			Hashicorp: make(map[string]string),
+			Other:     make(map[string]string),
+		},
+	}
+}
+
+func (o *Managerv2) AddImport(importType ImportType, path, shortName string) {
+	o.Imports[importType][path] = shortName
+}
+
+func (o *Managerv2) Merge(v *Managerv2) {
+	if v == nil {
+		return
+	}
+	for importType, imports := range v.Imports {
+		for key, value := range imports {
+			o.Imports[importType][key] = value
+		}
+	}
+}
+func (o *Managerv2) RenderImports() (string, error) {
+	needSpacing := false
+	fm := template.FuncMap{
+		"SortLibs": func(v map[string]string) []string { return sortImports(v) },
+		"Render": func(v map[string]string) (string, error) {
+			list := sortImports(v)
+			ans, err := renderBlock(list)
+			if ans != "" {
+				if needSpacing {
+					ans = fmt.Sprintf("\n%s", ans)
+				} else {
+					needSpacing = true
+				}
+			}
+			return ans, err
+		},
+	}
+	t := template.Must(
+		template.New(
+			"import-render",
+		).Funcs(
+			fm,
+		).Parse(`
+{{- /* Begin */ -}}
+{{- $obj := . }}
+import (
+{{- range $importType, $imports := $obj.Imports }}
+{{- Render $imports }}
+{{- end }}
+)
+{{- /* Done */ -}}`,
+		),
+	)
+	var b strings.Builder
+	err := t.Execute(&b, o)
+	return b.String(), err
+}
+
 func NewManager() *Manager {
 	return &Manager{
 		Standard:  make(map[string]string),
