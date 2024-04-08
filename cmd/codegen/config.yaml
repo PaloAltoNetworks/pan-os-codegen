@@ -56,15 +56,51 @@ assets:
       go_sdk: true
       terraform_provider: false
     destination: "plugin"
-  internal_provider_package:
-    source: "assets/internal/provider"
-    target:
-      go_sdk: false
-      terraform_provider: true
-    destination: "internal/provider"
   tf_provider_package:
-    source: "assets/tf_provider"
+    source: "assets/tf_provider/tf_provider"
     target:
       go_sdk: false
       terraform_provider: true
     destination: ""
+  tf_provider_internal_provider_package:
+    source: "assets/tf_provider/internal/provider"
+    target:
+      go_sdk: false
+      terraform_provider: true
+    destination: "internal/provider"
+  tf_provider_github_package:
+    source: "assets/tf_provider/.github"
+    target:
+      go_sdk: false
+      terraform_provider: true
+    destination: ".github"
+  tf_provider_scripts:
+    source: "assets/tf_provider/scripts"
+    target:
+      go_sdk: false
+      terraform_provider: true
+    destination: "scripts"
+  tf_provider_templates:
+    source: "assets/tf_provider/templates"
+    target:
+      go_sdk: false
+      terraform_provider: true
+    destination: "templates"
+  tf_provider_tools:
+    source: "assets/tf_provider/tools"
+    target:
+      go_sdk: false
+      terraform_provider: true
+    destination: "tools"
+  tf_provider_docs:
+    source: "assets/tf_provider/docs"
+    target:
+      go_sdk: false
+      terraform_provider: true
+    destination: "docs"
+  tf_provider_examples:
+    source: "assets/tf_provider/examples"
+    target:
+      go_sdk: false
+      terraform_provider: true
+    destination: "examples"

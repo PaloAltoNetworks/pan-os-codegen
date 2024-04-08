@@ -36,7 +36,6 @@ func addTemplateImports(templateType string, manager *imports.Managerv2) {
 	case "provider":
 		manager.AddImport(imports.Standard, "context", "")
 		manager.AddImport(imports.Sdk, "github.com/PaloAltoNetworks/pango", "sdk")
-		manager.AddImport(imports.Hashicorp, "github.com", "")
 		manager.AddImport(imports.Hashicorp, "github.com/hashicorp/terraform-plugin-framework/datasource", "")
 		manager.AddImport(imports.Hashicorp, "github.com/hashicorp/terraform-plugin-framework/provider", "")
 		manager.AddImport(imports.Hashicorp, "github.com/hashicorp/terraform-plugin-framework/provider/schema", "")
