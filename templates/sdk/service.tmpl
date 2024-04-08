@@ -1,7 +1,8 @@
 package {{packageName .GoSdkPath}}
-{{renderImports "service"}}
 {{- if .Entry}}
-    {{renderImports "filtering"}}
+    {{renderImports "service" "filtering"}}
+{{- else}}
+    {{renderImports "service"}}
 {{- end}}
 
 type Service struct {
