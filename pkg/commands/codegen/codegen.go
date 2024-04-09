@@ -84,7 +84,6 @@ func (c *Command) processConfig(configPath string) error {
 	}
 
 	for _, specPath := range c.specs {
-		log.Printf("[DEBUG] print specPath -> %s \n", specPath)
 		if err := c.processSpec(config, specPath); err != nil {
 			return err
 		}
@@ -140,10 +139,7 @@ func (c *Command) generateOutput(config *properties.Config, spec *properties.Nor
 		output = config.Output.TerraformProvider
 	}
 
-	log.Printf("[DEBUG] print output -> %s \n", output)
-
 	if c.checkExclusiveSpecRunType(string(c.commandType), spec) {
-		log.Printf("[DEBUG] print spec.Name -> %s \n", spec.Name)
 		generator := generate.NewCreator(output, c.templatePath, spec, string(c.commandType))
 		if err := generator.RenderTemplate(string(c.commandType)); err != nil {
 			return fmt.Errorf("error rendering %s - %s", specPath, err)
@@ -155,7 +151,7 @@ func (c *Command) generateOutput(config *properties.Config, spec *properties.Nor
 
 func (c *Command) checkExclusiveSpecRunType(commandType string, spec *properties.Normalization) bool {
 	if spec.Exclusive != commandType && spec.Exclusive != "" {
-		log.Printf("[DEBUG] %s will not be created for %s run due to be exclusive for %s \n", spec.Name, commandType, spec.Exclusive)
+		log.Printf("%s will not be created for %s run due to be exclusive for %s \n", spec.Name, commandType, spec.Exclusive)
 		return false
 	}
 	return true

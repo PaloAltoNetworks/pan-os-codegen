@@ -10,7 +10,7 @@ func TestCopyAssetsWithError(t *testing.T) {
 	// Given
 	dummyConfig := &properties.Config{
 		Assets: map[string]*properties.Asset{
-			"tst": {
+			"testAsset": {
 				Source: "inexistent/source/path",
 			}},
 	}

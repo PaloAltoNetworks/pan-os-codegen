@@ -5,7 +5,6 @@ import (
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/content"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"io/fs"
-	"log"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -133,8 +132,6 @@ func GetNormalizations() ([]string, error) {
 	}
 
 	basePath := filepath.Join(filepath.Dir(filepath.Dir(filepath.Dir(loc))), "specs")
-
-	log.Printf("[DEBUG] print basepath -> %s \n", basePath)
 
 	files := make([]string, 0, 100)
 

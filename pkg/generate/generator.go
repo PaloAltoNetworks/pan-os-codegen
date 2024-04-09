@@ -3,6 +3,7 @@ package generate
 import (
 	"bytes"
 	"fmt"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate/golang/terraform"
 	"io"
 	"log"
 	"os"
@@ -35,7 +36,7 @@ func NewCreator(goOutputDir, templatesDir string, spec *properties.Normalization
 func (c *Creator) RenderTemplate(pathType string) error {
 	log.Println("Start rendering templates")
 	templates, err := c.listOfTemplates()
-	log.Printf("[DEBUG] print List of templates -> %s \n", templates)
+
 	if err != nil {
 		return fmt.Errorf("error listing templates: %w", err)
 	}
@@ -82,13 +83,10 @@ func (c *Creator) writeDataToFile(filePath string, data *bytes.Buffer) error {
 	return err
 }
 
-//TODO: createFullFilePath was hardcoded for GoSdkPath
-
 // createFullFilePath returns a full path for output file generated from template passed as argument to function.
 func (c *Creator) createFullFilePath(templateName string, pathType string) string {
-	//TODO: file base name maybe is ok for the SDK but for Terraform Provider name should be created by spec.Name atr.
 	fileBaseName := strings.TrimSuffix(templateName, filepath.Ext(templateName))
-	log.Printf("[DEBUG] print fileBaseName -> %s \n", fileBaseName)
+
 	switch pathType {
 	case "sdk":
 		return filepath.Join(c.GoOutputDir, filepath.Join(c.Spec.GoSdkPath...), fmt.Sprintf("%s.go", fileBaseName))
@@ -108,7 +106,6 @@ func (c *Creator) listOfTemplates() ([]string, error) {
 		if entry.IsDir() {
 			return nil
 		}
-
 		if strings.Contains(path, "exclusive") {
 			if strings.ToLower(c.Spec.Name) != strings.TrimSuffix(entry.Name(), ".tmpl") {
 				return nil
@@ -116,6 +113,9 @@ func (c *Creator) listOfTemplates() ([]string, error) {
 		}
 		if strings.HasSuffix(entry.Name(), ".tmpl") {
 			files = append(files, entry.Name())
+		}
+		if strings.ToLower(c.Spec.Name) == strings.TrimSuffix(entry.Name(), ".tmpl") {
+			return filepath.SkipAll
 		}
 		return nil
 	})
@@ -142,7 +142,15 @@ func (c *Creator) createFile(filePath string) (*os.File, error) {
 
 // parseTemplate parse template passed as argument and with function map defined below.
 func (c *Creator) parseTemplate(templateName string) (*template.Template, error) {
-	templatePath := filepath.Join(c.TemplatesDir, templateName)
+	var templatesDir string
+
+	if c.Spec.Exclusive != "" {
+		templatesDir = c.TemplatesDir + "/exclusive"
+	} else {
+		templatesDir = c.TemplatesDir
+	}
+
+	templatePath := filepath.Join(templatesDir, templateName)
 	funcMap := template.FuncMap{
 		"renderImports":             translate.RenderImports,
 		"packageName":               translate.PackageName,
@@ -165,6 +173,7 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		"createGoSuffixFromVersion": translate.CreateGoSuffixFromVersion,
 		"paramSupportedInVersion":   translate.ParamSupportedInVersion,
 		"xmlPathSuffixes":           translate.XmlPathSuffixes,
+		"createResourceList":        terraform.CreateResourceList,
 	}
 	return template.New(templateName).Funcs(funcMap).ParseFiles(templatePath)
 }
