@@ -42,11 +42,7 @@ return fmt.Errorf("multiple paths specified: only one should be specified")
 return nil
 }
 
-{{- if .Entry}}
-    func (o Location) Xpath(vn version.Number, name string) ([]string, error) {
-{{- else}}
-    func (o Location) Xpath(vn version.Number) ([]string, error) {
-{{- end}}
+func (o Location) xpath(vn version.Number) ([]string, error) {
 
 var ans []string
 
@@ -61,7 +57,9 @@ switch {
     ans = []string{
     {{- range $name, $xpath := $location.Xpath}}
         {{- if contains $xpath "Entry"}}
-            {{generateEntryXpath $location.Name.CamelCase $xpath}}
+            {{generateEntryXpath "util.AsEntryXpath([]string{" "})" $location.Name.CamelCase $xpath}}
+        {{- else if contains $xpath "Object"}}
+            {{generateEntryXpath "" "" $location.Name.CamelCase $xpath}}
         {{- else}}
             "{{$xpath}}",
         {{- end}}
@@ -72,6 +70,20 @@ default:
 return nil, errors.NoLocationSpecifiedError
 }
 
+return ans, nil
+}
+
+{{- if .Entry}}
+    func (o Location) XpathWithEntryName(vn version.Number, name string) ([]string, error) {
+{{- else}}
+    func (o Location) Xpath(vn version.Number) ([]string, error) {
+{{- end}}
+
+ans, err := o.xpath(vn)
+if err != nil {
+return nil, err
+}
+
 {{- if .Entry}}
     ans = append(ans, Suffix...)
     ans = append(ans, util.AsEntryXpath([]string{name}))
@@ -79,3 +91,17 @@ return nil, errors.NoLocationSpecifiedError
 
 return ans, nil
 }
+
+{{- if .Entry}}
+    func (o Location) XpathWithUuid(vn version.Number, uuid string) ([]string, error) {
+
+    ans, err := o.xpath(vn)
+    if err != nil {
+    return nil, err
+    }
+    ans = append(ans, Suffix...)
+    ans = append(ans, util.AsUuidXpath(uuid))
+
+    return ans, nil
+    }
+{{- end}}

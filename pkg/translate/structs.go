@@ -115,8 +115,13 @@ func XmlName(param *properties.SpecParam) string {
 func XmlTag(param *properties.SpecParam) string {
 	if param.Profiles != nil && len(param.Profiles) > 0 {
 		suffix := ""
+
+		if param.Name != nil && param.Name.Underscore == "uuid" {
+			suffix = suffix + ",attr"
+		}
+
 		if !param.Required {
-			suffix = ",omitempty"
+			suffix = suffix + ",omitempty"
 		}
 
 		return fmt.Sprintf("`xml:\"%s%s\"`", XmlName(param), suffix)

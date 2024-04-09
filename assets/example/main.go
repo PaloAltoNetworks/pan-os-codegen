@@ -33,6 +33,42 @@ func main() {
 		return
 	}
 
+	// SECURITY POLICY RULE - ADD
+	securityPolicyRuleName := "codegen_rule"
+	securityPolicyRuleAction := "allow"
+	securityPolicyRuleSourceZones := []string{"any"}
+	securityPolicyRuleDestinationZones := []string{"any"}
+	securityPolicyRuleEntry := security.Entry{
+		Name:            securityPolicyRuleName,
+		Action:          &securityPolicyRuleAction,
+		SourceZone:      securityPolicyRuleSourceZones,
+		DestinationZone: securityPolicyRuleDestinationZones,
+	}
+
+	securityPolicyRuleLocation := security.Location{
+		Vsys: &security.VsysLocation{
+			NgfwDevice: "localhost.localdomain",
+			Rulebase:   "post-rulebase",
+			Vsys:       "vsys1",
+		},
+	}
+
+	securityPolicyRuleApi := security.NewService(c)
+	securityPolicyRuleReply, err := securityPolicyRuleApi.Create(ctx, securityPolicyRuleLocation, securityPolicyRuleEntry)
+	if err != nil {
+		log.Printf("Failed to create security policy rule: %s", err)
+		return
+	}
+	log.Printf("Security policy rule '%s:%s' created", *securityPolicyRuleReply.Uuid, securityPolicyRuleReply.Name)
+
+	// SECURITY POLICY RULE - DELETE
+	err = securityPolicyRuleApi.Delete(ctx, securityPolicyRuleLocation, securityPolicyRuleName)
+	if err != nil {
+		log.Printf("Failed to delete security policy rule: %s", err)
+		return
+	}
+	log.Printf("Security policy rule '%s' deleted", securityPolicyRuleName)
+
 	// TAG - CREATE
 	tagName := "codegen_color"
 	tagColor := tag.ColorAzureBlue
@@ -88,6 +124,16 @@ func main() {
 		return
 	}
 	log.Printf("Address '%s' deleted", addressName)
+
+	// ADDRESS - LIST
+	addresses, err := addressApi.List(ctx, addressLocation, "get", "name starts-with 'wu'", "'")
+	if err != nil {
+		log.Printf("Failed to list object: %s", err)
+	} else {
+		for index, item := range addresses {
+			log.Printf("Address %d: '%s'", index, item.Name)
+		}
+	}
 
 	// SERVICE - ADD
 	serviceName := "codegen_service_test1"
@@ -155,6 +201,17 @@ func main() {
 		return
 	}
 	log.Printf("Service '%s=%d' renamed", serviceReply.Name, *serviceReply.Protocol.Tcp.DestinationPort)
+
+	// SERViCE - LIST
+	//services, err := serviceApi.List(ctx, serviceLocation, "get", "name starts-with 'test'", "'")
+	services, err := serviceApi.List(ctx, serviceLocation, "get", "", "")
+	if err != nil {
+		log.Printf("Failed to list object: %s", err)
+	} else {
+		for index, item := range services {
+			log.Printf("Service %d: '%s'", index, item.Name)
+		}
+	}
 
 	// SERVICE - DELETE
 	err = serviceApi.Delete(ctx, serviceLocation, newServiceName)
