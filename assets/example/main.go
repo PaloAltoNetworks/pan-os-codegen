@@ -36,14 +36,24 @@ func main() {
 
 	// SECURITY POLICY RULE - ADD
 	securityPolicyRuleName := "codegen_rule"
+	securityPolicyRuleDescription := "initial description"
 	securityPolicyRuleAction := "allow"
+	securityPolicyRuleSourceAddress := []string{"any"}
+	securityPolicyRuleDestinationAddress := []string{"any"}
 	securityPolicyRuleSourceZones := []string{"any"}
 	securityPolicyRuleDestinationZones := []string{"any"}
+	securityPolicyRuleApplication := []string{"any"}
+	securityPolicyRuleService := []string{"application-default"}
 	securityPolicyRuleEntry := security.Entry{
-		Name:            securityPolicyRuleName,
-		Action:          &securityPolicyRuleAction,
-		SourceZone:      securityPolicyRuleSourceZones,
-		DestinationZone: securityPolicyRuleDestinationZones,
+		Name:               securityPolicyRuleName,
+		Description:        &securityPolicyRuleDescription,
+		Action:             &securityPolicyRuleAction,
+		SourceZone:         securityPolicyRuleSourceZones,
+		SourceAddress:      securityPolicyRuleSourceAddress,
+		DestinationZone:    securityPolicyRuleDestinationZones,
+		DestinationAddress: securityPolicyRuleDestinationAddress,
+		Application:        securityPolicyRuleApplication,
+		Service:            securityPolicyRuleService,
 	}
 
 	securityPolicyRuleLocation := security.Location{
@@ -60,7 +70,16 @@ func main() {
 		log.Printf("Failed to create security policy rule: %s", err)
 		return
 	}
-	log.Printf("Security policy rule '%s:%s' created", *securityPolicyRuleReply.Uuid, securityPolicyRuleReply.Name)
+	log.Printf("Security policy rule '%s:%s' with description '%s' created", *securityPolicyRuleReply.Uuid, securityPolicyRuleReply.Name, *securityPolicyRuleReply.Description)
+
+	// SECURITY POLICY RULE - UPDATE
+	securityPolicyRuleDescription = "changed description"
+	securityPolicyRuleReply, err = securityPolicyRuleApi.Update(ctx, securityPolicyRuleLocation, securityPolicyRuleEntry, securityPolicyRuleName)
+	if err != nil {
+		log.Printf("Failed to update security policy rule: %s", err)
+		return
+	}
+	log.Printf("Security policy rule '%s:%s' with description '%s' updated", *securityPolicyRuleReply.Uuid, securityPolicyRuleReply.Name, *securityPolicyRuleReply.Description)
 
 	// SECURITY POLICY RULE - DELETE
 	err = securityPolicyRuleApi.Delete(ctx, securityPolicyRuleLocation, securityPolicyRuleName)
@@ -203,7 +222,7 @@ func main() {
 	}
 	log.Printf("Service '%s=%d' renamed", serviceReply.Name, *serviceReply.Protocol.Tcp.DestinationPort)
 
-	// SERViCE - LIST
+	// SERVICE - LIST
 	//services, err := serviceApi.List(ctx, serviceLocation, "get", "name starts-with 'test'", "'")
 	services, err := serviceApi.List(ctx, serviceLocation, "get", "", "")
 	if err != nil {
@@ -274,7 +293,7 @@ func main() {
 	log.Printf("Service '%s=%d, description: %s misc XML: %s, misc keys: %s' update",
 		serviceReply.Name, *serviceReply.Protocol.Tcp.DestinationPort, readDescription, xmls, keys)
 
-	// NTP
+	// NTP - ADD
 	ntpAddress := "11.12.13.14"
 	ntpConfig := ntp.Config{
 		NtpServers: &ntp.SpecNtpServers{
@@ -306,7 +325,7 @@ func main() {
 	}
 	log.Print("NTP deleted")
 
-	// DNS
+	// DNS - ADD
 	primaryDnsAddress := "8.8.8.8"
 	secondaryDnsAddress := "4.4.4.4"
 	refreshTime := 27
