@@ -12,7 +12,6 @@ import (
 
 type Normalization struct {
 	Name                    string               `json:"name" yaml:"name"`
-	Exclusive               string               `json:"exclusive" yaml:"exclusive"`
 	TerraformProviderSuffix string               `json:"terraform_provider_suffix" yaml:"terraform_provider_suffix"`
 	TerraformProviderPath   []string             `json:"terraform_provider_path" yaml:"terraform_provider_path"`
 	GoSdkPath               []string             `json:"go_sdk_path" yaml:"go_sdk_path"`
@@ -22,6 +21,7 @@ type Normalization struct {
 	Version                 string               `json:"version" yaml:"version"`
 	Spec                    *Spec                `json:"spec" yaml:"spec"`
 	Const                   map[string]*Const    `json:"const" yaml:"const"`
+	CustomTemplate          string               `json:"custom_template" yaml:"custom_template"`
 }
 
 type NameVariant struct {
@@ -125,13 +125,13 @@ type SpecParamProfile struct {
 }
 
 // GetNormalizations get list of all specs (normalizations).
-func GetNormalizations() ([]string, error) {
+func GetNormalizations(baseLocalization string) ([]string, error) {
 	_, loc, _, ok := runtime.Caller(0)
 	if !ok {
 		return nil, fmt.Errorf("couldn't get caller info")
 	}
 
-	basePath := filepath.Join(filepath.Dir(filepath.Dir(filepath.Dir(loc))), "specs")
+	basePath := filepath.Join(filepath.Dir(filepath.Dir(filepath.Dir(loc))), baseLocalization)
 
 	files := make([]string, 0, 100)
 
@@ -300,8 +300,8 @@ func (spec *Normalization) AddDefaultTypesForParams() error {
 
 // Sanity basic checks for specification (normalization) e.g. check if at least 1 location is defined.
 func (spec *Normalization) Sanity(commandType string) error {
-	if spec.Exclusive == "terraform" || spec.Exclusive == "sdk" {
-		return nil // we exclusively pass sanity test if the spec file is exclusive for one
+	if spec.CustomTemplate != "" {
+		return nil // we exclusively pass sanity test if the spec file have custom template
 	}
 	switch commandType {
 	case "sdk":

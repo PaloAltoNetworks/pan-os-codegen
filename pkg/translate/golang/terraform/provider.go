@@ -16,7 +16,7 @@ const (
 // The function returns the generated list as a string.
 func CreateResourceList(elementType string) string {
 
-	elements, _ := properties.GetNormalizations()
+	elements, _ := properties.GetNormalizations("specs")
 
 	var specNames []string
 	for _, specPath := range elements {

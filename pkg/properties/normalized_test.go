@@ -157,7 +157,6 @@ func TestUnmarshallAddressSpecFile(t *testing.T) {
 func TestMarshallAddressSpecFile(t *testing.T) {
 	// given
 	var expectedMarshalledData = `name: Address
-exclusive: ""
 terraform_provider_suffix: address
 terraform_provider_path: []
 go_sdk_path:
@@ -382,6 +381,7 @@ const:
                     underscore: red
                     camelcase: Red
                 value: color1
+custom_template: ""
 `
 
 	// when
@@ -397,7 +397,7 @@ func TestGetNormalizations(t *testing.T) {
 	// given
 
 	// when
-	config, _ := GetNormalizations()
+	config, _ := GetNormalizations("specs")
 
 	// then
 	assert.NotNil(t, config)

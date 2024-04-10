@@ -30,9 +30,6 @@ func runCommand(ctx context.Context, cmdType codegen.CommandType, cfg string) {
 	if err != nil {
 		log.Fatalf("Failed to create command: %s", err)
 	}
-	if err := cmd.Setup(); err != nil {
-		log.Fatalf("Setup failed: %s", err)
-	}
 	if err := cmd.Execute(); err != nil {
 		log.Fatalf("Execution failed: %s", err)
 	}

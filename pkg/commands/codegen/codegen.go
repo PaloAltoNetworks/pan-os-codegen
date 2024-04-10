@@ -3,10 +3,11 @@ package codegen
 import (
 	"context"
 	"fmt"
+	"log"
+
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/generate"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/load"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
-	"log"
 )
 
 type CommandType string
@@ -15,6 +16,11 @@ const (
 	CommandTypeSDK       CommandType = "sdk"
 	CommandTypeTerraform CommandType = "terraform"
 )
+
+var templatePaths = map[CommandType]string{
+	CommandTypeSDK:       "templates/sdk",
+	CommandTypeTerraform: "templates/terraform",
+}
 
 type Command struct {
 	ctx          context.Context
@@ -26,13 +32,8 @@ type Command struct {
 }
 
 func NewCommand(ctx context.Context, commandType CommandType, args ...string) (*Command, error) {
-	var templatePath string
-	switch commandType {
-	case CommandTypeSDK:
-		templatePath = "templates/sdk"
-	case CommandTypeTerraform:
-		templatePath = "templates/terraform"
-	default:
+	templatePath, ok := templatePaths[commandType]
+	if !ok {
 		return nil, fmt.Errorf("unsupported command type: %s", commandType)
 	}
 
@@ -44,43 +45,41 @@ func NewCommand(ctx context.Context, commandType CommandType, args ...string) (*
 	}, nil
 }
 
-func (c *Command) Setup() error {
-	var err error
-	if c.specs == nil {
-		c.specs, err = properties.GetNormalizations()
-		if err != nil {
-			return fmt.Errorf("error getting normalizations: %s", err)
-		}
-	}
-	return nil
-}
-
-// Execute the command and generate the outputs
 func (c *Command) Execute() error {
-	log.Printf("Generating %s\n", c.commandType)
-	if len(c.args) == 0 {
-		return fmt.Errorf("path to configuration file is required")
-	}
-	configPath := c.args[0]
+	for _, arg := range []string{"specs", "configs"} {
+		if err := c.setup(arg); err != nil {
+			log.Fatalf("Setup failed: %s", err)
+		}
+		log.Printf("Generating %s for %s type \n", c.commandType, arg)
+		if len(c.args) == 0 {
+			return fmt.Errorf("path to configuration file is required")
+		}
 
-	if err := c.processConfig(configPath); err != nil {
-		return err
-	}
+		if err := c.processConfig(c.args[0]); err != nil {
+			return err
+		}
 
-	log.Printf("Finish generating %s.", c.commandType)
+		log.Printf("Finish generating %s for %s type.", c.commandType, arg)
+	}
 	return nil
 }
 
-// processConfig process the configuration and spec files
-func (c *Command) processConfig(configPath string) error {
-	content, err := load.File(configPath)
+func (c *Command) setup(localization string) error {
+	specs, err := properties.GetNormalizations(localization)
 	if err != nil {
-		return fmt.Errorf("error loading %s - %s", configPath, err)
+		return fmt.Errorf("error getting normalizations: %s", err)
 	}
+	c.specs = specs
+	if localization == "configs" {
+		c.templatePath = "templates/custom"
+	}
+	return nil
+}
 
-	config, err := properties.ParseConfig(content)
+func (c *Command) processConfig(configPath string) error {
+	config, err := c.loadAndParseConfig(configPath)
 	if err != nil {
-		return fmt.Errorf("error parsing %s - %s", configPath, err)
+		return err
 	}
 
 	for _, specPath := range c.specs {
@@ -89,11 +88,25 @@ func (c *Command) processConfig(configPath string) error {
 		}
 	}
 
-	if err = generate.CopyAssets(config, string(c.commandType)); err != nil {
-		return fmt.Errorf("error copying assets %s", err)
+	if err := generate.CopyAssets(config, string(c.commandType)); err != nil {
+		return fmt.Errorf("error copying assets: %s", err)
 	}
 
 	return nil
+}
+
+func (c *Command) loadAndParseConfig(path string) (*properties.Config, error) {
+	content, err := load.File(path)
+	if err != nil {
+		return nil, fmt.Errorf("error loading %s - %s", path, err)
+	}
+
+	config, err := properties.ParseConfig(content)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing %s - %s", path, err)
+	}
+
+	return config, nil
 }
 
 // processSpec process individual spec
@@ -137,20 +150,10 @@ func (c *Command) generateOutput(config *properties.Config, spec *properties.Nor
 		output = config.Output.TerraformProvider
 	}
 
-	if c.checkExclusiveSpecRunType(string(c.commandType), spec) {
-		generator := generate.NewCreator(output, c.templatePath, spec, string(c.commandType))
-		if err := generator.RenderTemplate(string(c.commandType)); err != nil {
-			return fmt.Errorf("error rendering %s - %s", specPath, err)
-		}
+	generator := generate.NewCreator(output, c.templatePath, spec, string(c.commandType))
+	if err := generator.RenderTemplate(string(c.commandType)); err != nil {
+		return fmt.Errorf("error rendering %s - %s", specPath, err)
 	}
 
 	return nil
-}
-
-func (c *Command) checkExclusiveSpecRunType(commandType string, spec *properties.Normalization) bool {
-	if spec.Exclusive != commandType && spec.Exclusive != "" {
-		log.Printf("%s will not be created for %s run due to be exclusive for %s \n", spec.Name, commandType, spec.Exclusive)
-		return false
-	}
-	return true
 }

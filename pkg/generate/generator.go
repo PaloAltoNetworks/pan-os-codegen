@@ -104,6 +104,11 @@ func (c *Creator) createFullFilePath(templateName string, pathType string) strin
 
 // listOfTemplates return list of templates defined in TemplatesDir.
 func (c *Creator) listOfTemplates() ([]string, error) {
+	customTemplate := c.Spec.CustomTemplate
+	if customTemplate != "" {
+		return []string{customTemplate}, nil
+	}
+
 	var files []string
 	err := filepath.WalkDir(c.TemplatesDir, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
@@ -112,16 +117,8 @@ func (c *Creator) listOfTemplates() ([]string, error) {
 		if entry.IsDir() {
 			return nil
 		}
-		if strings.Contains(path, "exclusive") {
-			if strings.ToLower(c.Spec.Name) != strings.TrimSuffix(entry.Name(), ".tmpl") {
-				return nil
-			}
-		}
 		if strings.HasSuffix(entry.Name(), ".tmpl") {
 			files = append(files, entry.Name())
-		}
-		if strings.ToLower(c.Spec.Name) == strings.TrimSuffix(entry.Name(), ".tmpl") {
-			return filepath.SkipAll
 		}
 		return nil
 	})
@@ -150,11 +147,7 @@ func (c *Creator) createFile(filePath string) (*os.File, error) {
 func (c *Creator) parseTemplate(templateName string) (*template.Template, error) {
 	var templatesDir string
 
-	if c.Spec.Exclusive != "" {
-		templatesDir = c.TemplatesDir + "/exclusive"
-	} else {
-		templatesDir = c.TemplatesDir
-	}
+	templatesDir = c.TemplatesDir
 
 	templatePath := filepath.Join(templatesDir, templateName)
 	funcMap := template.FuncMap{
