@@ -11,6 +11,7 @@ import (
 	"github.com/PaloAltoNetworks/pango/objects/address"
 	"github.com/PaloAltoNetworks/pango/objects/service"
 	"github.com/PaloAltoNetworks/pango/objects/tag"
+	"github.com/PaloAltoNetworks/pango/policies/rules/security"
 )
 
 func main() {
