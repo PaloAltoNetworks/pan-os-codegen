@@ -74,12 +74,6 @@ assets:
       go_sdk: false
       terraform_provider: true
     destination: ".github"
-  tf_provider_scripts:
-    source: "assets/tf_provider/scripts"
-    target:
-      go_sdk: false
-      terraform_provider: true
-    destination: "scripts"
   tf_provider_templates:
     source: "assets/tf_provider/templates"
     target:
