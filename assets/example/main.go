@@ -72,6 +72,14 @@ func main() {
 	}
 	log.Printf("Security policy rule '%s:%s' with description '%s' created", *securityPolicyRuleReply.Uuid, securityPolicyRuleReply.Name, *securityPolicyRuleReply.Description)
 
+	// SECURITY POLICY RULE - READ
+	securityPolicyRuleReply, err = securityPolicyRuleApi.Read(ctx, securityPolicyRuleLocation, securityPolicyRuleName, "get")
+	if err != nil {
+		log.Printf("Failed to update security policy rule: %s", err)
+		return
+	}
+	log.Printf("Security policy rule '%s:%s' with description '%s' read", *securityPolicyRuleReply.Uuid, securityPolicyRuleReply.Name, *securityPolicyRuleReply.Description)
+
 	// SECURITY POLICY RULE - UPDATE
 	securityPolicyRuleDescription = "changed description"
 	securityPolicyRuleReply, err = securityPolicyRuleApi.Update(ctx, securityPolicyRuleLocation, securityPolicyRuleEntry, securityPolicyRuleName)
@@ -80,6 +88,14 @@ func main() {
 		return
 	}
 	log.Printf("Security policy rule '%s:%s' with description '%s' updated", *securityPolicyRuleReply.Uuid, securityPolicyRuleReply.Name, *securityPolicyRuleReply.Description)
+
+	// SECURITY POLICY RULE - READ BY ID
+	securityPolicyRuleReply, err = securityPolicyRuleApi.ReadById(ctx, securityPolicyRuleLocation, *securityPolicyRuleReply.Uuid, "get")
+	if err != nil {
+		log.Printf("Failed to update security policy rule: %s", err)
+		return
+	}
+	log.Printf("Security policy rule '%s:%s' with description '%s' read by id", *securityPolicyRuleReply.Uuid, securityPolicyRuleReply.Name, *securityPolicyRuleReply.Description)
 
 	// SECURITY POLICY RULE - DELETE
 	err = securityPolicyRuleApi.Delete(ctx, securityPolicyRuleLocation, securityPolicyRuleName)
