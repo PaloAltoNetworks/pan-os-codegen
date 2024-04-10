@@ -78,32 +78,42 @@ return nil, err
 // Read returns the given config object, using the specified action ("get" or "show").
 {{- if .Entry}}
     func (s *Service) Read(ctx context.Context, loc Location, name, action string) (*Entry, error) {
-    return s.read(ctx, loc, name, action, false)
+    return s.read(ctx, loc, name, action, true, false)
+    }
+    func (s *Service) ReadById(ctx context.Context, loc Location, uuid, action string) (*Entry, error) {
+    return s.read(ctx, loc, uuid, action, false, false)
+    }
 {{- else}}
     func (s *Service) Read(ctx context.Context, loc Location, action string) (*Config, error) {
-    return s.read(ctx, loc, action, false)
+    return s.read(ctx, loc, action, false, false)
+    }
 {{- end}}
-}
 
 // ReadFromConfig returns the given config object from the loaded XML config.
 // Requires that client.LoadPanosConfig() has been invoked.
 {{- if .Entry}}
     func (s *Service) ReadFromConfig(ctx context.Context, loc Location, name string) (*Entry, error) {
-    return s.read(ctx, loc, name, "", true)
+    return s.read(ctx, loc, name, "", true, true)
+    }
+    func (s *Service) ReadFromConfigById(ctx context.Context, loc Location, uuid string) (*Entry, error) {
+    return s.read(ctx, loc, uuid, "", false, true)
     }
 {{- else}}
     func (s *Service) ReadFromConfig(ctx context.Context, loc Location) (*Config, error) {
-    return s.read(ctx, loc, "", true)
+    return s.read(ctx, loc, "", false, true)
     }
 {{- end}}
 
 {{- if .Entry}}
-    func (s *Service) read(ctx context.Context, loc Location, name, action string, usePanosConfig bool) (*Entry, error) {
-    if name == "" {
+    func (s *Service) read(ctx context.Context, loc Location, value, action string, readByName, usePanosConfig bool) (*Entry, error) {
+    if readByName && value == "" {
     return nil, errors.NameNotSpecifiedError
     }
+    if !readByName && value == "" {
+    return nil, errors.UuidNotSpecifiedError
+    }
 {{- else}}
-    func (s *Service) read(ctx context.Context, loc Location, action string, usePanosConfig bool) (*Config, error) {
+    func (s *Service) read(ctx context.Context, loc Location, action string, readByName, usePanosConfig bool) (*Config, error) {
 {{- end}}
 vn := s.client.Versioning()
 _, normalizer, err := Versioning(vn)
@@ -112,7 +122,12 @@ return nil, err
 }
 
 {{- if .Entry}}
-    path, err := loc.XpathWithEntryName(vn, name)
+    var path []string
+    if readByName {
+    path, err = loc.XpathWithEntryName(vn, value)
+    } else {
+    path, err = loc.XpathWithUuid(vn, value)
+    }
 {{- else}}
     path, err := loc.Xpath(vn)
 {{- end}}
