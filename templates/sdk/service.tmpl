@@ -78,13 +78,33 @@ return nil, err
 // Read returns the given config object, using the specified action ("get" or "show").
 {{- if .Entry}}
     func (s *Service) Read(ctx context.Context, loc Location, name, action string) (*Entry, error) {
+    return s.read(ctx, loc, name, action, false)
+{{- else}}
+    func (s *Service) Read(ctx context.Context, loc Location, action string) (*Config, error) {
+    return s.read(ctx, loc, action, false)
+{{- end}}
+}
+
+// ReadFromConfig returns the given config object from the loaded XML config.
+// Requires that client.LoadPanosConfig() has been invoked.
+{{- if .Entry}}
+    func (s *Service) ReadFromConfig(ctx context.Context, loc Location, name string) (*Entry, error) {
+    return s.read(ctx, loc, name, "", true)
+    }
+{{- else}}
+    func (s *Service) ReadFromConfig(ctx context.Context, loc Location) (*Config, error) {
+    return s.read(ctx, loc, "", true)
+    }
+{{- end}}
+
+{{- if .Entry}}
+    func (s *Service) read(ctx context.Context, loc Location, name, action string, usePanosConfig bool) (*Entry, error) {
     if name == "" {
     return nil, errors.NameNotSpecifiedError
     }
 {{- else}}
-    func (s *Service) Read(ctx context.Context, loc Location, action string) (*Config, error) {
+    func (s *Service) read(ctx context.Context, loc Location, action string, usePanosConfig bool) (*Config, error) {
 {{- end}}
-
 vn := s.client.Versioning()
 _, normalizer, err := Versioning(vn)
 if err != nil {
@@ -100,6 +120,11 @@ if err != nil {
 return nil, err
 }
 
+if usePanosConfig {
+if _, err = s.client.ReadFromConfig(ctx, path, true, normalizer); err != nil {
+return nil, err
+}
+} else {
 cmd := &xmlapi.Config{
 Action: action,
 Xpath:  util.AsXpath(path),
@@ -111,6 +136,7 @@ if err.Error() == "No such node" && action == "show" {
 return nil, errors.ObjectNotFound()
 }
 return nil, err
+}
 }
 
 list, err := normalizer.Normalize()
@@ -124,38 +150,6 @@ return &list[0], nil
 }
 
 {{- if .Entry}}
-    // ReadFromConfig returns the given config object from the loaded XML config.
-    // Requires that client.LoadPanosConfig() has been invoked.
-    func (s *Service) ReadFromConfig(ctx context.Context, loc Location, name string) (*Entry, error) {
-    if name == "" {
-    return nil, errors.NameNotSpecifiedError
-    }
-
-    vn := s.client.Versioning()
-    _, normalizer, err := Versioning(vn)
-    if err != nil {
-    return nil, err
-    }
-
-    path, err := loc.XpathWithEntryName(vn, name)
-    if err != nil {
-    return nil, err
-    }
-
-    if _, err = s.client.ReadFromConfig(ctx, path, true, normalizer); err != nil {
-    return nil, err
-    }
-
-    list, err := normalizer.Normalize()
-    if err != nil {
-    return nil, err
-    } else if len(list) != 1 {
-    return nil, fmt.Errorf("expected to find 1 entry, got %d", len(list))
-    }
-
-    return &list[0], nil
-    }
-
     // Update updates the given config object, then returns the result.
     func (s *Service) Update(ctx context.Context, loc Location, entry Entry, oldName string) (*Entry, error) {
     if entry.Name == "" {
