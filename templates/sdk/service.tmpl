@@ -78,15 +78,21 @@ return nil, err
 // Read returns the given config object, using the specified action ("get" or "show").
 {{- if .Entry}}
     func (s *Service) Read(ctx context.Context, loc Location, name, action string) (*Entry, error) {
-    return s.read(ctx, loc, name, action, true, false)
+    {{- if $.Spec.Params.uuid}}
+        return s.read(ctx, loc, name, action, true, false)
+    {{- else}}
+        return s.read(ctx, loc, name, action, false)
+    {{- end}}
     }
-    // ReadById returns the given config object with specified ID, using the specified action ("get" or "show").
-    func (s *Service) ReadById(ctx context.Context, loc Location, uuid, action string) (*Entry, error) {
-    return s.read(ctx, loc, uuid, action, false, false)
-    }
+    {{- if $.Spec.Params.uuid}}
+        // ReadById returns the given config object with specified ID, using the specified action ("get" or "show").
+        func (s *Service) ReadById(ctx context.Context, loc Location, uuid, action string) (*Entry, error) {
+        return s.read(ctx, loc, uuid, action, false, false)
+        }
+    {{- end}}
 {{- else}}
     func (s *Service) Read(ctx context.Context, loc Location, action string) (*Config, error) {
-    return s.read(ctx, loc, action, false, false)
+    return s.read(ctx, loc, action, false)
     }
 {{- end}}
 
@@ -94,29 +100,42 @@ return nil, err
 // Requires that client.LoadPanosConfig() has been invoked.
 {{- if .Entry}}
     func (s *Service) ReadFromConfig(ctx context.Context, loc Location, name string) (*Entry, error) {
-    return s.read(ctx, loc, name, "", true, true)
+    {{- if $.Spec.Params.uuid}}
+        return s.read(ctx, loc, name, "", true, true)
+    {{- else}}
+        return s.read(ctx, loc, name, "", true)
+    {{- end}}
     }
-    // ReadFromConfigById returns the given config object with specified ID from the loaded XML config.
-    // Requires that client.LoadPanosConfig() has been invoked.
-    func (s *Service) ReadFromConfigById(ctx context.Context, loc Location, uuid string) (*Entry, error) {
-    return s.read(ctx, loc, uuid, "", false, true)
-    }
+    {{- if $.Spec.Params.uuid}}
+        // ReadFromConfigById returns the given config object with specified ID from the loaded XML config.
+        // Requires that client.LoadPanosConfig() has been invoked.
+        func (s *Service) ReadFromConfigById(ctx context.Context, loc Location, uuid string) (*Entry, error) {
+        return s.read(ctx, loc, uuid, "", false, true)
+        }
+    {{- end}}
 {{- else}}
     func (s *Service) ReadFromConfig(ctx context.Context, loc Location) (*Config, error) {
-    return s.read(ctx, loc, "", false, true)
+    return s.read(ctx, loc, "", true)
     }
 {{- end}}
 
 {{if .Entry}}
-    func (s *Service) read(ctx context.Context, loc Location, value, action string, byName, usePanosConfig bool) (*Entry, error) {
-    if byName && value == "" {
-    return nil, errors.NameNotSpecifiedError
-    }
-    if !byName && value == "" {
-    return nil, errors.UuidNotSpecifiedError
-    }
+    {{- if $.Spec.Params.uuid}}
+        func (s *Service) read(ctx context.Context, loc Location, value, action string, byName, usePanosConfig bool) (*Entry, error) {
+        if byName && value == "" {
+        return nil, errors.NameNotSpecifiedError
+        }
+        if !byName && value == "" {
+        return nil, errors.UuidNotSpecifiedError
+        }
+    {{- else}}
+        func (s *Service) read(ctx context.Context, loc Location, value, action string, usePanosConfig bool) (*Entry, error) {
+        if value == "" {
+        return nil, errors.NameNotSpecifiedError
+        }
+    {{- end}}
 {{- else}}
-    func (s *Service) read(ctx context.Context, loc Location, action string, byName, usePanosConfig bool) (*Config, error) {
+    func (s *Service) read(ctx context.Context, loc Location, action string, usePanosConfig bool) (*Config, error) {
 {{- end}}
 vn := s.client.Versioning()
 _, normalizer, err := Versioning(vn)
@@ -126,11 +145,15 @@ return nil, err
 
 {{- if .Entry}}
     var path []string
-    if byName {
-    path, err = loc.XpathWithEntryName(vn, value)
-    } else {
-    path, err = loc.XpathWithUuid(vn, value)
-    }
+    {{- if $.Spec.Params.uuid}}
+        if byName {
+        path, err = loc.XpathWithEntryName(vn, value)
+        } else {
+        path, err = loc.XpathWithUuid(vn, value)
+        }
+    {{- else}}
+        path, err = loc.XpathWithEntryName(vn, value)
+    {{- end}}
 {{- else}}
     path, err := loc.Xpath(vn)
 {{- end}}
@@ -170,21 +193,34 @@ return &list[0], nil
 {{- if .Entry}}
     // Update updates the given config object, then returns the result.
     func (s *Service) Update(ctx context.Context, loc Location, entry Entry, name string) (*Entry, error) {
-    return s.update(ctx, loc, entry, name, true)
+    {{- if $.Spec.Params.uuid}}
+        return s.update(ctx, loc, entry, name, true)
+    {{- else}}
+        return s.update(ctx, loc, entry, name)
+    {{- end}}
     }
 
-    // UpdateById updates the given config object, then returns the result.
-    func (s *Service) UpdateById(ctx context.Context, loc Location, entry Entry, uuid string) (*Entry, error) {
-    return s.update(ctx, loc, entry, uuid, false)
-    }
+    {{- if $.Spec.Params.uuid}}
+        // UpdateById updates the given config object, then returns the result.
+        func (s *Service) UpdateById(ctx context.Context, loc Location, entry Entry, uuid string) (*Entry, error) {
+        return s.update(ctx, loc, entry, uuid, false)
+        }
+    {{- end}}
 
-    func (s *Service) update(ctx context.Context, loc Location, entry Entry, value string, byName bool) (*Entry, error) {
-    if byName && entry.Name == "" {
-    return nil, errors.NameNotSpecifiedError
-    }
-    if !byName && value == "" {
-    return nil, errors.UuidNotSpecifiedError
-    }
+    {{- if $.Spec.Params.uuid}}
+        func (s *Service) update(ctx context.Context, loc Location, entry Entry, value string, byName bool) (*Entry, error) {
+        if byName && entry.Name == "" {
+        return nil, errors.NameNotSpecifiedError
+        }
+        if !byName && value == "" {
+        return nil, errors.UuidNotSpecifiedError
+        }
+    {{- else}}
+        func (s *Service) update(ctx context.Context, loc Location, entry Entry, value string) (*Entry, error) {
+        if entry.Name == "" {
+        return nil, errors.NameNotSpecifiedError
+        }
+    {{- end}}
 
     vn := s.client.Versioning()
     updates := xmlapi.NewMultiConfig(2)
@@ -194,7 +230,9 @@ return &list[0], nil
     }
 
     var old *Entry
-    if byName {
+    {{- if $.Spec.Params.uuid}}
+        if byName {
+    {{- end}}
     if value != "" && value != entry.Name {
     path, err := loc.XpathWithEntryName(vn, value)
     if err != nil {
@@ -212,9 +250,11 @@ return &list[0], nil
     } else {
     old, err = s.Read(ctx, loc, entry.Name, "get")
     }
-    } else {
-    old, err = s.ReadById(ctx, loc, value, "get")
-    }
+    {{- if $.Spec.Params.uuid}}
+        } else {
+        old, err = s.ReadById(ctx, loc, value, "get")
+        }
+    {{- end}}
     if err != nil {
     return nil, err
     } else if old == nil {
@@ -246,23 +286,33 @@ return &list[0], nil
     }
     }
 
-    if byName {
-    return s.Read(ctx, loc, entry.Name, "get")
-    } else {
-    return s.ReadById(ctx, loc, value, "get")
-    }
+    {{- if $.Spec.Params.uuid}}
+        if byName {
+        return s.Read(ctx, loc, entry.Name, "get")
+        } else {
+        return s.ReadById(ctx, loc, value, "get")
+        }
+    {{- else}}
+        return s.Read(ctx, loc, entry.Name, "get")
+    {{- end}}
     }
 {{- end}}
 
 // Delete deletes the given item.
 {{- if .Entry}}
     func (s *Service) Delete(ctx context.Context, loc Location, name string) error {
-    return s.delete(ctx, loc, name, true)
+    {{- if $.Spec.Params.uuid}}
+        return s.delete(ctx, loc, name, true)
+    {{- else}}
+        return s.delete(ctx, loc, name)
+    {{- end}}
     }
-    // DeleteById deletes the given item with specified ID.
-    func (s *Service) DeleteById(ctx context.Context, loc Location, uuid string) error {
-    return s.delete(ctx, loc, uuid, false)
-    }
+    {{- if $.Spec.Params.uuid}}
+        // DeleteById deletes the given item with specified ID.
+        func (s *Service) DeleteById(ctx context.Context, loc Location, uuid string) error {
+        return s.delete(ctx, loc, uuid, false)
+        }
+    {{- end}}
 {{- else}}
     func (s *Service) Delete(ctx context.Context, loc Location, config Config) error {
     return s.delete(ctx, loc, config)
@@ -270,17 +320,27 @@ return &list[0], nil
 {{- end}}
 
 {{if .Entry}}
-    func (s *Service) delete(ctx context.Context, loc Location, value string, byName bool) error {
+    {{- if $.Spec.Params.uuid}}
+        func (s *Service) delete(ctx context.Context, loc Location, value string, byName bool) error {
+    {{- else}}
+        func (s *Service) delete(ctx context.Context, loc Location, value string) error {
+    {{- end}}
 {{- else}}
     func (s *Service) delete(ctx context.Context, loc Location, config Config) error {
 {{- end}}
 {{- if .Entry}}
-    if byName && value == "" {
-    return errors.NameNotSpecifiedError
-    }
-    if !byName && value == "" {
-    return errors.UuidNotSpecifiedError
-    }
+    {{- if $.Spec.Params.uuid}}
+        if byName && value == "" {
+        return errors.NameNotSpecifiedError
+        }
+        if !byName && value == "" {
+        return errors.UuidNotSpecifiedError
+        }
+    {{- else}}
+        if value == "" {
+        return errors.NameNotSpecifiedError
+        }
+    {{- end}}
 {{- end}}
 
 vn := s.client.Versioning()
@@ -288,11 +348,15 @@ vn := s.client.Versioning()
 {{- if .Entry}}
     var path []string
     var err error
-    if byName {
-    path, err = loc.XpathWithEntryName(vn, value)
-    } else {
-    path, err = loc.XpathWithUuid(vn, value)
-    }
+    {{- if $.Spec.Params.uuid}}
+        if byName {
+        path, err = loc.XpathWithEntryName(vn, value)
+        } else {
+        path, err = loc.XpathWithUuid(vn, value)
+        }
+    {{- else}}
+        path, err = loc.XpathWithEntryName(vn, value)
+    {{- end}}
 {{- else}}
     path, err := loc.Xpath(vn)
 {{- end}}

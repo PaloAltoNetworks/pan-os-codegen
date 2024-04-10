@@ -99,13 +99,20 @@ func main() {
 	log.Printf("Security policy rule '%s:%s' with description '%s' updated", *securityPolicyRuleReply.Uuid, securityPolicyRuleReply.Name, *securityPolicyRuleReply.Description)
 
 	// SECURITY POLICY RULE - DELETE
-	//err = securityPolicyRuleApi.Delete(ctx, securityPolicyRuleLocation, securityPolicyRuleReply.Name)
 	err = securityPolicyRuleApi.DeleteById(ctx, securityPolicyRuleLocation, *securityPolicyRuleReply.Uuid)
 	if err != nil {
 		log.Printf("Failed to delete security policy rule: %s", err)
 		return
 	}
 	log.Printf("Security policy rule '%s' deleted", securityPolicyRuleReply.Name)
+
+	// SECURITY POLICY RULE - FORCE ERROR WHILE DELETE
+	err = securityPolicyRuleApi.Delete(ctx, securityPolicyRuleLocation, securityPolicyRuleReply.Name)
+	if err != nil {
+		log.Printf("Failed to delete security policy rule: %s", err)
+	} else {
+		log.Printf("Security policy rule '%s' deleted", securityPolicyRuleReply.Name)
+	}
 
 	// TAG - CREATE
 	tagColor := tag.ColorAzureBlue
