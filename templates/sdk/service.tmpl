@@ -80,7 +80,7 @@ return nil, err
     func (s *Service) Read(ctx context.Context, loc Location, name, action string) (*Entry, error) {
     return s.read(ctx, loc, name, action, true, false)
     }
-    // ReadById returns the given config object with specified ID , using the specified action ("get" or "show").
+    // ReadById returns the given config object with specified ID, using the specified action ("get" or "show").
     func (s *Service) ReadById(ctx context.Context, loc Location, uuid, action string) (*Entry, error) {
     return s.read(ctx, loc, uuid, action, false, false)
     }
@@ -173,7 +173,7 @@ return &list[0], nil
     return s.update(ctx, loc, entry, name, true)
     }
 
-    // Update updates the given config object, then returns the result.
+    // UpdateById updates the given config object, then returns the result.
     func (s *Service) UpdateById(ctx context.Context, loc Location, entry Entry, uuid string) (*Entry, error) {
     return s.update(ctx, loc, entry, uuid, false)
     }
@@ -258,19 +258,42 @@ return &list[0], nil
 // Delete deletes the given item.
 {{- if .Entry}}
     func (s *Service) Delete(ctx context.Context, loc Location, name string) error {
+    return s.delete(ctx, loc, name, true)
+    }
+    // DeleteById deletes the given item with specified ID.
+    func (s *Service) DeleteById(ctx context.Context, loc Location, uuid string) error {
+    return s.delete(ctx, loc, uuid, false)
+    }
 {{- else}}
     func (s *Service) Delete(ctx context.Context, loc Location, config Config) error {
+    return s.delete(ctx, loc, config)
+    }
+{{- end}}
+
+{{- if .Entry}}
+    func (s *Service) delete(ctx context.Context, loc Location, value string, byName bool) error {
+{{- else}}
+    func (s *Service) delete(ctx context.Context, loc Location, config Config) error {
 {{- end}}
 {{- if .Entry}}
-    if name == "" {
+    if byName && value == "" {
     return errors.NameNotSpecifiedError
+    }
+    if !byName && value == "" {
+    return errors.UuidNotSpecifiedError
     }
 {{- end}}
 
 vn := s.client.Versioning()
 
 {{- if .Entry}}
-    path, err := loc.XpathWithEntryName(vn, name)
+    var path []string
+    var err error
+    if byName {
+    path, err = loc.XpathWithEntryName(vn, value)
+    } else {
+    path, err = loc.XpathWithUuid(vn, value)
+    }
 {{- else}}
     path, err := loc.Xpath(vn)
 {{- end}}
