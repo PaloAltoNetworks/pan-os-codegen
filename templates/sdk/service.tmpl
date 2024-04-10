@@ -285,6 +285,17 @@ return err
     // List returns a list of objects using the given action ("get" or "show").
     // Params filter and quote are for client side filtering.
     func (s *Service) List(ctx context.Context, loc Location, action, filter, quote string) ([]Entry, error) {
+    return s.list(ctx, loc, action, filter, quote, false)
+    }
+
+    // ListFromConfig returns a list of objects at the given location.
+    // Requires that client.LoadPanosConfig() has been invoked.
+    // Params filter and quote are for client side filtering.
+    func (s *Service) ListFromConfig(ctx context.Context, loc Location, filter, quote string) ([]Entry, error) {
+    return s.list(ctx, loc, "", filter, quote, true)
+    }
+
+    func (s *Service) list(ctx context.Context, loc Location, action, filter, quote string, usePanosConfig bool) ([]Entry, error) {
     var err error
 
     var logic *filtering.Group
@@ -307,6 +318,11 @@ return err
     return nil, err
     }
 
+    if usePanosConfig {
+    if _, err = s.client.ReadFromConfig(ctx, path, false, normalizer); err != nil {
+    return nil, err
+    }
+    } else{
     cmd := &xmlapi.Config{
     Action: action,
     Xpath:  util.AsXpath(path),
@@ -319,55 +335,6 @@ return err
     }
     return nil, err
     }
-
-    listing, err := normalizer.Normalize()
-    if err != nil || logic == nil {
-    return listing, err
-    }
-
-    filtered := make([]Entry, 0, len(listing))
-    for _, x := range listing {
-    ok, err := logic.Matches(&x)
-    if err != nil {
-    return nil, err
-    }
-    if ok {
-    filtered = append(filtered, x)
-    }
-    }
-
-    return filtered, nil
-    }
-
-    // ListFromConfig returns a list of objects at the given location.
-    // Requires that client.LoadPanosConfig() has been invoked.
-    // Params filter and quote are for client side filtering.
-    func (s *Service) ListFromConfig(ctx context.Context, loc Location, filter, quote string) ([]Entry, error) {
-    var err error
-
-    var logic *filtering.Group
-    if filter != "" {
-    logic, err = filtering.Parse(filter, quote)
-    if err != nil {
-    return nil, err
-    }
-    }
-
-    vn := s.client.Versioning()
-
-    _, normalizer, err := Versioning(vn)
-    if err != nil {
-    return nil, err
-    }
-
-    path, err := loc.XpathWithEntryName(vn, "")
-    if err != nil {
-    return nil, err
-    }
-    path = path[:len(path)-1]
-
-    if _, err = s.client.ReadFromConfig(ctx, path, false, normalizer); err != nil {
-    return nil, err
     }
 
     listing, err := normalizer.Normalize()
