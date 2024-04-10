@@ -4,7 +4,6 @@ import "github.com/paloaltonetworks/pan-os-codegen/pkg/imports"
 
 // RenderImports render string, which contains import required in entry, location or service template.
 func RenderImports(templateType string) (string, error) {
-	//manager := imports.NewManager()
 	manager := imports.NewImportManager()
 
 	addTemplateImports(templateType, manager)

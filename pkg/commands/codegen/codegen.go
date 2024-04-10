@@ -110,12 +110,10 @@ func (c *Command) processSpec(config *properties.Config, specPath string) error 
 		return fmt.Errorf("error parsing %s - %s", specPath, err)
 	}
 
-	// validate the spec
 	if err := c.validateSpec(spec, specPath); err != nil {
 		return err
 	}
 
-	// Generate the output
 	return c.generateOutput(config, spec, specPath)
 }
 
