@@ -8,19 +8,19 @@ import (
 )
 
 // GenerateEntryXpathForLocation functions used in location.tmpl to generate XPath for location.
-func GenerateEntryXpathForLocation(location, xpath string) (string, error) {
+func GenerateEntryXpathForLocation(prefix, suffix, location, xpath string) (string, error) {
 	if !strings.Contains(xpath, "$") || !strings.Contains(xpath, "}") {
 		return "", fmt.Errorf("xpath '%s' is missing '$' followed by '}'", xpath)
 	}
-	asEntryXpath := generateEntryXpathForLocation(location, xpath)
+	asEntryXpath := generateEntryXpathForLocation(prefix, suffix, location, xpath)
 	return asEntryXpath, nil
 }
 
-func generateEntryXpathForLocation(location string, xpath string) string {
+func generateEntryXpathForLocation(prefix, suffix, location, xpath string) string {
 	xpathPartWithoutDollar := strings.SplitAfter(xpath, "$")
 	xpathPartWithoutBrackets := strings.TrimSpace(strings.Trim(xpathPartWithoutDollar[1], "${}"))
 	xpathPartCamelCase := naming.CamelCase("", xpathPartWithoutBrackets, "", true)
-	asEntryXpath := fmt.Sprintf("util.AsEntryXpath([]string{o.%s.%s}),", location, xpathPartCamelCase)
+	asEntryXpath := fmt.Sprintf("%so.%s.%s%s,", prefix, location, xpathPartCamelCase, suffix)
 	return asEntryXpath
 }
 

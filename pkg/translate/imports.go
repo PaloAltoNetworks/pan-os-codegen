@@ -32,6 +32,8 @@ func addTemplateImports(templateType string, manager *imports.ImportManager) {
 		manager.AddImport(imports.Sdk, "github.com/PaloAltoNetworks/pango/filtering", "")
 		manager.AddImport(imports.Sdk, "github.com/PaloAltoNetworks/pango/util", "")
 		manager.AddImport(imports.Sdk, "github.com/PaloAltoNetworks/pango/xmlapi", "")
+	case "filtering":
+		manager.AddImport(imports.Sdk,"github.com/PaloAltoNetworks/pango/filtering","")
 	case "provider":
 		manager.AddImport(imports.Standard, "context", "")
 		manager.AddImport(imports.Sdk, "github.com/PaloAltoNetworks/pango", "sdk")
