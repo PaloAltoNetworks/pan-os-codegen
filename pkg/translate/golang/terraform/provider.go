@@ -15,7 +15,6 @@ const (
 // CreateResourceList creates a string containing a list of resources or data sources based on the elementType parameter.
 // The function returns the generated list as a string.
 func CreateResourceList(elementType string) string {
-	var builder strings.Builder
 
 	elements, _ := properties.GetNormalizations()
 
@@ -30,22 +29,17 @@ func CreateResourceList(elementType string) string {
 		specNames = append(specNames, config.Name)
 	}
 
+	var results []string
 	switch elementType {
 	case Resource:
 		for _, resource := range specNames {
-			builder.WriteString(naming.CamelCase("", resource, "", true) + "ObjectResource,\n")
+			results = append(results, naming.CamelCase("", resource, "", true)+"ObjectResource,")
 		}
 	case DataSource:
 		for _, datasource := range specNames {
-			builder.WriteString(naming.CamelCase("", datasource, "", true) + "ObjectListDataSource,\n")
+			results = append(results, naming.CamelCase("", datasource, "", true)+"ObjectListDataSource,")
 		}
 	}
 
-	// Remove last newline
-	result := builder.String()
-	if len(result) > 1 { // Check to avoid out of bounds
-		result = result[:len(result)-1]
-	}
-
-	return result
+	return strings.Join(results, "\n")
 }
