@@ -2,8 +2,6 @@ package codegen
 
 import (
 	"context"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -33,51 +31,15 @@ func TestNewCommand(t *testing.T) {
 	}
 }
 
-func TestCommandFunctionality(t *testing.T) {
+func TestExecute_NoArgs(t *testing.T) {
 	// given
 	ctx := context.Background()
-	cmdType := CommandTypeSDK
-
-	// Create a temporary file to simulate the config file
-	tmpDir := t.TempDir()
-	tmpFile, err := os.Create(filepath.Join(tmpDir, "config-*.yaml"))
-	assert.NoError(t, err)
-	defer func(name string) {
-		err := os.Remove(name)
-		if err != nil {
-			assert.NoError(t, err)
-		}
-	}(tmpFile.Name())
-
-	// Write the necessary configuration data to the temporary file
-	configData := `
-output:
-  go_sdk: "../generated/pango"
-  terraform_provider: "../generated/terraform-provider-panos"
-`
-	_, err = tmpFile.WriteString(configData)
-	assert.NoError(t, err)
-	err = tmpFile.Close()
-	assert.NoError(t, err)
+	cmd, _ := NewCommand(ctx, CommandTypeSDK)
 
 	// when
-	cmd, err := NewCommand(ctx, cmdType, tmpFile.Name())
-	assert.NoError(t, err)
+	err := cmd.Execute()
 
 	// then
-	assert.NoError(t, cmd.Setup(), "Setup should not return an error")
-}
-func TestCommandSetup(t *testing.T) {
-	//given
-	ctx := context.Background()
-
-	cmd, err := NewCommand(ctx, CommandTypeSDK, "config.yml")
-	assert.NoError(t, err)
-
-	// when
-	err = cmd.Setup()
-
-	//then
-	assert.NoError(t, err)
-
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "path to configuration file is required")
 }
