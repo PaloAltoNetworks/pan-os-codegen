@@ -86,12 +86,18 @@ func (c *Creator) writeDataToFile(filePath string, data *bytes.Buffer) error {
 // createFullFilePath returns a full path for output file generated from template passed as argument to function.
 func (c *Creator) createFullFilePath(templateName string, pathType string) string {
 	fileBaseName := strings.TrimSuffix(templateName, filepath.Ext(templateName))
+	var tfProviderPath string
+	if len(c.Spec.TerraformProviderPath) > 0 {
+		tfProviderPath = filepath.Join(c.Spec.TerraformProviderPath...)
+	} else {
+		tfProviderPath = filepath.Join([]string{"internal", "provider"}...)
+	}
 
 	switch pathType {
 	case "sdk":
 		return filepath.Join(c.GoOutputDir, filepath.Join(c.Spec.GoSdkPath...), fmt.Sprintf("%s.go", fileBaseName))
 	case "terraform":
-		return filepath.Join(c.GoOutputDir, filepath.Join(c.Spec.TerraformProviderPath...), fmt.Sprintf("%s.go", fileBaseName))
+		return filepath.Join(c.GoOutputDir, tfProviderPath, fmt.Sprintf("%s.go", fileBaseName))
 	}
 	return ""
 }
