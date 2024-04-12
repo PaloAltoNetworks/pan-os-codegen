@@ -482,4 +482,145 @@ return err
 
     return filtered, nil
     }
+
+    {{- if $.Spec.Params.uuid}}
+        // HitCount returns the hit count for the given rule.
+        func (s *Service) HitCount(ctx context.Context, loc Location, rules ...string) ([]util.HitCount, error) {
+        switch {
+        case loc.Vsys != nil:
+        cmd := &xmlapi.Op{
+        Command: util.NewHitCountRequest(RuleType, loc.Vsys.Vsys, rules),
+        Target:  s.client.GetTarget(),
+        }
+        var resp util.HitCountResponse
+
+        if _, _, err := s.client.Communicate(ctx, cmd, false, &resp); err != nil {
+        return nil, err
+        }
+
+        return resp.Results, nil
+        // TODO: what does the hit count request and response look like for rules
+        // pushed from Panorama?
+        }
+
+        return nil, fmt.Errorf("unsupported location")
+        }
+
+        // SetAuditComment sets the given audit comment for the given rule.
+        func (s *Service) SetAuditComment(ctx context.Context, loc Location, name, comment string) error {
+        if name == "" {
+        return errors.NameNotSpecifiedError
+        }
+
+        vn := s.client.Versioning()
+
+        path, err := loc.XpathWithEntryName(vn, name)
+        if err != nil {
+        return err
+        }
+
+        cmd := &xmlapi.Op{
+        Command: audit.SetComment{
+        Xpath:   util.AsXpath(path),
+        Comment: comment,
+        },
+        Target: s.client.GetTarget(),
+        }
+
+        _, _, err = s.client.Communicate(ctx, cmd, false, nil)
+        return err
+        }
+
+        // CurrentAuditComment gets any current uncommitted audit comment for the given rule.
+        func (s *Service) CurrentAuditComment(ctx context.Context, loc Location, name string) (string, error) {
+        if name == "" {
+        return "", errors.NameNotSpecifiedError
+        }
+
+        vn := s.client.Versioning()
+
+        path, err := loc.XpathWithEntryName(vn, name)
+        if err != nil {
+        return "", err
+        }
+
+        cmd := &xmlapi.Op{
+        Command: audit.GetComment{
+        Xpath: util.AsXpath(path),
+        },
+        Target: s.client.GetTarget(),
+        }
+
+        var resp audit.UncommittedComment
+        if _, _, err = s.client.Communicate(ctx, cmd, false, &resp); err != nil {
+        return "", err
+        }
+
+        return resp.Comment, nil
+        }
+
+        // AuditCommentHistory returns a chunk of historical audit comment logs.
+        func (s *Service) AuditCommentHistory(ctx context.Context, loc Location, name, direction string, nlogs, skip int) ([]audit.Comment, error) {
+        if name == "" {
+        return nil, errors.NameNotSpecifiedError
+        }
+
+        var err error
+        var base, vsysDg string
+        switch {
+        case loc.Vsys != nil:
+        vsysDg = loc.Vsys.Vsys
+        base = "rulebase"
+        case loc.Shared != nil:
+        vsysDg = "shared"
+        base = loc.Shared.Rulebase
+        case loc.DeviceGroup != nil:
+        vsysDg = loc.DeviceGroup.DeviceGroup
+        base = loc.DeviceGroup.Rulebase
+        }
+
+        if vsysDg == "" || base == "" {
+        return nil, fmt.Errorf("unsupported location")
+        }
+
+        query := strings.Join([]string{
+        "(subtype eq audit-comment)",
+        fmt.Sprintf("(path contains '\\'%s\\'')", name),   // Name.
+        fmt.Sprintf("(path contains '%s')", RuleType),     // Rule type.
+        fmt.Sprintf("(path contains %s)", base),           // Rulebase.
+        fmt.Sprintf("(path contains '\\'%s\\'')", vsysDg), // Vsys or device group.
+        }, " and ")
+        extras := url.Values{}
+        extras.Set("uniq", "yes")
+
+        cmd := &xmlapi.Log{
+        LogType:   "config",
+        Query:     query,
+        Direction: direction,
+        Nlogs:     nlogs,
+        Skip:      skip,
+        Extras:    extras,
+        }
+
+        var job util.JobResponse
+        if _, _, err = s.client.Communicate(ctx, cmd, false, &job); err != nil {
+        return nil, err
+        }
+
+        var resp audit.CommentHistory
+        if _, err = s.client.WaitForLogs(ctx, job.Id, 1*time.Second, &resp); err != nil {
+        return nil, err
+        }
+
+        if len(resp.Comments) != 0 {
+        if clock, err := s.client.Clock(ctx); err == nil {
+        for i := range resp.Comments {
+        resp.Comments[i].SetTime(clock)
+        }
+        }
+        }
+
+        return resp.Comments, nil
+        }
+    {{- end}}
 {{- end}}
