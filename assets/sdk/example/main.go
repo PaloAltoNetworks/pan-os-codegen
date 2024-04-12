@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/xml"
+	"github.com/PaloAltoNetworks/pango/util"
 	"log"
 
 	"github.com/PaloAltoNetworks/pango"
@@ -11,6 +12,7 @@ import (
 	"github.com/PaloAltoNetworks/pango/objects/address"
 	"github.com/PaloAltoNetworks/pango/objects/service"
 	"github.com/PaloAltoNetworks/pango/objects/tag"
+	"github.com/PaloAltoNetworks/pango/policies/rules/security"
 )
 
 func main() {
@@ -34,15 +36,16 @@ func main() {
 	}
 
 	// SECURITY POLICY RULE - ADD
-	securityPolicyRuleName := "codegen_rule"
-	securityPolicyRuleAction := "allow"
-	securityPolicyRuleSourceZones := []string{"any"}
-	securityPolicyRuleDestinationZones := []string{"any"}
 	securityPolicyRuleEntry := security.Entry{
-		Name:            securityPolicyRuleName,
-		Action:          &securityPolicyRuleAction,
-		SourceZone:      securityPolicyRuleSourceZones,
-		DestinationZone: securityPolicyRuleDestinationZones,
+		Name:               "codegen_rule",
+		Description:        util.String("initial description"),
+		Action:             util.String("allow"),
+		SourceZone:         []string{"any"},
+		SourceAddress:      []string{"any"},
+		DestinationZone:    []string{"any"},
+		DestinationAddress: []string{"any"},
+		Application:        []string{"any"},
+		Service:            []string{"application-default"},
 	}
 
 	securityPolicyRuleLocation := security.Location{
@@ -59,21 +62,62 @@ func main() {
 		log.Printf("Failed to create security policy rule: %s", err)
 		return
 	}
-	log.Printf("Security policy rule '%s:%s' created", *securityPolicyRuleReply.Uuid, securityPolicyRuleReply.Name)
+	log.Printf("Security policy rule '%s:%s' with description '%s' created", *securityPolicyRuleReply.Uuid, securityPolicyRuleReply.Name, *securityPolicyRuleReply.Description)
+
+	// SECURITY POLICY RULE - READ
+	securityPolicyRuleReply, err = securityPolicyRuleApi.Read(ctx, securityPolicyRuleLocation, securityPolicyRuleReply.Name, "get")
+	if err != nil {
+		log.Printf("Failed to update security policy rule: %s", err)
+		return
+	}
+	log.Printf("Security policy rule '%s:%s' with description '%s' read", *securityPolicyRuleReply.Uuid, securityPolicyRuleReply.Name, *securityPolicyRuleReply.Description)
+
+	// SECURITY POLICY RULE - UPDATE
+	securityPolicyRuleEntry.Description = util.String("changed description")
+	securityPolicyRuleReply, err = securityPolicyRuleApi.Update(ctx, securityPolicyRuleLocation, securityPolicyRuleEntry, securityPolicyRuleReply.Name)
+	if err != nil {
+		log.Printf("Failed to update security policy rule: %s", err)
+		return
+	}
+	log.Printf("Security policy rule '%s:%s' with description '%s' updated", *securityPolicyRuleReply.Uuid, securityPolicyRuleReply.Name, *securityPolicyRuleReply.Description)
+
+	// SECURITY POLICY RULE - READ BY ID
+	securityPolicyRuleReply, err = securityPolicyRuleApi.ReadById(ctx, securityPolicyRuleLocation, *securityPolicyRuleReply.Uuid, "get")
+	if err != nil {
+		log.Printf("Failed to update security policy rule: %s", err)
+		return
+	}
+	log.Printf("Security policy rule '%s:%s' with description '%s' read by id", *securityPolicyRuleReply.Uuid, securityPolicyRuleReply.Name, *securityPolicyRuleReply.Description)
+
+	// SECURITY POLICY RULE - UPDATE 2
+	securityPolicyRuleEntry.Description = util.String("changed by id description")
+	securityPolicyRuleReply, err = securityPolicyRuleApi.UpdateById(ctx, securityPolicyRuleLocation, securityPolicyRuleEntry, *securityPolicyRuleReply.Uuid)
+	if err != nil {
+		log.Printf("Failed to update security policy rule: %s", err)
+		return
+	}
+	log.Printf("Security policy rule '%s:%s' with description '%s' updated", *securityPolicyRuleReply.Uuid, securityPolicyRuleReply.Name, *securityPolicyRuleReply.Description)
 
 	// SECURITY POLICY RULE - DELETE
-	err = securityPolicyRuleApi.Delete(ctx, securityPolicyRuleLocation, securityPolicyRuleName)
+	err = securityPolicyRuleApi.DeleteById(ctx, securityPolicyRuleLocation, *securityPolicyRuleReply.Uuid)
 	if err != nil {
 		log.Printf("Failed to delete security policy rule: %s", err)
 		return
 	}
-	log.Printf("Security policy rule '%s' deleted", securityPolicyRuleName)
+	log.Printf("Security policy rule '%s' deleted", securityPolicyRuleReply.Name)
+
+	// SECURITY POLICY RULE - FORCE ERROR WHILE DELETE
+	err = securityPolicyRuleApi.Delete(ctx, securityPolicyRuleLocation, securityPolicyRuleReply.Name)
+	if err != nil {
+		log.Printf("Failed to delete security policy rule: %s", err)
+	} else {
+		log.Printf("Security policy rule '%s' deleted", securityPolicyRuleReply.Name)
+	}
 
 	// TAG - CREATE
-	tagName := "codegen_color"
 	tagColor := tag.ColorAzureBlue
 	tagObject := tag.Entry{
-		Name:  tagName,
+		Name:  "codegen_color",
 		Color: &tagColor,
 	}
 
@@ -90,19 +134,17 @@ func main() {
 	log.Printf("Tag '%s' created", tagReply.Name)
 
 	// TAG - DELETE
-	err = tagApi.Delete(ctx, tagLocation, tagName)
+	err = tagApi.Delete(ctx, tagLocation, tagReply.Name)
 	if err != nil {
 		log.Printf("Failed to delete object: %s", err)
 		return
 	}
-	log.Printf("Tag '%s' deleted", tagName)
+	log.Printf("Tag '%s' deleted", tagReply.Name)
 
 	// ADDRESS - CREATE
-	addressValue := "12.13.14.25"
-	addressName := "codegen_address_test1"
 	addressObject := address.Entry{
-		Name:      addressName,
-		IpNetmask: &addressValue,
+		Name:      "codegen_address_test1",
+		IpNetmask: util.String("12.13.14.25"),
 	}
 
 	addressLocation := address.Location{
@@ -118,12 +160,12 @@ func main() {
 	log.Printf("Address '%s=%s' created", addressReply.Name, *addressReply.IpNetmask)
 
 	// ADDRESS - DELETE
-	err = addressApi.Delete(ctx, addressLocation, addressName)
+	err = addressApi.Delete(ctx, addressLocation, addressReply.Name)
 	if err != nil {
 		log.Printf("Failed to delete object: %s", err)
 		return
 	}
-	log.Printf("Address '%s' deleted", addressName)
+	log.Printf("Address '%s' deleted", addressReply.Name)
 
 	// ADDRESS - LIST
 	addresses, err := addressApi.List(ctx, addressLocation, "get", "name starts-with 'wu'", "'")
@@ -136,18 +178,15 @@ func main() {
 	}
 
 	// SERVICE - ADD
-	serviceName := "codegen_service_test1"
 	servicePort := 8642
-	serviceDescription := "test description"
-	tcpOverride := ""
 	serviceObject := service.Entry{
-		Name:        serviceName,
-		Description: &serviceDescription,
+		Name:        "codegen_service_test1",
+		Description: util.String("test description"),
 		Protocol: &service.SpecProtocol{
 			Tcp: &service.SpecProtocolTcp{
 				DestinationPort: &servicePort,
 				Override: &service.SpecProtocolTcpOverride{
-					No: &tcpOverride,
+					No: util.String(""),
 				},
 			},
 		},
@@ -170,10 +209,9 @@ func main() {
 	log.Printf("Service '%s=%d' created", serviceReply.Name, *serviceReply.Protocol.Tcp.DestinationPort)
 
 	// SERVICE - UPDATE 1
-	serviceDescription = "changed description"
-	serviceObject.Description = &serviceDescription
+	serviceObject.Description = util.String("changed description")
 
-	serviceReply, err = serviceApi.Update(ctx, serviceLocation, serviceObject, serviceName)
+	serviceReply, err = serviceApi.Update(ctx, serviceLocation, serviceObject, serviceReply.Name)
 	if err != nil {
 		log.Printf("Failed to update object: %s", err)
 		return
@@ -184,7 +222,7 @@ func main() {
 	servicePort = 1234
 	serviceObject.Protocol.Tcp.DestinationPort = &servicePort
 
-	serviceReply, err = serviceApi.Update(ctx, serviceLocation, serviceObject, serviceName)
+	serviceReply, err = serviceApi.Update(ctx, serviceLocation, serviceObject, serviceReply.Name)
 	if err != nil {
 		log.Printf("Failed to update object: %s", err)
 		return
@@ -195,14 +233,14 @@ func main() {
 	newServiceName := "codegen_service_test2"
 	serviceObject.Name = newServiceName
 
-	serviceReply, err = serviceApi.Update(ctx, serviceLocation, serviceObject, serviceName)
+	serviceReply, err = serviceApi.Update(ctx, serviceLocation, serviceObject, serviceReply.Name)
 	if err != nil {
 		log.Printf("Failed to update object: %s", err)
 		return
 	}
 	log.Printf("Service '%s=%d' renamed", serviceReply.Name, *serviceReply.Protocol.Tcp.DestinationPort)
 
-	// SERViCE - LIST
+	// SERVICE - LIST
 	//services, err := serviceApi.List(ctx, serviceLocation, "get", "name starts-with 'test'", "'")
 	services, err := serviceApi.List(ctx, serviceLocation, "get", "", "")
 	if err != nil {
@@ -251,8 +289,7 @@ func main() {
 		serviceReply.Name, *serviceReply.Protocol.Tcp.DestinationPort, readDescription, xmls, keys)
 
 	// SERVICE - UPDATE 3
-	serviceDescription = "some text changed now"
-	serviceReply.Description = &serviceDescription
+	serviceReply.Description = util.String("some text changed now")
 
 	serviceReply, err = serviceApi.Update(ctx, serviceLocation, *serviceReply, "test")
 	if err != nil {
@@ -273,12 +310,11 @@ func main() {
 	log.Printf("Service '%s=%d, description: %s misc XML: %s, misc keys: %s' update",
 		serviceReply.Name, *serviceReply.Protocol.Tcp.DestinationPort, readDescription, xmls, keys)
 
-	// NTP
-	ntpAddress := "11.12.13.14"
+	// NTP - ADD
 	ntpConfig := ntp.Config{
 		NtpServers: &ntp.SpecNtpServers{
 			PrimaryNtpServer: &ntp.SpecNtpServersPrimaryNtpServer{
-				NtpServerAddress: &ntpAddress,
+				NtpServerAddress: util.String("11.12.13.14"),
 			},
 		},
 	}
@@ -305,15 +341,13 @@ func main() {
 	}
 	log.Print("NTP deleted")
 
-	// DNS
-	primaryDnsAddress := "8.8.8.8"
-	secondaryDnsAddress := "4.4.4.4"
+	// DNS - ADD
 	refreshTime := 27
 	dnsConfig := dns.Config{
 		DnsSetting: &dns.SpecDnsSetting{
 			Servers: &dns.SpecDnsSettingServers{
-				Primary:   &primaryDnsAddress,
-				Secondary: &secondaryDnsAddress,
+				Primary:   util.String("8.8.8.8"),
+				Secondary: util.String("4.4.4.4"),
 			},
 		},
 		FqdnRefreshTime: &refreshTime,
