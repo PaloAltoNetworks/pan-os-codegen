@@ -1,7 +1,6 @@
 package properties
 
 import (
-	"regexp"
 	"strings"
 
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/imports"
