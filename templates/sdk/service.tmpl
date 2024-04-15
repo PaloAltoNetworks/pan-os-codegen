@@ -553,6 +553,7 @@ return err
         Action: "move",
         Xpath:  util.AsXpath(path),
         Where:  "top",
+        Destination: target.Name,
         Target: s.client.GetTarget(),
         })
 
@@ -585,6 +586,7 @@ return err
         Action: "move",
         Xpath:  util.AsXpath(path),
         Where:  "bottom",
+        Destination: target.Name,
         Target: s.client.GetTarget(),
         })
 

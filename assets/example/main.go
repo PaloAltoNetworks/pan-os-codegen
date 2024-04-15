@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/xml"
+	"fmt"
 	"github.com/PaloAltoNetworks/pango/util"
 	"log"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/PaloAltoNetworks/pango/objects/service"
 	"github.com/PaloAltoNetworks/pango/objects/tag"
 	"github.com/PaloAltoNetworks/pango/policies/rules/security"
+	"github.com/PaloAltoNetworks/pango/rule"
 )
 
 func main() {
@@ -147,6 +149,72 @@ func main() {
 		log.Printf("Failed to delete security policy rule: %s", err)
 	} else {
 		log.Printf("Security policy rule '%s' deleted", securityPolicyRuleReply.Name)
+	}
+
+	// SECURITY POLICY RULE - MOVE GROUP
+	securityPolicyRulesNames := make([]string, 10)
+	var securityPolicyRulesEntries []security.Entry
+	for i := 0; i < 10; i++ {
+		securityPolicyRulesNames[i] = fmt.Sprintf("codegen_rule%d", i)
+		securityPolicyRuleItem := security.Entry{
+			Name:               securityPolicyRulesNames[i],
+			Description:        util.String("initial description"),
+			Action:             util.String("allow"),
+			SourceZone:         []string{"any"},
+			SourceAddress:      []string{"any"},
+			DestinationZone:    []string{"any"},
+			DestinationAddress: []string{"any"},
+			Application:        []string{"any"},
+			Service:            []string{"application-default"},
+		}
+		securityPolicyRulesEntries = append(securityPolicyRulesEntries, securityPolicyRuleItem)
+		securityPolicyRuleItemReply, err := securityPolicyRuleApi.Create(ctx, securityPolicyRuleLocation, securityPolicyRuleItem)
+		if err != nil {
+			log.Printf("Failed to create security policy rule: %s", err)
+			return
+		}
+		log.Printf("Security policy rule '%s:%s' with description '%s' created", *securityPolicyRuleItemReply.Uuid, securityPolicyRuleItemReply.Name, *securityPolicyRuleItemReply.Description)
+	}
+	rulePositionBefore7 := rule.Position{
+		First:           nil,
+		Last:            nil,
+		SomewhereBefore: nil,
+		DirectlyBefore:  util.String("codegen_rule7"),
+		SomewhereAfter:  nil,
+		DirectlyAfter:   nil,
+	}
+	rulePositionBottom := rule.Position{
+		First:           nil,
+		Last:            util.Bool(true),
+		SomewhereBefore: nil,
+		DirectlyBefore:  nil,
+		SomewhereAfter:  nil,
+		DirectlyAfter:   nil,
+	}
+	var securityPolicyRulesEntriesToMove []security.Entry
+	securityPolicyRulesEntriesToMove = append(securityPolicyRulesEntriesToMove, securityPolicyRulesEntries[3])
+	securityPolicyRulesEntriesToMove = append(securityPolicyRulesEntriesToMove, securityPolicyRulesEntries[5])
+	for _, securityPolicyRuleItemToMove := range securityPolicyRulesEntriesToMove {
+		log.Printf("Security policy rule '%s' is going to be moved", securityPolicyRuleItemToMove.Name)
+	}
+	err = securityPolicyRuleApi.MoveGroup(ctx, securityPolicyRuleLocation, rulePositionBefore7, securityPolicyRulesEntriesToMove)
+	if err != nil {
+		log.Printf("Failed to move security policy rules %v: %s", securityPolicyRulesEntriesToMove, err)
+		return
+	}
+	securityPolicyRulesEntriesToMove = []security.Entry{securityPolicyRulesEntries[1]}
+	for _, securityPolicyRuleItemToMove := range securityPolicyRulesEntriesToMove {
+		log.Printf("Security policy rule '%s' is going to be moved", securityPolicyRuleItemToMove.Name)
+	}
+	err = securityPolicyRuleApi.MoveGroup(ctx, securityPolicyRuleLocation, rulePositionBottom, securityPolicyRulesEntriesToMove)
+	if err != nil {
+		log.Printf("Failed to move security policy rules %v: %s", securityPolicyRulesEntriesToMove, err)
+		return
+	}
+	err = securityPolicyRuleApi.Delete(ctx, securityPolicyRuleLocation, securityPolicyRulesNames...)
+	if err != nil {
+		log.Printf("Failed to delete security policy rules %s: %s", securityPolicyRulesNames, err)
+		return
 	}
 
 	// TAG - CREATE
