@@ -304,7 +304,7 @@ return &list[0], nil
 
 // Delete deletes the given item.
 {{- if .Entry}}
-    func (s *Service) Delete(ctx context.Context, loc Location, name string) error {
+    func (s *Service) Delete(ctx context.Context, loc Location, name ...string) error {
     {{- if $.Spec.Params.uuid}}
         return s.delete(ctx, loc, name, true)
     {{- else}}
@@ -313,7 +313,7 @@ return &list[0], nil
     }
     {{- if $.Spec.Params.uuid}}
         // DeleteById deletes the given item with specified ID.
-        func (s *Service) DeleteById(ctx context.Context, loc Location, uuid string) error {
+        func (s *Service) DeleteById(ctx context.Context, loc Location, uuid ...string) error {
         return s.delete(ctx, loc, uuid, false)
         }
     {{- end}}
@@ -325,24 +325,28 @@ return &list[0], nil
 
 {{if .Entry}}
     {{- if $.Spec.Params.uuid}}
-        func (s *Service) delete(ctx context.Context, loc Location, value string, byName bool) error {
+        func (s *Service) delete(ctx context.Context, loc Location, values []string, byName bool) error {
     {{- else}}
-        func (s *Service) delete(ctx context.Context, loc Location, value string) error {
+        func (s *Service) delete(ctx context.Context, loc Location, values []string) error {
     {{- end}}
 {{- else}}
     func (s *Service) delete(ctx context.Context, loc Location, config Config) error {
 {{- end}}
 {{- if .Entry}}
     {{- if $.Spec.Params.uuid}}
+        for _, value := range values {
         if byName && value == "" {
         return errors.NameNotSpecifiedError
         }
         if !byName && value == "" {
         return errors.UuidNotSpecifiedError
         }
+        }
     {{- else}}
+        for _, value := range values {
         if value == "" {
         return errors.NameNotSpecifiedError
+        }
         }
     {{- end}}
 {{- end}}
@@ -350,8 +354,10 @@ return &list[0], nil
 vn := s.client.Versioning()
 
 {{- if .Entry}}
-    var path []string
     var err error
+    deletes := xmlapi.NewMultiConfig(len(values))
+    for _, value := range values {
+    var path []string
     {{- if $.Spec.Params.uuid}}
         if byName {
         path, err = loc.XpathWithEntryName(vn, value)
@@ -369,13 +375,15 @@ return err
 }
 
 {{- if .Entry}}
-    cmd := &xmlapi.Config{
+    deletes.Add(&xmlapi.Config{
     Action: "delete",
     Xpath:  util.AsXpath(path),
     Target: s.client.GetTarget(),
+    })
+
     }
 
-    _, _, err = s.client.Communicate(ctx, cmd, false, nil)
+    _, _, _, err = s.client.MultiConfig(ctx, deletes, false, nil)
 
     return err
 {{- else}}
