@@ -62,3 +62,9 @@ assets:
       go_sdk: true
       terraform_provider: false
     destination: "plugin"
+  rule_package:
+    source: "assets/rule"
+    target:
+      go_sdk: true
+      terraform_provider: false
+    destination: "rule"

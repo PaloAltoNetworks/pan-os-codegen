@@ -33,6 +33,8 @@ func RenderImports(templateTypes ...string) (string, error) {
 			manager.AddStandardImport("strings", "")
 			manager.AddStandardImport("time", "")
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/audit", "")
+		case "rule":
+			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/rule", "")
 		}
 	}
 
