@@ -307,80 +307,86 @@ spec:
             default: false
             profiles:
               - xpath: [ "disable-server-response-inspection" ]
-    virus:
-      description: 'Antivirus profile'
-      type: list
-      count:
-        max: 1
-      items:
-        type: 'string'
+    profile_setting:
       profiles:
-        -
-          type: 'member'
-          xpath: ["profile-setting", "profiles", "virus"]
-    spyware:
-      description: 'Anti-Spyware profile'
-      type: list
-      count:
-        max: 1
-      items:
-        type: 'string'
-      profiles:
-        -
-          type: 'member'
-          xpath: ["profile-setting", "profiles", "spyware"]
-    vulnerability:
-      description: 'Vulnerability Protection profile'
-      type: list
-      count:
-        max: 1
-      items:
-        type: 'string'
-      profiles:
-        -
-          type: 'member'
-          xpath: ["profile-setting", "profiles", "vulnerability"]
-    url_filtering:
-      description: 'URL filtering profile'
-      type: list
-      count:
-        max: 1
-      items:
-        type: 'string'
-      profiles:
-        -
-          type: 'member'
-          xpath: ["profile-setting", "profiles", "url-filtering"]
-    file_blocking:
-      description: 'File blocking profile'
-      type: list
-      count:
-        max: 1
-      items:
-        type: 'string'
-      profiles:
-        -
-          type: 'member'
-          xpath: ["profile-setting", "profiles", "file-blocking"]
-    wildfire_analysis:
-      description: 'WildFire analysis profile'
-      type: list
-      count:
-        max: 1
-      items:
-        type: 'string'
-      profiles:
-        -
-          type: 'member'
-          xpath: ["profile-setting", "profiles", "wildfire-analysis"]
-    data_filtering:
-      description: 'Data filtering profile'
-      type: list
-      count:
-        max: 1
-      items:
-        type: 'string'
-      profiles:
-        -
-          type: 'member'
-          xpath: ["profile-setting", "profiles", "data-filtering"]
+        - xpath: [ "profile-setting" ]
+      spec:
+        one_of:
+          group:
+            profiles:
+              - xpath: [ "group" ]
+          profiles:
+            profiles:
+              - xpath: [ "profiles" ]
+            spec:
+              params:
+                virus:
+                  description: 'Antivirus profile'
+                  type: list
+                  count:
+                    max: 1
+                  items:
+                    type: 'string'
+                  profiles:
+                    - type: 'member'
+                      xpath: [ "virus" ]
+                spyware:
+                  description: 'Anti-Spyware profile'
+                  type: list
+                  count:
+                    max: 1
+                  items:
+                    type: 'string'
+                  profiles:
+                    - type: 'member'
+                      xpath: [ "spyware" ]
+                vulnerability:
+                  description: 'Vulnerability Protection profile'
+                  type: list
+                  count:
+                    max: 1
+                  items:
+                    type: 'string'
+                  profiles:
+                    - type: 'member'
+                      xpath: [ "vulnerability" ]
+                url_filtering:
+                  description: 'URL filtering profile'
+                  type: list
+                  count:
+                    max: 1
+                  items:
+                    type: 'string'
+                  profiles:
+                    - type: 'member'
+                      xpath: [ "url-filtering" ]
+                file_blocking:
+                  description: 'File blocking profile'
+                  type: list
+                  count:
+                    max: 1
+                  items:
+                    type: 'string'
+                  profiles:
+                    - type: 'member'
+                      xpath: [ "file-blocking" ]
+                wildfire_analysis:
+                  description: 'WildFire analysis profile'
+                  type: list
+                  count:
+                    max: 1
+                  items:
+                    type: 'string'
+                  profiles:
+                    - type: 'member'
+                      xpath: [ "wildfire-analysis" ]
+                data_filtering:
+                  description: 'Data filtering profile'
+                  type: list
+                  count:
+                    max: 1
+                  items:
+                    type: 'string'
+                  profiles:
+                    - type: 'member'
+                      xpath: [ "data-filtering" ]
