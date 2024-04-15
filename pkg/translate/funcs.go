@@ -44,9 +44,9 @@ func prepareAssignment(objectType string, param *properties.SpecParam, listFunct
 	if ParamSupportedInVersion(param, version) {
 		if param.Spec != nil {
 			if specSuffix == "Xml" {
-				appendSpecObjectAssignment(param, objectType, version, specPrefix, specSuffix, &builder)
+				appendSpecObjectAssignment(param, objectType, version, listFunction, boolFunction, specPrefix, specSuffix, &builder)
 			} else {
-				appendSpecObjectAssignment(param, objectType, "", specPrefix, specSuffix, &builder)
+				appendSpecObjectAssignment(param, objectType, "", listFunction, boolFunction, specPrefix, specSuffix, &builder)
 			}
 		} else if isParamListAndProfileTypeIsMember(param) {
 			appendFunctionAssignment(param, objectType, listFunction, &builder)
@@ -72,20 +72,24 @@ func appendFunctionAssignment(param *properties.SpecParam, objectType string, fu
 	builder.WriteString(fmt.Sprintf("%s.%s = %s(o.%s)", objectType, param.Name.CamelCase, functionName, param.Name.CamelCase))
 }
 
-func appendSpecObjectAssignment(param *properties.SpecParam, objectType string, version, prefix, suffix string, builder *strings.Builder) {
-	defineNestedObject([]string{param.Name.CamelCase}, param, objectType, version, prefix, suffix, builder)
+func appendSpecObjectAssignment(param *properties.SpecParam, objectType string, version, listFunction, boolFunction, prefix, suffix string, builder *strings.Builder) {
+	defineNestedObject([]string{param.Name.CamelCase}, param, objectType, version, listFunction, boolFunction, prefix, suffix, builder)
 	builder.WriteString(fmt.Sprintf("%s.%s = nested%s\n", objectType, param.Name.CamelCase, param.Name.CamelCase))
 }
 
-func defineNestedObject(parent []string, param *properties.SpecParam, objectType string, version, prefix, suffix string, builder *strings.Builder) {
+func defineNestedObject(parent []string, param *properties.SpecParam, objectType string, version, listFunction, boolFunction, prefix, suffix string, builder *strings.Builder) {
 	declareRootOfNestedObject(parent, builder, version, prefix, suffix)
 
 	if ParamSupportedInVersion(param, version) {
 		builder.WriteString(fmt.Sprintf("if o.%s != nil {\n", strings.Join(parent, ".")))
 		if param.Spec != nil {
 			assignEmptyStructForNestedObject(parent, builder, objectType, version, prefix, suffix)
-			defineNestedObjectForChildParams(parent, param.Spec.Params, objectType, version, prefix, suffix, builder)
-			defineNestedObjectForChildParams(parent, param.Spec.OneOf, objectType, version, prefix, suffix, builder)
+			defineNestedObjectForChildParams(parent, param.Spec.Params, objectType, version, listFunction, boolFunction, prefix, suffix, builder)
+			defineNestedObjectForChildParams(parent, param.Spec.OneOf, objectType, version, listFunction, boolFunction, prefix, suffix, builder)
+		} else if isParamListAndProfileTypeIsMember(param) {
+			assignFunctionForNestedObject(parent, listFunction, builder)
+		} else if param.Type == "bool" {
+			assignFunctionForNestedObject(parent, boolFunction, builder)
 		} else {
 			assignValueForNestedObject(parent, builder)
 		}
@@ -131,9 +135,16 @@ func assignValueForNestedObject(parent []string, builder *strings.Builder) {
 		strings.Join(parent, ".")))
 }
 
-func defineNestedObjectForChildParams(parent []string, params map[string]*properties.SpecParam, objectType string, version, prefix, suffix string, builder *strings.Builder) {
+func assignFunctionForNestedObject(parent []string, functionName string, builder *strings.Builder) {
+	builder.WriteString(fmt.Sprintf("nested%s = %s(o.%s)\n",
+		strings.Join(parent, "."),
+		functionName,
+		strings.Join(parent, ".")))
+}
+
+func defineNestedObjectForChildParams(parent []string, params map[string]*properties.SpecParam, objectType string, version, listFunction, boolFunction, prefix, suffix string, builder *strings.Builder) {
 	for _, param := range params {
-		defineNestedObject(append(parent, param.Name.CamelCase), param, objectType, version, prefix, suffix, builder)
+		defineNestedObject(append(parent, param.Name.CamelCase), param, objectType, version, listFunction, boolFunction, prefix, suffix, builder)
 	}
 }
 
