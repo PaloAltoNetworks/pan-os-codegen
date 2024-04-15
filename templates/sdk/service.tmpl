@@ -497,9 +497,8 @@ return err
 
     {{- if $.Spec.Params.uuid}}
         // MoveGroup arranges the given rules in the order specified.
-        //
-        // Any rule with a UUID specified is ignored.  Only the rule names are considered for the
-        // purposes of the rule placement.
+        // Any rule with a UUID specified is ignored.
+        // Only the rule names are considered for the purposes of the rule placement.
         func (s *Service) MoveGroup(ctx context.Context, loc Location, position rule.Position, entries []Entry) error {
         if len(entries) == 0 {
         return nil
@@ -976,10 +975,10 @@ return err
 
         query := strings.Join([]string{
         "(subtype eq audit-comment)",
-        fmt.Sprintf("(path contains '\\'%s\\'')", name),   // Name.
-        fmt.Sprintf("(path contains '%s')", RuleType),     // Rule type.
-        fmt.Sprintf("(path contains %s)", base),           // Rulebase.
-        fmt.Sprintf("(path contains '\\'%s\\'')", vsysDg), // Vsys or device group.
+        fmt.Sprintf("(path contains '\\'%s\\'')", name),
+        fmt.Sprintf("(path contains '%s')", RuleType),
+        fmt.Sprintf("(path contains %s)", base),
+        fmt.Sprintf("(path contains '\\'%s\\'')", vsysDg),
         }, " and ")
         extras := url.Values{}
         extras.Set("uniq", "yes")
