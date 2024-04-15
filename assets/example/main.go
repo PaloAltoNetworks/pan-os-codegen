@@ -110,6 +110,29 @@ func main() {
 		log.Printf("Security policy rule not found")
 	}
 
+	// SECURITY POLICY RULE - AUDIT COMMENT
+	err = securityPolicyRuleApi.SetAuditComment(ctx, securityPolicyRuleLocation, securityPolicyRuleReply.Name, "another audit comment")
+	if err != nil {
+		log.Printf("Failed to set audit comment for security policy rule: %s", err)
+		return
+	}
+
+	comment, err := securityPolicyRuleApi.CurrentAuditComment(ctx, securityPolicyRuleLocation, securityPolicyRuleEntry.Name)
+	if err != nil {
+		log.Printf("Failed to get audit comment for security policy rule: %s", err)
+		return
+	}
+	log.Printf("Security policy rule '%s:%s' current comment: '%s'", *securityPolicyRuleReply.Uuid, securityPolicyRuleReply.Name, comment)
+
+	comments, err := securityPolicyRuleApi.AuditCommentHistory(ctx, securityPolicyRuleLocation, securityPolicyRuleEntry.Name, "forward", 10, 0)
+	if err != nil {
+		log.Printf("Failed to get audit comments for security policy rule: %s", err)
+		return
+	}
+	for _, comment := range comments {
+		log.Printf("Security policy rule '%s:%s' comment history: '%s:%s'", *securityPolicyRuleReply.Uuid, securityPolicyRuleReply.Name, comment.Time, comment.Comment)
+	}
+
 	// SECURITY POLICY RULE - DELETE
 	err = securityPolicyRuleApi.DeleteById(ctx, securityPolicyRuleLocation, *securityPolicyRuleReply.Uuid)
 	if err != nil {
