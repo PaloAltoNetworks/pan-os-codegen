@@ -8,7 +8,11 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/PaloAltoNetworks/pango/version"
 )
+
+var FixedPanosVersionForMultiConfigMove = version.Number{99, 99, 99, ""}
 
 // VsysEntryType defines an entry config node with vsys entries underneath.
 type VsysEntryType struct {
