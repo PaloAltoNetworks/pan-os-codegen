@@ -98,6 +98,18 @@ func main() {
 	}
 	log.Printf("Security policy rule '%s:%s' with description '%s' updated", *securityPolicyRuleReply.Uuid, securityPolicyRuleReply.Name, *securityPolicyRuleReply.Description)
 
+	// SECURITY POLICY RULE - HIT COUNT
+	hitCount, err := securityPolicyRuleApi.HitCount(ctx, securityPolicyRuleLocation, "test-policy")
+	if err != nil {
+		log.Printf("Failed to get hit count for security policy rule: %s", err)
+		return
+	}
+	if len(hitCount) > 0 {
+		log.Printf("Security policy rule '%d' hit count", hitCount[0].HitCount)
+	} else {
+		log.Printf("Security policy rule not found")
+	}
+
 	// SECURITY POLICY RULE - DELETE
 	err = securityPolicyRuleApi.DeleteById(ctx, securityPolicyRuleLocation, *securityPolicyRuleReply.Uuid)
 	if err != nil {
