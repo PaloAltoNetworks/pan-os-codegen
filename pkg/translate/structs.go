@@ -71,6 +71,8 @@ func XmlParamType(parent string, param *properties.SpecParam) string {
 		calculatedType = "util.MemberType"
 	} else if param.Spec != nil {
 		calculatedType = calculateNestedXmlSpecType(parent, param)
+	} else if param.Type == "bool" {
+		calculatedType = "string"
 	} else {
 		calculatedType = param.Type
 	}

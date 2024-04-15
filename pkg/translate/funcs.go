@@ -28,17 +28,17 @@ func generateEntryXpathForLocation(prefix, suffix, location, xpath string) strin
 // in entry.tmpl/config.tmpl template. If param contains nested specs, then recursively are executed
 // internal functions, which are creating entry assignment.
 func NormalizeAssignment(objectType string, param *properties.SpecParam, version string) string {
-	return prepareAssignment(objectType, param, "util.MemToStr", "Spec", "", version)
+	return prepareAssignment(objectType, param, "util.MemToStr", "util.AsBool", "Spec", "", version)
 }
 
 // SpecifyEntryAssignment generates a string, which contains entry/config assignment in SpecifyEntry() function
 // in entry.tmpl/config.tmpl template. If param contains nested specs, then recursively are executed
 // internal functions, which are creating entry assignment.
 func SpecifyEntryAssignment(objectType string, param *properties.SpecParam, version string) string {
-	return prepareAssignment(objectType, param, "util.StrToMem", "spec", "Xml", version)
+	return prepareAssignment(objectType, param, "util.StrToMem", "util.YesNo", "spec", "Xml", version)
 }
 
-func prepareAssignment(objectType string, param *properties.SpecParam, listFunction, specPrefix, specSuffix string, version string) string {
+func prepareAssignment(objectType string, param *properties.SpecParam, listFunction, boolFunction, specPrefix, specSuffix string, version string) string {
 	var builder strings.Builder
 
 	if ParamSupportedInVersion(param, version) {
@@ -49,7 +49,9 @@ func prepareAssignment(objectType string, param *properties.SpecParam, listFunct
 				appendSpecObjectAssignment(param, objectType, "", specPrefix, specSuffix, &builder)
 			}
 		} else if isParamListAndProfileTypeIsMember(param) {
-			appendListFunctionAssignment(param, objectType, listFunction, &builder)
+			appendFunctionAssignment(param, objectType, listFunction, &builder)
+		} else if param.Type == "bool" {
+			appendFunctionAssignment(param, objectType, boolFunction, &builder)
 		} else {
 			appendSimpleAssignment(param, objectType, &builder)
 		}
@@ -66,8 +68,8 @@ func appendSimpleAssignment(param *properties.SpecParam, objectType string, buil
 	builder.WriteString(fmt.Sprintf("%s.%s = o.%s", objectType, param.Name.CamelCase, param.Name.CamelCase))
 }
 
-func appendListFunctionAssignment(param *properties.SpecParam, objectType string, listFunction string, builder *strings.Builder) {
-	builder.WriteString(fmt.Sprintf("%s.%s = %s(o.%s)", objectType, param.Name.CamelCase, listFunction, param.Name.CamelCase))
+func appendFunctionAssignment(param *properties.SpecParam, objectType string, functionName string, builder *strings.Builder) {
+	builder.WriteString(fmt.Sprintf("%s.%s = %s(o.%s)", objectType, param.Name.CamelCase, functionName, param.Name.CamelCase))
 }
 
 func appendSpecObjectAssignment(param *properties.SpecParam, objectType string, version, prefix, suffix string, builder *strings.Builder) {

@@ -59,19 +59,21 @@ func MapToVsysEnt(e map[string][]string) *VsysEntryType {
 }
 
 // YesNo returns "yes" on true, "no" on false.
-func YesNo(v bool) string {
-	if v {
-		return "yes"
+func YesNo(v *bool) *string {
+	result := "no"
+	if v != nil && *v {
+		result = "yes"
 	}
-	return "no"
+	return &result
 }
 
 // AsBool returns true on yes, else false.
-func AsBool(val string) bool {
-	if val == "yes" {
-		return true
+func AsBool(val *string) *bool {
+	result := false
+	if val != nil && *val == "yes" {
+		result = true
 	}
-	return false
+	return &result
 }
 
 // AsXpath makes an xpath out of the given interface.
