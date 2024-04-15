@@ -13,6 +13,8 @@ import (
 type Normalization struct {
 	Name                    string               `json:"name" yaml:"name"`
 	TerraformProviderSuffix string               `json:"terraform_provider_suffix" yaml:"terraform_provider_suffix"`
+	Repository              string               `json:"repository" yaml:"repository"`
+	RepositoryShortName     string               `json:"repository_short_name" yaml:"repository_short_name"`
 	GoSdkPath               []string             `json:"go_sdk_path" yaml:"go_sdk_path"`
 	XpathSuffix             []string             `json:"xpath_suffix" yaml:"xpath_suffix"`
 	Locations               map[string]*Location `json:"locations" yaml:"locations"`
