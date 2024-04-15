@@ -826,11 +826,17 @@ return err
         }
         }
 
+        // some versions of PAN-OS require that the destination always be set
+        var dst string
+        if !vn.Gte(util.FixedPanosVersionForMultiConfigMove) {
+        dst = "bottom"
+        }
+
         updates.Add(&xmlapi.Config{
         Action:      "move",
         Xpath:       util.AsXpath(path),
         Where:       "bottom",
-        Destination: target.Name,
+        Destination: dst,
         Target:      s.client.GetTarget(),
         })
 
@@ -863,11 +869,17 @@ return err
         }
         }
 
+        // some versions of PAN-OS require that the destination always be set
+        var dst string
+        if !vn.Gte(util.FixedPanosVersionForMultiConfigMove) {
+        dst = "top"
+        }
+
         updates.Add(&xmlapi.Config{
         Action:      "move",
         Xpath:       util.AsXpath(path),
         Where:       "top",
-        Destination: target.Name,
+        Destination: dst,
         Target:      s.client.GetTarget(),
         })
 
