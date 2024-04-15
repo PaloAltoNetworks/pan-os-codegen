@@ -35,6 +35,8 @@ func RenderImports(templateTypes ...string) (string, error) {
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/audit", "")
 		case "rule":
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/rule", "")
+		case "version":
+			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/version", "")
 		}
 	}
 

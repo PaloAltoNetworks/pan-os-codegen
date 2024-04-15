@@ -1,7 +1,7 @@
 package {{packageName .GoSdkPath}}
 {{- if .Entry}}
     {{- if $.Spec.Params.uuid}}
-        {{renderImports "service" "filtering" "audit" "rule"}}
+        {{renderImports "service" "filtering" "audit" "rule" "version"}}
     {{- else}}
         {{renderImports "service" "filtering"}}
     {{- end}}
