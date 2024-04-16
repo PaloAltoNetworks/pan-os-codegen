@@ -297,7 +297,7 @@ spec:
         - xpath: ["icmp-unreachable"]
     disable_server_response_inspection:
       description: 'Disable Server Response Inspection'
-      type: "bool"
+      type: bool
       default: false
       profiles:
         - xpath: [ "option", "disable-server-response-inspection" ]
