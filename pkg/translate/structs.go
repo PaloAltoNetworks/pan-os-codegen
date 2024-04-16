@@ -107,7 +107,7 @@ func calculateNestedXmlSpecType(parent string, param *properties.SpecParam) stri
 // XmlName creates a string with xml name (e.g. `description`).
 func XmlName(param *properties.SpecParam) string {
 	if param.Profiles != nil && len(param.Profiles) > 0 {
-		return param.Profiles[0].Xpath[len(param.Profiles[0].Xpath)-1]
+		return strings.Join(param.Profiles[0].Xpath, ">")
 	}
 
 	return ""

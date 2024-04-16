@@ -295,18 +295,12 @@ spec:
       default: false
       profiles:
         - xpath: ["icmp-unreachable"]
-    option:
-      description: 'Security policy rule option'
+    disable_server_response_inspection:
+      description: 'Disable Server Response Inspection'
+      type: "bool"
+      default: false
       profiles:
-        - xpath: [ "option" ]
-      spec:
-        params:
-          disable_server_response_inspection:
-            description: 'Disable Server Response Inspection'
-            type: "bool"
-            default: false
-            profiles:
-              - xpath: [ "disable-server-response-inspection" ]
+        - xpath: [ "option", "disable-server-response-inspection" ]
     profile_setting:
       profiles:
         - xpath: [ "profile-setting" ]
