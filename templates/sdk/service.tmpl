@@ -59,11 +59,7 @@ return nil, err
 
 cmd := &xmlapi.Config{
 Action:  "set",
-{{- if .Entry}}
-    Xpath:   util.AsXpath(path[:len(path)-1]),
-{{- else}}
-    Xpath:   util.AsXpath(path),
-{{- end}}
+Xpath:   util.AsXpath(path[:len(path)-1]),
 Element: createSpec,
 Target:  s.client.GetTarget(),
 }
