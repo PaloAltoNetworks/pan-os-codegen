@@ -8,7 +8,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"log"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -858,7 +857,6 @@ func (c *XmlApiClient) Communicate(ctx context.Context, cmd util.PangoCommand, s
 	}
 
 	data, err := cmd.AsUrlValues()
-	log.Printf("communicating cmd: %s", data)
 	if err != nil {
 		return nil, nil, err
 	}
