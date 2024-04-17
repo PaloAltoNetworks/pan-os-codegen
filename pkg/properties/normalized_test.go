@@ -158,6 +158,8 @@ func TestMarshallAddressSpecFile(t *testing.T) {
 	// given
 	var expectedMarshalledData = `name: Address
 terraform_provider_suffix: address
+repository: ""
+repository_short_name: ""
 go_sdk_path:
     - objects
     - address

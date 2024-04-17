@@ -95,7 +95,6 @@ func (c *Command) Execute() error {
 		if c.commandType == CommandTypeTerraform {
 
 			newProviderObject := properties.NewTerraformProviderFile(spec.Name)
-			log.Printf("[DEBUG] create new provider object: %s", newProviderObject)
 			terraformGenerator := generate.NewCreator(config.Output.TerraformProvider, c.templatePath, spec)
 			err = terraformGenerator.RenderTerraformProvider(newProviderObject, spec)
 			if err != nil {
