@@ -52,7 +52,7 @@ func prepareAssignment(objectType string, param *properties.SpecParam, listFunct
 			appendFunctionAssignment(param, objectType, listFunction, "", &builder)
 		} else if param.Type == "bool" {
 			if specSuffix == "Xml" {
-				appendFunctionAssignment(param, objectType, boolFunction, useFunctionToConvertAdditionalArguments(param), &builder)
+				appendFunctionAssignment(param, objectType, boolFunction, useBoolFunctionToConvertAdditionalArguments(param), &builder)
 			} else {
 				appendFunctionAssignment(param, objectType, boolFunction, "nil", &builder)
 			}
@@ -64,7 +64,7 @@ func prepareAssignment(objectType string, param *properties.SpecParam, listFunct
 	return builder.String()
 }
 
-func useFunctionToConvertAdditionalArguments(param *properties.SpecParam) string {
+func useBoolFunctionToConvertAdditionalArguments(param *properties.SpecParam) string {
 	if param.Default != "" {
 		return fmt.Sprintf("util.Bool(%s)", param.Default)
 	}
@@ -105,7 +105,7 @@ func defineNestedObject(parent []string, param *properties.SpecParam, objectType
 			assignFunctionForNestedObject(parent, listFunction, "", builder)
 		} else if param.Type == "bool" {
 			if suffix == "Xml" {
-				assignFunctionForNestedObject(parent, boolFunction, useFunctionToConvertAdditionalArguments(param), builder)
+				assignFunctionForNestedObject(parent, boolFunction, useBoolFunctionToConvertAdditionalArguments(param), builder)
 			} else {
 				assignFunctionForNestedObject(parent, boolFunction, "nil", builder)
 			}
