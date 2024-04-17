@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
-	"github.com/PaloAltoNetworks/pango/util"
 	"log"
 
 	"github.com/PaloAltoNetworks/pango"
@@ -15,6 +14,7 @@ import (
 	"github.com/PaloAltoNetworks/pango/objects/tag"
 	"github.com/PaloAltoNetworks/pango/policies/rules/security"
 	"github.com/PaloAltoNetworks/pango/rule"
+	"github.com/PaloAltoNetworks/pango/util"
 )
 
 func main() {
@@ -37,6 +37,17 @@ func main() {
 		return
 	}
 
+	// CHECKS
+	checkSecurityPolicyRules(c, ctx)
+	checkSecurityPolicyRulesMove(c, ctx)
+	checkTag(c, ctx)
+	checkAddress(c, ctx)
+	checkService(c, ctx)
+	checkNtp(c, ctx)
+	checkDns(c, ctx)
+}
+
+func checkSecurityPolicyRules(c *pango.XmlApiClient, ctx context.Context) {
 	// SECURITY POLICY RULE - ADD
 	securityPolicyRuleEntry := security.Entry{
 		Name:               "codegen_rule",
@@ -150,8 +161,20 @@ func main() {
 	} else {
 		log.Printf("Security policy rule '%s' deleted", securityPolicyRuleReply.Name)
 	}
+}
 
+func checkSecurityPolicyRulesMove(c *pango.XmlApiClient, ctx context.Context) {
 	// SECURITY POLICY RULE - MOVE GROUP
+	securityPolicyRuleLocation := security.Location{
+		Vsys: &security.VsysLocation{
+			NgfwDevice: "localhost.localdomain",
+			Rulebase:   "post-rulebase",
+			Vsys:       "vsys1",
+		},
+	}
+
+	securityPolicyRuleApi := security.NewService(c)
+
 	securityPolicyRulesNames := make([]string, 10)
 	var securityPolicyRulesEntries []security.Entry
 	for i := 0; i < 10; i++ {
@@ -197,7 +220,7 @@ func main() {
 	for _, securityPolicyRuleItemToMove := range securityPolicyRulesEntriesToMove {
 		log.Printf("Security policy rule '%s' is going to be moved", securityPolicyRuleItemToMove.Name)
 	}
-	err = securityPolicyRuleApi.MoveGroup(ctx, securityPolicyRuleLocation, rulePositionBefore7, securityPolicyRulesEntriesToMove)
+	err := securityPolicyRuleApi.MoveGroup(ctx, securityPolicyRuleLocation, rulePositionBefore7, securityPolicyRulesEntriesToMove)
 	if err != nil {
 		log.Printf("Failed to move security policy rules %v: %s", securityPolicyRulesEntriesToMove, err)
 		return
@@ -216,7 +239,9 @@ func main() {
 		log.Printf("Failed to delete security policy rules %s: %s", securityPolicyRulesNames, err)
 		return
 	}
+}
 
+func checkTag(c *pango.XmlApiClient, ctx context.Context) {
 	// TAG - CREATE
 	tagColor := tag.ColorAzureBlue
 	tagObject := tag.Entry{
@@ -243,7 +268,9 @@ func main() {
 		return
 	}
 	log.Printf("Tag '%s' deleted", tagReply.Name)
+}
 
+func checkAddress(c *pango.XmlApiClient, ctx context.Context) {
 	// ADDRESS - CREATE
 	addressObject := address.Entry{
 		Name:      "codegen_address_test1",
@@ -279,7 +306,9 @@ func main() {
 			log.Printf("Address %d: '%s'", index, item.Name)
 		}
 	}
+}
 
+func checkService(c *pango.XmlApiClient, ctx context.Context) {
 	// SERVICE - ADD
 	servicePort := 8642
 	serviceObject := service.Entry{
@@ -412,7 +441,9 @@ func main() {
 	}
 	log.Printf("Service '%s=%d, description: %s misc XML: %s, misc keys: %s' update",
 		serviceReply.Name, *serviceReply.Protocol.Tcp.DestinationPort, readDescription, xmls, keys)
+}
 
+func checkNtp(c *pango.XmlApiClient, ctx context.Context) {
 	// NTP - ADD
 	ntpConfig := ntp.Config{
 		NtpServers: &ntp.SpecNtpServers{
@@ -443,7 +474,10 @@ func main() {
 		return
 	}
 	log.Print("NTP deleted")
+	return
+}
 
+func checkDns(c *pango.XmlApiClient, ctx context.Context) {
 	// DNS - ADD
 	refreshTime := 27
 	dnsConfig := dns.Config{
