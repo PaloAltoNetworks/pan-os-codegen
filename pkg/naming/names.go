@@ -7,8 +7,6 @@ import (
 	"unicode"
 )
 
-const DelayNaming string = "*Delayed*"
-
 type Namer struct {
 	varnum int
 	slugs  map[string]bool
@@ -195,46 +193,6 @@ func AlphaNumeric(value string) string {
 	}
 
 	return b.String()
-}
-
-func PathNameToSdkPath(value string) []string {
-	parts := strings.Split(value, "/")
-	return MakePathFrom(parts)
-}
-
-func AsPackageName(v []string) string {
-	x := MakePathFrom(v)
-	if len(x) == 0 {
-		return ""
-	}
-
-	return x[len(x)-1]
-}
-
-func SchemaNameToSdkPath(value string) []string {
-	tokens := strings.Split(value, "/")
-	ending := tokens[len(tokens)-1]
-
-	eau := Underscore("", ending, "")
-	return strings.Split(eau, "_")
-}
-
-func MakePathFrom(v []string) []string {
-	if len(v) == 0 {
-		return nil
-	}
-	ans := make([]string, 0, len(v))
-	for _, part := range v {
-		x := AlphaNumeric(part)
-		if x == "" {
-			continue
-		}
-		if isGolangKeyword := ContainsReservedWord([]string{x}); isGolangKeyword {
-			x += "path"
-		}
-		ans = append(ans, x)
-	}
-	return ans
 }
 
 // ContainsReservedWord returns if any of the strings use builtin keywords.
