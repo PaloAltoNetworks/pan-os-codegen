@@ -11,7 +11,7 @@ import (
 // help aggregate all the essential information for the provider file,
 // such as imports and the code itself.
 func NewTerraformProviderFile(filename string) *TerraformProviderFile {
-	var code strings.Builder
+	code := &strings.Builder{}
 	code.Grow(1e4)
 
 	return &TerraformProviderFile{
@@ -30,5 +30,5 @@ type TerraformProviderFile struct {
 	ImportManager *imports.Manager
 	DataSources   []string
 	Resources     []string
-	Code          strings.Builder
+	Code          *strings.Builder
 }

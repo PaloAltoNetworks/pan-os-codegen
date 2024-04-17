@@ -74,7 +74,7 @@ func (c *Command) Execute() error {
 		return fmt.Errorf("error parsing %s - %s", configPath, err)
 	}
 	var resourceList []string
-	// TODO: add datasource here: var dataSourceList []string
+	var dataSourceList []string
 
 	for _, specPath := range c.specs {
 		log.Printf("Parsing %s...\n", specPath)
@@ -102,7 +102,7 @@ func (c *Command) Execute() error {
 			}
 
 			resourceList = append(resourceList, newProviderObject.Resources...)
-			// TODO: add datasource here: dataSourceList = append(dataSourceList, newProviderObject.DataSources...)
+			dataSourceList = append(dataSourceList, newProviderObject.DataSources...)
 
 		} else if c.commandType == CommandTypeSDK {
 			generator := generate.NewCreator(config.Output.GoSdk, c.templatePath, spec)
@@ -118,7 +118,7 @@ func (c *Command) Execute() error {
 	}
 
 	log.Println("Generation complete.")
-	log.Printf("Generated resources: %s", resourceList)
-	// TODO: check for dataSource: log.Printf("Generated resources: %s", resourceList, dataSourceList)
+
+	log.Printf("Generated resources: %s\n Generated dataSources: %s", resourceList, dataSourceList)
 	return nil
 }
