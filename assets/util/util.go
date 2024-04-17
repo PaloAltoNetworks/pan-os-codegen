@@ -63,22 +63,22 @@ func MapToVsysEnt(e map[string][]string) *VsysEntryType {
 }
 
 // YesNo returns "yes" on true, "no" on false.
-func YesNo(val *bool, defaultVal bool) *string {
+func YesNo(val *bool, defaultVal *bool) *string {
 	result := "no"
-	if val != nil {
-		if *val {
-			result = "yes"
-		}
-	} else if defaultVal {
+	if val != nil && *val {
+		result = "yes"
+	} else if defaultVal != nil && *defaultVal {
 		result = "yes"
 	}
 	return &result
 }
 
 // AsBool returns true on yes, else false.
-func AsBool(val *string) *bool {
+func AsBool(val *string, defaultVal *string) *bool {
 	result := false
 	if val != nil && *val == "yes" {
+		result = true
+	} else if defaultVal != nil && *defaultVal == "yes" {
 		result = true
 	}
 	return &result

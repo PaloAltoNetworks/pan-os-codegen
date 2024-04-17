@@ -28,17 +28,17 @@ func generateEntryXpathForLocation(prefix, suffix, location, xpath string) strin
 // in entry.tmpl/config.tmpl template. If param contains nested specs, then recursively are executed
 // internal functions, which are creating entry assignment.
 func NormalizeAssignment(objectType string, param *properties.SpecParam, version string) string {
-	return prepareAssignment(objectType, param, "util.MemToStr", "util.AsBool", "", "Spec", "", version)
+	return prepareAssignment(objectType, param, "util.MemToStr", "util.AsBool", "Spec", "", version)
 }
 
 // SpecifyEntryAssignment generates a string, which contains entry/config assignment in SpecifyEntry() function
 // in entry.tmpl/config.tmpl template. If param contains nested specs, then recursively are executed
 // internal functions, which are creating entry assignment.
 func SpecifyEntryAssignment(objectType string, param *properties.SpecParam, version string) string {
-	return prepareAssignment(objectType, param, "util.StrToMem", "util.YesNo", param.Default, "spec", "Xml", version)
+	return prepareAssignment(objectType, param, "util.StrToMem", "util.YesNo", "spec", "Xml", version)
 }
 
-func prepareAssignment(objectType string, param *properties.SpecParam, listFunction, boolFunction, additionalArguments, specPrefix, specSuffix string, version string) string {
+func prepareAssignment(objectType string, param *properties.SpecParam, listFunction, boolFunction, specPrefix, specSuffix string, version string) string {
 	var builder strings.Builder
 
 	if ParamSupportedInVersion(param, version) {
@@ -49,15 +49,26 @@ func prepareAssignment(objectType string, param *properties.SpecParam, listFunct
 				appendSpecObjectAssignment(param, objectType, "", listFunction, boolFunction, specPrefix, specSuffix, &builder)
 			}
 		} else if isParamListAndProfileTypeIsMember(param) {
-			appendFunctionAssignment(param, objectType, listFunction, additionalArguments, &builder)
+			appendFunctionAssignment(param, objectType, listFunction, "", &builder)
 		} else if param.Type == "bool" {
-			appendFunctionAssignment(param, objectType, boolFunction, additionalArguments, &builder)
+			if specSuffix == "Xml" {
+				appendFunctionAssignment(param, objectType, boolFunction, useFunctionToConvertAdditionalArguments(param), &builder)
+			} else {
+				appendFunctionAssignment(param, objectType, boolFunction, "nil", &builder)
+			}
 		} else {
 			appendSimpleAssignment(param, objectType, &builder)
 		}
 	}
 
 	return builder.String()
+}
+
+func useFunctionToConvertAdditionalArguments(param *properties.SpecParam) string {
+	if param.Default != "" {
+		return fmt.Sprintf("util.Bool(%s)", param.Default)
+	}
+	return "nil"
 }
 
 func isParamListAndProfileTypeIsMember(param *properties.SpecParam) bool {
@@ -94,9 +105,9 @@ func defineNestedObject(parent []string, param *properties.SpecParam, objectType
 			assignFunctionForNestedObject(parent, listFunction, "", builder)
 		} else if param.Type == "bool" {
 			if suffix == "Xml" {
-				assignFunctionForNestedObject(parent, boolFunction, param.Default, builder)
+				assignFunctionForNestedObject(parent, boolFunction, useFunctionToConvertAdditionalArguments(param), builder)
 			} else {
-				assignFunctionForNestedObject(parent, boolFunction, "", builder)
+				assignFunctionForNestedObject(parent, boolFunction, "nil", builder)
 			}
 		} else {
 			assignValueForNestedObject(parent, builder)
