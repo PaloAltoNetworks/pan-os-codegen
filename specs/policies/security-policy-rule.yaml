@@ -232,21 +232,18 @@ spec:
     negate_source:
       description: 'Negate source address'
       type: bool
-      default: false
       profiles:
         -
           xpath: ["negate-source"]
     negate_destination:
       description: 'Negate destination address'
       type: bool
-      default: false
       profiles:
         -
           xpath: ["negate-destination"]
     disabled:
       description: 'Disable the rule'
       type: bool
-      default: false
       profiles:
         -
           xpath: ["disabled"]
@@ -278,7 +275,6 @@ spec:
     log_start:
       description: 'Log at session start'
       type: bool
-      default: false
       profiles:
         -
           xpath: ["log-start"]
@@ -292,13 +288,11 @@ spec:
     icmp_unreachable:
       description: 'Send ICMP unreachable'
       type: bool
-      default: false
       profiles:
         - xpath: ["icmp-unreachable"]
     disable_server_response_inspection:
       description: 'Disable Server Response Inspection'
       type: bool
-      default: false
       profiles:
         - xpath: [ "option", "disable-server-response-inspection" ]
     profile_setting:
