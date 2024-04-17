@@ -3,6 +3,7 @@ package generate
 import (
 	"bytes"
 	"fmt"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate/golang/terraform"
 	"io"
 	"log"
 	"os"
@@ -58,18 +59,47 @@ func (c *Creator) RenderTemplate() error {
 		// If from template no data was rendered (e.g. for DNS spec entry should not be created),
 		// then we don't need to create empty file (e.g. `entry.go`) with no content
 		if data.Len() > 0 {
-			outputFile, err := os.Create(filePath)
-			if err != nil {
-				return fmt.Errorf("error creating file %s: %w", filePath, err)
-			}
-			defer outputFile.Close()
-
-			_, err = io.Copy(outputFile, &data)
-			if err != nil {
-				return err
+			if err := c.createAndWriteFile(filePath, &data); err != nil {
+				return fmt.Errorf("error creating and writing to file %s: %w", filePath, err)
 			}
 		}
 	}
+	return nil
+}
+
+// RenderTerraformProvider generates a Go file for a Terraform provider based on the provided TerraformProviderFile and Normalization arguments.
+// It calls terraform.Resource() passing the Normalization specification and the TerraformProviderFile.
+func (c *Creator) RenderTerraformProvider(terraformProvider *properties.TerraformProviderFile, spec *properties.Normalization) error {
+	if err := terraform.Resource(spec, terraformProvider); err != nil {
+		return err
+	}
+
+	filePath := filepath.Join(c.GoOutputDir, filepath.Join("internal"), fmt.Sprintf("%s.go", spec.TerraformProviderSuffix))
+	if err := c.makeAllDirs(filePath); err != nil {
+		return fmt.Errorf("error creating directories for %s: %w", filePath, err)
+	}
+	content := bytes.NewBufferString(terraformProvider.Code.String())
+	if err := c.createAndWriteFile(filePath, content); err != nil {
+		return fmt.Errorf("error creating and writing to file %s: %w", filePath, err)
+	}
+
+	return nil
+}
+
+// createAndWriteFile creates a new file at the specified filePath and writes the content from the content buffer to the file.
+// If an error occurs during file creation or content writing, it returns an error. The file is automatically closed after writing.
+func (c *Creator) createAndWriteFile(filePath string, content *bytes.Buffer) error {
+	outputFile, err := os.Create(filePath)
+	if err != nil {
+		return fmt.Errorf("error creating file %s: %w", filePath, err)
+	}
+	defer outputFile.Close()
+
+	_, err = io.Copy(outputFile, content)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
