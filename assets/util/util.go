@@ -69,9 +69,11 @@ func YesNo(val *bool, defaultVal *bool) *string {
 	}
 
 	result := "no"
-	if val != nil && *val {
-		result = "yes"
-	} else if defaultVal != nil && *defaultVal {
+	if val != nil {
+		if *val {
+			result = "yes"
+		}
+	} else if *defaultVal {
 		result = "yes"
 	}
 	return &result
@@ -84,9 +86,11 @@ func AsBool(val *string, defaultVal *string) *bool {
 	}
 
 	result := false
-	if val != nil && *val == "yes" {
-		result = true
-	} else if defaultVal != nil && *defaultVal == "yes" {
+	if val != nil {
+		if *val == "yes" {
+			result = true
+		}
+	} else if *defaultVal == "yes" {
 		result = true
 	}
 	return &result
