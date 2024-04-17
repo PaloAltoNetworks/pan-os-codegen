@@ -68,9 +68,9 @@ func (c *Creator) RenderTemplate() error {
 }
 
 // RenderTerraformProvider generates a Go file for a Terraform provider based on the provided TerraformProviderFile and Normalization arguments.
-// It calls terraform.Resource() passing the Normalization specification and the TerraformProviderFile.
+// It calls terraform.GenerateTerraformResource() passing the Normalization specification and the TerraformProviderFile.
 func (c *Creator) RenderTerraformProvider(terraformProvider *properties.TerraformProviderFile, spec *properties.Normalization) error {
-	if err := terraform.Resource(spec, terraformProvider); err != nil {
+	if err := terraform.GenerateTerraformResource(spec, terraformProvider); err != nil {
 		return err
 	}
 
