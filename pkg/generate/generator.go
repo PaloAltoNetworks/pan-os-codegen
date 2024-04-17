@@ -74,33 +74,43 @@ func (c *Creator) RenderTerraformProvider(terraformProvider *properties.Terrafor
 		return err
 	}
 
-	filePath := filepath.Join(c.GoOutputDir, filepath.Join("internal"), fmt.Sprintf("%s.go", spec.TerraformProviderSuffix))
+	filePath := c.createTerraformProviderFilePath(spec.TerraformProviderSuffix)
+
+	content := bytes.NewBufferString(terraformProvider.Code.String())
+	if err := c.createFileAndWriteContent(filePath, content); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// createTerraformProviderFilePath returns a file path for a Terraform provider based on the provided suffix.
+func (c *Creator) createTerraformProviderFilePath(terraformProviderSuffix string) string {
+	fileName := fmt.Sprintf("%s_object.go", terraformProviderSuffix)
+	return filepath.Join(c.GoOutputDir, "internal", fileName)
+}
+
+// createFileAndWriteContent creates a new file at the specified filePath and writes the content from the content buffer to the file.
+func (c *Creator) createFileAndWriteContent(filePath string, content *bytes.Buffer) error {
 	if err := c.makeAllDirs(filePath); err != nil {
 		return fmt.Errorf("error creating directories for %s: %w", filePath, err)
 	}
-	content := bytes.NewBufferString(terraformProvider.Code.String())
 	if err := c.createAndWriteFile(filePath, content); err != nil {
-		return fmt.Errorf("error creating and writing to file %s: %w", filePath, err)
+		return err
 	}
-
 	return nil
 }
 
 // createAndWriteFile creates a new file at the specified filePath and writes the content from the content buffer to the file.
 // If an error occurs during file creation or content writing, it returns an error. The file is automatically closed after writing.
 func (c *Creator) createAndWriteFile(filePath string, content *bytes.Buffer) error {
-	outputFile, err := os.Create(filePath)
-	if err != nil {
-		return fmt.Errorf("error creating file %s: %w", filePath, err)
-	}
-	defer outputFile.Close()
-
-	_, err = io.Copy(outputFile, content)
+	outputFile, err := c.createFile(filePath)
 	if err != nil {
 		return err
 	}
+	defer outputFile.Close()
 
-	return nil
+	return writeContentToFile(content, outputFile)
 }
 
 // createFullFilePath returns a full path for output file generated from template passed as argument to function.
@@ -140,9 +150,17 @@ func (c *Creator) makeAllDirs(filePath string) error {
 func (c *Creator) createFile(filePath string) (*os.File, error) {
 	outputFile, err := os.Create(filePath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error creating file %s: %w", filePath, err)
 	}
 	return outputFile, nil
+}
+
+func writeContentToFile(content *bytes.Buffer, file *os.File) error {
+	_, err := io.Copy(file, content)
+	if err != nil {
+		return fmt.Errorf("error writing to file: %w", err)
+	}
+	return nil
 }
 
 // parseTemplate parse template passed as argument and with function map defined below.
