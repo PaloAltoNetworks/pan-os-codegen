@@ -6,7 +6,12 @@ package {{packageName .GoSdkPath}}
         {{renderImports "service" "filtering"}}
     {{- end}}
 {{- else}}
-    {{renderImports "service"}}
+    {{- $numberOfVersions := len .SupportedVersions }}
+    {{- if gt $numberOfVersions 1}}
+        {{renderImports "service" "version"}}
+    {{- else}}
+        {{renderImports "service"}}
+    {{- end}}
 {{- end}}
 
 type Service struct {
@@ -383,21 +388,66 @@ return err
 
     return err
 {{- else}}
-    deleteSuffixes := []string{
-    {{- range $version := .SupportedVersions }}
+    deleteSuffixes := []string{}
+
+    {{- $numberOfVersions := len .SupportedVersions }}
+    {{- if gt $numberOfVersions 1}}
+        {{- range $index, $version := .SupportedVersions }}
+            {{- if ne $version ""}}
+                version{{createGoSuffixFromVersion $version}}, err := version.New("{{$version}}")
+                if err != nil {
+                return err
+                }
+            {{- end}}
+        {{- end}}
+        {{- range $index, $version := .SupportedVersions }}
+            {{- if ne $version ""}}
+                {{- if eq $index 1}}
+                    if vn.Gte(version{{createGoSuffixFromVersion $version}}) {
+                {{- else}}
+                    } else if vn.Gte(version{{createGoSuffixFromVersion $version}}) {
+                {{- end}}
+                {{- range $_, $param := $.Spec.Params}}
+                    {{- if paramSupportedInVersion $param $version}}
+                        {{- range $_, $profile := $param.Profiles}}
+                            {{- range $_, $xpath := xmlPathSuffixes $param}}
+                                deleteSuffixes = append(deleteSuffixes, "{{$xpath}}")
+                            {{- end}}
+                        {{- end}}
+                    {{- end}}
+                {{- end}}
+                {{- range $_, $param := $.Spec.OneOf}}
+                {{- end}}
+            {{- end}}
+        {{- end}}
+        } else {
         {{- range $_, $param := $.Spec.Params}}
-            {{- if paramSupportedInVersion $param $version}}
+            {{- if paramSupportedInVersion $param ""}}
                 {{- range $_, $profile := $param.Profiles}}
                     {{- range $_, $xpath := xmlPathSuffixes $param}}
-                        "{{$xpath}}",
+                        deleteSuffixes = append(deleteSuffixes, "{{$xpath}}")
                     {{- end}}
                 {{- end}}
             {{- end}}
         {{- end}}
         {{- range $_, $param := $.Spec.OneOf}}
         {{- end}}
+        }
+    {{- else}}
+        {{- range $version := .SupportedVersions }}
+            {{- range $_, $param := $.Spec.Params}}
+                {{- if paramSupportedInVersion $param $version}}
+                    {{- range $_, $profile := $param.Profiles}}
+                        {{- range $_, $xpath := xmlPathSuffixes $param}}
+                            deleteSuffixes = append(deleteSuffixes, "{{$xpath}}")
+                        {{- end}}
+                    {{- end}}
+                {{- end}}
+            {{- end}}
+            {{- range $_, $param := $.Spec.OneOf}}
+            {{- end}}
+        {{- end}}
     {{- end}}
-    }
 
     for _, suffix := range deleteSuffixes {
     cmd := &xmlapi.Config{
