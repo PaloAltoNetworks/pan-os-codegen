@@ -569,6 +569,29 @@ func (c *XmlApiClient) ReadFromConfig(ctx context.Context, path []string, withPa
 	return newb, err
 }
 
+func (c *XmlApiClient) Clock(ctx context.Context) (time.Time, error) {
+	type creq struct {
+		XMLName xml.Name `xml:"show"`
+		Cmd     string   `xml:"clock"`
+	}
+
+	type cresp struct {
+		Result string `xml:"result"`
+	}
+
+	cmd := &xmlapi.Op{
+		Command: creq{},
+		Target:  c.Target,
+	}
+	var ans cresp
+
+	if _, _, err := c.Communicate(ctx, cmd, false, &ans); err != nil {
+		return time.Time{}, err
+	}
+
+	return time.Parse(time.UnixDate+"\n", ans.Result)
+}
+
 // MultiConfig does a "multi-config" type command.
 //
 // Param strict should be true if you want strict transactional support.

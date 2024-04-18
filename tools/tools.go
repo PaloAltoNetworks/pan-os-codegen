@@ -1,5 +1,5 @@
 package tools
 
 import (
-    _ "gopkg.in/yaml.v3"
+	_ "gopkg.in/yaml.v3"
 )

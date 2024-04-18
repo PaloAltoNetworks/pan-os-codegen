@@ -14,6 +14,12 @@ assets:
       go_sdk: true
       terraform_provider: false
     destination: "util"
+  audit_package:
+    source: "assets/audit"
+    target:
+      go_sdk: true
+      terraform_provider: false
+    destination: "audit"
   errors_package:
     source: "assets/errors"
     target:
@@ -56,3 +62,9 @@ assets:
       go_sdk: true
       terraform_provider: false
     destination: "plugin"
+  rule_package:
+    source: "assets/rule"
+    target:
+      go_sdk: true
+      terraform_provider: false
+    destination: "rule"

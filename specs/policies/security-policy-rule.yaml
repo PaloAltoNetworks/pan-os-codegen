@@ -232,21 +232,18 @@ spec:
     negate_source:
       description: 'Negate source address'
       type: bool
-      default: false
       profiles:
         -
           xpath: ["negate-source"]
     negate_destination:
       description: 'Negate destination address'
       type: bool
-      default: false
       profiles:
         -
           xpath: ["negate-destination"]
     disabled:
       description: 'Disable the rule'
       type: bool
-      default: false
       profiles:
         -
           xpath: ["disabled"]
@@ -278,7 +275,6 @@ spec:
     log_start:
       description: 'Log at session start'
       type: bool
-      default: false
       profiles:
         -
           xpath: ["log-start"]
@@ -292,90 +288,93 @@ spec:
     icmp_unreachable:
       description: 'Send ICMP unreachable'
       type: bool
-      default: false
       profiles:
         - xpath: ["icmp-unreachable"]
     disable_server_response_inspection:
       description: 'Disable Server Response Inspection'
       type: bool
-      default: false
       profiles:
-        -
-          xpath: ["disable-server-response-inspection"]
-    virus:
-      description: 'Antivirus profile'
-      type: list
-      count:
-        max: 1
-      items:
-        type: 'string'
+        - xpath: [ "option", "disable-server-response-inspection" ]
+    profile_setting:
       profiles:
-        -
-          type: 'member'
-          xpath: ["profile-setting", "profiles", "virus"]
-    spyware:
-      description: 'Anti-Spyware profile'
-      type: list
-      count:
-        max: 1
-      items:
-        type: 'string'
-      profiles:
-        -
-          type: 'member'
-          xpath: ["profile-setting", "profiles", "spyware"]
-    vulnerability:
-      description: 'Vulnerability Protection profile'
-      type: list
-      count:
-        max: 1
-      items:
-        type: 'string'
-      profiles:
-        -
-          type: 'member'
-          xpath: ["profile-setting", "profiles", "vulnerability"]
-    url_filtering:
-      description: 'URL filtering profile'
-      type: list
-      count:
-        max: 1
-      items:
-        type: 'string'
-      profiles:
-        -
-          type: 'member'
-          xpath: ["profile-setting", "profiles", "url-filtering"]
-    file_blocking:
-      description: 'File blocking profile'
-      type: list
-      count:
-        max: 1
-      items:
-        type: 'string'
-      profiles:
-        -
-          type: 'member'
-          xpath: ["profile-setting", "profiles", "file-blocking"]
-    wildfire_analysis:
-      description: 'WildFire analysis profile'
-      type: list
-      count:
-        max: 1
-      items:
-        type: 'string'
-      profiles:
-        -
-          type: 'member'
-          xpath: ["profile-setting", "profiles", "wildfire-analysis"]
-    data_filtering:
-      description: 'Data filtering profile'
-      type: list
-      count:
-        max: 1
-      items:
-        type: 'string'
-      profiles:
-        -
-          type: 'member'
-          xpath: ["profile-setting", "profiles", "data-filtering"]
+        - xpath: [ "profile-setting" ]
+      spec:
+        one_of:
+          group:
+            profiles:
+              - xpath: [ "group" ]
+          profiles:
+            profiles:
+              - xpath: [ "profiles" ]
+            spec:
+              params:
+                virus:
+                  description: 'Antivirus profile'
+                  type: list
+                  count:
+                    max: 1
+                  items:
+                    type: 'string'
+                  profiles:
+                    - type: 'member'
+                      xpath: [ "virus" ]
+                spyware:
+                  description: 'Anti-Spyware profile'
+                  type: list
+                  count:
+                    max: 1
+                  items:
+                    type: 'string'
+                  profiles:
+                    - type: 'member'
+                      xpath: [ "spyware" ]
+                vulnerability:
+                  description: 'Vulnerability Protection profile'
+                  type: list
+                  count:
+                    max: 1
+                  items:
+                    type: 'string'
+                  profiles:
+                    - type: 'member'
+                      xpath: [ "vulnerability" ]
+                url_filtering:
+                  description: 'URL filtering profile'
+                  type: list
+                  count:
+                    max: 1
+                  items:
+                    type: 'string'
+                  profiles:
+                    - type: 'member'
+                      xpath: [ "url-filtering" ]
+                file_blocking:
+                  description: 'File blocking profile'
+                  type: list
+                  count:
+                    max: 1
+                  items:
+                    type: 'string'
+                  profiles:
+                    - type: 'member'
+                      xpath: [ "file-blocking" ]
+                wildfire_analysis:
+                  description: 'WildFire analysis profile'
+                  type: list
+                  count:
+                    max: 1
+                  items:
+                    type: 'string'
+                  profiles:
+                    - type: 'member'
+                      xpath: [ "wildfire-analysis" ]
+                data_filtering:
+                  description: 'Data filtering profile'
+                  type: list
+                  count:
+                    max: 1
+                  items:
+                    type: 'string'
+                  profiles:
+                    - type: 'member'
+                      xpath: [ "data-filtering" ]
