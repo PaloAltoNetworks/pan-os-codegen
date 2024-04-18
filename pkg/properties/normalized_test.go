@@ -271,6 +271,7 @@ spec:
                 camelcase: Description
             description: The description.
             type: string
+            default: ""
             required: false
             length:
                 min: 0
@@ -287,6 +288,7 @@ spec:
                 camelcase: Tags
             description: The administrative tags.
             type: list
+            default: ""
             required: false
             count:
                 min: null
@@ -311,6 +313,7 @@ spec:
                 camelcase: Fqdn
             description: The FQDN value.
             type: string
+            default: ""
             required: false
             length:
                 min: 1
@@ -328,6 +331,7 @@ spec:
                 camelcase: IpNetmask
             description: The IP netmask value.
             type: string
+            default: ""
             required: false
             profiles:
                 - xpath:
@@ -341,6 +345,7 @@ spec:
                 camelcase: IpRange
             description: The IP range value.
             type: string
+            default: ""
             required: false
             profiles:
                 - xpath:
@@ -354,6 +359,7 @@ spec:
                 camelcase: IpWildcard
             description: The IP wildcard value.
             type: string
+            default: ""
             required: false
             profiles:
                 - xpath:

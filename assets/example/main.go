@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"encoding/xml"
-	"github.com/PaloAltoNetworks/pango/util"
+	"fmt"
 	"log"
 
 	"github.com/PaloAltoNetworks/pango"
@@ -13,6 +13,8 @@ import (
 	"github.com/PaloAltoNetworks/pango/objects/service"
 	"github.com/PaloAltoNetworks/pango/objects/tag"
 	"github.com/PaloAltoNetworks/pango/policies/rules/security"
+	"github.com/PaloAltoNetworks/pango/rule"
+	"github.com/PaloAltoNetworks/pango/util"
 )
 
 func main() {
@@ -35,6 +37,17 @@ func main() {
 		return
 	}
 
+	// CHECKS
+	checkSecurityPolicyRules(c, ctx)
+	checkSecurityPolicyRulesMove(c, ctx)
+	checkTag(c, ctx)
+	checkAddress(c, ctx)
+	checkService(c, ctx)
+	checkNtp(c, ctx)
+	checkDns(c, ctx)
+}
+
+func checkSecurityPolicyRules(c *pango.XmlApiClient, ctx context.Context) {
 	// SECURITY POLICY RULE - ADD
 	securityPolicyRuleEntry := security.Entry{
 		Name:               "codegen_rule",
@@ -98,6 +111,41 @@ func main() {
 	}
 	log.Printf("Security policy rule '%s:%s' with description '%s' updated", *securityPolicyRuleReply.Uuid, securityPolicyRuleReply.Name, *securityPolicyRuleReply.Description)
 
+	// SECURITY POLICY RULE - HIT COUNT
+	hitCount, err := securityPolicyRuleApi.HitCount(ctx, securityPolicyRuleLocation, "test-policy")
+	if err != nil {
+		log.Printf("Failed to get hit count for security policy rule: %s", err)
+		return
+	}
+	if len(hitCount) > 0 {
+		log.Printf("Security policy rule '%d' hit count", hitCount[0].HitCount)
+	} else {
+		log.Printf("Security policy rule not found")
+	}
+
+	// SECURITY POLICY RULE - AUDIT COMMENT
+	err = securityPolicyRuleApi.SetAuditComment(ctx, securityPolicyRuleLocation, securityPolicyRuleReply.Name, "another audit comment")
+	if err != nil {
+		log.Printf("Failed to set audit comment for security policy rule: %s", err)
+		return
+	}
+
+	comment, err := securityPolicyRuleApi.CurrentAuditComment(ctx, securityPolicyRuleLocation, securityPolicyRuleEntry.Name)
+	if err != nil {
+		log.Printf("Failed to get audit comment for security policy rule: %s", err)
+		return
+	}
+	log.Printf("Security policy rule '%s:%s' current comment: '%s'", *securityPolicyRuleReply.Uuid, securityPolicyRuleReply.Name, comment)
+
+	comments, err := securityPolicyRuleApi.AuditCommentHistory(ctx, securityPolicyRuleLocation, securityPolicyRuleEntry.Name, "forward", 10, 0)
+	if err != nil {
+		log.Printf("Failed to get audit comments for security policy rule: %s", err)
+		return
+	}
+	for _, comment := range comments {
+		log.Printf("Security policy rule '%s:%s' comment history: '%s:%s'", *securityPolicyRuleReply.Uuid, securityPolicyRuleReply.Name, comment.Time, comment.Comment)
+	}
+
 	// SECURITY POLICY RULE - DELETE
 	err = securityPolicyRuleApi.DeleteById(ctx, securityPolicyRuleLocation, *securityPolicyRuleReply.Uuid)
 	if err != nil {
@@ -113,7 +161,87 @@ func main() {
 	} else {
 		log.Printf("Security policy rule '%s' deleted", securityPolicyRuleReply.Name)
 	}
+}
 
+func checkSecurityPolicyRulesMove(c *pango.XmlApiClient, ctx context.Context) {
+	// SECURITY POLICY RULE - MOVE GROUP
+	securityPolicyRuleLocation := security.Location{
+		Vsys: &security.VsysLocation{
+			NgfwDevice: "localhost.localdomain",
+			Rulebase:   "post-rulebase",
+			Vsys:       "vsys1",
+		},
+	}
+
+	securityPolicyRuleApi := security.NewService(c)
+
+	securityPolicyRulesNames := make([]string, 10)
+	var securityPolicyRulesEntries []security.Entry
+	for i := 0; i < 10; i++ {
+		securityPolicyRulesNames[i] = fmt.Sprintf("codegen_rule%d", i)
+		securityPolicyRuleItem := security.Entry{
+			Name:               securityPolicyRulesNames[i],
+			Description:        util.String("initial description"),
+			Action:             util.String("allow"),
+			SourceZone:         []string{"any"},
+			SourceAddress:      []string{"any"},
+			DestinationZone:    []string{"any"},
+			DestinationAddress: []string{"any"},
+			Application:        []string{"any"},
+			Service:            []string{"application-default"},
+		}
+		securityPolicyRulesEntries = append(securityPolicyRulesEntries, securityPolicyRuleItem)
+		securityPolicyRuleItemReply, err := securityPolicyRuleApi.Create(ctx, securityPolicyRuleLocation, securityPolicyRuleItem)
+		if err != nil {
+			log.Printf("Failed to create security policy rule: %s", err)
+			return
+		}
+		log.Printf("Security policy rule '%s:%s' with description '%s' created", *securityPolicyRuleItemReply.Uuid, securityPolicyRuleItemReply.Name, *securityPolicyRuleItemReply.Description)
+	}
+	rulePositionBefore7 := rule.Position{
+		First:           nil,
+		Last:            nil,
+		SomewhereBefore: nil,
+		DirectlyBefore:  util.String("codegen_rule7"),
+		SomewhereAfter:  nil,
+		DirectlyAfter:   nil,
+	}
+	rulePositionBottom := rule.Position{
+		First:           nil,
+		Last:            util.Bool(true),
+		SomewhereBefore: nil,
+		DirectlyBefore:  nil,
+		SomewhereAfter:  nil,
+		DirectlyAfter:   nil,
+	}
+	var securityPolicyRulesEntriesToMove []security.Entry
+	securityPolicyRulesEntriesToMove = append(securityPolicyRulesEntriesToMove, securityPolicyRulesEntries[3])
+	securityPolicyRulesEntriesToMove = append(securityPolicyRulesEntriesToMove, securityPolicyRulesEntries[5])
+	for _, securityPolicyRuleItemToMove := range securityPolicyRulesEntriesToMove {
+		log.Printf("Security policy rule '%s' is going to be moved", securityPolicyRuleItemToMove.Name)
+	}
+	err := securityPolicyRuleApi.MoveGroup(ctx, securityPolicyRuleLocation, rulePositionBefore7, securityPolicyRulesEntriesToMove)
+	if err != nil {
+		log.Printf("Failed to move security policy rules %v: %s", securityPolicyRulesEntriesToMove, err)
+		return
+	}
+	securityPolicyRulesEntriesToMove = []security.Entry{securityPolicyRulesEntries[1]}
+	for _, securityPolicyRuleItemToMove := range securityPolicyRulesEntriesToMove {
+		log.Printf("Security policy rule '%s' is going to be moved", securityPolicyRuleItemToMove.Name)
+	}
+	err = securityPolicyRuleApi.MoveGroup(ctx, securityPolicyRuleLocation, rulePositionBottom, securityPolicyRulesEntriesToMove)
+	if err != nil {
+		log.Printf("Failed to move security policy rules %v: %s", securityPolicyRulesEntriesToMove, err)
+		return
+	}
+	err = securityPolicyRuleApi.Delete(ctx, securityPolicyRuleLocation, securityPolicyRulesNames...)
+	if err != nil {
+		log.Printf("Failed to delete security policy rules %s: %s", securityPolicyRulesNames, err)
+		return
+	}
+}
+
+func checkTag(c *pango.XmlApiClient, ctx context.Context) {
 	// TAG - CREATE
 	tagColor := tag.ColorAzureBlue
 	tagObject := tag.Entry{
@@ -140,7 +268,9 @@ func main() {
 		return
 	}
 	log.Printf("Tag '%s' deleted", tagReply.Name)
+}
 
+func checkAddress(c *pango.XmlApiClient, ctx context.Context) {
 	// ADDRESS - CREATE
 	addressObject := address.Entry{
 		Name:      "codegen_address_test1",
@@ -176,7 +306,9 @@ func main() {
 			log.Printf("Address %d: '%s'", index, item.Name)
 		}
 	}
+}
 
+func checkService(c *pango.XmlApiClient, ctx context.Context) {
 	// SERVICE - ADD
 	servicePort := 8642
 	serviceObject := service.Entry{
@@ -309,7 +441,9 @@ func main() {
 	}
 	log.Printf("Service '%s=%d, description: %s misc XML: %s, misc keys: %s' update",
 		serviceReply.Name, *serviceReply.Protocol.Tcp.DestinationPort, readDescription, xmls, keys)
+}
 
+func checkNtp(c *pango.XmlApiClient, ctx context.Context) {
 	// NTP - ADD
 	ntpConfig := ntp.Config{
 		NtpServers: &ntp.SpecNtpServers{
@@ -340,7 +474,10 @@ func main() {
 		return
 	}
 	log.Print("NTP deleted")
+	return
+}
 
+func checkDns(c *pango.XmlApiClient, ctx context.Context) {
 	// DNS - ADD
 	refreshTime := 27
 	dnsConfig := dns.Config{

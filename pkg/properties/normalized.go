@@ -87,6 +87,7 @@ type SpecParam struct {
 	Name        *NameVariant
 	Description string              `json:"description" yaml:"description"`
 	Type        string              `json:"type" yaml:"type"`
+	Default     string              `json:"default" yaml:"default"`
 	Required    bool                `json:"required" yaml:"required"`
 	Length      *SpecParamLength    `json:"length" yaml:"length,omitempty"`
 	Count       *SpecParamCount     `json:"count" yaml:"count,omitempty"`

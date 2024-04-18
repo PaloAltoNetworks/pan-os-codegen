@@ -28,6 +28,15 @@ func RenderImports(templateTypes ...string) (string, error) {
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/xmlapi", "")
 		case "filtering":
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/filtering", "")
+		case "audit":
+			manager.AddStandardImport("net/url", "")
+			manager.AddStandardImport("strings", "")
+			manager.AddStandardImport("time", "")
+			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/audit", "")
+		case "rule":
+			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/rule", "")
+		case "version":
+			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/version", "")
 		}
 	}
 
