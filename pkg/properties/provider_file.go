@@ -26,7 +26,7 @@ func NewTerraformProviderFile(filename string) *TerraformProviderFile {
 // TerraformProviderFile is a Terraform provider file handler.
 type TerraformProviderFile struct {
 	Filename      string
-	Directory     string
+	Directory     []string
 	ImportManager *imports.Manager
 	DataSources   []string
 	Resources     []string

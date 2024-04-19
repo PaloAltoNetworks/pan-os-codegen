@@ -1,19 +1,12 @@
 package translate
 
 import (
-	"fmt"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/imports"
 )
 
 // RenderImports render string, which contains import required in entry, location or service template.
 func RenderImports(templateTypes ...string) (string, error) {
 	manager := imports.NewManager()
-
-	var structSDKLocation string
-	if len(templateTypes) > 1 && templateTypes[0] == "terraform_provider_file" {
-		structSDKLocation = templateTypes[1]
-		templateTypes = templateTypes[:1]
-	}
 
 	for _, templateType := range templateTypes {
 		switch templateType {
@@ -46,27 +39,6 @@ func RenderImports(templateTypes ...string) (string, error) {
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/rule", "")
 		case "version":
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/version", "")
-		case "terraform_provider_file":
-			manager.AddStandardImport("context", "")
-			manager.AddStandardImport("fmt", "")
-			manager.AddStandardImport("regexp", "")
-			manager.AddSdkImport("github.com/PaloAltoNetworks/pango", "")
-			manager.AddSdkImport(fmt.Sprintf("github.com/PaloAltoNetworks/pango/%s", structSDKLocation), "")
-			manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator", "")
-			manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework-validators/listvalidator", "")
-			manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator", "")
-			manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource", "")
-			manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource/schema", "dsschema")
-			manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
-			manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource", "")
-			manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
-			manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier", "")
-			manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier", "")
-			manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault", "")
-			manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier", "")
-			manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/schema/validator", "")
-			manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types", "")
-			manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
 		}
 	}
 
