@@ -10,6 +10,7 @@ import (
 	"github.com/PaloAltoNetworks/pango/device/services/dns"
 	"github.com/PaloAltoNetworks/pango/device/services/ntp"
 	"github.com/PaloAltoNetworks/pango/network/profiles/interface_management"
+	"github.com/PaloAltoNetworks/pango/network/zone"
 	"github.com/PaloAltoNetworks/pango/objects/address"
 	"github.com/PaloAltoNetworks/pango/objects/service"
 	"github.com/PaloAltoNetworks/pango/objects/tag"
@@ -39,7 +40,8 @@ func main() {
 	}
 
 	// CHECKS
-	checkInterfaceMgmtProfil(c, ctx)
+	checkZone(c, ctx)
+	checkInterfaceMgmtProfile(c, ctx)
 	checkSecurityPolicyRules(c, ctx)
 	checkSecurityPolicyRulesMove(c, ctx)
 	checkTag(c, ctx)
@@ -49,7 +51,38 @@ func main() {
 	checkDns(c, ctx)
 }
 
-func checkInterfaceMgmtProfil(c *pango.XmlApiClient, ctx context.Context) {
+func checkZone(c *pango.XmlApiClient, ctx context.Context) {
+	entry := zone.Entry{
+		Name:                     "codegen_zone",
+		EnableUserIdentification: util.Bool(true),
+		Network: &zone.SpecNetwork{
+			EnablePacketBufferProtection: util.Bool(false),
+			Layer3:                       []string{"ethernet1/1"},
+		},
+		DeviceAcl: &zone.SpecDeviceAcl{
+			IncludeList: []string{"1.2.3.4"},
+		},
+		UserAcl: &zone.SpecUserAcl{
+			ExcludeList: []string{"1.2.3.4"},
+		},
+	}
+	location := zone.Location{
+		Vsys: &zone.VsysLocation{
+			NgfwDevice: "localhost.localdomain",
+			Vsys:       "vsys1",
+		},
+	}
+	api := zone.NewService(c)
+
+	reply, err := api.Create(ctx, location, entry)
+	if err != nil {
+		log.Printf("Failed to create zone: %s", err)
+		return
+	}
+	log.Printf("Zone %s created\n", reply.Name)
+}
+
+func checkInterfaceMgmtProfile(c *pango.XmlApiClient, ctx context.Context) {
 	entry := interface_management.Entry{
 		Name:        "codegen_mgmt_profile",
 		Http:        util.Bool(true),

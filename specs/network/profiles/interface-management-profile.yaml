@@ -10,7 +10,7 @@ xpath_suffix:
   - 'interface-management-profile'
 locations:
   'device':
-    description: 'Located in a specific vsys.'
+    description: 'Located in a device.'
     device:
       panorama: true
       ngfw: true
