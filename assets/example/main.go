@@ -9,7 +9,10 @@ import (
 	"github.com/PaloAltoNetworks/pango"
 	"github.com/PaloAltoNetworks/pango/device/services/dns"
 	"github.com/PaloAltoNetworks/pango/device/services/ntp"
+	"github.com/PaloAltoNetworks/pango/network/interface/ethernet"
+	"github.com/PaloAltoNetworks/pango/network/interface/loopback"
 	"github.com/PaloAltoNetworks/pango/network/profiles/interface_management"
+	"github.com/PaloAltoNetworks/pango/network/virtual_router"
 	"github.com/PaloAltoNetworks/pango/network/zone"
 	"github.com/PaloAltoNetworks/pango/objects/address"
 	"github.com/PaloAltoNetworks/pango/objects/service"
@@ -40,6 +43,9 @@ func main() {
 	}
 
 	// CHECKS
+	checkVr(c, ctx)
+	checkEthernet(c, ctx)
+	checkLoopback(c, ctx)
 	checkZone(c, ctx)
 	checkInterfaceMgmtProfile(c, ctx)
 	checkSecurityPolicyRules(c, ctx)
@@ -49,6 +55,82 @@ func main() {
 	checkService(c, ctx)
 	checkNtp(c, ctx)
 	checkDns(c, ctx)
+}
+
+func checkVr(c *pango.XmlApiClient, ctx context.Context) {
+	entry := virtual_router.Entry{
+		Name: "codegen_vr",
+		Protocol: &virtual_router.SpecProtocol{
+			Bgp: &virtual_router.SpecProtocolBgp{
+				Enable: util.Bool(false),
+			},
+			Ospf: &virtual_router.SpecProtocolOspf{
+				Enable: util.Bool(false),
+			},
+			Ospfv3: &virtual_router.SpecProtocolOspfv3{
+				Enable: util.Bool(false),
+			},
+			Rip: &virtual_router.SpecProtocolRip{
+				Enable: util.Bool(false),
+			},
+		},
+	}
+	location := virtual_router.Location{
+		Device: &virtual_router.DeviceLocation{
+			NgfwDevice: "localhost.localdomain",
+		},
+	}
+	api := virtual_router.NewService(c)
+
+	reply, err := api.Create(ctx, location, entry)
+	if err != nil {
+		log.Printf("Failed to create VR: %s", err)
+		return
+	}
+	log.Printf("VR %s created\n", reply.Name)
+}
+
+func checkEthernet(c *pango.XmlApiClient, ctx context.Context) {
+	entry := ethernet.Entry{
+		Name:    "ethernet1/2",
+		Comment: util.String("This is a ethernet1/2"),
+		Layer3: &ethernet.SpecLayer3{
+			NdpProxy: util.Bool(false),
+		},
+	}
+	location := ethernet.Location{
+		Device: &ethernet.DeviceLocation{
+			NgfwDevice: "localhost.localdomain",
+		},
+	}
+	api := ethernet.NewService(c)
+
+	reply, err := api.Create(ctx, location, entry)
+	if err != nil {
+		log.Printf("Failed to create ethernet: %s", err)
+		return
+	}
+	log.Printf("Ethernet %s created\n", reply.Name)
+}
+
+func checkLoopback(c *pango.XmlApiClient, ctx context.Context) {
+	entry := loopback.Entry{
+		Name:    "loopback.123",
+		Comment: util.String("This is a loopback entry"),
+	}
+	location := loopback.Location{
+		Device: &loopback.DeviceLocation{
+			NgfwDevice: "localhost.localdomain",
+		},
+	}
+	api := loopback.NewService(c)
+
+	reply, err := api.Create(ctx, location, entry)
+	if err != nil {
+		log.Printf("Failed to create loopback: %s", err)
+		return
+	}
+	log.Printf("Loopback %s created\n", reply.Name)
 }
 
 func checkZone(c *pango.XmlApiClient, ctx context.Context) {

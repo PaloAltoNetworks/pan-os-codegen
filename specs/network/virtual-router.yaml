@@ -1,0 +1,69 @@
+name: 'Virtual router'
+terraform_provider_suffix: 'virtual_router'
+go_sdk_path:
+  - 'network'
+  - 'virtual_router'
+xpath_suffix:
+  - 'network'
+  - 'virtual-router'
+locations:
+  'device':
+    description: 'Located in a specific vsys.'
+    device:
+      panorama: true
+      ngfw: true
+    xpath:
+      - 'config'
+      - 'devices'
+      - '{{ Entry $ngfw_device }}'
+    vars:
+      'ngfw_device':
+        description: 'The NGFW device.'
+        default: 'localhost.localdomain'
+entry:
+  name:
+    description: 'The name of the virtual router.'
+version: '10.1.0'
+spec:
+  params:
+    protocol:
+      profiles:
+        - xpath: [ "protocol" ]
+      spec:
+        params:
+          bgp:
+            profiles:
+              - xpath: [ "bgp" ]
+            spec:
+              params:
+                enable:
+                  type: bool
+                  profiles:
+                    - xpath: [ "enable" ]
+          rip:
+            profiles:
+              - xpath: [ "rip" ]
+            spec:
+              params:
+                enable:
+                  type: bool
+                  profiles:
+                    - xpath: [ "enable" ]
+          ospf:
+            profiles:
+              - xpath: [ "ospf" ]
+            spec:
+              params:
+                enable:
+                  type: bool
+                  profiles:
+                    - xpath: [ "enable" ]
+          ospfv3:
+            profiles:
+              - xpath: [ "ospfv3" ]
+            spec:
+              params:
+                enable:
+                  type: bool
+                  profiles:
+                    - xpath: [ "enable" ]

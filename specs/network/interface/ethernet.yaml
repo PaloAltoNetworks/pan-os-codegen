@@ -1,0 +1,52 @@
+name: 'Ethernet interface'
+terraform_provider_suffix: 'ethernet_interface'
+go_sdk_path:
+  - 'network'
+  - 'interface'
+  - 'ethernet'
+xpath_suffix:
+  - 'network'
+  - 'interface'
+  - 'ethernet'
+locations:
+  'device':
+    description: 'Located in a specific vsys.'
+    device:
+      panorama: true
+      ngfw: true
+    xpath:
+      - 'config'
+      - 'devices'
+      - '{{ Entry $ngfw_device }}'
+    vars:
+      'ngfw_device':
+        description: 'The NGFW device.'
+        default: 'localhost.localdomain'
+entry:
+  name:
+    description: 'The name of the ethernet interface.'
+version: '10.1.0'
+spec:
+  params:
+    comment:
+      type: 'string'
+      length:
+        min: 0
+        max: 1023
+      profiles:
+        - xpath: [ "comment" ]
+  one_of:
+    layer3:
+      description: 'Layer 3'
+      profiles:
+        - xpath: [ "layer3" ]
+      spec:
+        params:
+          ndp-proxy:
+            type: bool
+            profiles:
+              - xpath: [ "ndp-proxy", "enabled" ]
+          lldp:
+            type: bool
+            profiles:
+              - xpath: [ "lldp", "enabled" ]
