@@ -79,6 +79,10 @@ func (tfp *GenerateTerraformProvider) GenerateTerraformProviderFile(spec *proper
 // generateTemplate creates and executes a template based on the given parameters.
 func (tfp *GenerateTerraformProvider) generateTemplate(templateNamePattern, templateStr string, spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, function template.FuncMap) error {
 	resourceTemplate := template.Must(template.New(fmt.Sprintf(templateNamePattern, spec.Name)).Funcs(function).Parse(templateStr))
+	if terraformProvider.Code == nil {
+		terraformProvider.Code = new(strings.Builder)
+	}
+
 	var renderedTemplate strings.Builder
 	if err := resourceTemplate.Execute(&renderedTemplate, spec); err != nil {
 		return fmt.Errorf("error executing template: %v", err)
