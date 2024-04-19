@@ -9,6 +9,7 @@ import (
 	"github.com/PaloAltoNetworks/pango"
 	"github.com/PaloAltoNetworks/pango/device/services/dns"
 	"github.com/PaloAltoNetworks/pango/device/services/ntp"
+	"github.com/PaloAltoNetworks/pango/network/profiles/interface_management"
 	"github.com/PaloAltoNetworks/pango/objects/address"
 	"github.com/PaloAltoNetworks/pango/objects/service"
 	"github.com/PaloAltoNetworks/pango/objects/tag"
@@ -38,6 +39,7 @@ func main() {
 	}
 
 	// CHECKS
+	checkInterfaceMgmtProfil(c, ctx)
 	checkSecurityPolicyRules(c, ctx)
 	checkSecurityPolicyRulesMove(c, ctx)
 	checkTag(c, ctx)
@@ -45,6 +47,28 @@ func main() {
 	checkService(c, ctx)
 	checkNtp(c, ctx)
 	checkDns(c, ctx)
+}
+
+func checkInterfaceMgmtProfil(c *pango.XmlApiClient, ctx context.Context) {
+	entry := interface_management.Entry{
+		Name:        "codegen_mgmt_profile",
+		Http:        util.Bool(true),
+		Ping:        util.Bool(true),
+		PermittedIp: []string{"1.1.1.1", "2.2.2.2"},
+	}
+	location := interface_management.Location{
+		Device: &interface_management.DeviceLocation{
+			NgfwDevice: "localhost.localdomain",
+		},
+	}
+	api := interface_management.NewService(c)
+
+	reply, err := api.Create(ctx, location, entry)
+	if err != nil {
+		log.Printf("Failed to create interface management profile: %s", err)
+		return
+	}
+	log.Printf("Interface management profile %s created\n", reply.Name)
 }
 
 func checkSecurityPolicyRules(c *pango.XmlApiClient, ctx context.Context) {

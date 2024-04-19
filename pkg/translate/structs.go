@@ -69,6 +69,8 @@ func XmlParamType(parent string, param *properties.SpecParam) string {
 	calculatedType := ""
 	if isParamListAndProfileTypeIsMember(param) {
 		calculatedType = "util.MemberType"
+	} else if isParamListAndProfileTypeIsEntry(param) {
+		calculatedType = "util.EntryType"
 	} else if param.Spec != nil {
 		calculatedType = calculateNestedXmlSpecType(parent, param)
 	} else if param.Type == "bool" {
@@ -80,9 +82,13 @@ func XmlParamType(parent string, param *properties.SpecParam) string {
 	return fmt.Sprintf("%s%s", prefix, calculatedType)
 }
 
-func determinePrefix(param *properties.SpecParam, useMemberTypeStruct bool) string {
-	if param.Type == "list" && !(useMemberTypeStruct && isParamListAndProfileTypeIsMember(param)) {
-		return "[]"
+func determinePrefix(param *properties.SpecParam, useMemberOrEntryTypeStruct bool) string {
+	if param.Type == "list" {
+		if useMemberOrEntryTypeStruct && (isParamListAndProfileTypeIsMember(param) || isParamListAndProfileTypeIsEntry(param)) {
+			return "*"
+		} else {
+			return "[]"
+		}
 	} else if !param.Required {
 		return "*"
 	}
