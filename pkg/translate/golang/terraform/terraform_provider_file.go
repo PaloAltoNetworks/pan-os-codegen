@@ -81,20 +81,61 @@ func (g *GenerateTerraformProvider) generateTerraformEntityTemplate(resourceType
 
 // GenerateTerraformResource generates a Terraform resource template.
 func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile) error {
-	if !spec.SkipGenerateTerraformResource {
-		importManager := imports.NewManager()
-		importManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
-		terraformProvider.ImportManager.Merge(importManager)
+	if !spec.SkipGenerateTerraform.Resource {
+		if spec.Entry != nil {
+			if spec.Spec == nil || spec.Spec.Params == nil {
+				return fmt.Errorf("invalid resource configuration")
+			}
+			_, uuid := spec.Spec.Params["uuid"]
+			if uuid {
+				// Generate Resource with uuid style
+				importManager := imports.NewManager()
+				importManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
+				terraformProvider.ImportManager.Merge(importManager)
 
-		resourceType := "Resource"
-		names := NewNameProvider(spec, resourceType)
-		funcMap := template.FuncMap{
-			"metaName":   func() string { return names.MetaName },
-			"structName": func() string { return names.StructName },
-		}
-		err := g.generateTerraformEntityTemplate(resourceType, names, spec, terraformProvider, resourceTemplateStr, funcMap)
-		if err != nil {
-			return err
+				resourceType := "Resource"
+				names := NewNameProvider(spec, resourceType)
+				funcMap := template.FuncMap{
+					"metaName":   func() string { return names.MetaName },
+					"structName": func() string { return names.StructName },
+				}
+				err := g.generateTerraformEntityTemplate(resourceType, names, spec, terraformProvider, resourceTemplateStr, funcMap)
+				if err != nil {
+					return err
+				}
+			} else {
+				// Generate Resource with entry style
+				importManager := imports.NewManager()
+				importManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
+				terraformProvider.ImportManager.Merge(importManager)
+
+				resourceType := "Resource"
+				names := NewNameProvider(spec, resourceType)
+				funcMap := template.FuncMap{
+					"metaName":   func() string { return names.MetaName },
+					"structName": func() string { return names.StructName },
+				}
+				err := g.generateTerraformEntityTemplate(resourceType, names, spec, terraformProvider, resourceTemplateStr, funcMap)
+				if err != nil {
+					return err
+				}
+			}
+		} else {
+			// Generate Resource with config style
+			importManager := imports.NewManager()
+			importManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
+			terraformProvider.ImportManager.Merge(importManager)
+
+			resourceType := "Resource"
+			names := NewNameProvider(spec, resourceType)
+			funcMap := template.FuncMap{
+				"metaName":   func() string { return names.MetaName },
+				"structName": func() string { return names.StructName },
+			}
+			err := g.generateTerraformEntityTemplate(resourceType, names, spec, terraformProvider, resourceTemplateStr, funcMap)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -103,7 +144,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 // GenerateTerraformDataSource generates a Terraform data source and data source template.
 func (g *GenerateTerraformProvider) GenerateTerraformDataSource(spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile) error {
 
-	if !spec.SkipGenerateTerraformDatasource {
+	if !spec.SkipGenerateTerraform.Datasource {
 		importManager := imports.NewManager()
 		importManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource/schema", "dsschema")
 		terraformProvider.ImportManager.Merge(importManager)
@@ -120,7 +161,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(spec *properties
 		}
 	}
 
-	if !spec.SkipGenerateTerraformDatasourceListing {
+	if !spec.SkipGenerateTerraform.DatasourceListing {
 		importManager := imports.NewManager()
 		importManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource/schema", "dsschema")
 		terraformProvider.ImportManager.Merge(importManager)

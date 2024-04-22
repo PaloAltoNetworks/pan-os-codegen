@@ -11,18 +11,22 @@ import (
 )
 
 type Normalization struct {
-	Name                                   string               `json:"name" yaml:"name"`
-	TerraformProviderSuffix                string               `json:"terraform_provider_suffix" yaml:"terraform_provider_suffix"`
-	SkipGenerateTerraformResource          bool                 `json:"skip_generate_terraform_resource" yaml:"skip_generate_terraform_resource"`
-	SkipGenerateTerraformDatasource        bool                 `json:"skip_generate_terraform_datasource" yaml:"skip_generate_terraform_datasource"`
-	SkipGenerateTerraformDatasourceListing bool                 `json:"skip_generate_terraform_datasource_listing" yaml:"skip_generate_terraform_datasource_listing"`
-	GoSdkPath                              []string             `json:"go_sdk_path" yaml:"go_sdk_path"`
-	XpathSuffix                            []string             `json:"xpath_suffix" yaml:"xpath_suffix"`
-	Locations                              map[string]*Location `json:"locations" yaml:"locations"`
-	Entry                                  *Entry               `json:"entry" yaml:"entry"`
-	Version                                string               `json:"version" yaml:"version"`
-	Spec                                   *Spec                `json:"spec" yaml:"spec"`
-	Const                                  map[string]*Const    `json:"const" yaml:"const"`
+	Name                    string                 `json:"name" yaml:"name"`
+	TerraformProviderSuffix string                 `json:"terraform_provider_suffix" yaml:"terraform_provider_suffix"`
+	SkipGenerateTerraform   *SkipGenerateTerraform `json:"skip_generate_terraform" yaml:"skip_generate_terraform"`
+	GoSdkPath               []string               `json:"go_sdk_path" yaml:"go_sdk_path"`
+	XpathSuffix             []string               `json:"xpath_suffix" yaml:"xpath_suffix"`
+	Locations               map[string]*Location   `json:"locations" yaml:"locations"`
+	Entry                   *Entry                 `json:"entry" yaml:"entry"`
+	Version                 string                 `json:"version" yaml:"version"`
+	Spec                    *Spec                  `json:"spec" yaml:"spec"`
+	Const                   map[string]*Const      `json:"const" yaml:"const"`
+}
+
+type SkipGenerateTerraform struct {
+	Resource          bool `json:"resource" yaml:"resource"`
+	Datasource        bool `json:"datasource" yaml:"datasource"`
+	DatasourceListing bool `json:"datasource_listing" yaml:"datasource_listing"`
 }
 
 type NameVariant struct {
