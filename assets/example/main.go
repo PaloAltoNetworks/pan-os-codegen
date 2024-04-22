@@ -44,10 +44,10 @@ func main() {
 
 	// CHECKS
 	checkVr(c, ctx)
-	checkEthernet(c, ctx)
-	checkLoopback(c, ctx)
 	checkZone(c, ctx)
 	checkInterfaceMgmtProfile(c, ctx)
+	checkEthernet(c, ctx)
+	checkLoopback(c, ctx)
 	checkSecurityPolicyRules(c, ctx)
 	checkSecurityPolicyRulesMove(c, ctx)
 	checkTag(c, ctx)
@@ -114,9 +114,30 @@ func checkEthernet(c *pango.XmlApiClient, ctx context.Context) {
 }
 
 func checkLoopback(c *pango.XmlApiClient, ctx context.Context) {
+	adjustTcpMss := 250
+	mtu := 1280
 	entry := loopback.Entry{
-		Name:    "loopback.123",
+		Name: "loopback.123",
+		AdjustTcpMss: &loopback.SpecAdjustTcpMss{
+			Enable:            util.Bool(true),
+			Ipv4MssAdjustment: &adjustTcpMss,
+			Ipv6MssAdjustment: &adjustTcpMss,
+		},
 		Comment: util.String("This is a loopback entry"),
+		Mtu:     &mtu,
+		Ip:      []string{"1.1.1.1", "2.2.2.2"},
+		Ipv6: &loopback.SpecIpv6{
+			Address: []loopback.SpecIpv6Address{
+				loopback.SpecIpv6Address{
+					EnableOnInterface: util.Bool(false),
+					Name:              "2001:0000:130F:0000:0000:09C0:876A:130B",
+				},
+				loopback.SpecIpv6Address{
+					EnableOnInterface: util.Bool(true),
+					Name:              "2001:0000:130F:0000:0000:09C0:876A:130C",
+				},
+			},
+		},
 	}
 	location := loopback.Location{
 		Device: &loopback.DeviceLocation{
