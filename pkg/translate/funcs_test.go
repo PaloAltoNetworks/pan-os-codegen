@@ -170,10 +170,21 @@ entry.A = nestedA
 func TestSpecMatchesFunction(t *testing.T) {
 	// given
 	paramTypeString := properties.SpecParam{
+		Name: &properties.NameVariant{
+			Underscore: "test",
+			CamelCase:  "Test",
+		},
 		Type: "string",
 	}
 	paramTypeListString := properties.SpecParam{
+		Name: &properties.NameVariant{
+			Underscore: "test",
+			CamelCase:  "Test",
+		},
 		Type: "list",
+		Items: &properties.SpecParamItems{
+			Type: "string",
+		},
 	}
 
 	// when
