@@ -81,7 +81,7 @@ func (g *GenerateTerraformProvider) generateTerraformEntityTemplate(resourceType
 
 // GenerateTerraformResource generates a Terraform resource template.
 func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile) error {
-	if !spec.SkipGenerateTerraform.Resource {
+	if spec.TerraformProviderConfig.Resource == nil {
 		if spec.Entry != nil {
 			if spec.Spec == nil || spec.Spec.Params == nil {
 				return fmt.Errorf("invalid resource configuration")
@@ -144,7 +144,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 // GenerateTerraformDataSource generates a Terraform data source and data source template.
 func (g *GenerateTerraformProvider) GenerateTerraformDataSource(spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile) error {
 
-	if !spec.SkipGenerateTerraform.Datasource {
+	if spec.TerraformProviderConfig.Datasource == nil {
 		importManager := imports.NewManager()
 		importManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource/schema", "dsschema")
 		terraformProvider.ImportManager.Merge(importManager)
@@ -161,7 +161,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(spec *properties
 		}
 	}
 
-	if !spec.SkipGenerateTerraform.DatasourceListing {
+	if spec.TerraformProviderConfig.DatasourceListing == nil {
 		importManager := imports.NewManager()
 		importManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource/schema", "dsschema")
 		terraformProvider.ImportManager.Merge(importManager)

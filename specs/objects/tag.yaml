@@ -1,9 +1,6 @@
 name: 'Tag'
-terraform_provider_suffix: 'tag'
-skip_generate_terraform:
-  resource: false
-  datasource: false
-  datasource_listing: false
+terraform_provider_config:
+  suffix: 'tag'
 go_sdk_path:
   - 'objects'
   - 'tag'

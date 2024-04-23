@@ -1,9 +1,6 @@
 name: 'Service'
-terraform_provider_suffix: 'service'
-skip_generate_terraform:
-  resource: false
-  datasource: false
-  datasource_listing: false
+terraform_provider_config:
+  suffix: 'service'
 go_sdk_path:
   - 'objects'
   - 'service'

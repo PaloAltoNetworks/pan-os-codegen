@@ -1,9 +1,7 @@
 name: 'Address group'
 terraform_provider_suffix: 'address_group'
-skip_generate_terraform:
-  resource: false
-  datasource: false
-  datasource_listing: false
+terraform_provider_config:
+  suffix: 'address_group'
 go_sdk_path:
   - 'objects'
   - 'address'

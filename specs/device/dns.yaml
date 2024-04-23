@@ -1,9 +1,6 @@
 name: 'DNS'
-terraform_provider_suffix: 'dns'
-skip_generate_terraform:
-  resource: false
-  datasource: false
-  datasource_listing: false
+terraform_provider_config:
+  suffix: 'dns'
 go_sdk_path:
   - 'device'
   - 'services'

@@ -1,9 +1,6 @@
 name: 'Security policy rule'
-terraform_provider_suffix: 'security_policy_rule'
-skip_generate_terraform:
-  resource: false
-  datasource: false
-  datasource_listing: false
+terraform_provider_config:
+  suffix: 'security_policy_rule'
 go_sdk_path:
   - 'policies'
   - 'rules'

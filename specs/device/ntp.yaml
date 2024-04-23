@@ -1,9 +1,6 @@
 name: 'NTP'
-terraform_provider_suffix: 'ntp'
-skip_generate_terraform:
-  resource: false
-  datasource: false
-  datasource_listing: false
+terraform_provider_config:
+  suffix: 'ntp'
 go_sdk_path:
   - 'device'
   - 'services'
