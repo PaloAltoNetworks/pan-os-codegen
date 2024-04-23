@@ -2,7 +2,6 @@ package terraform
 
 import (
 	"fmt"
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/imports"
 	"strings"
 	"text/template"
 
@@ -81,7 +80,7 @@ func (g *GenerateTerraformProvider) generateTerraformEntityTemplate(resourceType
 
 // GenerateTerraformResource generates a Terraform resource template.
 func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile) error {
-	if spec.TerraformProviderConfig.Resource == nil {
+	if !spec.TerraformProviderConfig.Resource {
 		if spec.Entry != nil {
 			if spec.Spec == nil || spec.Spec.Params == nil {
 				return fmt.Errorf("invalid resource configuration")
@@ -89,9 +88,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 			_, uuid := spec.Spec.Params["uuid"]
 			if uuid {
 				// Generate Resource with uuid style
-				importManager := imports.NewManager()
-				importManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
-				terraformProvider.ImportManager.Merge(importManager)
+				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
 
 				resourceType := "Resource"
 				names := NewNameProvider(spec, resourceType)
@@ -105,9 +102,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 				}
 			} else {
 				// Generate Resource with entry style
-				importManager := imports.NewManager()
-				importManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
-				terraformProvider.ImportManager.Merge(importManager)
+				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
 
 				resourceType := "Resource"
 				names := NewNameProvider(spec, resourceType)
@@ -122,9 +117,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 			}
 		} else {
 			// Generate Resource with config style
-			importManager := imports.NewManager()
-			importManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
-			terraformProvider.ImportManager.Merge(importManager)
+			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
 
 			resourceType := "Resource"
 			names := NewNameProvider(spec, resourceType)
@@ -144,10 +137,8 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 // GenerateTerraformDataSource generates a Terraform data source and data source template.
 func (g *GenerateTerraformProvider) GenerateTerraformDataSource(spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile) error {
 
-	if spec.TerraformProviderConfig.Datasource == nil {
-		importManager := imports.NewManager()
-		importManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource/schema", "dsschema")
-		terraformProvider.ImportManager.Merge(importManager)
+	if !spec.TerraformProviderConfig.Datasource {
+		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource/schema", "dsschema")
 
 		resourceType := "DataSource"
 		names := NewNameProvider(spec, resourceType)
@@ -161,10 +152,8 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(spec *properties
 		}
 	}
 
-	if spec.TerraformProviderConfig.DatasourceListing == nil {
-		importManager := imports.NewManager()
-		importManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource/schema", "dsschema")
-		terraformProvider.ImportManager.Merge(importManager)
+	if !spec.TerraformProviderConfig.DatasourceListing {
+		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource/schema", "dsschema")
 
 		resourceType := "DataSourceList"
 		names := NewNameProvider(spec, resourceType)
@@ -183,9 +172,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(spec *properties
 
 // GenerateTerraformProviderFile generates the entire provider file.
 func (g *GenerateTerraformProvider) GenerateTerraformProviderFile(spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile) error {
-	importManager := imports.NewManager()
-	importManager.AddSdkImport(fmt.Sprintf("github.com/PaloAltoNetworks/pango/%s", strings.Join(spec.GoSdkPath, "/")), "")
-	terraformProvider.ImportManager.Merge(importManager)
+	terraformProvider.ImportManager.AddSdkImport(fmt.Sprintf("github.com/PaloAltoNetworks/pango/%s", strings.Join(spec.GoSdkPath, "/")), "")
 
 	funcMap := template.FuncMap{
 		"renderImports": func() (string, error) { return terraformProvider.ImportManager.RenderImports() },

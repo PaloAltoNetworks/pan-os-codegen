@@ -83,7 +83,7 @@ func (c *Creator) RenderTerraformProvider(terraformProvider *properties.Terrafor
 	if err := tfp.GenerateTerraformProviderFile(spec, terraformProvider); err != nil {
 		return err
 	}
-	filePath := c.createTerraformProviderFilePath(*spec.TerraformProviderConfig.Suffix)
+	filePath := c.createTerraformProviderFilePath(spec.TerraformProviderConfig.Suffix)
 
 	content := bytes.NewBufferString(terraformProvider.Code.String())
 	if err := c.createFileAndWriteContent(filePath, content); err != nil {
