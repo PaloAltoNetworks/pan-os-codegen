@@ -105,16 +105,16 @@ func checkEthernetLayer3(c *pango.XmlApiClient, ctx context.Context) {
 				Ipv6MssAdjustment: &adjustTcpMss,
 			},
 			Mtu: &mtu,
-			Ip:  []string{"1.1.1.1", "2.2.2.2"},
+			Ip:  []string{"11.11.11.11", "22.22.22.22"},
 			Ipv6: &ethernet.SpecLayer3Ipv6{
 				Address: []ethernet.SpecLayer3Ipv6Address{
 					{
 						EnableOnInterface: util.Bool(false),
-						Name:              "2001:0000:130F:0000:0000:09C0:876A:130B",
+						Name:              "2001:0000:130F:0000:0000:09C0:876A:230B",
 					},
 					{
 						EnableOnInterface: util.Bool(true),
-						Name:              "2001:0000:130F:0000:0000:09C0:876A:130C",
+						Name:              "2001:0000:130F:0000:0000:09C0:876A:230C",
 					},
 				},
 			},
