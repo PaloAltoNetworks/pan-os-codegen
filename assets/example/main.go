@@ -138,6 +138,7 @@ func checkLoopback(c *pango.XmlApiClient, ctx context.Context) {
 				},
 			},
 		},
+		InterfaceManagementProfile: util.String("codegen_mgmt_profile"),
 	}
 	location := loopback.Location{
 		Device: &loopback.DeviceLocation{

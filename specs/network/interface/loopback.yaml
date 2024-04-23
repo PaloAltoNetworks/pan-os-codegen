@@ -74,6 +74,14 @@ spec:
                   type: bool
                   profiles:
                     - xpath: [ "enable-on-interface" ]
+    interface-management-profile:
+      type: string
+      profiles:
+        - xpath: [ "interface-management-profile" ]
+    netflow-profile:
+      type: string
+      profiles:
+        - xpath: [ "netflow-profile" ]
     adjust-tcp-mss:
       profiles:
         - xpath: [ "adjust-tcp-mss" ]
