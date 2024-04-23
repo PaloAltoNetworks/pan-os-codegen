@@ -449,16 +449,8 @@ func checkAddress(c *pango.XmlApiClient, ctx context.Context) {
 	}
 	log.Printf("Address '%s=%s' created", addressReply.Name, *addressReply.IpNetmask)
 
-	// ADDRESS - DELETE
-	err = addressApi.Delete(ctx, addressLocation, addressReply.Name)
-	if err != nil {
-		log.Printf("Failed to delete object: %s", err)
-		return
-	}
-	log.Printf("Address '%s' deleted", addressReply.Name)
-
 	// ADDRESS - LIST
-	addresses, err := addressApi.List(ctx, addressLocation, "get", "name starts-with 'wu'", "'")
+	addresses, err := addressApi.List(ctx, addressLocation, "get", "name starts-with 'codegen'", "'")
 	if err != nil {
 		log.Printf("Failed to list object: %s", err)
 	} else {
@@ -466,6 +458,14 @@ func checkAddress(c *pango.XmlApiClient, ctx context.Context) {
 			log.Printf("Address %d: '%s'", index, item.Name)
 		}
 	}
+
+	// ADDRESS - DELETE
+	err = addressApi.Delete(ctx, addressLocation, addressReply.Name)
+	if err != nil {
+		log.Printf("Failed to delete object: %s", err)
+		return
+	}
+	log.Printf("Address '%s' deleted", addressReply.Name)
 }
 
 func checkService(c *pango.XmlApiClient, ctx context.Context) {

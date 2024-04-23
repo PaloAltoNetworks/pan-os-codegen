@@ -38,26 +38,20 @@ func SpecifyEntryAssignment(objectType string, param *properties.SpecParam, vers
 	return prepareAssignment(objectType, param, "util.StrToMem", "util.StrToEnt", "util.YesNo", "spec", "Xml", version)
 }
 
-func prepareAssignment(objectType string, param *properties.SpecParam, listFunction, entryFunction, boolFunction, specPrefix, specSuffix string, version string) string {
+func prepareAssignment(objectType string, param *properties.SpecParam, listFunction, entryFunction, boolFunction, prefix, suffix string, version string) string {
 	var builder strings.Builder
 
 	if ParamSupportedInVersion(param, version) {
 		if param.Spec != nil {
-			if specSuffix == "Xml" {
-				appendSpecObjectAssignment(param, nil, objectType, version, listFunction, entryFunction, boolFunction, specPrefix, specSuffix, &builder)
-			} else {
-				appendSpecObjectAssignment(param, nil, objectType, "", listFunction, entryFunction, boolFunction, specPrefix, specSuffix, &builder)
-			}
+			appendSpecObjectAssignment(param, nil, objectType, paramVersionInAssignment(suffix, version),
+				listFunction, entryFunction, boolFunction, prefix, suffix, &builder)
 		} else if isParamListAndProfileTypeIsMember(param) {
 			appendFunctionAssignment(param, objectType, listFunction, "", &builder)
 		} else if isParamListAndProfileTypeIsSingleEntry(param) {
 			appendFunctionAssignment(param, objectType, entryFunction, "", &builder)
 		} else if param.Type == "bool" {
-			if specSuffix == "Xml" {
-				appendFunctionAssignment(param, objectType, boolFunction, useBoolFunctionToConvertAdditionalArguments(param), &builder)
-			} else {
-				appendFunctionAssignment(param, objectType, boolFunction, "nil", &builder)
-			}
+			appendFunctionAssignment(param, objectType, boolFunction,
+				useBoolFunctionToConvertAdditionalArguments(suffix, param), &builder)
 		} else {
 			appendSimpleAssignment(param, objectType, &builder)
 		}
@@ -66,8 +60,15 @@ func prepareAssignment(objectType string, param *properties.SpecParam, listFunct
 	return builder.String()
 }
 
-func useBoolFunctionToConvertAdditionalArguments(param *properties.SpecParam) string {
-	if param.Default != "" {
+func paramVersionInAssignment(suffix, version string) string {
+	if suffix == "Xml" {
+		return version
+	}
+	return ""
+}
+
+func useBoolFunctionToConvertAdditionalArguments(suffix string, param *properties.SpecParam) string {
+	if suffix == "Xml" && param.Default != "" {
 		return fmt.Sprintf("util.Bool(%s)", param.Default)
 	}
 	return "nil"
@@ -106,15 +107,7 @@ func defineNestedObject(parent []string, param, parentParam *properties.SpecPara
 	declareRootOfNestedObject(parent, builder, version, prefix, suffix)
 
 	if ParamSupportedInVersion(param, version) {
-		if isParamListAndProfileTypeIsExtendedEntry(parentParam) {
-			if param.Name.CamelCase == "Name" {
-				builder.WriteString(fmt.Sprintf("if entryItem.%s != \"\" {\n", param.Name.CamelCase))
-			} else {
-				builder.WriteString(fmt.Sprintf("if entryItem.%s != nil {\n", param.Name.CamelCase))
-			}
-		} else {
-			builder.WriteString(fmt.Sprintf("if o.%s != nil {\n", strings.Join(parent, ".")))
-		}
+		startIfBlockToCheckIfParamIsNotNil(parent, param, parentParam, builder)
 
 		if param.Spec != nil {
 			assignEmptyStructForNestedObject(parent, builder, param, objectType, version, prefix, suffix)
@@ -125,20 +118,38 @@ func defineNestedObject(parent []string, param, parentParam *properties.SpecPara
 		} else if isParamListAndProfileTypeIsSingleEntry(param) {
 			assignFunctionForNestedObject(parent, entryFunction, "", builder, param, parentParam)
 		} else if param.Type == "bool" {
-			if suffix == "Xml" {
-				assignFunctionForNestedObject(parent, boolFunction, useBoolFunctionToConvertAdditionalArguments(param), builder, param, parentParam)
-			} else {
-				assignFunctionForNestedObject(parent, boolFunction, "nil", builder, param, parentParam)
-			}
+			assignFunctionForNestedObject(parent, boolFunction,
+				useBoolFunctionToConvertAdditionalArguments(suffix, param), builder, param, parentParam)
 		} else {
 			assignValueForNestedObject(parent, builder, param, parentParam)
 		}
-		if isParamListAndProfileTypeIsExtendedEntry(param) {
-			builder.WriteString(fmt.Sprintf("nested%s = append(nested%s, nestedItem)\n",
-				strings.Join(parent, "."), strings.Join(parent, ".")))
-		}
-		builder.WriteString("}\n")
+
+		finishIfBlockForNestedObject(parent, param, builder)
 	}
+}
+
+func startIfBlockToCheckIfParamIsNotNil(parent []string, param *properties.SpecParam, parentParam *properties.SpecParam, builder *strings.Builder) {
+	if isParamListAndProfileTypeIsExtendedEntry(parentParam) {
+		if isParamName(param) {
+			builder.WriteString(fmt.Sprintf("if entryItem.%s != \"\" {\n", param.Name.CamelCase))
+		} else {
+			builder.WriteString(fmt.Sprintf("if entryItem.%s != nil {\n", param.Name.CamelCase))
+		}
+	} else {
+		builder.WriteString(fmt.Sprintf("if o.%s != nil {\n", strings.Join(parent, ".")))
+	}
+}
+
+func finishIfBlockForNestedObject(parent []string, param *properties.SpecParam, builder *strings.Builder) {
+	if isParamListAndProfileTypeIsExtendedEntry(param) {
+		builder.WriteString(fmt.Sprintf("nested%s = append(nested%s, nestedItem)\n",
+			strings.Join(parent, "."), strings.Join(parent, ".")))
+	}
+	builder.WriteString("}\n")
+}
+
+func isParamName(param *properties.SpecParam) bool {
+	return param.Name.CamelCase == "Name"
 }
 
 func declareRootOfNestedObject(parent []string, builder *strings.Builder, version, prefix, suffix string) {
@@ -152,48 +163,61 @@ func declareRootOfNestedObject(parent []string, builder *strings.Builder, versio
 
 func assignEmptyStructForNestedObject(parent []string, builder *strings.Builder, param *properties.SpecParam, objectType, version, prefix, suffix string) {
 	if isParamListAndProfileTypeIsExtendedEntry(param) {
-		builder.WriteString(fmt.Sprintf("nested%s = []%s%s%s%s{}\n",
-			strings.Join(parent, "."), prefix, strings.Join(parent, ""), suffix,
-			CreateGoSuffixFromVersion(version)))
-
-		builder.WriteString(fmt.Sprintf("for _, entryItem := range o.%s {\n",
-			strings.Join(parent, ".")))
-		builder.WriteString(fmt.Sprintf("nestedItem := %s%s%s%s{}\n",
-			prefix, strings.Join(parent, ""), suffix,
-			CreateGoSuffixFromVersion(version)))
-
-		if suffix == "Xml" {
-			builder.WriteString(fmt.Sprintf("if _, ok := o.Misc[\"%s\"]; ok {\n",
-				strings.Join(parent, "")))
-			builder.WriteString(fmt.Sprintf("nestedItem.Misc = o.Misc[\"%s\"]\n",
-				strings.Join(parent, ""),
-			))
-		} else {
-			builder.WriteString("if entryItem.Misc != nil {\n")
-			builder.WriteString(fmt.Sprintf("entry.Misc[\"%s\"] = entryItem.Misc\n",
-				strings.Join(parent, ""),
-			))
-		}
-		builder.WriteString("}\n")
+		createListAndStartLoopToIterateThroughNestedEntry(parent, builder, prefix, suffix, version)
+		miscForUnknownXmlForExtendedEntry(parent, builder, suffix)
 	} else {
-		builder.WriteString(fmt.Sprintf("nested%s = &%s%s%s%s{}\n",
-			strings.Join(parent, "."), prefix, strings.Join(parent, ""), suffix,
-			CreateGoSuffixFromVersion(version)))
+		createStructForTypicalParamWithSpec(parent, builder, prefix, suffix, version)
+		miscForUnknownXmlForTypicalParamWithSpec(parent, builder, suffix, objectType)
+	}
+	builder.WriteString("}\n")
+}
 
-		if suffix == "Xml" {
-			builder.WriteString(fmt.Sprintf("if _, ok := o.Misc[\"%s\"]; ok {\n",
-				strings.Join(parent, "")))
-			builder.WriteString(fmt.Sprintf("nested%s.Misc = o.Misc[\"%s\"]\n",
-				strings.Join(parent, "."), strings.Join(parent, ""),
-			))
-		} else {
-			builder.WriteString(fmt.Sprintf("if o.%s.Misc != nil {\n",
-				strings.Join(parent, ".")))
-			builder.WriteString(fmt.Sprintf("%s.Misc[\"%s\"] = o.%s.Misc\n",
-				objectType, strings.Join(parent, ""), strings.Join(parent, "."),
-			))
-		}
-		builder.WriteString("}\n")
+func createStructForTypicalParamWithSpec(parent []string, builder *strings.Builder, prefix string, suffix string, version string) {
+	builder.WriteString(fmt.Sprintf("nested%s = &%s%s%s%s{}\n",
+		strings.Join(parent, "."), prefix, strings.Join(parent, ""), suffix,
+		CreateGoSuffixFromVersion(version)))
+}
+
+func createListAndStartLoopToIterateThroughNestedEntry(parent []string, builder *strings.Builder, prefix string, suffix string, version string) {
+	builder.WriteString(fmt.Sprintf("nested%s = []%s%s%s%s{}\n",
+		strings.Join(parent, "."), prefix, strings.Join(parent, ""), suffix,
+		CreateGoSuffixFromVersion(version)))
+
+	builder.WriteString(fmt.Sprintf("for _, entryItem := range o.%s {\n",
+		strings.Join(parent, ".")))
+	builder.WriteString(fmt.Sprintf("nestedItem := %s%s%s%s{}\n",
+		prefix, strings.Join(parent, ""), suffix,
+		CreateGoSuffixFromVersion(version)))
+}
+
+func miscForUnknownXmlForTypicalParamWithSpec(parent []string, builder *strings.Builder, suffix string, objectType string) {
+	if suffix == "Xml" {
+		builder.WriteString(fmt.Sprintf("if _, ok := o.Misc[\"%s\"]; ok {\n",
+			strings.Join(parent, "")))
+		builder.WriteString(fmt.Sprintf("nested%s.Misc = o.Misc[\"%s\"]\n",
+			strings.Join(parent, "."), strings.Join(parent, ""),
+		))
+	} else {
+		builder.WriteString(fmt.Sprintf("if o.%s.Misc != nil {\n",
+			strings.Join(parent, ".")))
+		builder.WriteString(fmt.Sprintf("%s.Misc[\"%s\"] = o.%s.Misc\n",
+			objectType, strings.Join(parent, ""), strings.Join(parent, "."),
+		))
+	}
+}
+
+func miscForUnknownXmlForExtendedEntry(parent []string, builder *strings.Builder, suffix string) {
+	if suffix == "Xml" {
+		builder.WriteString(fmt.Sprintf("if _, ok := o.Misc[\"%s\"]; ok {\n",
+			strings.Join(parent, "")))
+		builder.WriteString(fmt.Sprintf("nestedItem.Misc = o.Misc[\"%s\"]\n",
+			strings.Join(parent, ""),
+		))
+	} else {
+		builder.WriteString("if entryItem.Misc != nil {\n")
+		builder.WriteString(fmt.Sprintf("entry.Misc[\"%s\"] = entryItem.Misc\n",
+			strings.Join(parent, ""),
+		))
 	}
 }
 
