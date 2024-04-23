@@ -9,7 +9,7 @@ locations:
   'vsys':
     description: 'Located in a specific vsys.'
     device:
-      panorama: true
+      panorama: false
       ngfw: true
     xpath:
       - 'config'

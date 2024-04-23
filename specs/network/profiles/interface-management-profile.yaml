@@ -12,7 +12,7 @@ locations:
   'device':
     description: 'Located in a device.'
     device:
-      panorama: true
+      panorama: false
       ngfw: true
     xpath:
       - 'config'
