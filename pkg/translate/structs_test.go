@@ -7,7 +7,11 @@ import (
 )
 
 const sampleSpec = `name: 'Address'
-terraform_provider_suffix: 'address'
+terraform_provider_config:
+    skip_resource: false
+    skip_datasource: false
+    skip_datasource_listing: false
+    suffix: address
 go_sdk_path:
   - 'objects'
   - 'address'

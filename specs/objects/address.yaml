@@ -1,5 +1,4 @@
 name: 'Address'
-terraform_provider_suffix: 'address'
 terraform_provider_config:
   suffix: 'address_object'
 go_sdk_path:

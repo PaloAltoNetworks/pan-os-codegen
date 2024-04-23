@@ -1,5 +1,4 @@
 name: 'Address group'
-terraform_provider_suffix: 'address_group'
 terraform_provider_config:
   suffix: 'address_group'
 go_sdk_path:
