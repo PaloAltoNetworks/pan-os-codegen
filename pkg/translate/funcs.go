@@ -269,8 +269,16 @@ func SpecMatchesFunction(param *properties.SpecParam) string {
 func specMatchFunctionName(parent []string, param *properties.SpecParam) string {
 	if param.Type == "list" && param.Items != nil && param.Items.Type == "string" {
 		return "util.OrderedListsMatch"
-	} else if param.Type == "string" && param.Name != nil && param.Name.CamelCase != "Name" {
-		return "util.StringsMatch"
+	} else if param.Type == "string" {
+		if param.Name != nil && param.Name.CamelCase == "Name" {
+			return "util.StringsEqual"
+		} else {
+			return "util.StringsMatch"
+		}
+	} else if param.Type == "bool" {
+		return "util.BoolsMatch"
+	} else if param.Type == "int" {
+		return "util.IntsMatch"
 	} else {
 		return fmt.Sprintf("specMatch%s%s", strings.Join(parent, ""), param.Name.CamelCase)
 	}
@@ -296,53 +304,33 @@ func defineSpecMatchesFunction(parent []string, params map[string]*properties.Sp
 			checkInSpecMatchesFunctionIfVariablesAreNil(builder)
 
 			if isParamListAndProfileTypeIsExtendedEntry(param) {
-				builder.WriteString(fmt.Sprintf("for _, a := range a {\n"))
-				builder.WriteString(fmt.Sprintf("for _, b := range b {\n"))
-				for _, subParam := range param.Spec.Params {
-					renderInSpecMatchesFunctionIfToCheckIfVariablesMatches(parent, builder, param, subParam)
-				}
-				for _, subParam := range param.Spec.OneOf {
-					renderInSpecMatchesFunctionIfToCheckIfVariablesMatches(parent, builder, param, subParam)
-				}
-				builder.WriteString("}\n")
-				builder.WriteString("}\n")
+				renderSpecMatchBodyForExtendedEntry(parent, builder, param)
 			} else {
-				for _, subParam := range param.Spec.Params {
-					renderInSpecMatchesFunctionIfToCheckIfVariablesMatches(parent, builder, param, subParam)
-				}
-				for _, subParam := range param.Spec.OneOf {
-					renderInSpecMatchesFunctionIfToCheckIfVariablesMatches(parent, builder, param, subParam)
-				}
+				renderSpecMatchBodyForTypicalParam(parent, param, builder)
 			}
 
 			builder.WriteString("return true\n")
-			builder.WriteString("}\n")
-		} else if param.Type != "list" && (param.Type != "string" || param.Name.CamelCase == "Name") {
-			// whole section should be removed, when there will be dedicated function to compare integers
-			// in file https://github.com/PaloAltoNetworks/pango/blob/develop/util/comparison.go
-			renderSpecMatchesFunctionNameWithArguments(parent, builder, param)
-
-			if param.Name.CamelCase == "Name" {
-				builder.WriteString("return a == b\n")
-			} else {
-				checkInSpecMatchesFunctionIfVariablesAreNil(builder)
-				builder.WriteString("return *a == *b\n")
-			}
 			builder.WriteString("}\n")
 		}
 	}
 }
 
 func renderSpecMatchesFunctionNameWithArguments(parent []string, builder *strings.Builder, param *properties.SpecParam) {
-	if param.Name.CamelCase == "Name" {
-		builder.WriteString(fmt.Sprintf("func specMatch%s%s(a, b string) bool {",
-			strings.Join(parent, ""), param.Name.CamelCase))
+	prefix := determinePrefix(param, false)
+	builder.WriteString(fmt.Sprintf("func specMatch%s%s(a %s%s, b %s%s) bool {",
+		strings.Join(parent, ""), param.Name.CamelCase,
+		prefix, argumentTypeForSpecMatchesFunction(parent, param),
+		prefix, argumentTypeForSpecMatchesFunction(parent, param)))
+}
+
+func argumentTypeForSpecMatchesFunction(parent []string, param *properties.SpecParam) string {
+	if param.Type == "bool" {
+		return "bool"
+	} else if param.Type == "int" {
+		return "int"
 	} else {
-		prefix := determinePrefix(param, false)
-		builder.WriteString(fmt.Sprintf("func specMatch%s%s(a %s%s, b %s%s) bool {",
-			strings.Join(parent, ""), param.Name.CamelCase,
-			prefix, argumentTypeForSpecMatchesFunction(parent, param),
-			prefix, argumentTypeForSpecMatchesFunction(parent, param)))
+		return fmt.Sprintf("Spec%s%s",
+			strings.Join(parent, ""), param.Name.CamelCase)
 	}
 }
 
@@ -361,15 +349,26 @@ func renderInSpecMatchesFunctionIfToCheckIfVariablesMatches(parent []string, bui
 	builder.WriteString("}\n")
 }
 
-func argumentTypeForSpecMatchesFunction(parent []string, param *properties.SpecParam) string {
-	if param.Type == "bool" {
-		return "bool"
-	} else if param.Type == "int" {
-		return "int"
-	} else {
-		return fmt.Sprintf("Spec%s%s",
-			strings.Join(parent, ""), param.Name.CamelCase)
+func renderSpecMatchBodyForTypicalParam(parent []string, param *properties.SpecParam, builder *strings.Builder) {
+	for _, subParam := range param.Spec.Params {
+		renderInSpecMatchesFunctionIfToCheckIfVariablesMatches(parent, builder, param, subParam)
 	}
+	for _, subParam := range param.Spec.OneOf {
+		renderInSpecMatchesFunctionIfToCheckIfVariablesMatches(parent, builder, param, subParam)
+	}
+}
+
+func renderSpecMatchBodyForExtendedEntry(parent []string, builder *strings.Builder, param *properties.SpecParam) {
+	builder.WriteString(fmt.Sprintf("for _, a := range a {\n"))
+	builder.WriteString(fmt.Sprintf("for _, b := range b {\n"))
+	for _, subParam := range param.Spec.Params {
+		renderInSpecMatchesFunctionIfToCheckIfVariablesMatches(parent, builder, param, subParam)
+	}
+	for _, subParam := range param.Spec.OneOf {
+		renderInSpecMatchesFunctionIfToCheckIfVariablesMatches(parent, builder, param, subParam)
+	}
+	builder.WriteString("}\n")
+	builder.WriteString("}\n")
 }
 
 // XmlPathSuffixes return XML path suffixes created from profiles.

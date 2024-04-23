@@ -219,6 +219,7 @@ func TestNestedSpecMatchesFunction(t *testing.T) {
 											Underscore: "c",
 											CamelCase:  "C",
 										},
+										Type: "string",
 									},
 								},
 							},
@@ -228,19 +229,12 @@ func TestNestedSpecMatchesFunction(t *testing.T) {
 			},
 		},
 	}
-	expectedNestedSpec := `func specMatchABC(a *SpecABC, b *SpecABC) bool {if a == nil && b != nil || a != nil && b == nil {
+	expectedNestedSpec := `func specMatchAB(a *SpecAB, b *SpecAB) bool {if a == nil && b != nil || a != nil && b == nil {
 	return false
 } else if a == nil && b == nil {
 	return true
 }
-return *a == *b
-}
-func specMatchAB(a *SpecAB, b *SpecAB) bool {if a == nil && b != nil || a != nil && b == nil {
-	return false
-} else if a == nil && b == nil {
-	return true
-}
-if !specMatchABC(a.C, b.C) {
+if !util.StringsMatch(a.C, b.C) {
 	return false
 }
 return true

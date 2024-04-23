@@ -71,6 +71,10 @@ func StringsMatch(a, b *string) bool {
 	return *a == *b
 }
 
+func StringsEqual(a, b string) bool {
+	return a == b
+}
+
 func BoolsMatch(a, b *bool) bool {
 	if a == nil && b == nil {
 		return true
@@ -91,7 +95,17 @@ func FloatsMatch(a, b *float64) bool {
 	return *a == *b
 }
 
-func IntsMatch(a, b *int64) bool {
+func IntsMatch(a, b *int) bool {
+	if a == nil && b == nil {
+		return true
+	} else if a == nil || b == nil {
+		return false
+	}
+
+	return *a == *b
+}
+
+func Ints64Match(a, b *int64) bool {
 	if a == nil && b == nil {
 		return true
 	} else if a == nil || b == nil {
