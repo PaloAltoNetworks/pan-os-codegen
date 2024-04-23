@@ -1,6 +1,6 @@
 name: 'Tag'
 terraform_provider_config:
-  suffix: 'tag'
+  suffix: 'administrative_tag'
 go_sdk_path:
   - 'objects'
   - 'tag'

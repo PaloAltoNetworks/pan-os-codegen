@@ -23,10 +23,10 @@ type Normalization struct {
 }
 
 type TerraformProviderConfig struct {
-	Resource          bool   `json:"resource" yaml:"resource"`
-	Datasource        bool   `json:"datasource" yaml:"datasource"`
-	DatasourceListing bool   `json:"datasource_listing" yaml:"datasource_listing"`
-	Suffix            string `json:"suffix" yaml:"suffix"`
+	SkipResource          bool   `json:"skip_resource" yaml:"skip_resource"`
+	SkipDatasource        bool   `json:"skip_datasource" yaml:"skip_datasource"`
+	SkipDatasourceListing bool   `json:"skip_datasource_listing" yaml:"skip_datasource_listing"`
+	Suffix                string `json:"suffix" yaml:"suffix"`
 }
 
 type NameVariant struct {

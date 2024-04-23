@@ -80,7 +80,7 @@ func (g *GenerateTerraformProvider) generateTerraformEntityTemplate(resourceType
 
 // GenerateTerraformResource generates a Terraform resource template.
 func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile) error {
-	if !spec.TerraformProviderConfig.Resource {
+	if !spec.TerraformProviderConfig.SkipResource {
 		if spec.Entry != nil {
 			if spec.Spec == nil || spec.Spec.Params == nil {
 				return fmt.Errorf("invalid resource configuration")
@@ -137,7 +137,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 // GenerateTerraformDataSource generates a Terraform data source and data source template.
 func (g *GenerateTerraformProvider) GenerateTerraformDataSource(spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile) error {
 
-	if !spec.TerraformProviderConfig.Datasource {
+	if !spec.TerraformProviderConfig.SkipDatasource {
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource/schema", "dsschema")
 
 		resourceType := "DataSource"
@@ -152,7 +152,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(spec *properties
 		}
 	}
 
-	if !spec.TerraformProviderConfig.DatasourceListing {
+	if !spec.TerraformProviderConfig.SkipDatasourceListing {
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource/schema", "dsschema")
 
 		resourceType := "DataSourceList"
