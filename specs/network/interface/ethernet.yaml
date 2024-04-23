@@ -35,9 +35,31 @@ spec:
         max: 1023
       profiles:
         - xpath: [ "comment" ]
+    link-state:
+      type: string
+      default: 'auto'
+      values: [ 'auto', 'up', 'down' ]
+      profiles:
+        - xpath: [ "link-state" ]
   one_of:
+    tap:
+      description: 'Tap mode interface'
+      profiles:
+        - xpath: [ "tap" ]
+      spec:
+        params:
+          netflow-profile:
+            type: string
+            profiles:
+              - xpath: [ "netflow-profile" ]
+    ha:
+      description: 'HA mode interface'
+      profiles:
+        - xpath: [ "ha" ]
+      spec:
+        params:
     layer3:
-      description: 'Layer 3'
+      description: 'Layer 3 interface'
       profiles:
         - xpath: [ "layer3" ]
       spec:
@@ -50,3 +72,72 @@ spec:
             type: bool
             profiles:
               - xpath: [ "lldp", "enabled" ]
+          mtu:
+            type: int
+            description: "Maximum Transfer Unit, up to 9216 in Jumbo-Frame mode, up to 1500 otherwise"
+            value:
+              min: 576
+              max: 9216
+            profiles:
+              - xpath: [ "mtu" ]
+          ip:
+            type: list
+            description: "IP addresses or address objects names"
+            items:
+              type: string
+            profiles:
+              - type: entry
+                xpath: [ "ip" ]
+          ipv6:
+            profiles:
+              - xpath: [ "ipv6" ]
+            spec:
+              params:
+                enabled:
+                  type: bool
+                  profiles:
+                    - xpath: [ "enabled" ]
+                address:
+                  type: list
+                  items:
+                    type: entry
+                  profiles:
+                    - type: entry
+                      xpath: [ "address", "entry" ]
+                  spec:
+                    params:
+                      enable-on-interface:
+                        type: bool
+                        profiles:
+                          - xpath: [ "enable-on-interface" ]
+          interface-management-profile:
+            type: string
+            profiles:
+              - xpath: [ "interface-management-profile" ]
+          netflow-profile:
+            type: string
+            profiles:
+              - xpath: [ "netflow-profile" ]
+          adjust-tcp-mss:
+            profiles:
+              - xpath: [ "adjust-tcp-mss" ]
+            spec:
+              params:
+                enable:
+                  type: bool
+                  profiles:
+                    - xpath: [ "enable" ]
+                ipv4-mss-adjustment:
+                  type: int
+                  values:
+                    min: 40
+                    max: 300
+                  profiles:
+                    - xpath: [ "ipv4-mss-adjustment" ]
+                ipv6-mss-adjustment:
+                  type: int
+                  values:
+                    min: 40
+                    max: 300
+                  profiles:
+                    - xpath: [ "ipv6-mss-adjustment" ]

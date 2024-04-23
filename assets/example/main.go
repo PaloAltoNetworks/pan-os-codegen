@@ -46,7 +46,8 @@ func main() {
 	checkVr(c, ctx)
 	checkZone(c, ctx)
 	checkInterfaceMgmtProfile(c, ctx)
-	checkEthernet(c, ctx)
+	checkEthernetLayer3(c, ctx)
+	checkEthernetHa(c, ctx)
 	checkLoopback(c, ctx)
 	checkSecurityPolicyRules(c, ctx)
 	checkSecurityPolicyRulesMove(c, ctx)
@@ -90,12 +91,34 @@ func checkVr(c *pango.XmlApiClient, ctx context.Context) {
 	log.Printf("VR %s created\n", reply.Name)
 }
 
-func checkEthernet(c *pango.XmlApiClient, ctx context.Context) {
+func checkEthernetLayer3(c *pango.XmlApiClient, ctx context.Context) {
+	adjustTcpMss := 250
+	mtu := 1280
 	entry := ethernet.Entry{
 		Name:    "ethernet1/2",
 		Comment: util.String("This is a ethernet1/2"),
 		Layer3: &ethernet.SpecLayer3{
 			NdpProxy: util.Bool(false),
+			AdjustTcpMss: &ethernet.SpecLayer3AdjustTcpMss{
+				Enable:            util.Bool(true),
+				Ipv4MssAdjustment: &adjustTcpMss,
+				Ipv6MssAdjustment: &adjustTcpMss,
+			},
+			Mtu: &mtu,
+			Ip:  []string{"1.1.1.1", "2.2.2.2"},
+			Ipv6: &ethernet.SpecLayer3Ipv6{
+				Address: []ethernet.SpecLayer3Ipv6Address{
+					{
+						EnableOnInterface: util.Bool(false),
+						Name:              "2001:0000:130F:0000:0000:09C0:876A:130B",
+					},
+					{
+						EnableOnInterface: util.Bool(true),
+						Name:              "2001:0000:130F:0000:0000:09C0:876A:130C",
+					},
+				},
+			},
+			InterfaceManagementProfile: util.String("codegen_mgmt_profile"),
 		},
 	}
 	location := ethernet.Location{
@@ -110,7 +133,28 @@ func checkEthernet(c *pango.XmlApiClient, ctx context.Context) {
 		log.Printf("Failed to create ethernet: %s", err)
 		return
 	}
-	log.Printf("Ethernet %s created\n", reply.Name)
+	log.Printf("Ethernet layer3 %s created\n", reply.Name)
+}
+
+func checkEthernetHa(c *pango.XmlApiClient, ctx context.Context) {
+	entry := ethernet.Entry{
+		Name:    "ethernet1/10",
+		Comment: util.String("This is a ethernet1/10"),
+		Ha:      &ethernet.SpecHa{},
+	}
+	location := ethernet.Location{
+		Device: &ethernet.DeviceLocation{
+			NgfwDevice: "localhost.localdomain",
+		},
+	}
+	api := ethernet.NewService(c)
+
+	reply, err := api.Create(ctx, location, entry)
+	if err != nil {
+		log.Printf("Failed to create ethernet: %s", err)
+		return
+	}
+	log.Printf("Ethernet HA %s created\n", reply.Name)
 }
 
 func checkLoopback(c *pango.XmlApiClient, ctx context.Context) {
