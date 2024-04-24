@@ -80,7 +80,7 @@ spec:
               max: 9216
             profiles:
               - xpath: [ "mtu" ]
-          ip:
+          ips:
             type: list
             description: "IP addresses or address objects names"
             items:
@@ -97,7 +97,7 @@ spec:
                   type: bool
                   profiles:
                     - xpath: [ "enabled" ]
-                address:
+                addresses:
                   type: list
                   items:
                     type: entry

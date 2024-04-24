@@ -105,9 +105,9 @@ func checkEthernetLayer3(c *pango.XmlApiClient, ctx context.Context) {
 				Ipv6MssAdjustment: &adjustTcpMss,
 			},
 			Mtu: &mtu,
-			Ip:  []string{"11.11.11.11", "22.22.22.22"},
+			Ips: []string{"11.11.11.11", "22.22.22.22"},
 			Ipv6: &ethernet.SpecLayer3Ipv6{
-				Address: []ethernet.SpecLayer3Ipv6Address{
+				Addresses: []ethernet.SpecLayer3Ipv6Addresses{
 					{
 						EnableOnInterface: util.Bool(false),
 						Name:              "2001:0000:130F:0000:0000:09C0:876A:230B",
@@ -169,14 +169,14 @@ func checkLoopback(c *pango.XmlApiClient, ctx context.Context) {
 		},
 		Comment: util.String("This is a loopback entry"),
 		Mtu:     &mtu,
-		Ip:      []string{"1.1.1.1", "2.2.2.2"},
+		Ips:     []string{"1.1.1.1", "2.2.2.2"},
 		Ipv6: &loopback.SpecIpv6{
-			Address: []loopback.SpecIpv6Address{
-				loopback.SpecIpv6Address{
+			Addresses: []loopback.SpecIpv6Addresses{
+				{
 					EnableOnInterface: util.Bool(false),
 					Name:              "2001:0000:130F:0000:0000:09C0:876A:130B",
 				},
-				loopback.SpecIpv6Address{
+				{
 					EnableOnInterface: util.Bool(true),
 					Name:              "2001:0000:130F:0000:0000:09C0:876A:130C",
 				},
@@ -232,10 +232,10 @@ func checkZone(c *pango.XmlApiClient, ctx context.Context) {
 
 func checkInterfaceMgmtProfile(c *pango.XmlApiClient, ctx context.Context) {
 	entry := interface_management.Entry{
-		Name:        "codegen_mgmt_profile",
-		Http:        util.Bool(true),
-		Ping:        util.Bool(true),
-		PermittedIp: []string{"1.1.1.1", "2.2.2.2"},
+		Name:         "codegen_mgmt_profile",
+		Http:         util.Bool(true),
+		Ping:         util.Bool(true),
+		PermittedIps: []string{"1.1.1.1", "2.2.2.2"},
 	}
 	location := interface_management.Location{
 		Ngfw: &interface_management.NgfwLocation{
@@ -255,15 +255,15 @@ func checkInterfaceMgmtProfile(c *pango.XmlApiClient, ctx context.Context) {
 func checkSecurityPolicyRules(c *pango.XmlApiClient, ctx context.Context) {
 	// SECURITY POLICY RULE - ADD
 	securityPolicyRuleEntry := security.Entry{
-		Name:               "codegen_rule",
-		Description:        util.String("initial description"),
-		Action:             util.String("allow"),
-		SourceZone:         []string{"any"},
-		SourceAddress:      []string{"any"},
-		DestinationZone:    []string{"any"},
-		DestinationAddress: []string{"any"},
-		Application:        []string{"any"},
-		Service:            []string{"application-default"},
+		Name:                 "codegen_rule",
+		Description:          util.String("initial description"),
+		Action:               util.String("allow"),
+		SourceZones:          []string{"any"},
+		SourceAddresses:      []string{"any"},
+		DestinationZones:     []string{"any"},
+		DestinationAddresses: []string{"any"},
+		Applications:         []string{"any"},
+		Services:             []string{"application-default"},
 	}
 
 	securityPolicyRuleLocation := security.Location{
@@ -385,15 +385,15 @@ func checkSecurityPolicyRulesMove(c *pango.XmlApiClient, ctx context.Context) {
 	for i := 0; i < 10; i++ {
 		securityPolicyRulesNames[i] = fmt.Sprintf("codegen_rule%d", i)
 		securityPolicyRuleItem := security.Entry{
-			Name:               securityPolicyRulesNames[i],
-			Description:        util.String("initial description"),
-			Action:             util.String("allow"),
-			SourceZone:         []string{"any"},
-			SourceAddress:      []string{"any"},
-			DestinationZone:    []string{"any"},
-			DestinationAddress: []string{"any"},
-			Application:        []string{"any"},
-			Service:            []string{"application-default"},
+			Name:                 securityPolicyRulesNames[i],
+			Description:          util.String("initial description"),
+			Action:               util.String("allow"),
+			SourceZones:          []string{"any"},
+			SourceAddresses:      []string{"any"},
+			DestinationZones:     []string{"any"},
+			DestinationAddresses: []string{"any"},
+			Applications:         []string{"any"},
+			Services:             []string{"application-default"},
 		}
 		securityPolicyRulesEntries = append(securityPolicyRulesEntries, securityPolicyRuleItem)
 		securityPolicyRuleItemReply, err := securityPolicyRuleApi.Create(ctx, securityPolicyRuleLocation, securityPolicyRuleItem)

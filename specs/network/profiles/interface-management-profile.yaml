@@ -72,7 +72,7 @@ spec:
       type: bool
       profiles:
         - xpath: [ "http-ocsp" ]
-    permitted-ip:
+    permitted-ips:
       type: list
       items:
         type: string
