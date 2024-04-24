@@ -281,6 +281,8 @@ func specMatchFunctionName(parent []string, param *properties.SpecParam) string 
 		return "util.BoolsMatch"
 	} else if param.Type == "int" {
 		return "util.IntsMatch"
+	} else if param.Type == "int64" {
+		return "util.Ints64Match"
 	} else {
 		return fmt.Sprintf("specMatch%s%s", strings.Join(parent, ""), param.Name.CamelCase)
 	}

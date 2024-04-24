@@ -46,7 +46,8 @@ func main() {
 	checkVr(c, ctx)
 	checkZone(c, ctx)
 	checkInterfaceMgmtProfile(c, ctx)
-	checkEthernetLayer3(c, ctx)
+	checkEthernetLayer3Static(c, ctx)
+	checkEthernetLayer3Dhcp(c, ctx)
 	checkEthernetHa(c, ctx)
 	checkLoopback(c, ctx)
 	checkSecurityPolicyRules(c, ctx)
@@ -91,14 +92,15 @@ func checkVr(c *pango.XmlApiClient, ctx context.Context) {
 	log.Printf("VR %s created\n", reply.Name)
 }
 
-func checkEthernetLayer3(c *pango.XmlApiClient, ctx context.Context) {
+func checkEthernetLayer3Static(c *pango.XmlApiClient, ctx context.Context) {
 	adjustTcpMss := 250
 	mtu := 1280
 	entry := ethernet.Entry{
 		Name:    "ethernet1/2",
 		Comment: util.String("This is a ethernet1/2"),
 		Layer3: &ethernet.SpecLayer3{
-			NdpProxy: util.Bool(false),
+			NdpProxy: util.Bool(true),
+			Lldp:     util.Bool(true),
 			AdjustTcpMss: &ethernet.SpecLayer3AdjustTcpMss{
 				Enable:            util.Bool(true),
 				Ipv4MssAdjustment: &adjustTcpMss,
@@ -119,6 +121,38 @@ func checkEthernetLayer3(c *pango.XmlApiClient, ctx context.Context) {
 				},
 			},
 			InterfaceManagementProfile: util.String("codegen_mgmt_profile"),
+		},
+	}
+	location := ethernet.Location{
+		Ngfw: &ethernet.NgfwLocation{
+			NgfwDevice: "localhost.localdomain",
+		},
+	}
+	api := ethernet.NewService(c)
+
+	reply, err := api.Create(ctx, location, entry)
+	if err != nil {
+		log.Printf("Failed to create ethernet: %s", err)
+		return
+	}
+	log.Printf("Ethernet layer3 %s created\n", reply.Name)
+}
+
+func checkEthernetLayer3Dhcp(c *pango.XmlApiClient, ctx context.Context) {
+	entry := ethernet.Entry{
+		Name:    "ethernet1/3",
+		Comment: util.String("This is a ethernet1/3"),
+		Layer3: &ethernet.SpecLayer3{
+			InterfaceManagementProfile: util.String("codegen_mgmt_profile"),
+			DhcpClient: &ethernet.SpecLayer3DhcpClient{
+				CreateDefaultRoute: util.Bool(false),
+				DefaultRouteMetric: util.Int(64),
+				Enable:             util.Bool(true),
+				SendHostname: &ethernet.SpecLayer3DhcpClientSendHostname{
+					Enable:   util.Bool(true),
+					Hostname: util.String("codegen_dhcp"),
+				},
+			},
 		},
 	}
 	location := ethernet.Location{
