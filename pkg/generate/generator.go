@@ -73,9 +73,9 @@ func (c *Creator) RenderTemplate() error {
 func (c *Creator) RenderTerraformProviderFile(terraformProvider *properties.TerraformProviderFile, spec *properties.Normalization) error {
 	tfp := terraform_provider.GenerateTerraformProvider{}
 
-	if err := tfp.GenerateTerraformDataSource(spec, terraformProvider); err != nil {
-		return err
-	}
+	//if err := tfp.GenerateTerraformDataSource(spec, terraformProvider); err != nil {
+	//	return err
+	//}
 
 	if err := tfp.GenerateTerraformResource(spec, terraformProvider); err != nil {
 		return err
