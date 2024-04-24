@@ -42,17 +42,18 @@ func prepareAssignment(objectType string, param *properties.SpecParam, listFunct
 	var builder strings.Builder
 
 	if ParamSupportedInVersion(param, version) {
-		if param.Spec != nil {
+		switch {
+		case param.Spec != nil:
 			appendSpecObjectAssignment(param, nil, objectType, paramVersionInAssignment(suffix, version),
 				listFunction, entryFunction, boolFunction, prefix, suffix, &builder)
-		} else if isParamListAndProfileTypeIsMember(param) {
+		case isParamListAndProfileTypeIsMember(param):
 			appendFunctionAssignment(param, objectType, listFunction, "", &builder)
-		} else if isParamListAndProfileTypeIsSingleEntry(param) {
+		case isParamListAndProfileTypeIsSingleEntry(param):
 			appendFunctionAssignment(param, objectType, entryFunction, "", &builder)
-		} else if param.Type == "bool" {
+		case param.Type == "bool":
 			appendFunctionAssignment(param, objectType, boolFunction,
 				useBoolFunctionToConvertAdditionalArguments(suffix, param), &builder)
-		} else {
+		default:
 			appendSimpleAssignment(param, objectType, &builder)
 		}
 	}
@@ -109,18 +110,19 @@ func defineNestedObject(parent []string, param, parentParam *properties.SpecPara
 	if ParamSupportedInVersion(param, version) {
 		startIfBlockToCheckIfParamIsNotNil(parent, param, parentParam, builder)
 
-		if param.Spec != nil {
+		switch {
+		case param.Spec != nil:
 			assignEmptyStructForNestedObject(parent, builder, param, objectType, version, prefix, suffix)
 			defineNestedObjectForChildParams(parent, param.Spec.Params, param, objectType, version, listFunction, entryFunction, boolFunction, prefix, suffix, builder)
 			defineNestedObjectForChildParams(parent, param.Spec.OneOf, param, objectType, version, listFunction, entryFunction, boolFunction, prefix, suffix, builder)
-		} else if isParamListAndProfileTypeIsMember(param) {
+		case isParamListAndProfileTypeIsMember(param):
 			assignFunctionForNestedObject(parent, listFunction, "", builder, param, parentParam)
-		} else if isParamListAndProfileTypeIsSingleEntry(param) {
+		case isParamListAndProfileTypeIsSingleEntry(param):
 			assignFunctionForNestedObject(parent, entryFunction, "", builder, param, parentParam)
-		} else if param.Type == "bool" {
+		case param.Type == "bool":
 			assignFunctionForNestedObject(parent, boolFunction,
 				useBoolFunctionToConvertAdditionalArguments(suffix, param), builder, param, parentParam)
-		} else {
+		default:
 			assignValueForNestedObject(parent, builder, param, parentParam)
 		}
 
