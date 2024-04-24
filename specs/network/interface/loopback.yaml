@@ -10,7 +10,7 @@ xpath_suffix:
   - 'loopback'
   - 'units'
 locations:
-  'device':
+  'ngfw':
     description: 'Located in a specific vsys.'
     device:
       panorama: false

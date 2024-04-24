@@ -77,7 +77,7 @@ func checkVr(c *pango.XmlApiClient, ctx context.Context) {
 		},
 	}
 	location := virtual_router.Location{
-		Device: &virtual_router.DeviceLocation{
+		Ngfw: &virtual_router.NgfwLocation{
 			NgfwDevice: "localhost.localdomain",
 		},
 	}
@@ -122,7 +122,7 @@ func checkEthernetLayer3(c *pango.XmlApiClient, ctx context.Context) {
 		},
 	}
 	location := ethernet.Location{
-		Device: &ethernet.DeviceLocation{
+		Ngfw: &ethernet.NgfwLocation{
 			NgfwDevice: "localhost.localdomain",
 		},
 	}
@@ -143,7 +143,7 @@ func checkEthernetHa(c *pango.XmlApiClient, ctx context.Context) {
 		Ha:      &ethernet.SpecHa{},
 	}
 	location := ethernet.Location{
-		Device: &ethernet.DeviceLocation{
+		Ngfw: &ethernet.NgfwLocation{
 			NgfwDevice: "localhost.localdomain",
 		},
 	}
@@ -185,7 +185,7 @@ func checkLoopback(c *pango.XmlApiClient, ctx context.Context) {
 		InterfaceManagementProfile: util.String("codegen_mgmt_profile"),
 	}
 	location := loopback.Location{
-		Device: &loopback.DeviceLocation{
+		Ngfw: &loopback.NgfwLocation{
 			NgfwDevice: "localhost.localdomain",
 		},
 	}
@@ -238,7 +238,7 @@ func checkInterfaceMgmtProfile(c *pango.XmlApiClient, ctx context.Context) {
 		PermittedIp: []string{"1.1.1.1", "2.2.2.2"},
 	}
 	location := interface_management.Location{
-		Device: &interface_management.DeviceLocation{
+		Ngfw: &interface_management.NgfwLocation{
 			NgfwDevice: "localhost.localdomain",
 		},
 	}

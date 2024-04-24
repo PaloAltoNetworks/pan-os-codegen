@@ -9,7 +9,7 @@ xpath_suffix:
   - 'profiles'
   - 'interface-management-profile'
 locations:
-  'device':
+  'ngfw':
     description: 'Located in a device.'
     device:
       panorama: false

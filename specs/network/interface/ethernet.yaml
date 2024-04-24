@@ -9,7 +9,7 @@ xpath_suffix:
   - 'interface'
   - 'ethernet'
 locations:
-  'device':
+  'ngfw':
     description: 'Located in a specific vsys.'
     device:
       panorama: false
