@@ -11,15 +11,22 @@ import (
 )
 
 type Normalization struct {
-	Name                    string               `json:"name" yaml:"name"`
-	TerraformProviderSuffix string               `json:"terraform_provider_suffix" yaml:"terraform_provider_suffix"`
-	GoSdkPath               []string             `json:"go_sdk_path" yaml:"go_sdk_path"`
-	XpathSuffix             []string             `json:"xpath_suffix" yaml:"xpath_suffix"`
-	Locations               map[string]*Location `json:"locations" yaml:"locations"`
-	Entry                   *Entry               `json:"entry" yaml:"entry"`
-	Version                 string               `json:"version" yaml:"version"`
-	Spec                    *Spec                `json:"spec" yaml:"spec"`
-	Const                   map[string]*Const    `json:"const" yaml:"const"`
+	Name                    string                  `json:"name" yaml:"name"`
+	TerraformProviderConfig TerraformProviderConfig `json:"terraform_provider_config" yaml:"terraform_provider_config"`
+	GoSdkPath               []string                `json:"go_sdk_path" yaml:"go_sdk_path"`
+	XpathSuffix             []string                `json:"xpath_suffix" yaml:"xpath_suffix"`
+	Locations               map[string]*Location    `json:"locations" yaml:"locations"`
+	Entry                   *Entry                  `json:"entry" yaml:"entry"`
+	Version                 string                  `json:"version" yaml:"version"`
+	Spec                    *Spec                   `json:"spec" yaml:"spec"`
+	Const                   map[string]*Const       `json:"const" yaml:"const"`
+}
+
+type TerraformProviderConfig struct {
+	SkipResource          bool   `json:"skip_resource" yaml:"skip_resource"`
+	SkipDatasource        bool   `json:"skip_datasource" yaml:"skip_datasource"`
+	SkipDatasourceListing bool   `json:"skip_datasource_listing" yaml:"skip_datasource_listing"`
+	Suffix                string `json:"suffix" yaml:"suffix"`
 }
 
 type NameVariant struct {
@@ -314,7 +321,7 @@ func (spec *Normalization) Sanity() error {
 func (spec *Normalization) Validate() []error {
 	var checks []error
 
-	if strings.Contains(spec.TerraformProviderSuffix, "panos_") {
+	if strings.Contains(spec.TerraformProviderConfig.Suffix, "panos_") {
 		checks = append(checks, fmt.Errorf("suffix for Terraform provider cannot contain `panos_`"))
 	}
 	for _, suffix := range spec.XpathSuffix {

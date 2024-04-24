@@ -7,7 +7,8 @@ import (
 )
 
 const sampleSpec = `name: 'Address'
-terraform_provider_suffix: 'address'
+terraform_provider_config: 
+  suffix: 'address'
 go_sdk_path:
   - 'objects'
   - 'address'
@@ -145,7 +146,7 @@ func TestUnmarshallAddressSpecFile(t *testing.T) {
 	// then
 	assert.NotNilf(t, yamlParsedData, "Unmarshalled data cannot be nil")
 	assert.Equal(t, "Address", yamlParsedData.Name, "Unmarshalled data should contain `name`")
-	assert.Equal(t, "address", yamlParsedData.TerraformProviderSuffix, "Unmarshalled data should contain `terraform_provider_suffix`")
+	assert.NotNilf(t, yamlParsedData.TerraformProviderConfig.Suffix, "Unmarshalled data should contain `suffix`")
 	assert.NotNilf(t, yamlParsedData.GoSdkPath, "Unmarshalled data should contain `go_sdk_path`")
 	assert.NotNilf(t, yamlParsedData.XpathSuffix, "Unmarshalled data should contain `xpath_suffix`")
 	assert.NotNilf(t, yamlParsedData.Locations, "Unmarshalled data should contain `locations`")
@@ -157,7 +158,11 @@ func TestUnmarshallAddressSpecFile(t *testing.T) {
 func TestMarshallAddressSpecFile(t *testing.T) {
 	// given
 	var expectedMarshalledData = `name: Address
-terraform_provider_suffix: address
+terraform_provider_config:
+    skip_resource: false
+    skip_datasource: false
+    skip_datasource_listing: false
+    suffix: address
 go_sdk_path:
     - objects
     - address
@@ -412,7 +417,11 @@ func TestSanity(t *testing.T) {
 	// given
 	var sampleInvalidSpec = `
 name: 'Address'
-terraform_provider_suffix: 'address'
+terraform_provider_config:
+    skip_resource: false
+    skip_datasource: false
+    skip_datasource_listing: false
+    suffix: address
 go_sdk_path:
   - 'objects'
   - 'address'
@@ -435,7 +444,8 @@ func TestValidation(t *testing.T) {
 	// given
 	var sampleInvalidSpec = `
 name: 'Address'
-terraform_provider_suffix: 'address'
+terraform_provider_config: 
+ suffix: 'address'
 xpath_suffix:
   - 'address'
 `
