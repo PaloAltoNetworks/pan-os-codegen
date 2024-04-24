@@ -75,6 +75,9 @@
         {{- range $name, $spec := nestedSpecs $.Spec }}
             type spec{{$name}}Xml{{createGoSuffixFromVersion $version}} struct {
             {{- range $_, $param := $spec.Params}}
+                {{- if eq $param.Name.CamelCase "Name"}}
+                    XMLName xml.Name `xml:"entry"`
+                {{- end}}
                 {{- if paramSupportedInVersion $param $version}}
                     {{- if $param.Spec}}
                         {{$param.Name.CamelCase}} {{xmlParamType $name $param}}{{createGoSuffixFromVersion $version}} {{xmlTag $param}}

@@ -120,8 +120,8 @@ spec:
         -
           type: 'member'
           xpath: ["tag"]
-    source_zone:
-      description: 'Source zone'
+    source_zones:
+      description: 'Source zones'
       type: list
       count:
         max: 31
@@ -131,8 +131,8 @@ spec:
         -
           type: 'member'
           xpath: ["from"]
-    destination_zone:
-      description: 'Destination zone'
+    destination_zones:
+      description: 'Destination zones'
       type: list
       count:
         max: 31
@@ -142,8 +142,8 @@ spec:
         -
           type: 'member'
           xpath: ["to"]
-    source_address:
-      description: 'Source address'
+    source_addresses:
+      description: 'Source addresses'
       type: list
       count:
         max: 63
@@ -153,8 +153,8 @@ spec:
         -
           type: 'member'
           xpath: ["source"]
-    destination_address:
-      description: 'Destination address'
+    destination_addresses:
+      description: 'Destination addresses'
       type: list
       count:
         max: 63
@@ -164,8 +164,8 @@ spec:
         -
           type: 'member'
           xpath: ["destination"]
-    source_user:
-      description: 'Source user'
+    source_users:
+      description: 'Source users'
       type: list
       count:
         max: 1023
@@ -175,8 +175,8 @@ spec:
         -
           type: 'member'
           xpath: ["source-user"]
-    service:
-      description: 'Service'
+    services:
+      description: 'Services'
       type: list
       count:
         max: 63
@@ -186,8 +186,8 @@ spec:
         -
           type: 'member'
           xpath: ["service"]
-    category:
-      description: 'Category'
+    categories:
+      description: 'Categories'
       type: list
       count:
         max: 63
@@ -197,8 +197,8 @@ spec:
         -
           type: 'member'
           xpath: ["category"]
-    application:
-      description: 'Application'
+    applications:
+      description: 'Applications'
       type: list
       count:
         max: 63
@@ -208,8 +208,8 @@ spec:
         -
           type: 'member'
           xpath: ["application"]
-    source_hip:
-      description: 'Source HIP'
+    source_hips:
+      description: 'Source HIPs'
       type: list
       count:
         max: 63
@@ -219,8 +219,8 @@ spec:
         -
           type: 'member'
           xpath: ["source-hip"]
-    destination_hip:
-      description: 'Destination HIP'
+    destination_hips:
+      description: 'Destination HIPs'
       type: list
       count:
         max: 63
