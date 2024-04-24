@@ -2,6 +2,7 @@ output:
   go_sdk: "../generated/pango"
   terraform_provider: "../generated/terraform-provider-panos"
 assets:
+  #~~~~~~~ SDK Static File section ~~~~~~~#
   generic_package:
     source: "assets/generic"
     target:
@@ -68,3 +69,10 @@ assets:
       go_sdk: true
       terraform_provider: false
     destination: "rule"
+  #~~~~~~~ Terraform Provider Static File section ~~~~~~~#
+  provider_internal_package:
+    source: "assets/provider"
+    target:
+      go_sdk: false
+      terraform_provider: true
+    destination: "internal"

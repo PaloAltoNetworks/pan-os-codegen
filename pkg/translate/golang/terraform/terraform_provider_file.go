@@ -88,7 +88,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 			_, uuid := spec.Spec.Params["uuid"]
 			if uuid {
 				// Generate Resource with uuid style
+				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
+				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource", "")
 
 				resourceType := "Resource"
 				names := NewNameProvider(spec, resourceType)
@@ -102,7 +104,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 				}
 			} else {
 				// Generate Resource with entry style
+				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
+				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource", "")
 
 				resourceType := "Resource"
 				names := NewNameProvider(spec, resourceType)
@@ -117,7 +121,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 			}
 		} else {
 			// Generate Resource with config style
+			terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "")
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
+			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource", "")
 
 			resourceType := "Resource"
 			names := NewNameProvider(spec, resourceType)
@@ -179,4 +185,8 @@ func (g *GenerateTerraformProvider) GenerateTerraformProviderFile(spec *properti
 		"renderCode":    func() string { return terraformProvider.Code.String() },
 	}
 	return g.generateTerraformEntityTemplate("ProviderFile", &NameProvider{}, spec, terraformProvider, providerFileTemplateStr, funcMap)
+}
+
+func (g *GenerateTerraformProvider) generateTfId() {
+
 }
