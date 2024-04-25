@@ -281,3 +281,107 @@ func TestXmlPathSuffixes(t *testing.T) {
 	// then
 	assert.Equal(t, expectedXpathSuffixes, actualXpathSuffixes)
 }
+
+func TestNestedVariableNameWithoutEntry(t *testing.T) {
+	// given
+	spec := properties.Spec{
+		Params: map[string]*properties.SpecParam{
+			"a": {
+				Name: &properties.NameVariant{
+					Underscore: "a",
+					CamelCase:  "A",
+				},
+				Spec: &properties.Spec{
+					Params: map[string]*properties.SpecParam{
+						"b": {
+							Name: &properties.NameVariant{
+								Underscore: "b",
+								CamelCase:  "B",
+							},
+							Spec: &properties.Spec{
+								Params: map[string]*properties.SpecParam{
+									"c": {
+										Name: &properties.NameVariant{
+											Underscore: "c",
+											CamelCase:  "C",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	expectedNestedVariableName := `A.B.C`
+	params := []*properties.SpecParam{}
+	params = append(params,
+		spec.Params["a"],
+		spec.Params["a"].Spec.Params["b"],
+		spec.Params["a"].Spec.Params["b"].Spec.Params["c"],
+	)
+
+	// when
+	calculatedNestedVariableName := renderNestedVariableName(params, true, true, false)
+
+	// then
+	assert.Equal(t, expectedNestedVariableName, calculatedNestedVariableName)
+}
+
+func TestNestedVariableNameWithEntry(t *testing.T) {
+	// given
+	spec := properties.Spec{
+		Params: map[string]*properties.SpecParam{
+			"a": {
+				Name: &properties.NameVariant{
+					Underscore: "a",
+					CamelCase:  "A",
+				},
+				Spec: &properties.Spec{
+					Params: map[string]*properties.SpecParam{
+						"b": {
+							Name: &properties.NameVariant{
+								Underscore: "b",
+								CamelCase:  "B",
+							},
+							Type: "list",
+							Items: &properties.SpecParamItems{
+								Type: "entry",
+							},
+							Profiles: []*properties.SpecParamProfile{
+								{
+									Xpath: []string{"test", "entry"},
+									Type:  "entry",
+								},
+							},
+							Spec: &properties.Spec{
+								Params: map[string]*properties.SpecParam{
+									"c": {
+										Name: &properties.NameVariant{
+											Underscore: "c",
+											CamelCase:  "C",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	expectedNestedVariableName := `AB.C`
+	params := []*properties.SpecParam{}
+	params = append(params,
+		spec.Params["a"],
+		spec.Params["a"].Spec.Params["b"],
+		spec.Params["a"].Spec.Params["b"].Spec.Params["c"],
+	)
+
+	// when
+	calculatedNestedVariableName := renderNestedVariableName(params, true, true, false)
+
+	// then
+	assert.Equal(t, expectedNestedVariableName, calculatedNestedVariableName)
+}
