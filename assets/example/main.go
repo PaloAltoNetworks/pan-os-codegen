@@ -50,6 +50,7 @@ func main() {
 	checkEthernetLayer3Dhcp(c, ctx)
 	checkEthernetHa(c, ctx)
 	checkLoopback(c, ctx)
+	checkVrZoneWithEthernet(c, ctx)
 	checkSecurityPolicyRules(c, ctx)
 	checkSecurityPolicyRulesMove(c, ctx)
 	checkTag(c, ctx)
@@ -239,7 +240,7 @@ func checkZone(c *pango.XmlApiClient, ctx context.Context) {
 		EnableUserIdentification: util.Bool(true),
 		Network: &zone.SpecNetwork{
 			EnablePacketBufferProtection: util.Bool(false),
-			Layer3:                       []string{"ethernet1/1"},
+			Layer3:                       []string{},
 		},
 		DeviceAcl: &zone.SpecDeviceAcl{
 			IncludeList: []string{"1.2.3.4"},
@@ -284,6 +285,61 @@ func checkInterfaceMgmtProfile(c *pango.XmlApiClient, ctx context.Context) {
 		return
 	}
 	log.Printf("Interface management profile %s created\n", reply.Name)
+}
+
+func checkVrZoneWithEthernet(c *pango.XmlApiClient, ctx context.Context) {
+	// VR
+	locationVr := virtual_router.Location{
+		Ngfw: &virtual_router.NgfwLocation{
+			NgfwDevice: "localhost.localdomain",
+		},
+	}
+	apiVr := virtual_router.NewService(c)
+
+	replyVr, err := apiVr.Read(ctx, locationVr, "codegen_vr", "get")
+	if err != nil {
+		log.Printf("Failed to read VR: %s", err)
+		return
+	}
+	log.Printf("VR %s read\n", replyVr.Name)
+
+	replyVr.Interfaces = []string{"ethernet1/2", "ethernet1/3"}
+
+	replyVr, err = apiVr.Update(ctx, locationVr, *replyVr, "codegen_vr")
+	if err != nil {
+		log.Printf("Failed to update VR: %s", err)
+		return
+	}
+	log.Printf("VR %s updated with %s\n", replyVr.Name, replyVr.Interfaces)
+
+	// ZONE
+	locationZone := zone.Location{
+		Vsys: &zone.VsysLocation{
+			NgfwDevice: "localhost.localdomain",
+			Vsys:       "vsys1",
+		},
+	}
+	apiZone := zone.NewService(c)
+
+	replyZone, err := apiZone.Read(ctx, locationZone, "codegen_zone", "get")
+	if err != nil {
+		log.Printf("Failed to read zone: %s", err)
+		return
+	}
+	log.Printf("Zone %s read\n", replyZone.Name)
+
+	replyZone.Network = &zone.SpecNetwork{
+		EnablePacketBufferProtection: util.Bool(false),
+		Layer3:                       []string{"ethernet1/2", "ethernet1/3"},
+	}
+
+	replyZone, err = apiZone.Update(ctx, locationZone, *replyZone, "codegen_zone")
+	if err != nil {
+		log.Printf("Failed to update zone: %s", err)
+		return
+	}
+	log.Printf("Zone %s updated with %s\n", replyZone.Name, replyZone.Network.Layer3)
+
 }
 
 func checkSecurityPolicyRules(c *pango.XmlApiClient, ctx context.Context) {
