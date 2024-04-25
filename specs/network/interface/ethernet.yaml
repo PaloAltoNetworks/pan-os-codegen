@@ -29,7 +29,7 @@ version: '10.1.0'
 spec:
   params:
     comment:
-      type: 'string'
+      type: string
       length:
         min: 0
         max: 1023
@@ -73,7 +73,7 @@ spec:
             profiles:
               - xpath: [ "lldp", "enable" ]
           mtu:
-            type: int
+            type: int64
             description: "Maximum Transfer Unit, up to 9216 in Jumbo-Frame mode, up to 1500 otherwise"
             value:
               min: 576
@@ -164,14 +164,14 @@ spec:
                   profiles:
                     - xpath: [ "enable" ]
                 ipv4-mss-adjustment:
-                  type: int
+                  type: int64
                   values:
                     min: 40
                     max: 300
                   profiles:
                     - xpath: [ "ipv4-mss-adjustment" ]
                 ipv6-mss-adjustment:
-                  type: int
+                  type: int64
                   values:
                     min: 40
                     max: 300

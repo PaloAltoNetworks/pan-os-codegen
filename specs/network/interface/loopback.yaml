@@ -37,7 +37,7 @@ spec:
       profiles:
         - xpath: [ "comment" ]
     mtu:
-      type: int
+      type: int64
       description: "Maximum Transfer Unit, up to 9216 in Jumbo-Frame mode, up to 1500 otherwise"
       value:
         min: 576
@@ -92,14 +92,14 @@ spec:
             profiles:
               - xpath: [ "enable" ]
           ipv4-mss-adjustment:
-            type: int
+            type: int64
             values:
               min: 40
               max: 300
             profiles:
               - xpath: [ "ipv4-mss-adjustment" ]
           ipv6-mss-adjustment:
-            type: int
+            type: int64
             values:
               min: 40
               max: 300

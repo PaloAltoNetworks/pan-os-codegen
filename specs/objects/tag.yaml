@@ -71,13 +71,13 @@ spec:
   params:
     color:
       description: 'The color.'
-      type: 'string'
+      type: string
       profiles:
         -
           xpath: ["color"]
     comments:
       description: 'Comments.'
-      type: 'string'
+      type: string
       length:
         min: 0
         max: 1023

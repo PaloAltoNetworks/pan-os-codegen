@@ -110,8 +110,6 @@ func checkVr(c *pango.XmlApiClient, ctx context.Context) {
 }
 
 func checkEthernetLayer3Static(c *pango.XmlApiClient, ctx context.Context) {
-	adjustTcpMss := 250
-	mtu := 1280
 	entry := ethernet.Entry{
 		Name:    "ethernet1/2",
 		Comment: util.String("This is a ethernet1/2"),
@@ -120,10 +118,10 @@ func checkEthernetLayer3Static(c *pango.XmlApiClient, ctx context.Context) {
 			Lldp:     util.Bool(true),
 			AdjustTcpMss: &ethernet.SpecLayer3AdjustTcpMss{
 				Enable:            util.Bool(true),
-				Ipv4MssAdjustment: &adjustTcpMss,
-				Ipv6MssAdjustment: &adjustTcpMss,
+				Ipv4MssAdjustment: util.Int(250),
+				Ipv6MssAdjustment: util.Int(250),
 			},
-			Mtu: &mtu,
+			Mtu: util.Int(1280),
 			Ips: []string{"11.11.11.11", "22.22.22.22"},
 			Ipv6: &ethernet.SpecLayer3Ipv6{
 				Addresses: []ethernet.SpecLayer3Ipv6Addresses{
@@ -209,17 +207,15 @@ func checkEthernetHa(c *pango.XmlApiClient, ctx context.Context) {
 }
 
 func checkLoopback(c *pango.XmlApiClient, ctx context.Context) {
-	adjustTcpMss := 250
-	mtu := 1280
 	entry := loopback.Entry{
 		Name: "loopback.123",
 		AdjustTcpMss: &loopback.SpecAdjustTcpMss{
 			Enable:            util.Bool(true),
-			Ipv4MssAdjustment: &adjustTcpMss,
-			Ipv6MssAdjustment: &adjustTcpMss,
+			Ipv4MssAdjustment: util.Int(250),
+			Ipv6MssAdjustment: util.Int(250),
 		},
 		Comment: util.String("This is a loopback entry"),
-		Mtu:     &mtu,
+		Mtu:     util.Int(1280),
 		Ips:     []string{"1.1.1.1", "2.2.2.2"},
 		Ipv6: &loopback.SpecIpv6{
 			Addresses: []loopback.SpecIpv6Addresses{
@@ -621,13 +617,12 @@ func checkAddress(c *pango.XmlApiClient, ctx context.Context) {
 
 func checkService(c *pango.XmlApiClient, ctx context.Context) {
 	// SERVICE - ADD
-	servicePort := 8642
 	serviceObject := service.Entry{
 		Name:        "codegen_service_test1",
 		Description: util.String("test description"),
 		Protocol: &service.SpecProtocol{
 			Tcp: &service.SpecProtocolTcp{
-				DestinationPort: &servicePort,
+				DestinationPort: util.Int(8642),
 				Override: &service.SpecProtocolTcpOverride{
 					No: util.String(""),
 				},
@@ -662,8 +657,7 @@ func checkService(c *pango.XmlApiClient, ctx context.Context) {
 	log.Printf("Service '%s=%d' updated", serviceReply.Name, *serviceReply.Protocol.Tcp.DestinationPort)
 
 	// SERVICE - UPDATE 2
-	servicePort = 1234
-	serviceObject.Protocol.Tcp.DestinationPort = &servicePort
+	serviceObject.Protocol.Tcp.DestinationPort = util.Int(1234)
 
 	serviceReply, err = serviceApi.Update(ctx, serviceLocation, serviceObject, serviceReply.Name)
 	if err != nil {
@@ -790,7 +784,6 @@ func checkNtp(c *pango.XmlApiClient, ctx context.Context) {
 
 func checkDns(c *pango.XmlApiClient, ctx context.Context) {
 	// DNS - ADD
-	refreshTime := 27
 	dnsConfig := dns.Config{
 		DnsSetting: &dns.SpecDnsSetting{
 			Servers: &dns.SpecDnsSettingServers{
@@ -798,7 +791,7 @@ func checkDns(c *pango.XmlApiClient, ctx context.Context) {
 				Secondary: util.String("4.4.4.4"),
 			},
 		},
-		FqdnRefreshTime: &refreshTime,
+		FqdnRefreshTime: util.Int(27),
 	}
 
 	dnsLocation := dns.Location{
