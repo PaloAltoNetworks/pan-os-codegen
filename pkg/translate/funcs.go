@@ -131,16 +131,12 @@ func defineNestedObject(parent []*properties.SpecParam, param, parentParam *prop
 }
 
 func startIfBlockForParamNotNil(parent []*properties.SpecParam, param *properties.SpecParam, parentParam *properties.SpecParam, builder *strings.Builder) {
-	if isParamListAndProfileTypeIsExtendedEntry(parentParam) {
-		if isParamName(param) {
-			builder.WriteString(fmt.Sprintf("if o%s.%s != \"\" {\n",
-				renderNestedVariableName(parent[:len(parent)-1], false, false, false), param.Name.CamelCase))
-		} else {
-			builder.WriteString(fmt.Sprintf("if o%s.%s != nil {\n",
-				renderNestedVariableName(parent[:len(parent)-1], false, false, false), param.Name.CamelCase))
-		}
+	if isParamName(param) {
+		builder.WriteString(fmt.Sprintf("if o%s.%s != \"\" {\n",
+			renderNestedVariableName(parent[:len(parent)-1], false, false, false), param.Name.CamelCase))
 	} else {
-		builder.WriteString(fmt.Sprintf("if o.%s != nil {\n", renderNestedVariableName(parent, true, false, false)))
+		builder.WriteString(fmt.Sprintf("if o%s != nil {\n",
+			renderNestedVariableName(parent, true, true, true)))
 	}
 }
 
@@ -209,11 +205,11 @@ func miscForUnknownXmlWithSpec(parent []*properties.SpecParam, builder *strings.
 			renderNestedVariableName(parent, false, false, false),
 		))
 	} else {
-		builder.WriteString(fmt.Sprintf("if o.%s.Misc != nil {\n",
-			renderNestedVariableName(parent, true, true, false)))
-		builder.WriteString(fmt.Sprintf("%s.Misc[\"%s\"] = o.%s.Misc\n",
+		builder.WriteString(fmt.Sprintf("if o%s.Misc != nil {\n",
+			renderNestedVariableName(parent, true, true, true)))
+		builder.WriteString(fmt.Sprintf("%s.Misc[\"%s\"] = o%s.Misc\n",
 			objectType, renderNestedVariableName(parent, false, false, false),
-			renderNestedVariableName(parent, true, true, false),
+			renderNestedVariableName(parent, true, true, true),
 		))
 	}
 }
@@ -237,15 +233,9 @@ func miscForUnknownXmlWithExtendedEntry(parent []*properties.SpecParam, builder 
 }
 
 func assignValueForNestedObject(parent []*properties.SpecParam, builder *strings.Builder, param, parentParam *properties.SpecParam) {
-	if isParamListAndProfileTypeIsExtendedEntry(parentParam) {
-		builder.WriteString(fmt.Sprintf("nested%s.%s = o%s.%s\n",
-			renderNestedVariableName(parent[:len(parent)-1], false, false, false), param.Name.CamelCase,
-			renderNestedVariableName(parent[:len(parent)-1], false, false, false), param.Name.CamelCase))
-	} else {
-		builder.WriteString(fmt.Sprintf("nested%s = o.%s\n",
-			renderNestedVariableName(parent, true, true, false),
-			renderNestedVariableName(parent, true, true, false)))
-	}
+	builder.WriteString(fmt.Sprintf("nested%s = o%s\n",
+		renderNestedVariableName(parent, true, true, false),
+		renderNestedVariableName(parent, true, true, true)))
 }
 
 func assignFunctionForNestedObject(parent []*properties.SpecParam, functionName, additionalArguments string, builder *strings.Builder, param, parentParam *properties.SpecParam) {
@@ -286,8 +276,8 @@ func renderNestedVariableName(params []*properties.SpecParam, useDot, searchForP
 
 	indexOfLastParamWithExtendedEntry := 0
 
-	if searchForParamWithEntry {
-		for i := len(params) - 1; i >= 0; i-- {
+	if searchForParamWithEntry && len(params) > 2 {
+		for i := len(params) - 2; i >= 0; i-- {
 			if isParamListAndProfileTypeIsExtendedEntry(params[i]) {
 				indexOfLastParamWithExtendedEntry = i
 				break
