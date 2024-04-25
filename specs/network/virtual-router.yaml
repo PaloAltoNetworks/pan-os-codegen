@@ -82,11 +82,11 @@ spec:
                               profiles:
                                 - xpath: [ "tunnel" ]
                       admin-dist:
-                        type: int
+                        type: int64
                         profiles:
                           - xpath: [ "admin-dist" ]
                       metric:
-                        type: int
+                        type: int64
                         profiles:
                           - xpath: [ "metric" ]
                       route-table:

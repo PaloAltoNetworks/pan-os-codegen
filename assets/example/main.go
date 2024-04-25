@@ -77,6 +77,22 @@ func checkVr(c *pango.XmlApiClient, ctx context.Context) {
 				Enable: util.Bool(false),
 			},
 		},
+		RoutingTable: &virtual_router.SpecRoutingTable{
+			Ip: &virtual_router.SpecRoutingTableIp{
+				StaticRoutes: []virtual_router.SpecRoutingTableIpStaticRoutes{
+					{
+						Name:        "default",
+						Destination: util.String("0.0.0.0/0"),
+						Interface:   util.String("ethernet1/2"),
+						NextHop: &virtual_router.SpecRoutingTableIpStaticRoutesNextHop{
+							IpAddress: util.String("1.1.1.1"),
+						},
+						Metric:    util.Int(64),
+						AdminDist: util.Int(120),
+					},
+				},
+			},
+		},
 	}
 	location := virtual_router.Location{
 		Ngfw: &virtual_router.NgfwLocation{
