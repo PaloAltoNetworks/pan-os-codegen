@@ -78,33 +78,61 @@ func checkVr(c *pango.XmlApiClient, ctx context.Context) {
 			},
 		},
 		RoutingTable: &virtual_router.SpecRoutingTable{
-			Ip: &virtual_router.SpecRoutingTableIp{
-				StaticRoutes: []virtual_router.SpecRoutingTableIpStaticRoutes{
-					{
-						Name:        "default",
-						Destination: util.String("0.0.0.0/0"),
-						Interface:   util.String("ethernet1/2"),
-						NextHop: &virtual_router.SpecRoutingTableIpStaticRoutesNextHop{
-							IpAddress: util.String("1.1.1.1"),
-						},
-						Metric:    util.Int(64),
-						AdminDist: util.Int(120),
-					},
-				},
+			// Ip: &virtual_router.SpecRoutingTableIp{
+			// 	StaticRoutes: []virtual_router.SpecRoutingTableIpStaticRoutes{
+			// 		{
+			// 			Name:        "default",
+			// 			Destination: util.String("0.0.0.0/0"),
+			// 			Interface:   util.String("ethernet1/2"),
+			// 			NextHop: &virtual_router.SpecRoutingTableIpStaticRoutesNextHop{
+			// 				IpAddress: util.String("1.1.1.1"),
+			// 			},
+			// 			Metric:    util.Int(64),
+			// 			AdminDist: util.Int(120),
+			// 		},
+			// 	},
+			// },
+			// Ipv6: &virtual_router.SpecRoutingTableIpv6{
+			// 	StaticRoutes: []virtual_router.SpecRoutingTableIpv6StaticRoutes{
+			// 		{
+			// 			Name:        "default",
+			// 			Destination: util.String("0.0.0.0/0"),
+			// 			NextHop: &virtual_router.SpecRoutingTableIpv6StaticRoutesNextHop{
+			// 				Ipv6Address: util.String("2001:0000:130F:0000:0000:09C0:876A:230D"),
+			// 			},
+			// 			Metric:    util.Int(24),
+			// 			AdminDist: util.Int(20),
+			// 		},
+			// 	},
+			// },
+		},
+		Ecmp: &virtual_router.SpecEcmp{
+			Enable:          util.Bool(true),
+			SymmetricReturn: util.Bool(true),
+			MaxPaths:        util.Int(3),
+			Algorithm:       &virtual_router.SpecEcmpAlgorithm{
+				// IpHash: &virtual_router.SpecEcmpAlgorithmIpHash{
+				// 	HashSeed: util.Int(1234),
+				// 	UsePort:  util.Bool(true),
+				// 	SrcOnly:  util.Bool(true),
+				// },
+				// WeightedRoundRobin: &virtual_router.SpecEcmpAlgorithmWeightedRoundRobin{
+				// 	Interfaces: []virtual_router.SpecEcmpAlgorithmWeightedRoundRobinInterfaces{
+				// 		{
+				// 			Name:   "ethernet1/2",
+				// 			Weight: util.Int(1),
+				// 		},
+				// 		{
+				// 			Name:   "ethernet1/3",
+				// 			Weight: util.Int(2),
+				// 		},
+				// 	},
+				// },
 			},
-			Ipv6: &virtual_router.SpecRoutingTableIpv6{
-				StaticRoutes: []virtual_router.SpecRoutingTableIpv6StaticRoutes{
-					{
-						Name:        "default",
-						Destination: util.String("0.0.0.0/0"),
-						NextHop: &virtual_router.SpecRoutingTableIpv6StaticRoutesNextHop{
-							Ipv6Address: util.String("2001:0000:130F:0000:0000:09C0:876A:230D"),
-						},
-						Metric:    util.Int(24),
-						AdminDist: util.Int(20),
-					},
-				},
-			},
+		},
+		AdministrativeDistances: &virtual_router.SpecAdministrativeDistances{
+			OspfInt: util.Int(77),
+			OspfExt: util.Int(88),
 		},
 	}
 	location := virtual_router.Location{
