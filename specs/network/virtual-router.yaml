@@ -93,6 +93,61 @@ spec:
                         type: string
                         profiles:
                           - xpath: [ "route-table" ]
+          ipv6:
+            profiles:
+              - xpath: [ "ipv6" ]
+            spec:
+              params:
+                static-routes:
+                  type: list
+                  items:
+                    type: entry
+                  profiles:
+                    - xpath: [ "static-route", "entry" ]
+                      type: entry
+                  spec:
+                    params:
+                      destination:
+                        type: string
+                        profiles:
+                          - xpath: [ "destination" ]
+                      interface:
+                        type: string
+                        profiles:
+                          - xpath: [ "interface" ]
+                      next-hop:
+                        profiles:
+                          - xpath: [ "nexthop" ]
+                        spec:
+                          params:
+                            ipv6-address:
+                              type: string
+                              profiles:
+                                - xpath: [ "ipv6-address" ]
+                            fqdn:
+                              type: string
+                              profiles:
+                                - xpath: [ "fqdn" ]
+                            next-vr:
+                              type: string
+                              profiles:
+                                - xpath: [ "next-vr" ]
+                            tunnel:
+                              type: string
+                              profiles:
+                                - xpath: [ "tunnel" ]
+                      admin-dist:
+                        type: int64
+                        profiles:
+                          - xpath: [ "admin-dist" ]
+                      metric:
+                        type: int64
+                        profiles:
+                          - xpath: [ "metric" ]
+                      route-table:
+                        type: string
+                        profiles:
+                          - xpath: [ "route-table" ]
     protocol:
       profiles:
         - xpath: [ "protocol" ]

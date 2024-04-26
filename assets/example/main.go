@@ -92,6 +92,19 @@ func checkVr(c *pango.XmlApiClient, ctx context.Context) {
 					},
 				},
 			},
+			Ipv6: &virtual_router.SpecRoutingTableIpv6{
+				StaticRoutes: []virtual_router.SpecRoutingTableIpv6StaticRoutes{
+					{
+						Name:        "default",
+						Destination: util.String("0.0.0.0/0"),
+						NextHop: &virtual_router.SpecRoutingTableIpv6StaticRoutesNextHop{
+							Ipv6Address: util.String("2001:0000:130F:0000:0000:09C0:876A:230D"),
+						},
+						Metric:    util.Int(24),
+						AdminDist: util.Int(20),
+					},
+				},
+			},
 		},
 	}
 	location := virtual_router.Location{
