@@ -114,8 +114,8 @@ func defineNestedObject(parent []*properties.SpecParam, param, parentParam *prop
 
 func startIfBlockForParamNotNil(parent []*properties.SpecParam, param *properties.SpecParam, parentParam *properties.SpecParam, builder *strings.Builder) {
 	if isParamName(param) {
-		builder.WriteString(fmt.Sprintf("if o%s.%s != \"\" {\n",
-			renderNestedVariableName(parent[:len(parent)-1], false, false, false), param.Name.CamelCase))
+		builder.WriteString(fmt.Sprintf("if o%s != \"\" {\n",
+			renderNestedVariableName(parent, true, true, true)))
 	} else {
 		builder.WriteString(fmt.Sprintf("if o%s != nil {\n",
 			renderNestedVariableName(parent, true, true, true)))
@@ -221,26 +221,14 @@ func assignValueForNestedObject(parent []*properties.SpecParam, builder *strings
 }
 
 func assignFunctionForNestedObject(parent []*properties.SpecParam, functionName, additionalArguments string, builder *strings.Builder, param, parentParam *properties.SpecParam) {
-	if isParamListAndProfileTypeIsExtendedEntry(parentParam) {
-		if additionalArguments != "" {
-			builder.WriteString(fmt.Sprintf("nested%s.%s = %s(o%s.%s, %s)\n",
-				renderNestedVariableName(parent[:len(parent)-1], false, false, false), param.Name.CamelCase, functionName,
-				renderNestedVariableName(parent[:len(parent)-1], false, false, false), param.Name.CamelCase, additionalArguments))
-		} else {
-			builder.WriteString(fmt.Sprintf("nested%s.%s = %s(o%s.%s)\n",
-				renderNestedVariableName(parent[:len(parent)-1], false, false, false), param.Name.CamelCase, functionName,
-				renderNestedVariableName(parent[:len(parent)-1], false, false, false), param.Name.CamelCase))
-		}
+	if additionalArguments != "" {
+		builder.WriteString(fmt.Sprintf("nested%s = %s(o%s, %s)\n",
+			renderNestedVariableName(parent, true, true, false), functionName,
+			renderNestedVariableName(parent, true, true, true), additionalArguments))
 	} else {
-		if additionalArguments != "" {
-			builder.WriteString(fmt.Sprintf("nested%s = %s(o.%s, %s)\n",
-				renderNestedVariableName(parent, true, true, false), functionName,
-				renderNestedVariableName(parent, true, true, false), additionalArguments))
-		} else {
-			builder.WriteString(fmt.Sprintf("nested%s = %s(o.%s)\n",
-				renderNestedVariableName(parent, true, true, false), functionName,
-				renderNestedVariableName(parent, true, true, false)))
-		}
+		builder.WriteString(fmt.Sprintf("nested%s = %s(o%s)\n",
+			renderNestedVariableName(parent, true, true, false), functionName,
+			renderNestedVariableName(parent, true, true, true)))
 	}
 }
 
