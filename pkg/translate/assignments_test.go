@@ -75,7 +75,7 @@ func TestSpecifyEntryAssignmentForNestedObject(t *testing.T) {
 			},
 		},
 	}
-	expectedAssignmentStreing := `var nestedA *specAXml
+	expectedAssignmentString := `var nestedA *specAXml
 if o.A != nil {
 nestedA = &specAXml{}
 if _, ok := o.Misc["A"]; ok {
@@ -97,7 +97,7 @@ entry.A = nestedA
 	calculatedAssignmentString := SpecifyEntryAssignment("entry", spec.Params["a"], "")
 
 	// then
-	assert.Equal(t, expectedAssignmentStreing, calculatedAssignmentString)
+	assert.Equal(t, expectedAssignmentString, calculatedAssignmentString)
 }
 
 func TestNormalizeAssignmentForNestedObject(t *testing.T) {
@@ -132,7 +132,7 @@ func TestNormalizeAssignmentForNestedObject(t *testing.T) {
 			},
 		},
 	}
-	expectedAssignmentStreing := `var nestedA *SpecA
+	expectedAssignmentString := `var nestedA *SpecA
 if o.A != nil {
 nestedA = &SpecA{}
 if o.A.Misc != nil {
@@ -154,7 +154,42 @@ entry.A = nestedA
 	calculatedAssignmentString := NormalizeAssignment("entry", spec.Params["a"], "")
 
 	// then
-	assert.Equal(t, expectedAssignmentStreing, calculatedAssignmentString)
+	assert.Equal(t, expectedAssignmentString, calculatedAssignmentString)
+}
+
+func TestPrepareAssignment(t *testing.T) {
+	// given
+	objectType := "entry"
+	param := &properties.SpecParam{
+		Name: &properties.NameVariant{
+			CamelCase:  "Description",
+			Underscore: "description",
+		},
+		Type: "list",
+		Items: &properties.SpecParamItems{
+			Type: "string",
+		},
+		Profiles: []*properties.SpecParamProfile{
+			{
+				Type:  "member",
+				Xpath: []string{"description"},
+			},
+		},
+	}
+	listFunction := "util.StrToMem"
+	entryFunction := ""
+	boolFunction := "util.Bool"
+	prefix := ""
+	suffix := "Xml"
+	version := ""
+
+	expectedAssignment := `entry.Description = util.StrToMem(o.Description)`
+
+	// when
+	calculatedAssignment := prepareAssignment(objectType, param, listFunction, entryFunction, boolFunction, prefix, suffix, version)
+
+	// then
+	assert.Equal(t, expectedAssignment, calculatedAssignment)
 }
 
 func TestNestedVariableNameWithoutEntry(t *testing.T) {
