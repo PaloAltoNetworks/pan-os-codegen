@@ -104,6 +104,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 				funcMap := template.FuncMap{
 					"metaName":   func() string { return names.MetaName },
 					"structName": func() string { return names.StructName },
+					"TfidStruct": func() (string, error) { return TfidStruct("entry", spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
 				}
 				err := g.generateTerraformEntityTemplate(resourceType, names, spec, terraformProvider, resourceTemplateStr, funcMap)
 				if err != nil {
@@ -124,6 +125,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 				funcMap := template.FuncMap{
 					"metaName":   func() string { return names.MetaName },
 					"structName": func() string { return names.StructName },
+					"TfidStruct": func() (string, error) { return TfidStruct("entry", spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
 				}
 				err := g.generateTerraformEntityTemplate(resourceType, names, spec, terraformProvider, resourceTemplateStr, funcMap)
 				if err != nil {
@@ -145,6 +147,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 			funcMap := template.FuncMap{
 				"metaName":   func() string { return names.MetaName },
 				"structName": func() string { return names.StructName },
+				"TfidStruct": func() (string, error) { return TfidStruct("entry", spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
 			}
 			err := g.generateTerraformEntityTemplate(resourceType, names, spec, terraformProvider, resourceTemplateStr, funcMap)
 			if err != nil {

@@ -1,6 +1,7 @@
 package terraform_provider
 
 import (
+	"fmt"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 	"strings"
@@ -63,6 +64,31 @@ func ParamToSchema(paramName string, paramProp properties.TerraformProviderParam
 
 	var builder strings.Builder
 	err := schemaTemplate.Execute(&builder, paramProp)
+
+	return builder.String(), err
+}
+
+func TfidStruct(structType string, structName string) (string, error) {
+	var tfidStructTemplate *template.Template
+
+	if structType == "entry" {
+		funcMap := template.FuncMap{}
+		tfidStructTemplate = template.Must(
+			template.New(
+				"describe-param",
+			).Funcs(
+				funcMap,
+			).Parse(`
+{{- /* Begin */ -}}
+	Name     string          ` + "`" + `json:"name" ` + "`" + `
+	Location ` + fmt.Sprintf(`%s.Location `, structName) + "`" + `json:"name" ` + "`" + `
+{{- /* Done */ -}}`,
+			),
+		)
+	}
+
+	var builder strings.Builder
+	err := tfidStructTemplate.Execute(&builder, "")
 
 	return builder.String(), err
 }

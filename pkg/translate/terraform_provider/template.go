@@ -21,6 +21,7 @@ type {{ structName }} struct {
 
 type {{ structName }}Tfid struct {
 	//TODO: Generate tfid struct via function
+	{{ TfidStruct }}
 }
 
 func (o *{{ structName }}Tfid) IsValid() error {
