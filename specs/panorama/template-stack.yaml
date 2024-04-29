@@ -7,26 +7,18 @@ go_sdk_path:
 xpath_suffix:
   - 'template-stack'
 locations:
-  'vsys':
-    description: 'Located in a specific vsys.'
+  'panorama':
+    description: 'Located in a specific Panorama.'
     device:
       panorama: true
     xpath:
       - 'config'
       - 'devices'
-      - '{{ Entry $ngfw_device }}'
-      - 'vsys'
-      - '{{ Entry $vsys }}'
+      - '{{ Entry $panorama_device }}'
     vars:
-      'ngfw_device':
-        description: 'The NGFW device.'
+      'panorama_device':
+        description: 'The Panorama device.'
         default: 'localhost.localdomain'
-      'vsys':
-        description: 'The vsys.'
-        default: 'vsys1'
-        validation:
-          not_values:
-            'shared': 'The vsys cannot be "shared". Use the "shared" path instead.'
 entry:
   name:
     description: 'The name of the template stack.'
@@ -49,9 +41,7 @@ spec:
       description: 'List of templates'
       type: list
       items:
-        type: object
-        ref:
-          - '#/specs/panorama/template.yaml'
+        type: string
       profiles:
         -
           type: member
@@ -63,5 +53,20 @@ spec:
         type: string
       profiles:
         -
-          type: 'entry'
+          type: entry
           xpath: ["devices"]
+    default-vsys:
+      description: 'Default virtual system'
+      type: string
+      profiles:
+        -
+          xpath: ["settings", "default-vsys"]
+    user-group-source:
+      profiles:
+        - xpath: ["user-group-source"]
+      spec:
+        params:
+          master-device:
+            type: string
+            profiles:
+              - xpath: ["master-device"]

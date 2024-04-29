@@ -28,6 +28,37 @@ locations:
         validation:
           not_values:
             'shared': 'The vsys cannot be "shared". Use the "shared" path instead.'
+  'template':
+    description: 'Located in a specific template.'
+    device:
+      panorama: true
+    xpath:
+      - 'config'
+      - 'devices'
+      - '{{ Entry $panorama_device }}'
+      - 'template'
+      - '{{ Entry $template }}'
+      - 'config'
+      - 'devices'
+      - '{{ Entry $ngfw_device }}'
+      - 'vsys'
+      - '{{ Entry $vsys }}'
+    vars:
+      'panorama_device':
+        description: 'The panorama device.'
+        default: 'localhost.localdomain'
+      'template':
+        description: 'The template.'
+        required: true
+      'ngfw_device':
+        description: 'The NGFW device.'
+        default: 'localhost.localdomain'
+      'vsys':
+        description: 'The vsys.'
+        default: 'vsys1'
+        validation:
+          not_values:
+            'shared': 'The vsys cannot be "shared". Use the "shared" path instead.'
 entry:
   name:
     description: 'The name of the zone.'
