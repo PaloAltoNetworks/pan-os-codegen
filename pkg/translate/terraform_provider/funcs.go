@@ -9,24 +9,25 @@ import (
 
 func ParamToModel(paramName string, paramProp properties.TerraformProviderParams) (string, error) {
 	funcMap := template.FuncMap{
-		"CamelCaseName": func() string { return naming.CamelCase("", paramName, "", true) },
-		"CamelCaseType": func() string { return naming.CamelCase("", paramProp.Type, "", true) },
+		"CamelCaseName":  func() string { return naming.CamelCase("", paramName, "", true) },
+		"UnderscoreName": func() string { return naming.Underscore("", paramName, "") },
+		"CamelCaseType":  func() string { return naming.CamelCase("", paramProp.Type, "", true) },
 	}
 
-	t := template.Must(
+	modelTemplate := template.Must(
 		template.New(
 			"param-to-model",
 		).Funcs(
 			funcMap,
 		).Parse(`
 {{- /* Begin */ -}}
-{{ "    " }}{{ CamelCaseName }} types.{{ CamelCaseType }} ` + "`" + `tfsdk:"{{ .EnvName }}"` + "`" + `
+{{ "    " }}{{ CamelCaseName }} types.{{ CamelCaseType }} ` + "`" + `tfsdk:"{{ UnderscoreName }}"` + "`" + `
 {{- /* Done */ -}}`,
 		),
 	)
 
 	var builder strings.Builder
-	err := t.Execute(&builder, paramProp)
+	err := modelTemplate.Execute(&builder, paramProp)
 
 	return builder.String(), err
 }
@@ -37,7 +38,7 @@ func ParamToSchema(paramName string, paramProp properties.TerraformProviderParam
 		"CamelCaseType": func() string { return naming.CamelCase("", paramProp.Type, "", true) },
 	}
 
-	t := template.Must(
+	schemaTemplate := template.Must(
 		template.New(
 			"describe-param",
 		).Funcs(
@@ -61,7 +62,7 @@ func ParamToSchema(paramName string, paramProp properties.TerraformProviderParam
 	)
 
 	var builder strings.Builder
-	err := t.Execute(&builder, paramProp)
+	err := schemaTemplate.Execute(&builder, paramProp)
 
 	return builder.String(), err
 }

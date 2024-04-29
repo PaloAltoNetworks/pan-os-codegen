@@ -3,11 +3,10 @@ package codegen
 import (
 	"context"
 	"fmt"
-	"log"
-
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/generate"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/load"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
+	"log"
 )
 
 type CommandType string
