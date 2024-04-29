@@ -98,14 +98,10 @@ spec:
       count:
         min: 1
       items:
-        type: object
-        ref:
-          - '#/specs/objects/address.yaml'
-          - '#/specs/objects/address-group.yaml'
+        type: string
       profiles:
-        -
+        - xpath: [ "static" ]
           type: member
-          xpath: ["static"]
     'dynamic':
       length:
         min: 1

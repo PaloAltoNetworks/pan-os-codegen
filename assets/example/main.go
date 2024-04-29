@@ -15,8 +15,13 @@ import (
 	"github.com/PaloAltoNetworks/pango/network/virtual_router"
 	"github.com/PaloAltoNetworks/pango/network/zone"
 	"github.com/PaloAltoNetworks/pango/objects/address"
+	address_group "github.com/PaloAltoNetworks/pango/objects/address/group"
 	"github.com/PaloAltoNetworks/pango/objects/service"
+	service_group "github.com/PaloAltoNetworks/pango/objects/service/group"
 	"github.com/PaloAltoNetworks/pango/objects/tag"
+	"github.com/PaloAltoNetworks/pango/panorama/device_group"
+	"github.com/PaloAltoNetworks/pango/panorama/template"
+	"github.com/PaloAltoNetworks/pango/panorama/template_stack"
 	"github.com/PaloAltoNetworks/pango/policies/rules/security"
 	"github.com/PaloAltoNetworks/pango/rule"
 	"github.com/PaloAltoNetworks/pango/util"
@@ -42,6 +47,15 @@ func main() {
 		return
 	}
 
+	if ok, _ := c.IsPanorama(); ok {
+		log.Printf("Connected to Panorama, so templates and device groups are going to be created")
+		checkTemplate(c, ctx)
+		checkTemplateStack(c, ctx)
+		checkDeviceGroup(c, ctx)
+	} else {
+		log.Printf("Connected to firewall, so templates and device groups are not going to be created")
+	}
+
 	// CHECKS
 	checkVr(c, ctx)
 	checkZone(c, ctx)
@@ -58,6 +72,85 @@ func main() {
 	checkService(c, ctx)
 	checkNtp(c, ctx)
 	checkDns(c, ctx)
+}
+
+func checkTemplate(c *pango.XmlApiClient, ctx context.Context) {
+	entry := template.Entry{
+		Name:        "codegen_template",
+		Description: util.String("This is a template created by codegen."),
+		DefaultVsys: util.String("vsys1"),
+		Config: &template.SpecConfig{
+			Devices: []template.SpecConfigDevices{
+				{
+					Name: "localhost.localdomain",
+					Vsys: []string{"vsys1"},
+				},
+			},
+		},
+	}
+
+	location := template.Location{
+		Panorama: &template.PanoramaLocation{
+			PanoramaDevice: "localhost.localdomain",
+		},
+	}
+	api := template.NewService(c)
+
+	reply, err := api.Create(ctx, location, entry)
+	if err != nil {
+		log.Printf("Failed to create template: %s", err)
+		return
+	}
+	log.Printf("Template %s created\n", reply.Name)
+}
+
+func checkTemplateStack(c *pango.XmlApiClient, ctx context.Context) {
+	entry := template_stack.Entry{
+		Name:        "codegen_template_stack",
+		Description: util.String("This is a template stack created by codegen."),
+		Templates:   []string{"codegen_template"},
+		UserGroupSource: &template_stack.SpecUserGroupSource{
+			MasterDevice: util.String(""),
+		},
+		DefaultVsys: util.String("vsys1"),
+	}
+
+	location := template_stack.Location{
+		Panorama: &template_stack.PanoramaLocation{
+			PanoramaDevice: "localhost.localdomain",
+		},
+	}
+	api := template_stack.NewService(c)
+
+	reply, err := api.Create(ctx, location, entry)
+	if err != nil {
+		log.Printf("Failed to create template stack: %s", err)
+		return
+	}
+	log.Printf("Template stack %s created\n", reply.Name)
+}
+
+func checkDeviceGroup(c *pango.XmlApiClient, ctx context.Context) {
+	entry := device_group.Entry{
+		Name:        "codegen_device_group",
+		Description: util.String("This is a device group created by codegen."),
+		Templates:   []string{"codegen_template"},
+	}
+
+	location := device_group.Location{
+		Panorama: &device_group.PanoramaLocation{
+			PanoramaDevice: "localhost.localdomain",
+		},
+	}
+
+	api := device_group.NewService(c)
+
+	reply, err := api.Create(ctx, location, entry)
+	if err != nil {
+		log.Printf("Failed to create device group: %s", err)
+		return
+	}
+	log.Printf("Device group %s created\n", reply.Name)
 }
 
 func checkVr(c *pango.XmlApiClient, ctx context.Context) {
@@ -135,10 +228,21 @@ func checkVr(c *pango.XmlApiClient, ctx context.Context) {
 			OspfExt: util.Int(88),
 		},
 	}
-	location := virtual_router.Location{
-		Ngfw: &virtual_router.NgfwLocation{
-			NgfwDevice: "localhost.localdomain",
-		},
+	var location virtual_router.Location
+	if ok, _ := c.IsPanorama(); ok {
+		location = virtual_router.Location{
+			Template: &virtual_router.TemplateLocation{
+				PanoramaDevice: "localhost.localdomain",
+				NgfwDevice:     "localhost.localdomain",
+				Template:       "codegen_template",
+			},
+		}
+	} else {
+		location = virtual_router.Location{
+			Ngfw: &virtual_router.NgfwLocation{
+				NgfwDevice: "localhost.localdomain",
+			},
+		}
 	}
 	api := virtual_router.NewService(c)
 
@@ -179,10 +283,21 @@ func checkEthernetLayer3Static(c *pango.XmlApiClient, ctx context.Context) {
 			InterfaceManagementProfile: util.String("codegen_mgmt_profile"),
 		},
 	}
-	location := ethernet.Location{
-		Ngfw: &ethernet.NgfwLocation{
-			NgfwDevice: "localhost.localdomain",
-		},
+	var location ethernet.Location
+	if ok, _ := c.IsPanorama(); ok {
+		location = ethernet.Location{
+			Template: &ethernet.TemplateLocation{
+				PanoramaDevice: "localhost.localdomain",
+				NgfwDevice:     "localhost.localdomain",
+				Template:       "codegen_template",
+			},
+		}
+	} else {
+		location = ethernet.Location{
+			Ngfw: &ethernet.NgfwLocation{
+				NgfwDevice: "localhost.localdomain",
+			},
+		}
 	}
 	api := ethernet.NewService(c)
 
@@ -211,10 +326,21 @@ func checkEthernetLayer3Dhcp(c *pango.XmlApiClient, ctx context.Context) {
 			},
 		},
 	}
-	location := ethernet.Location{
-		Ngfw: &ethernet.NgfwLocation{
-			NgfwDevice: "localhost.localdomain",
-		},
+	var location ethernet.Location
+	if ok, _ := c.IsPanorama(); ok {
+		location = ethernet.Location{
+			Template: &ethernet.TemplateLocation{
+				PanoramaDevice: "localhost.localdomain",
+				NgfwDevice:     "localhost.localdomain",
+				Template:       "codegen_template",
+			},
+		}
+	} else {
+		location = ethernet.Location{
+			Ngfw: &ethernet.NgfwLocation{
+				NgfwDevice: "localhost.localdomain",
+			},
+		}
 	}
 	api := ethernet.NewService(c)
 
@@ -232,10 +358,21 @@ func checkEthernetHa(c *pango.XmlApiClient, ctx context.Context) {
 		Comment: util.String("This is a ethernet1/10"),
 		Ha:      &ethernet.SpecHa{},
 	}
-	location := ethernet.Location{
-		Ngfw: &ethernet.NgfwLocation{
-			NgfwDevice: "localhost.localdomain",
-		},
+	var location ethernet.Location
+	if ok, _ := c.IsPanorama(); ok {
+		location = ethernet.Location{
+			Template: &ethernet.TemplateLocation{
+				PanoramaDevice: "localhost.localdomain",
+				NgfwDevice:     "localhost.localdomain",
+				Template:       "codegen_template",
+			},
+		}
+	} else {
+		location = ethernet.Location{
+			Ngfw: &ethernet.NgfwLocation{
+				NgfwDevice: "localhost.localdomain",
+			},
+		}
 	}
 	api := ethernet.NewService(c)
 
@@ -272,10 +409,21 @@ func checkLoopback(c *pango.XmlApiClient, ctx context.Context) {
 		},
 		InterfaceManagementProfile: util.String("codegen_mgmt_profile"),
 	}
-	location := loopback.Location{
-		Ngfw: &loopback.NgfwLocation{
-			NgfwDevice: "localhost.localdomain",
-		},
+	var location loopback.Location
+	if ok, _ := c.IsPanorama(); ok {
+		location = loopback.Location{
+			Template: &loopback.TemplateLocation{
+				PanoramaDevice: "localhost.localdomain",
+				NgfwDevice:     "localhost.localdomain",
+				Template:       "codegen_template",
+			},
+		}
+	} else {
+		location = loopback.Location{
+			Ngfw: &loopback.NgfwLocation{
+				NgfwDevice: "localhost.localdomain",
+			},
+		}
 	}
 	api := loopback.NewService(c)
 
@@ -302,11 +450,23 @@ func checkZone(c *pango.XmlApiClient, ctx context.Context) {
 			ExcludeList: []string{"1.2.3.4"},
 		},
 	}
-	location := zone.Location{
-		Vsys: &zone.VsysLocation{
-			NgfwDevice: "localhost.localdomain",
-			Vsys:       "vsys1",
-		},
+	var location zone.Location
+	if ok, _ := c.IsPanorama(); ok {
+		location = zone.Location{
+			Template: &zone.TemplateLocation{
+				PanoramaDevice: "localhost.localdomain",
+				NgfwDevice:     "localhost.localdomain",
+				Template:       "codegen_template",
+				Vsys:           "vsys1",
+			},
+		}
+	} else {
+		location = zone.Location{
+			Vsys: &zone.VsysLocation{
+				NgfwDevice: "localhost.localdomain",
+				Vsys:       "vsys1",
+			},
+		}
 	}
 	api := zone.NewService(c)
 
@@ -325,10 +485,21 @@ func checkInterfaceMgmtProfile(c *pango.XmlApiClient, ctx context.Context) {
 		Ping:         util.Bool(true),
 		PermittedIps: []string{"1.1.1.1", "2.2.2.2"},
 	}
-	location := interface_management.Location{
-		Ngfw: &interface_management.NgfwLocation{
-			NgfwDevice: "localhost.localdomain",
-		},
+	var location interface_management.Location
+	if ok, _ := c.IsPanorama(); ok {
+		location = interface_management.Location{
+			Template: &interface_management.TemplateLocation{
+				PanoramaDevice: "localhost.localdomain",
+				NgfwDevice:     "localhost.localdomain",
+				Template:       "codegen_template",
+			},
+		}
+	} else {
+		location = interface_management.Location{
+			Ngfw: &interface_management.NgfwLocation{
+				NgfwDevice: "localhost.localdomain",
+			},
+		}
 	}
 	api := interface_management.NewService(c)
 
@@ -342,10 +513,21 @@ func checkInterfaceMgmtProfile(c *pango.XmlApiClient, ctx context.Context) {
 
 func checkVrZoneWithEthernet(c *pango.XmlApiClient, ctx context.Context) {
 	// VR
-	locationVr := virtual_router.Location{
-		Ngfw: &virtual_router.NgfwLocation{
-			NgfwDevice: "localhost.localdomain",
-		},
+	var locationVr virtual_router.Location
+	if ok, _ := c.IsPanorama(); ok {
+		locationVr = virtual_router.Location{
+			Template: &virtual_router.TemplateLocation{
+				PanoramaDevice: "localhost.localdomain",
+				NgfwDevice:     "localhost.localdomain",
+				Template:       "codegen_template",
+			},
+		}
+	} else {
+		locationVr = virtual_router.Location{
+			Ngfw: &virtual_router.NgfwLocation{
+				NgfwDevice: "localhost.localdomain",
+			},
+		}
 	}
 	apiVr := virtual_router.NewService(c)
 
@@ -366,11 +548,23 @@ func checkVrZoneWithEthernet(c *pango.XmlApiClient, ctx context.Context) {
 	log.Printf("VR %s updated with %s\n", replyVr.Name, replyVr.Interfaces)
 
 	// ZONE
-	locationZone := zone.Location{
-		Vsys: &zone.VsysLocation{
-			NgfwDevice: "localhost.localdomain",
-			Vsys:       "vsys1",
-		},
+	var locationZone zone.Location
+	if ok, _ := c.IsPanorama(); ok {
+		locationZone = zone.Location{
+			Template: &zone.TemplateLocation{
+				PanoramaDevice: "localhost.localdomain",
+				NgfwDevice:     "localhost.localdomain",
+				Template:       "codegen_template",
+				Vsys:           "vsys1",
+			},
+		}
+	} else {
+		locationZone = zone.Location{
+			Vsys: &zone.VsysLocation{
+				NgfwDevice: "localhost.localdomain",
+				Vsys:       "vsys1",
+			},
+		}
 	}
 	apiZone := zone.NewService(c)
 
@@ -409,12 +603,23 @@ func checkSecurityPolicyRules(c *pango.XmlApiClient, ctx context.Context) {
 		Services:             []string{"application-default"},
 	}
 
-	securityPolicyRuleLocation := security.Location{
-		Vsys: &security.VsysLocation{
-			NgfwDevice: "localhost.localdomain",
-			Rulebase:   "post-rulebase",
-			Vsys:       "vsys1",
-		},
+	var securityPolicyRuleLocation security.Location
+	if ok, _ := c.IsPanorama(); ok {
+		securityPolicyRuleLocation = security.Location{
+			DeviceGroup: &security.DeviceGroupLocation{
+				PanoramaDevice: "localhost.localdomain",
+				DeviceGroup:    "codegen_device_group",
+				Rulebase:       "pre-rulebase",
+			},
+		}
+	} else {
+		securityPolicyRuleLocation = security.Location{
+			Vsys: &security.VsysLocation{
+				NgfwDevice: "localhost.localdomain",
+				Rulebase:   "post-rulebase",
+				Vsys:       "vsys1",
+			},
+		}
 	}
 
 	securityPolicyRuleApi := security.NewService(c)
@@ -460,15 +665,17 @@ func checkSecurityPolicyRules(c *pango.XmlApiClient, ctx context.Context) {
 	log.Printf("Security policy rule '%s:%s' with description '%s' updated", *securityPolicyRuleReply.Uuid, securityPolicyRuleReply.Name, *securityPolicyRuleReply.Description)
 
 	// SECURITY POLICY RULE - HIT COUNT
-	hitCount, err := securityPolicyRuleApi.HitCount(ctx, securityPolicyRuleLocation, "test-policy")
-	if err != nil {
-		log.Printf("Failed to get hit count for security policy rule: %s", err)
-		return
-	}
-	if len(hitCount) > 0 {
-		log.Printf("Security policy rule '%d' hit count", hitCount[0].HitCount)
-	} else {
-		log.Printf("Security policy rule not found")
+	if ok, _ := c.IsFirewall(); ok {
+		hitCount, err := securityPolicyRuleApi.HitCount(ctx, securityPolicyRuleLocation, "test-policy")
+		if err != nil {
+			log.Printf("Failed to get hit count for security policy rule: %s", err)
+			return
+		}
+		if len(hitCount) > 0 {
+			log.Printf("Security policy rule '%d' hit count", hitCount[0].HitCount)
+		} else {
+			log.Printf("Security policy rule not found")
+		}
 	}
 
 	// SECURITY POLICY RULE - AUDIT COMMENT
@@ -513,12 +720,23 @@ func checkSecurityPolicyRules(c *pango.XmlApiClient, ctx context.Context) {
 
 func checkSecurityPolicyRulesMove(c *pango.XmlApiClient, ctx context.Context) {
 	// SECURITY POLICY RULE - MOVE GROUP
-	securityPolicyRuleLocation := security.Location{
-		Vsys: &security.VsysLocation{
-			NgfwDevice: "localhost.localdomain",
-			Rulebase:   "post-rulebase",
-			Vsys:       "vsys1",
-		},
+	var securityPolicyRuleLocation security.Location
+	if ok, _ := c.IsPanorama(); ok {
+		securityPolicyRuleLocation = security.Location{
+			DeviceGroup: &security.DeviceGroupLocation{
+				PanoramaDevice: "localhost.localdomain",
+				DeviceGroup:    "codegen_device_group",
+				Rulebase:       "pre-rulebase",
+			},
+		}
+	} else {
+		securityPolicyRuleLocation = security.Location{
+			Vsys: &security.VsysLocation{
+				NgfwDevice: "localhost.localdomain",
+				Rulebase:   "post-rulebase",
+				Vsys:       "vsys1",
+			},
+		}
 	}
 
 	securityPolicyRuleApi := security.NewService(c)
@@ -597,8 +815,18 @@ func checkTag(c *pango.XmlApiClient, ctx context.Context) {
 		Color: &tagColor,
 	}
 
-	tagLocation := tag.Location{
-		Shared: true,
+	var tagLocation tag.Location
+	if ok, _ := c.IsPanorama(); ok {
+		tagLocation = tag.Location{
+			DeviceGroup: &tag.DeviceGroupLocation{
+				PanoramaDevice: "localhost.localdomain",
+				DeviceGroup:    "codegen_device_group",
+			},
+		}
+	} else {
+		tagLocation = tag.Location{
+			Shared: true,
+		}
 	}
 
 	tagApi := tag.NewService(c)
@@ -625,8 +853,18 @@ func checkAddress(c *pango.XmlApiClient, ctx context.Context) {
 		IpNetmask: util.String("12.13.14.25"),
 	}
 
-	addressLocation := address.Location{
-		Shared: true,
+	var addressLocation address.Location
+	if ok, _ := c.IsPanorama(); ok {
+		addressLocation = address.Location{
+			DeviceGroup: &address.DeviceGroupLocation{
+				PanoramaDevice: "localhost.localdomain",
+				DeviceGroup:    "codegen_device_group",
+			},
+		}
+	} else {
+		addressLocation = address.Location{
+			Shared: true,
+		}
 	}
 
 	addressApi := address.NewService(c)
@@ -646,6 +884,42 @@ func checkAddress(c *pango.XmlApiClient, ctx context.Context) {
 			log.Printf("Address %d: '%s'", index, item.Name)
 		}
 	}
+
+	// ADDRESS - GROUP
+	addressGroupObject := address_group.Entry{
+		Name:   "codegen_address_group_test1",
+		Static: []string{addressReply.Name},
+	}
+
+	var addressGroupLocation address_group.Location
+	if ok, _ := c.IsPanorama(); ok {
+		addressGroupLocation = address_group.Location{
+			DeviceGroup: &address_group.DeviceGroupLocation{
+				PanoramaDevice: "localhost.localdomain",
+				DeviceGroup:    "codegen_device_group",
+			},
+		}
+	} else {
+		addressGroupLocation = address_group.Location{
+			Shared: true,
+		}
+	}
+
+	addressGroupApi := address_group.NewService(c)
+	addressGroupReply, err := addressGroupApi.Create(ctx, addressGroupLocation, addressGroupObject)
+	if err != nil {
+		log.Printf("Failed to create object: %s", err)
+		return
+	}
+	log.Printf("Address group '%s' created", addressGroupReply.Name)
+
+	// ADDRESS - GROUP - DELETE
+	err = addressGroupApi.Delete(ctx, addressGroupLocation, addressGroupReply.Name)
+	if err != nil {
+		log.Printf("Failed to delete object: %s", err)
+		return
+	}
+	log.Printf("Address group '%s' deleted", addressGroupReply.Name)
 
 	// ADDRESS - DELETE
 	err = addressApi.Delete(ctx, addressLocation, addressReply.Name)
@@ -671,12 +945,22 @@ func checkService(c *pango.XmlApiClient, ctx context.Context) {
 		},
 	}
 
-	serviceLocation := service.Location{
-		Shared: false,
-		Vsys: &service.VsysLocation{
-			NgfwDevice: "localhost.localdomain",
-			Vsys:       "vsys1",
-		},
+	var serviceLocation service.Location
+	if ok, _ := c.IsPanorama(); ok {
+		serviceLocation = service.Location{
+			DeviceGroup: &service.DeviceGroupLocation{
+				PanoramaDevice: "localhost.localdomain",
+				DeviceGroup:    "codegen_device_group",
+			},
+		}
+	} else {
+		serviceLocation = service.Location{
+			Shared: false,
+			Vsys: &service.VsysLocation{
+				NgfwDevice: "localhost.localdomain",
+				Vsys:       "vsys1",
+			},
+		}
 	}
 
 	serviceApi := service.NewService(c)
@@ -717,6 +1001,46 @@ func checkService(c *pango.XmlApiClient, ctx context.Context) {
 		return
 	}
 	log.Printf("Service '%s=%d' renamed", serviceReply.Name, *serviceReply.Protocol.Tcp.DestinationPort)
+
+	// SERVICE GROUP ADD
+	serviceGroupEntry := service_group.Entry{
+		Name:    "codegen_service_group_test1",
+		Members: []string{serviceReply.Name},
+	}
+
+	var serviceGroupLocation service_group.Location
+	if ok, _ := c.IsPanorama(); ok {
+		serviceGroupLocation = service_group.Location{
+			DeviceGroup: &service_group.DeviceGroupLocation{
+				PanoramaDevice: "localhost.localdomain",
+				DeviceGroup:    "codegen_device_group",
+			},
+		}
+	} else {
+		serviceGroupLocation = service_group.Location{
+			Shared: false,
+			Vsys: &service_group.VsysLocation{
+				NgfwDevice: "localhost.localdomain",
+				Vsys:       "vsys1",
+			},
+		}
+	}
+
+	serviceGroupApi := service_group.NewService(c)
+	serviceGroupReply, err := serviceGroupApi.Create(ctx, serviceGroupLocation, serviceGroupEntry)
+	if err != nil {
+		log.Printf("Failed to create object: %s", err)
+		return
+	}
+	log.Printf("Service group '%s' created", serviceGroupReply.Name)
+
+	// SERVICE GROUP DELETE
+	err = serviceGroupApi.Delete(ctx, serviceGroupLocation, serviceGroupReply.Name)
+	if err != nil {
+		log.Printf("Failed to delete object: %s", err)
+		return
+	}
+	log.Printf("Service group '%s' deleted", serviceGroupReply.Name)
 
 	// SERVICE - LIST
 	//services, err := serviceApi.List(ctx, serviceLocation, "get", "name starts-with 'test'", "'")
@@ -799,10 +1123,21 @@ func checkNtp(c *pango.XmlApiClient, ctx context.Context) {
 		},
 	}
 
-	ntpLocation := ntp.Location{
-		System: &ntp.SystemLocation{
-			NgfwDevice: "localhost.localdomain",
-		},
+	var ntpLocation ntp.Location
+	if ok, _ := c.IsPanorama(); ok {
+		ntpLocation = ntp.Location{
+			Template: &ntp.TemplateLocation{
+				PanoramaDevice: "localhost.localdomain",
+				NgfwDevice:     "localhost.localdomain",
+				Template:       "codegen_template",
+			},
+		}
+	} else {
+		ntpLocation = ntp.Location{
+			System: &ntp.SystemLocation{
+				NgfwDevice: "localhost.localdomain",
+			},
+		}
 	}
 
 	ntpApi := ntp.NewService(c)
@@ -835,10 +1170,21 @@ func checkDns(c *pango.XmlApiClient, ctx context.Context) {
 		FqdnRefreshTime: util.Int(27),
 	}
 
-	dnsLocation := dns.Location{
-		System: &dns.SystemLocation{
-			NgfwDevice: "localhost.localdomain",
-		},
+	var dnsLocation dns.Location
+	if ok, _ := c.IsPanorama(); ok {
+		dnsLocation = dns.Location{
+			Template: &dns.TemplateLocation{
+				PanoramaDevice: "localhost.localdomain",
+				NgfwDevice:     "localhost.localdomain",
+				Template:       "codegen_template",
+			},
+		}
+	} else {
+		dnsLocation = dns.Location{
+			System: &dns.SystemLocation{
+				NgfwDevice: "localhost.localdomain",
+			},
+		}
 	}
 
 	dnsApi := dns.NewService(c)

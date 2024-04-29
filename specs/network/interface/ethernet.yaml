@@ -10,7 +10,7 @@ xpath_suffix:
   - 'ethernet'
 locations:
   'ngfw':
-    description: 'Located in a specific vsys.'
+    description: 'Located in a specific NGFW.'
     device:
       panorama: false
       ngfw: true
@@ -19,6 +19,29 @@ locations:
       - 'devices'
       - '{{ Entry $ngfw_device }}'
     vars:
+      'ngfw_device':
+        description: 'The NGFW device.'
+        default: 'localhost.localdomain'
+  'template':
+    description: 'Located in a specific template.'
+    device:
+      panorama: true
+    xpath:
+      - 'config'
+      - 'devices'
+      - '{{ Entry $panorama_device }}'
+      - 'template'
+      - '{{ Entry $template }}'
+      - 'config'
+      - 'devices'
+      - '{{ Entry $ngfw_device }}'
+    vars:
+      'panorama_device':
+        description: 'The panorama device.'
+        default: 'localhost.localdomain'
+      'template':
+        description: 'The template.'
+        required: true
       'ngfw_device':
         description: 'The NGFW device.'
         default: 'localhost.localdomain'
