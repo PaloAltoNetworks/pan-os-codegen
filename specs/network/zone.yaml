@@ -1,5 +1,6 @@
 name: 'Zone'
-terraform_provider_suffix: 'zone'
+terraform_provider_config:
+  suffix: 'zone'
 go_sdk_path:
   - 'network'
   - 'zone'

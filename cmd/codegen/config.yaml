@@ -1,78 +1,162 @@
+####################################################
+#~~~~~~~   CodeGen General Config Section   ~~~~~~~#
+####################################################
 output:
   go_sdk: "../generated/pango"
   terraform_provider: "../generated/terraform-provider-panos"
+####################################################
+#~~~~~~~  CodeGen Static File Copy Section  ~~~~~~~#
+####################################################
 assets:
   #~~~~~~~ SDK Static File section ~~~~~~~#
   generic_package:
     source: "assets/generic"
     target:
       go_sdk: true
-      terraform_provider: false
     destination: "generic"
   util_package:
     source: "assets/util"
     target:
       go_sdk: true
-      terraform_provider: false
     destination: "util"
   audit_package:
     source: "assets/audit"
     target:
       go_sdk: true
-      terraform_provider: false
     destination: "audit"
   errors_package:
     source: "assets/errors"
     target:
       go_sdk: true
-      terraform_provider: false
     destination: "errors"
   version_package:
     source: "assets/version"
     target:
       go_sdk: true
-      terraform_provider: false
     destination: "version"
   example_package:
     source: "assets/example"
     target:
       go_sdk: true
-      terraform_provider: false
     destination: "example"
   sdk_package:
     source: "assets/sdk"
     target:
       go_sdk: true
-      terraform_provider: false
     destination: ""
   xmlapi_package:
     source: "assets/xmlapi"
     target:
       go_sdk: true
-      terraform_provider: false
     destination: "xmlapi"
   filtering_package:
     source: "assets/filtering"
     target:
       go_sdk: true
-      terraform_provider: false
     destination: "filtering"
   plugin_package:
     source: "assets/plugin"
     target:
       go_sdk: true
-      terraform_provider: false
     destination: "plugin"
   rule_package:
     source: "assets/rule"
     target:
       go_sdk: true
-      terraform_provider: false
     destination: "rule"
   #~~~~~~~ Terraform Provider Static File section ~~~~~~~#
-  provider_internal_package:
+  provider_package:
     source: "assets/provider"
     target:
-      go_sdk: false
       terraform_provider: true
-    destination: "internal"
+    destination: ""
+  provider_internal_package:
+    source: "assets/provider_internal"
+    target:
+      terraform_provider: true
+    destination: "internal/provider"
+####################################################
+#~~~ Codegen Terraform Provider Config section ~~~~#
+####################################################
+terraform_provider_config:
+  params:
+    hostname:
+      description: "The hostname or IP address of the PAN-OS instance (NGFW or Panorama)."
+      default_value: ""
+      env_name: "PANOS_HOST"
+      optional: true
+      type: string
+    username:
+      description: "The username.  This is required if api_key is not configured."
+      default_value: ""
+      env_name: "PANOS_USERNAME"
+      optional: true
+      type: string
+    password:
+      description: "The password.  This is required if the api_key is not configured."
+      default_value: ""
+      env_name: "PANOS_PASSWORD"
+      optional: true
+      sensitive: true
+      type: string
+    api_key:
+      description: "The API key for PAN-OS. Either specify this or give both username and password."
+      default_value: ""
+      env_name: "PANOS_API"
+      optional: true
+      type: string
+    protocol:
+      description: "The protocol (https or http)."
+      default_value: "https"
+      env_name: "PANOS_PROTOCOL"
+      optional: true
+      type: string
+    port:
+      description: "If the port is non-standard for the protocol, the port number to use."
+      default_value: ""
+      env_name: "PANOS_PORT"
+      optional: true
+      type: int64
+    target:
+      description: "Target setting (NGFW serial number)."
+      default_value: ""
+      env_name: "PANOS_TARGET"
+      optional: true
+      type: string
+    api_key_in_request:
+      description: "Send the API key in the request body instead of using the authentication header."
+      default_value: ""
+      env_name: "PANOS_API_KEY_IN_REQUEST"
+      optional: true
+      type: bool
+    additional_headers:
+      description: "Additional HTTP headers to send with API calls"
+      default_value: ""
+      env_name: "PANOS_HEADERS"
+      optional: true
+      type: map
+    skip_verify_certificate:
+      description: "(For https protocol) Skip verifying the HTTPS certificate."
+      default_value: ""
+      env_name: "PANOS_SKIP_VERIFY_CERTIFICATE"
+      optional: true
+      type: bool
+    auth_file:
+      description: "Filesystem path to a JSON config file that specifies the provider's params."
+      default_value: ""
+      env_name: ""
+      optional: true
+      type: string
+  # Variables for local inspection.
+    config_file:
+      description: "(Local inspection mode) The PAN-OS config file to load read in using `file()`"
+      default_value: ""
+      env_name: ""
+      optional: true
+      type: string
+    panos_version:
+      description: "(Local inspection mode) The version of PAN-OS that exported the config file. This is only used if the root 'config' block does not contain the 'detail-version' attribute. Example: `10.2.3`."
+      default_value: ""
+      env_name: ""
+      optional: true
+      type: string

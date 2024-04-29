@@ -1,4 +1,4 @@
-package terraform
+package terraform_provider
 
 import (
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"

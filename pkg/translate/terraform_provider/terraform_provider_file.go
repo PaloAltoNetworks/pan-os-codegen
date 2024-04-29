@@ -1,7 +1,8 @@
-package terraform
+package terraform_provider
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"text/template"
 
@@ -37,6 +38,7 @@ func (g *GenerateTerraformProvider) createTemplate(resourceType string, spec *pr
 func (g *GenerateTerraformProvider) executeTemplate(resourceTemplate *template.Template, spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, resourceType string, names *NameProvider) error {
 	var renderedTemplate strings.Builder
 	if err := resourceTemplate.Execute(&renderedTemplate, spec); err != nil {
+		log.Fatalf("Error executing template: %v", err)
 		return fmt.Errorf("error executing %s template: %v", resourceType, err)
 	}
 	renderedTemplate.WriteString("\n")
@@ -73,6 +75,7 @@ func (g *GenerateTerraformProvider) appendResourceType(terraformProvider *proper
 func (g *GenerateTerraformProvider) generateTerraformEntityTemplate(resourceType string, names *NameProvider, spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, templateStr string, funcMap template.FuncMap) error {
 	resourceTemplate, err := g.createTemplate(resourceType, spec, templateStr, funcMap)
 	if err != nil {
+		log.Fatalf("Error creating template: %v", err)
 		return err
 	}
 	return g.executeTemplate(resourceTemplate, spec, terraformProvider, resourceType, names)
@@ -88,9 +91,13 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 			_, uuid := spec.Spec.Params["uuid"]
 			if uuid {
 				// Generate Resource with uuid style
+				terraformProvider.ImportManager.AddStandardImport("context", "")
+				terraformProvider.ImportManager.AddStandardImport("fmt", "")
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource", "")
+				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
+				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
 
 				resourceType := "Resource"
 				names := NewNameProvider(spec, resourceType)
@@ -104,9 +111,13 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 				}
 			} else {
 				// Generate Resource with entry style
+				terraformProvider.ImportManager.AddStandardImport("context", "")
+				terraformProvider.ImportManager.AddStandardImport("fmt", "")
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource", "")
+				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
+				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
 
 				resourceType := "Resource"
 				names := NewNameProvider(spec, resourceType)
@@ -121,9 +132,13 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 			}
 		} else {
 			// Generate Resource with config style
+			terraformProvider.ImportManager.AddStandardImport("context", "")
+			terraformProvider.ImportManager.AddStandardImport("fmt", "")
 			terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "")
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource", "")
+			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
+			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
 
 			resourceType := "Resource"
 			names := NewNameProvider(spec, resourceType)
@@ -145,6 +160,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(spec *properties
 
 	if !spec.TerraformProviderConfig.SkipDatasource {
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource/schema", "dsschema")
+		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource", "")
 
 		resourceType := "DataSource"
 		names := NewNameProvider(spec, resourceType)
@@ -158,20 +174,21 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(spec *properties
 		}
 	}
 
-	if !spec.TerraformProviderConfig.SkipDatasourceListing {
-		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource/schema", "dsschema")
-
-		resourceType := "DataSourceList"
-		names := NewNameProvider(spec, resourceType)
-		funcMap := template.FuncMap{
-			"metaName":   func() string { return names.MetaName },
-			"structName": func() string { return names.StructName },
-		}
-		err := g.generateTerraformEntityTemplate(resourceType, names, spec, terraformProvider, dataSourceListTemplatetStr, funcMap)
-		if err != nil {
-			return err
-		}
-	}
+	//TODO: I've disable creating DS List to omit creation the non existing object, please remove this comment once the DS List is implemented.
+	//if !spec.TerraformProviderConfig.SkipDatasourceListing {
+	//	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource/schema", "dsschema")
+	//
+	//	resourceType := "DataSourceList"
+	//	names := NewNameProvider(spec, resourceType)
+	//	funcMap := template.FuncMap{
+	//		"metaName":   func() string { return names.MetaName },
+	//		"structName": func() string { return names.StructName },
+	//	}
+	//	err := g.generateTerraformEntityTemplate(resourceType, names, spec, terraformProvider, dataSourceListTemplatetStr, funcMap)
+	//	if err != nil {
+	//		return err
+	//	}
+	//}
 
 	return nil
 }
@@ -187,6 +204,27 @@ func (g *GenerateTerraformProvider) GenerateTerraformProviderFile(spec *properti
 	return g.generateTerraformEntityTemplate("ProviderFile", &NameProvider{}, spec, terraformProvider, providerFileTemplateStr, funcMap)
 }
 
-func (g *GenerateTerraformProvider) generateTfId() {
+func (g *GenerateTerraformProvider) GenerateTerraformProvider(terraformProvider *properties.TerraformProviderFile, spec *properties.Normalization, providerConfig properties.TerraformProvider) error {
+	terraformProvider.ImportManager.AddStandardImport("context", "")
+	terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "sdk")
+	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource", "")
+	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/provider", "")
+	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/provider/schema", "")
+	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource", "")
+	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types", "")
+	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
 
+	funcMap := template.FuncMap{
+		"RenderImports":  func() (string, error) { return terraformProvider.ImportManager.RenderImports() },
+		"DataSources":    func() []string { return terraformProvider.DataSources },
+		"Resources":      func() []string { return terraformProvider.Resources },
+		"ProviderParams": func() map[string]properties.TerraformProviderParams { return providerConfig.TerraformProviderParams },
+		"ParamToModel": func(paramName string, paramProp properties.TerraformProviderParams) (string, error) {
+			return ParamToModel(paramName, paramProp)
+		},
+		"ParamToSchema": func(paramName string, paramProp properties.TerraformProviderParams) (string, error) {
+			return ParamToSchema(paramName, paramProp)
+		},
+	}
+	return g.generateTerraformEntityTemplate("ProviderFile", &NameProvider{}, spec, terraformProvider, providerTemplateStr, funcMap)
 }

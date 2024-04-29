@@ -3,8 +3,9 @@ package properties
 import "github.com/paloaltonetworks/pan-os-codegen/pkg/content"
 
 type Config struct {
-	Output OutputPaths       `json:"output" yaml:"output"`
-	Assets map[string]*Asset `json:"assets" yaml:"assets"`
+	Output                  OutputPaths       `json:"output" yaml:"output"`
+	Assets                  map[string]*Asset `json:"assets" yaml:"assets"`
+	TerraformProviderConfig TerraformProvider `json:"terraform_provider_config" yaml:"terraform_provider_config"`
 }
 
 type OutputPaths struct {
@@ -13,9 +14,9 @@ type OutputPaths struct {
 }
 
 type Asset struct {
-	Source      string  `json:"source" yaml:"source"`
-	Target      *Target `json:"target" yaml:"target"`
-	Destination string  `json:"destination" yaml:"destination"`
+	Source      string `json:"source" yaml:"source"`
+	Target      Target `json:"target" yaml:"target"`
+	Destination string `json:"destination" yaml:"destination"`
 }
 
 type Target struct {
