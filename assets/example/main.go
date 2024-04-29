@@ -17,6 +17,7 @@ import (
 	"github.com/PaloAltoNetworks/pango/objects/address"
 	"github.com/PaloAltoNetworks/pango/objects/service"
 	"github.com/PaloAltoNetworks/pango/objects/tag"
+	"github.com/PaloAltoNetworks/pango/panorama/device_group"
 	"github.com/PaloAltoNetworks/pango/panorama/template"
 	"github.com/PaloAltoNetworks/pango/panorama/template_stack"
 	"github.com/PaloAltoNetworks/pango/policies/rules/security"
@@ -48,6 +49,7 @@ func main() {
 		log.Printf("Connected to Panorama, so templates and device groups are going to be created")
 		checkTemplate(c, ctx)
 		checkTemplateStack(c, ctx)
+		checkDeviceGroup(c, ctx)
 	} else {
 		log.Printf("Connected to firewall, so templates and device groups are not going to be created")
 	}
@@ -77,8 +79,8 @@ func checkTemplate(c *pango.XmlApiClient, ctx context.Context) {
 	}
 
 	location := template.Location{
-		Vsys: &template.VsysLocation{
-			NgfwDevice: "localhost.localdomain",
+		Panorama: &template.PanoramaLocation{
+			PanoramaDevice: "localhost.localdomain",
 		},
 	}
 	api := template.NewService(c)
@@ -99,8 +101,8 @@ func checkTemplateStack(c *pango.XmlApiClient, ctx context.Context) {
 	}
 
 	location := template_stack.Location{
-		Vsys: &template_stack.VsysLocation{
-			NgfwDevice: "localhost.localdomain",
+		Panorama: &template_stack.PanoramaLocation{
+			PanoramaDevice: "localhost.localdomain",
 		},
 	}
 	api := template_stack.NewService(c)
@@ -111,6 +113,29 @@ func checkTemplateStack(c *pango.XmlApiClient, ctx context.Context) {
 		return
 	}
 	log.Printf("Template stack %s created\n", reply.Name)
+}
+
+func checkDeviceGroup(c *pango.XmlApiClient, ctx context.Context) {
+	entry := device_group.Entry{
+		Name:        "codegen_device_group",
+		Description: util.String("This is a device group created by codegen."),
+		Templates:   []string{"codegen_template"},
+	}
+
+	location := device_group.Location{
+		Panorama: &device_group.PanoramaLocation{
+			PanoramaDevice: "localhost.localdomain",
+		},
+	}
+
+	api := device_group.NewService(c)
+
+	reply, err := api.Create(ctx, location, entry)
+	if err != nil {
+		log.Printf("Failed to create device group: %s", err)
+		return
+	}
+	log.Printf("Device group %s created\n", reply.Name)
 }
 
 func checkVr(c *pango.XmlApiClient, ctx context.Context) {

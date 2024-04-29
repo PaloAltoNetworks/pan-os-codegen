@@ -8,7 +8,7 @@ xpath_suffix:
   - 'virtual-router'
 locations:
   'ngfw':
-    description: 'Located in a specific vsys.'
+    description: 'Located in a specific NGFW.'
     device:
       panorama: false
       ngfw: true
