@@ -192,7 +192,7 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		"subtract": func(a, b int) int {
 			return a - b
 		},
-		"generateEntryXpath":        translate.GenerateEntryXpathForLocation,
+		"generateEntryXpath":        translate.GenerateEntryXpath,
 		"nestedSpecs":               translate.NestedSpecs,
 		"createGoSuffixFromVersion": translate.CreateGoSuffixFromVersion,
 		"paramSupportedInVersion":   translate.ParamSupportedInVersion,

@@ -33,6 +33,9 @@ func NestedSpecs(spec *properties.Spec) (map[string]*properties.Spec, error) {
 func checkNestedSpecs(parent []string, spec *properties.Spec, nestedSpecs map[string]*properties.Spec) {
 	for _, param := range spec.Params {
 		updateNestedSpecs(append(parent, param.Name.CamelCase), param, nestedSpecs)
+		if len(param.Profiles) > 0 && param.Profiles[0].Type == "entry" && param.Items != nil && param.Items.Type == "entry" {
+			addNameAsParamForNestedSpec(append(parent, param.Name.CamelCase), nestedSpecs)
+		}
 	}
 	for _, param := range spec.OneOf {
 		updateNestedSpecs(append(parent, param.Name.CamelCase), param, nestedSpecs)
@@ -46,15 +49,31 @@ func updateNestedSpecs(parent []string, param *properties.SpecParam, nestedSpecs
 	}
 }
 
+func addNameAsParamForNestedSpec(parent []string, nestedSpecs map[string]*properties.Spec) {
+	nestedSpecs[strings.Join(parent, "")].Params["name"] = &properties.SpecParam{
+		Name: &properties.NameVariant{
+			Underscore: "name",
+			CamelCase:  "Name",
+		},
+		Type:     "string",
+		Required: true,
+		Profiles: []*properties.SpecParamProfile{
+			{
+				Xpath: []string{"name"},
+			},
+		},
+	}
+}
+
 // SpecParamType return param type (it can be nested spec) (for struct based on spec from YAML files).
 func SpecParamType(parent string, param *properties.SpecParam) string {
 	prefix := determinePrefix(param, false)
 
 	calculatedType := ""
-	if param.Type == "list" && param.Items != nil {
-		calculatedType = determineListType(param)
-	} else if param.Spec != nil {
+	if param.Spec != nil {
 		calculatedType = calculateNestedSpecType(parent, param)
+	} else if param.Type == "list" && param.Items != nil {
+		calculatedType = determineListType(param)
 	} else {
 		calculatedType = param.Type
 	}
@@ -67,10 +86,12 @@ func XmlParamType(parent string, param *properties.SpecParam) string {
 	prefix := determinePrefix(param, true)
 
 	calculatedType := ""
-	if isParamListAndProfileTypeIsMember(param) {
-		calculatedType = "util.MemberType"
-	} else if param.Spec != nil {
+	if param.Spec != nil {
 		calculatedType = calculateNestedXmlSpecType(parent, param)
+	} else if isParamListAndProfileTypeIsMember(param) {
+		calculatedType = "util.MemberType"
+	} else if isParamListAndProfileTypeIsSingleEntry(param) {
+		calculatedType = "util.EntryType"
 	} else if param.Type == "bool" {
 		calculatedType = "string"
 	} else {
@@ -80,9 +101,13 @@ func XmlParamType(parent string, param *properties.SpecParam) string {
 	return fmt.Sprintf("%s%s", prefix, calculatedType)
 }
 
-func determinePrefix(param *properties.SpecParam, useMemberTypeStruct bool) string {
-	if param.Type == "list" && !(useMemberTypeStruct && isParamListAndProfileTypeIsMember(param)) {
-		return "[]"
+func determinePrefix(param *properties.SpecParam, useMemberOrEntryTypeStruct bool) string {
+	if param.Type == "list" {
+		if useMemberOrEntryTypeStruct && (isParamListAndProfileTypeIsMember(param) || isParamListAndProfileTypeIsSingleEntry(param)) {
+			return "*"
+		} else {
+			return "[]"
+		}
 	} else if !param.Required {
 		return "*"
 	}
@@ -118,7 +143,7 @@ func XmlTag(param *properties.SpecParam) string {
 	if param.Profiles != nil && len(param.Profiles) > 0 {
 		suffix := ""
 
-		if param.Name != nil && param.Name.Underscore == "uuid" {
+		if param.Name != nil && (param.Name.Underscore == "uuid" || param.Name.Underscore == "name") {
 			suffix = suffix + ",attr"
 		}
 

@@ -1,0 +1,134 @@
+name: 'Zone'
+terraform_provider_suffix: 'zone'
+go_sdk_path:
+  - 'network'
+  - 'zone'
+xpath_suffix:
+  - 'zone'
+locations:
+  'vsys':
+    description: 'Located in a specific vsys.'
+    device:
+      panorama: false
+      ngfw: true
+    xpath:
+      - 'config'
+      - 'devices'
+      - '{{ Entry $ngfw_device }}'
+      - 'vsys'
+      - '{{ Entry $vsys }}'
+    vars:
+      'ngfw_device':
+        description: 'The NGFW device.'
+        default: 'localhost.localdomain'
+      'vsys':
+        description: 'The vsys.'
+        default: 'vsys1'
+        validation:
+          not_values:
+            'shared': 'The vsys cannot be "shared". Use the "shared" path instead.'
+entry:
+  name:
+    description: 'The name of the zone.'
+version: '10.1.0'
+spec:
+  params:
+    enable-user-identification:
+      type: bool
+      profiles:
+        - xpath: [ "enable-user-identification" ]
+    enable-device-identification:
+      type: bool
+      profiles:
+        - xpath: [ "enable-device-identification" ]
+    user-acl:
+      profiles:
+        - xpath: [ "user-acl" ]
+      spec:
+        params:
+          include-list:
+            type: list
+            items:
+              type: string
+            profiles:
+              - xpath: [ "include-list" ]
+                type: member
+          exclude-list:
+            type: list
+            items:
+              type: string
+            profiles:
+              - xpath: [ "exclude-list" ]
+                type: member
+    device-acl:
+      profiles:
+        - xpath: [ "device-acl" ]
+      spec:
+        params:
+          include-list:
+            type: list
+            items:
+              type: string
+            profiles:
+              - xpath: [ "include-list" ]
+                type: member
+          exclude-list:
+            type: list
+            items:
+              type: string
+            profiles:
+              - xpath: [ "exclude-list" ]
+                type: member
+    network:
+      profiles:
+        - xpath: [ "network" ]
+      spec:
+        params:
+          enable-packet-buffer-protection:
+            type: bool
+            default: true
+            profiles:
+              - xpath: [ "enable-packet-buffer-protection" ]
+          zone-protection-profile:
+            type: list
+            items:
+              type: string
+            profiles:
+              - xpath: [ "zone-protection-profile" ]
+                type: member
+          log-setting:
+            type: list
+            items:
+              type: string
+            profiles:
+              - xpath: [ "log-setting" ]
+                type: member
+        one_of:
+          layer3:
+            type: list
+            items:
+              type: string
+            profiles:
+              - xpath: [ "layer3" ]
+                type: member
+          layer2:
+            type: list
+            items:
+              type: string
+            profiles:
+              - xpath: [ "layer2" ]
+                type: member
+          virtual-wire:
+            type: list
+            items:
+              type: string
+            profiles:
+              - xpath: [ "virtual-wire" ]
+                type: member
+          tap:
+            type: list
+            items:
+              type: string
+            profiles:
+              - xpath: [ "tap" ]
+                type: member

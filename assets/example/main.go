@@ -9,6 +9,11 @@ import (
 	"github.com/PaloAltoNetworks/pango"
 	"github.com/PaloAltoNetworks/pango/device/services/dns"
 	"github.com/PaloAltoNetworks/pango/device/services/ntp"
+	"github.com/PaloAltoNetworks/pango/network/interface/ethernet"
+	"github.com/PaloAltoNetworks/pango/network/interface/loopback"
+	"github.com/PaloAltoNetworks/pango/network/profiles/interface_management"
+	"github.com/PaloAltoNetworks/pango/network/virtual_router"
+	"github.com/PaloAltoNetworks/pango/network/zone"
 	"github.com/PaloAltoNetworks/pango/objects/address"
 	"github.com/PaloAltoNetworks/pango/objects/service"
 	"github.com/PaloAltoNetworks/pango/objects/tag"
@@ -38,6 +43,14 @@ func main() {
 	}
 
 	// CHECKS
+	checkVr(c, ctx)
+	checkZone(c, ctx)
+	checkInterfaceMgmtProfile(c, ctx)
+	checkEthernetLayer3Static(c, ctx)
+	checkEthernetLayer3Dhcp(c, ctx)
+	checkEthernetHa(c, ctx)
+	checkLoopback(c, ctx)
+	checkVrZoneWithEthernet(c, ctx)
 	checkSecurityPolicyRules(c, ctx)
 	checkSecurityPolicyRulesMove(c, ctx)
 	checkTag(c, ctx)
@@ -47,18 +60,353 @@ func main() {
 	checkDns(c, ctx)
 }
 
+func checkVr(c *pango.XmlApiClient, ctx context.Context) {
+	entry := virtual_router.Entry{
+		Name: "codegen_vr",
+		Protocol: &virtual_router.SpecProtocol{
+			Bgp: &virtual_router.SpecProtocolBgp{
+				Enable: util.Bool(false),
+			},
+			Ospf: &virtual_router.SpecProtocolOspf{
+				Enable: util.Bool(false),
+			},
+			Ospfv3: &virtual_router.SpecProtocolOspfv3{
+				Enable: util.Bool(false),
+			},
+			Rip: &virtual_router.SpecProtocolRip{
+				Enable: util.Bool(false),
+			},
+		},
+		RoutingTable: &virtual_router.SpecRoutingTable{
+			// Ip: &virtual_router.SpecRoutingTableIp{
+			// 	StaticRoutes: []virtual_router.SpecRoutingTableIpStaticRoutes{
+			// 		{
+			// 			Name:        "default",
+			// 			Destination: util.String("0.0.0.0/0"),
+			// 			Interface:   util.String("ethernet1/2"),
+			// 			NextHop: &virtual_router.SpecRoutingTableIpStaticRoutesNextHop{
+			// 				IpAddress: util.String("1.1.1.1"),
+			// 			},
+			// 			Metric:    util.Int(64),
+			// 			AdminDist: util.Int(120),
+			// 		},
+			// 	},
+			// },
+			// Ipv6: &virtual_router.SpecRoutingTableIpv6{
+			// 	StaticRoutes: []virtual_router.SpecRoutingTableIpv6StaticRoutes{
+			// 		{
+			// 			Name:        "default",
+			// 			Destination: util.String("0.0.0.0/0"),
+			// 			NextHop: &virtual_router.SpecRoutingTableIpv6StaticRoutesNextHop{
+			// 				Ipv6Address: util.String("2001:0000:130F:0000:0000:09C0:876A:230D"),
+			// 			},
+			// 			Metric:    util.Int(24),
+			// 			AdminDist: util.Int(20),
+			// 		},
+			// 	},
+			// },
+		},
+		Ecmp: &virtual_router.SpecEcmp{
+			Enable:          util.Bool(true),
+			SymmetricReturn: util.Bool(true),
+			MaxPaths:        util.Int(3),
+			Algorithm:       &virtual_router.SpecEcmpAlgorithm{
+				// IpHash: &virtual_router.SpecEcmpAlgorithmIpHash{
+				// 	HashSeed: util.Int(1234),
+				// 	UsePort:  util.Bool(true),
+				// 	SrcOnly:  util.Bool(true),
+				// },
+				// WeightedRoundRobin: &virtual_router.SpecEcmpAlgorithmWeightedRoundRobin{
+				// 	Interfaces: []virtual_router.SpecEcmpAlgorithmWeightedRoundRobinInterfaces{
+				// 		{
+				// 			Name:   "ethernet1/2",
+				// 			Weight: util.Int(1),
+				// 		},
+				// 		{
+				// 			Name:   "ethernet1/3",
+				// 			Weight: util.Int(2),
+				// 		},
+				// 	},
+				// },
+			},
+		},
+		AdministrativeDistances: &virtual_router.SpecAdministrativeDistances{
+			OspfInt: util.Int(77),
+			OspfExt: util.Int(88),
+		},
+	}
+	location := virtual_router.Location{
+		Ngfw: &virtual_router.NgfwLocation{
+			NgfwDevice: "localhost.localdomain",
+		},
+	}
+	api := virtual_router.NewService(c)
+
+	reply, err := api.Create(ctx, location, entry)
+	if err != nil {
+		log.Printf("Failed to create VR: %s", err)
+		return
+	}
+	log.Printf("VR %s created\n", reply.Name)
+}
+
+func checkEthernetLayer3Static(c *pango.XmlApiClient, ctx context.Context) {
+	entry := ethernet.Entry{
+		Name:    "ethernet1/2",
+		Comment: util.String("This is a ethernet1/2"),
+		Layer3: &ethernet.SpecLayer3{
+			NdpProxy: util.Bool(true),
+			Lldp:     util.Bool(true),
+			AdjustTcpMss: &ethernet.SpecLayer3AdjustTcpMss{
+				Enable:            util.Bool(true),
+				Ipv4MssAdjustment: util.Int(250),
+				Ipv6MssAdjustment: util.Int(250),
+			},
+			Mtu: util.Int(1280),
+			Ips: []string{"11.11.11.11", "22.22.22.22"},
+			Ipv6: &ethernet.SpecLayer3Ipv6{
+				Addresses: []ethernet.SpecLayer3Ipv6Addresses{
+					{
+						EnableOnInterface: util.Bool(false),
+						Name:              "2001:0000:130F:0000:0000:09C0:876A:230B",
+					},
+					{
+						EnableOnInterface: util.Bool(true),
+						Name:              "2001:0000:130F:0000:0000:09C0:876A:230C",
+					},
+				},
+			},
+			InterfaceManagementProfile: util.String("codegen_mgmt_profile"),
+		},
+	}
+	location := ethernet.Location{
+		Ngfw: &ethernet.NgfwLocation{
+			NgfwDevice: "localhost.localdomain",
+		},
+	}
+	api := ethernet.NewService(c)
+
+	reply, err := api.Create(ctx, location, entry)
+	if err != nil {
+		log.Printf("Failed to create ethernet: %s", err)
+		return
+	}
+	log.Printf("Ethernet layer3 %s created\n", reply.Name)
+}
+
+func checkEthernetLayer3Dhcp(c *pango.XmlApiClient, ctx context.Context) {
+	entry := ethernet.Entry{
+		Name:    "ethernet1/3",
+		Comment: util.String("This is a ethernet1/3"),
+		Layer3: &ethernet.SpecLayer3{
+			InterfaceManagementProfile: util.String("codegen_mgmt_profile"),
+			DhcpClient: &ethernet.SpecLayer3DhcpClient{
+				CreateDefaultRoute: util.Bool(false),
+				DefaultRouteMetric: util.Int(64),
+				Enable:             util.Bool(true),
+				SendHostname: &ethernet.SpecLayer3DhcpClientSendHostname{
+					Enable:   util.Bool(true),
+					Hostname: util.String("codegen_dhcp"),
+				},
+			},
+		},
+	}
+	location := ethernet.Location{
+		Ngfw: &ethernet.NgfwLocation{
+			NgfwDevice: "localhost.localdomain",
+		},
+	}
+	api := ethernet.NewService(c)
+
+	reply, err := api.Create(ctx, location, entry)
+	if err != nil {
+		log.Printf("Failed to create ethernet: %s", err)
+		return
+	}
+	log.Printf("Ethernet layer3 %s created\n", reply.Name)
+}
+
+func checkEthernetHa(c *pango.XmlApiClient, ctx context.Context) {
+	entry := ethernet.Entry{
+		Name:    "ethernet1/10",
+		Comment: util.String("This is a ethernet1/10"),
+		Ha:      &ethernet.SpecHa{},
+	}
+	location := ethernet.Location{
+		Ngfw: &ethernet.NgfwLocation{
+			NgfwDevice: "localhost.localdomain",
+		},
+	}
+	api := ethernet.NewService(c)
+
+	reply, err := api.Create(ctx, location, entry)
+	if err != nil {
+		log.Printf("Failed to create ethernet: %s", err)
+		return
+	}
+	log.Printf("Ethernet HA %s created\n", reply.Name)
+}
+
+func checkLoopback(c *pango.XmlApiClient, ctx context.Context) {
+	entry := loopback.Entry{
+		Name: "loopback.123",
+		AdjustTcpMss: &loopback.SpecAdjustTcpMss{
+			Enable:            util.Bool(true),
+			Ipv4MssAdjustment: util.Int(250),
+			Ipv6MssAdjustment: util.Int(250),
+		},
+		Comment: util.String("This is a loopback entry"),
+		Mtu:     util.Int(1280),
+		Ips:     []string{"1.1.1.1", "2.2.2.2"},
+		Ipv6: &loopback.SpecIpv6{
+			Addresses: []loopback.SpecIpv6Addresses{
+				{
+					EnableOnInterface: util.Bool(false),
+					Name:              "2001:0000:130F:0000:0000:09C0:876A:130B",
+				},
+				{
+					EnableOnInterface: util.Bool(true),
+					Name:              "2001:0000:130F:0000:0000:09C0:876A:130C",
+				},
+			},
+		},
+		InterfaceManagementProfile: util.String("codegen_mgmt_profile"),
+	}
+	location := loopback.Location{
+		Ngfw: &loopback.NgfwLocation{
+			NgfwDevice: "localhost.localdomain",
+		},
+	}
+	api := loopback.NewService(c)
+
+	reply, err := api.Create(ctx, location, entry)
+	if err != nil {
+		log.Printf("Failed to create loopback: %s", err)
+		return
+	}
+	log.Printf("Loopback %s created\n", reply.Name)
+}
+
+func checkZone(c *pango.XmlApiClient, ctx context.Context) {
+	entry := zone.Entry{
+		Name:                     "codegen_zone",
+		EnableUserIdentification: util.Bool(true),
+		Network: &zone.SpecNetwork{
+			EnablePacketBufferProtection: util.Bool(false),
+			Layer3:                       []string{},
+		},
+		DeviceAcl: &zone.SpecDeviceAcl{
+			IncludeList: []string{"1.2.3.4"},
+		},
+		UserAcl: &zone.SpecUserAcl{
+			ExcludeList: []string{"1.2.3.4"},
+		},
+	}
+	location := zone.Location{
+		Vsys: &zone.VsysLocation{
+			NgfwDevice: "localhost.localdomain",
+			Vsys:       "vsys1",
+		},
+	}
+	api := zone.NewService(c)
+
+	reply, err := api.Create(ctx, location, entry)
+	if err != nil {
+		log.Printf("Failed to create zone: %s", err)
+		return
+	}
+	log.Printf("Zone %s created\n", reply.Name)
+}
+
+func checkInterfaceMgmtProfile(c *pango.XmlApiClient, ctx context.Context) {
+	entry := interface_management.Entry{
+		Name:         "codegen_mgmt_profile",
+		Http:         util.Bool(true),
+		Ping:         util.Bool(true),
+		PermittedIps: []string{"1.1.1.1", "2.2.2.2"},
+	}
+	location := interface_management.Location{
+		Ngfw: &interface_management.NgfwLocation{
+			NgfwDevice: "localhost.localdomain",
+		},
+	}
+	api := interface_management.NewService(c)
+
+	reply, err := api.Create(ctx, location, entry)
+	if err != nil {
+		log.Printf("Failed to create interface management profile: %s", err)
+		return
+	}
+	log.Printf("Interface management profile %s created\n", reply.Name)
+}
+
+func checkVrZoneWithEthernet(c *pango.XmlApiClient, ctx context.Context) {
+	// VR
+	locationVr := virtual_router.Location{
+		Ngfw: &virtual_router.NgfwLocation{
+			NgfwDevice: "localhost.localdomain",
+		},
+	}
+	apiVr := virtual_router.NewService(c)
+
+	replyVr, err := apiVr.Read(ctx, locationVr, "codegen_vr", "get")
+	if err != nil {
+		log.Printf("Failed to read VR: %s", err)
+		return
+	}
+	log.Printf("VR %s read\n", replyVr.Name)
+
+	replyVr.Interfaces = []string{"ethernet1/2", "ethernet1/3"}
+
+	replyVr, err = apiVr.Update(ctx, locationVr, *replyVr, "codegen_vr")
+	if err != nil {
+		log.Printf("Failed to update VR: %s", err)
+		return
+	}
+	log.Printf("VR %s updated with %s\n", replyVr.Name, replyVr.Interfaces)
+
+	// ZONE
+	locationZone := zone.Location{
+		Vsys: &zone.VsysLocation{
+			NgfwDevice: "localhost.localdomain",
+			Vsys:       "vsys1",
+		},
+	}
+	apiZone := zone.NewService(c)
+
+	replyZone, err := apiZone.Read(ctx, locationZone, "codegen_zone", "get")
+	if err != nil {
+		log.Printf("Failed to read zone: %s", err)
+		return
+	}
+	log.Printf("Zone %s read\n", replyZone.Name)
+
+	replyZone.Network = &zone.SpecNetwork{
+		EnablePacketBufferProtection: util.Bool(false),
+		Layer3:                       []string{"ethernet1/2", "ethernet1/3"},
+	}
+
+	replyZone, err = apiZone.Update(ctx, locationZone, *replyZone, "codegen_zone")
+	if err != nil {
+		log.Printf("Failed to update zone: %s", err)
+		return
+	}
+	log.Printf("Zone %s updated with %s\n", replyZone.Name, replyZone.Network.Layer3)
+
+}
+
 func checkSecurityPolicyRules(c *pango.XmlApiClient, ctx context.Context) {
 	// SECURITY POLICY RULE - ADD
 	securityPolicyRuleEntry := security.Entry{
-		Name:               "codegen_rule",
-		Description:        util.String("initial description"),
-		Action:             util.String("allow"),
-		SourceZone:         []string{"any"},
-		SourceAddress:      []string{"any"},
-		DestinationZone:    []string{"any"},
-		DestinationAddress: []string{"any"},
-		Application:        []string{"any"},
-		Service:            []string{"application-default"},
+		Name:                 "codegen_rule",
+		Description:          util.String("initial description"),
+		Action:               util.String("allow"),
+		SourceZones:          []string{"any"},
+		SourceAddresses:      []string{"any"},
+		DestinationZones:     []string{"any"},
+		DestinationAddresses: []string{"any"},
+		Applications:         []string{"any"},
+		Services:             []string{"application-default"},
 	}
 
 	securityPolicyRuleLocation := security.Location{
@@ -180,15 +528,15 @@ func checkSecurityPolicyRulesMove(c *pango.XmlApiClient, ctx context.Context) {
 	for i := 0; i < 10; i++ {
 		securityPolicyRulesNames[i] = fmt.Sprintf("codegen_rule%d", i)
 		securityPolicyRuleItem := security.Entry{
-			Name:               securityPolicyRulesNames[i],
-			Description:        util.String("initial description"),
-			Action:             util.String("allow"),
-			SourceZone:         []string{"any"},
-			SourceAddress:      []string{"any"},
-			DestinationZone:    []string{"any"},
-			DestinationAddress: []string{"any"},
-			Application:        []string{"any"},
-			Service:            []string{"application-default"},
+			Name:                 securityPolicyRulesNames[i],
+			Description:          util.String("initial description"),
+			Action:               util.String("allow"),
+			SourceZones:          []string{"any"},
+			SourceAddresses:      []string{"any"},
+			DestinationZones:     []string{"any"},
+			DestinationAddresses: []string{"any"},
+			Applications:         []string{"any"},
+			Services:             []string{"application-default"},
 		}
 		securityPolicyRulesEntries = append(securityPolicyRulesEntries, securityPolicyRuleItem)
 		securityPolicyRuleItemReply, err := securityPolicyRuleApi.Create(ctx, securityPolicyRuleLocation, securityPolicyRuleItem)
@@ -289,16 +637,8 @@ func checkAddress(c *pango.XmlApiClient, ctx context.Context) {
 	}
 	log.Printf("Address '%s=%s' created", addressReply.Name, *addressReply.IpNetmask)
 
-	// ADDRESS - DELETE
-	err = addressApi.Delete(ctx, addressLocation, addressReply.Name)
-	if err != nil {
-		log.Printf("Failed to delete object: %s", err)
-		return
-	}
-	log.Printf("Address '%s' deleted", addressReply.Name)
-
 	// ADDRESS - LIST
-	addresses, err := addressApi.List(ctx, addressLocation, "get", "name starts-with 'wu'", "'")
+	addresses, err := addressApi.List(ctx, addressLocation, "get", "name starts-with 'codegen'", "'")
 	if err != nil {
 		log.Printf("Failed to list object: %s", err)
 	} else {
@@ -306,17 +646,24 @@ func checkAddress(c *pango.XmlApiClient, ctx context.Context) {
 			log.Printf("Address %d: '%s'", index, item.Name)
 		}
 	}
+
+	// ADDRESS - DELETE
+	err = addressApi.Delete(ctx, addressLocation, addressReply.Name)
+	if err != nil {
+		log.Printf("Failed to delete object: %s", err)
+		return
+	}
+	log.Printf("Address '%s' deleted", addressReply.Name)
 }
 
 func checkService(c *pango.XmlApiClient, ctx context.Context) {
 	// SERVICE - ADD
-	servicePort := 8642
 	serviceObject := service.Entry{
 		Name:        "codegen_service_test1",
 		Description: util.String("test description"),
 		Protocol: &service.SpecProtocol{
 			Tcp: &service.SpecProtocolTcp{
-				DestinationPort: &servicePort,
+				DestinationPort: util.Int(8642),
 				Override: &service.SpecProtocolTcpOverride{
 					No: util.String(""),
 				},
@@ -351,8 +698,7 @@ func checkService(c *pango.XmlApiClient, ctx context.Context) {
 	log.Printf("Service '%s=%d' updated", serviceReply.Name, *serviceReply.Protocol.Tcp.DestinationPort)
 
 	// SERVICE - UPDATE 2
-	servicePort = 1234
-	serviceObject.Protocol.Tcp.DestinationPort = &servicePort
+	serviceObject.Protocol.Tcp.DestinationPort = util.Int(1234)
 
 	serviceReply, err = serviceApi.Update(ctx, serviceLocation, serviceObject, serviceReply.Name)
 	if err != nil {
@@ -479,7 +825,6 @@ func checkNtp(c *pango.XmlApiClient, ctx context.Context) {
 
 func checkDns(c *pango.XmlApiClient, ctx context.Context) {
 	// DNS - ADD
-	refreshTime := 27
 	dnsConfig := dns.Config{
 		DnsSetting: &dns.SpecDnsSetting{
 			Servers: &dns.SpecDnsSettingServers{
@@ -487,7 +832,7 @@ func checkDns(c *pango.XmlApiClient, ctx context.Context) {
 				Secondary: util.String("4.4.4.4"),
 			},
 		},
-		FqdnRefreshTime: &refreshTime,
+		FqdnRefreshTime: util.Int(27),
 	}
 
 	dnsLocation := dns.Location{

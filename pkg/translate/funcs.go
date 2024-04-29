@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-// GenerateEntryXpathForLocation functions used in location.tmpl to generate XPath for location.
-func GenerateEntryXpathForLocation(prefix, suffix, location, xpath string) (string, error) {
+// GenerateEntryXpath functions used in location.tmpl to generate XPath for location.
+func GenerateEntryXpath(prefix, suffix, location, xpath string) (string, error) {
 	if !strings.Contains(xpath, "$") || !strings.Contains(xpath, "}") {
 		return "", fmt.Errorf("xpath '%s' is missing '$' followed by '}'", xpath)
 	}
@@ -24,149 +24,6 @@ func generateEntryXpathForLocation(prefix, suffix, location, xpath string) strin
 	return asEntryXpath
 }
 
-// NormalizeAssignment generates a string, which contains entry/config assignment in Normalize() function
-// in entry.tmpl/config.tmpl template. If param contains nested specs, then recursively are executed
-// internal functions, which are creating entry assignment.
-func NormalizeAssignment(objectType string, param *properties.SpecParam, version string) string {
-	return prepareAssignment(objectType, param, "util.MemToStr", "util.AsBool", "Spec", "", version)
-}
-
-// SpecifyEntryAssignment generates a string, which contains entry/config assignment in SpecifyEntry() function
-// in entry.tmpl/config.tmpl template. If param contains nested specs, then recursively are executed
-// internal functions, which are creating entry assignment.
-func SpecifyEntryAssignment(objectType string, param *properties.SpecParam, version string) string {
-	return prepareAssignment(objectType, param, "util.StrToMem", "util.YesNo", "spec", "Xml", version)
-}
-
-func prepareAssignment(objectType string, param *properties.SpecParam, listFunction, boolFunction, specPrefix, specSuffix string, version string) string {
-	var builder strings.Builder
-
-	if ParamSupportedInVersion(param, version) {
-		if param.Spec != nil {
-			if specSuffix == "Xml" {
-				appendSpecObjectAssignment(param, objectType, version, listFunction, boolFunction, specPrefix, specSuffix, &builder)
-			} else {
-				appendSpecObjectAssignment(param, objectType, "", listFunction, boolFunction, specPrefix, specSuffix, &builder)
-			}
-		} else if isParamListAndProfileTypeIsMember(param) {
-			appendFunctionAssignment(param, objectType, listFunction, "", &builder)
-		} else if param.Type == "bool" {
-			if specSuffix == "Xml" {
-				appendFunctionAssignment(param, objectType, boolFunction, useBoolFunctionToConvertAdditionalArguments(param), &builder)
-			} else {
-				appendFunctionAssignment(param, objectType, boolFunction, "nil", &builder)
-			}
-		} else {
-			appendSimpleAssignment(param, objectType, &builder)
-		}
-	}
-
-	return builder.String()
-}
-
-func useBoolFunctionToConvertAdditionalArguments(param *properties.SpecParam) string {
-	if param.Default != "" {
-		return fmt.Sprintf("util.Bool(%s)", param.Default)
-	}
-	return "nil"
-}
-
-func isParamListAndProfileTypeIsMember(param *properties.SpecParam) bool {
-	return param.Type == "list" && param.Profiles != nil && len(param.Profiles) > 0 && param.Profiles[0].Type == "member"
-}
-
-func appendSimpleAssignment(param *properties.SpecParam, objectType string, builder *strings.Builder) {
-	builder.WriteString(fmt.Sprintf("%s.%s = o.%s", objectType, param.Name.CamelCase, param.Name.CamelCase))
-}
-
-func appendFunctionAssignment(param *properties.SpecParam, objectType string, functionName, additionalArguments string, builder *strings.Builder) {
-	if additionalArguments != "" {
-		builder.WriteString(fmt.Sprintf("%s.%s = %s(o.%s, %s)", objectType, param.Name.CamelCase, functionName, param.Name.CamelCase, additionalArguments))
-	} else {
-		builder.WriteString(fmt.Sprintf("%s.%s = %s(o.%s)", objectType, param.Name.CamelCase, functionName, param.Name.CamelCase))
-	}
-}
-
-func appendSpecObjectAssignment(param *properties.SpecParam, objectType string, version, listFunction, boolFunction, prefix, suffix string, builder *strings.Builder) {
-	defineNestedObject([]string{param.Name.CamelCase}, param, objectType, version, listFunction, boolFunction, prefix, suffix, builder)
-	builder.WriteString(fmt.Sprintf("%s.%s = nested%s\n", objectType, param.Name.CamelCase, param.Name.CamelCase))
-}
-
-func defineNestedObject(parent []string, param *properties.SpecParam, objectType string, version, listFunction, boolFunction, prefix, suffix string, builder *strings.Builder) {
-	declareRootOfNestedObject(parent, builder, version, prefix, suffix)
-
-	if ParamSupportedInVersion(param, version) {
-		builder.WriteString(fmt.Sprintf("if o.%s != nil {\n", strings.Join(parent, ".")))
-		if param.Spec != nil {
-			assignEmptyStructForNestedObject(parent, builder, objectType, version, prefix, suffix)
-			defineNestedObjectForChildParams(parent, param.Spec.Params, objectType, version, listFunction, boolFunction, prefix, suffix, builder)
-			defineNestedObjectForChildParams(parent, param.Spec.OneOf, objectType, version, listFunction, boolFunction, prefix, suffix, builder)
-		} else if isParamListAndProfileTypeIsMember(param) {
-			assignFunctionForNestedObject(parent, listFunction, "", builder)
-		} else if param.Type == "bool" {
-			if suffix == "Xml" {
-				assignFunctionForNestedObject(parent, boolFunction, useBoolFunctionToConvertAdditionalArguments(param), builder)
-			} else {
-				assignFunctionForNestedObject(parent, boolFunction, "nil", builder)
-			}
-		} else {
-			assignValueForNestedObject(parent, builder)
-		}
-		builder.WriteString("}\n")
-	}
-}
-
-func declareRootOfNestedObject(parent []string, builder *strings.Builder, version, prefix, suffix string) {
-	if len(parent) == 1 {
-		builder.WriteString(fmt.Sprintf("var nested%s *%s%s%s%s\n",
-			strings.Join(parent, "."), prefix,
-			strings.Join(parent, ""), suffix,
-			CreateGoSuffixFromVersion(version)))
-	}
-}
-
-func assignEmptyStructForNestedObject(parent []string, builder *strings.Builder, objectType, version, prefix, suffix string) {
-	builder.WriteString(fmt.Sprintf("nested%s = &%s%s%s%s{}\n",
-		strings.Join(parent, "."), prefix, strings.Join(parent, ""), suffix,
-		CreateGoSuffixFromVersion(version)))
-
-	if suffix == "Xml" {
-		builder.WriteString(fmt.Sprintf("if _, ok := o.Misc[\"%s\"]; ok {\n",
-			strings.Join(parent, "")))
-		builder.WriteString(fmt.Sprintf("nested%s.Misc = o.Misc[\"%s\"]\n",
-			strings.Join(parent, "."), strings.Join(parent, ""),
-		))
-	} else {
-		builder.WriteString(fmt.Sprintf("if o.%s.Misc != nil {\n",
-			strings.Join(parent, ".")))
-		builder.WriteString(fmt.Sprintf("%s.Misc[\"%s\"] = o.%s.Misc\n",
-			objectType, strings.Join(parent, ""), strings.Join(parent, "."),
-		))
-	}
-	builder.WriteString("}\n")
-}
-
-func assignValueForNestedObject(parent []string, builder *strings.Builder) {
-	builder.WriteString(fmt.Sprintf("nested%s = o.%s\n",
-		strings.Join(parent, "."), strings.Join(parent, ".")))
-}
-
-func assignFunctionForNestedObject(parent []string, functionName, additionalArguments string, builder *strings.Builder) {
-	if additionalArguments != "" {
-		builder.WriteString(fmt.Sprintf("nested%s = %s(o.%s, %s)\n",
-			strings.Join(parent, "."), functionName, strings.Join(parent, "."), additionalArguments))
-	} else {
-		builder.WriteString(fmt.Sprintf("nested%s = %s(o.%s)\n",
-			strings.Join(parent, "."), functionName, strings.Join(parent, ".")))
-	}
-}
-
-func defineNestedObjectForChildParams(parent []string, params map[string]*properties.SpecParam, objectType string, version, listFunction, boolFunction, prefix, suffix string, builder *strings.Builder) {
-	for _, param := range params {
-		defineNestedObject(append(parent, param.Name.CamelCase), param, objectType, version, listFunction, boolFunction, prefix, suffix, builder)
-	}
-}
-
 // SpecMatchesFunction return a string used in function SpecMatches() in entry.tmpl/config.tmpl
 // to compare all items of generated entry.
 func SpecMatchesFunction(param *properties.SpecParam) string {
@@ -174,10 +31,20 @@ func SpecMatchesFunction(param *properties.SpecParam) string {
 }
 
 func specMatchFunctionName(parent []string, param *properties.SpecParam) string {
-	if param.Type == "list" {
+	if param.Type == "list" && param.Items != nil && param.Items.Type == "string" {
 		return "util.OrderedListsMatch"
 	} else if param.Type == "string" {
-		return "util.StringsMatch"
+		if param.Name != nil && param.Name.CamelCase == "Name" {
+			return "util.StringsEqual"
+		} else {
+			return "util.StringsMatch"
+		}
+	} else if param.Type == "bool" {
+		return "util.BoolsMatch"
+	} else if param.Type == "int" {
+		return "util.IntsMatch"
+	} else if param.Type == "int64" {
+		return "util.Ints64Match"
 	} else {
 		return fmt.Sprintf("specMatch%s%s", strings.Join(parent, ""), param.Name.CamelCase)
 	}
@@ -199,38 +66,41 @@ func defineSpecMatchesFunction(parent []string, params map[string]*properties.Sp
 			defineSpecMatchesFunction(append(parent, param.Name.CamelCase), param.Spec.Params, builder)
 			defineSpecMatchesFunction(append(parent, param.Name.CamelCase), param.Spec.OneOf, builder)
 
-			renderSpecMatchesFunctionNameWithArguments(parent, builder, param)
-			checkInSpecMatchesFunctionIfVariablesAreNil(builder)
+			renderSpecMatchesFunctionSignature(parent, builder, param)
+			checkIfVariablesAreNil(builder)
 
-			for _, subParam := range param.Spec.Params {
-				renderInSpecMatchesFunctionIfToCheckIfVariablesMatches(parent, builder, param, subParam)
-			}
-			for _, subParam := range param.Spec.OneOf {
-				renderInSpecMatchesFunctionIfToCheckIfVariablesMatches(parent, builder, param, subParam)
+			if isParamListAndProfileTypeIsExtendedEntry(param) {
+				renderSpecMatchBodyForExtendedEntry(parent, builder, param)
+			} else {
+				renderSpecMatchBodyForTypicalParam(parent, param, builder)
 			}
 
 			builder.WriteString("return true\n")
-			builder.WriteString("}\n")
-		} else if param.Type != "list" && param.Type != "string" {
-			// whole section should be removed, when there will be dedicated function to compare integers
-			// in file https://github.com/PaloAltoNetworks/pango/blob/develop/util/comparison.go
-			renderSpecMatchesFunctionNameWithArguments(parent, builder, param)
-			checkInSpecMatchesFunctionIfVariablesAreNil(builder)
-
-			builder.WriteString("return *a == *b\n")
 			builder.WriteString("}\n")
 		}
 	}
 }
 
-func renderSpecMatchesFunctionNameWithArguments(parent []string, builder *strings.Builder, param *properties.SpecParam) {
-	builder.WriteString(fmt.Sprintf("func specMatch%s%s(a *%s, b *%s) bool {",
+func renderSpecMatchesFunctionSignature(parent []string, builder *strings.Builder, param *properties.SpecParam) {
+	prefix := determinePrefix(param, false)
+	builder.WriteString(fmt.Sprintf("func specMatch%s%s(a %s%s, b %s%s) bool {",
 		strings.Join(parent, ""), param.Name.CamelCase,
-		argumentTypeForSpecMatchesFunction(parent, param),
-		argumentTypeForSpecMatchesFunction(parent, param)))
+		prefix, argumentTypeForSpecMatchesFunction(parent, param),
+		prefix, argumentTypeForSpecMatchesFunction(parent, param)))
 }
 
-func checkInSpecMatchesFunctionIfVariablesAreNil(builder *strings.Builder) {
+func argumentTypeForSpecMatchesFunction(parent []string, param *properties.SpecParam) string {
+	if param.Type == "bool" {
+		return "bool"
+	} else if param.Type == "int" {
+		return "int"
+	} else {
+		return fmt.Sprintf("Spec%s%s",
+			strings.Join(parent, ""), param.Name.CamelCase)
+	}
+}
+
+func checkIfVariablesAreNil(builder *strings.Builder) {
 	builder.WriteString("if a == nil && b != nil || a != nil && b == nil {\n")
 	builder.WriteString("	return false\n")
 	builder.WriteString("} else if a == nil && b == nil {\n")
@@ -245,15 +115,26 @@ func renderInSpecMatchesFunctionIfToCheckIfVariablesMatches(parent []string, bui
 	builder.WriteString("}\n")
 }
 
-func argumentTypeForSpecMatchesFunction(parent []string, param *properties.SpecParam) string {
-	if param.Type == "bool" {
-		return "bool"
-	} else if param.Type == "int" {
-		return "int"
-	} else {
-		return fmt.Sprintf("Spec%s%s",
-			strings.Join(parent, ""), param.Name.CamelCase)
+func renderSpecMatchBodyForTypicalParam(parent []string, param *properties.SpecParam, builder *strings.Builder) {
+	for _, subParam := range param.Spec.Params {
+		renderInSpecMatchesFunctionIfToCheckIfVariablesMatches(parent, builder, param, subParam)
 	}
+	for _, subParam := range param.Spec.OneOf {
+		renderInSpecMatchesFunctionIfToCheckIfVariablesMatches(parent, builder, param, subParam)
+	}
+}
+
+func renderSpecMatchBodyForExtendedEntry(parent []string, builder *strings.Builder, param *properties.SpecParam) {
+	builder.WriteString("for _, a := range a {\n")
+	builder.WriteString("for _, b := range b {\n")
+	for _, subParam := range param.Spec.Params {
+		renderInSpecMatchesFunctionIfToCheckIfVariablesMatches(parent, builder, param, subParam)
+	}
+	for _, subParam := range param.Spec.OneOf {
+		renderInSpecMatchesFunctionIfToCheckIfVariablesMatches(parent, builder, param, subParam)
+	}
+	builder.WriteString("}\n")
+	builder.WriteString("}\n")
 }
 
 // XmlPathSuffixes return XML path suffixes created from profiles.

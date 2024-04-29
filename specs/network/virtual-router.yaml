@@ -1,0 +1,348 @@
+name: 'Virtual router'
+terraform_provider_suffix: 'virtual_router'
+go_sdk_path:
+  - 'network'
+  - 'virtual_router'
+xpath_suffix:
+  - 'network'
+  - 'virtual-router'
+locations:
+  'ngfw':
+    description: 'Located in a specific vsys.'
+    device:
+      panorama: false
+      ngfw: true
+    xpath:
+      - 'config'
+      - 'devices'
+      - '{{ Entry $ngfw_device }}'
+    vars:
+      'ngfw_device':
+        description: 'The NGFW device.'
+        default: 'localhost.localdomain'
+entry:
+  name:
+    description: 'The name of the virtual router.'
+version: '10.1.0'
+spec:
+  params:
+    interfaces:
+      type: list
+      items:
+        type: string
+      profiles:
+        - xpath: [ "interface" ]
+          type: member
+    routing-table:
+      profiles:
+        - xpath: [ "routing-table" ]
+      spec:
+        params:
+          ip:
+            profiles:
+              - xpath: [ "ip" ]
+            spec:
+              params:
+                static-routes:
+                  type: list
+                  items:
+                    type: entry
+                  profiles:
+                    - xpath: [ "static-route", "entry" ]
+                      type: entry
+                  spec:
+                    params:
+                      destination:
+                        type: string
+                        profiles:
+                          - xpath: [ "destination" ]
+                      interface:
+                        type: string
+                        profiles:
+                          - xpath: [ "interface" ]
+                      next-hop:
+                        profiles:
+                          - xpath: [ "nexthop" ]
+                        spec:
+                          params:
+                            ip-address:
+                              type: string
+                              profiles:
+                                - xpath: [ "ip-address" ]
+                            fqdn:
+                              type: string
+                              profiles:
+                                - xpath: [ "fqdn" ]
+                            next-vr:
+                              type: string
+                              profiles:
+                                - xpath: [ "next-vr" ]
+                            tunnel:
+                              type: string
+                              profiles:
+                                - xpath: [ "tunnel" ]
+                      admin-dist:
+                        type: int64
+                        profiles:
+                          - xpath: [ "admin-dist" ]
+                      metric:
+                        type: int64
+                        profiles:
+                          - xpath: [ "metric" ]
+                      route-table:
+                        type: string
+                        profiles:
+                          - xpath: [ "route-table" ]
+          ipv6:
+            profiles:
+              - xpath: [ "ipv6" ]
+            spec:
+              params:
+                static-routes:
+                  type: list
+                  items:
+                    type: entry
+                  profiles:
+                    - xpath: [ "static-route", "entry" ]
+                      type: entry
+                  spec:
+                    params:
+                      destination:
+                        type: string
+                        profiles:
+                          - xpath: [ "destination" ]
+                      interface:
+                        type: string
+                        profiles:
+                          - xpath: [ "interface" ]
+                      next-hop:
+                        profiles:
+                          - xpath: [ "nexthop" ]
+                        spec:
+                          params:
+                            ipv6-address:
+                              type: string
+                              profiles:
+                                - xpath: [ "ipv6-address" ]
+                            fqdn:
+                              type: string
+                              profiles:
+                                - xpath: [ "fqdn" ]
+                            next-vr:
+                              type: string
+                              profiles:
+                                - xpath: [ "next-vr" ]
+                            tunnel:
+                              type: string
+                              profiles:
+                                - xpath: [ "tunnel" ]
+                      admin-dist:
+                        type: int64
+                        profiles:
+                          - xpath: [ "admin-dist" ]
+                      metric:
+                        type: int64
+                        profiles:
+                          - xpath: [ "metric" ]
+                      route-table:
+                        type: string
+                        profiles:
+                          - xpath: [ "route-table" ]
+    protocol:
+      profiles:
+        - xpath: [ "protocol" ]
+      spec:
+        params:
+          bgp:
+            profiles:
+              - xpath: [ "bgp" ]
+            spec:
+              params:
+                enable:
+                  type: bool
+                  profiles:
+                    - xpath: [ "enable" ]
+          rip:
+            profiles:
+              - xpath: [ "rip" ]
+            spec:
+              params:
+                enable:
+                  type: bool
+                  profiles:
+                    - xpath: [ "enable" ]
+          ospf:
+            profiles:
+              - xpath: [ "ospf" ]
+            spec:
+              params:
+                enable:
+                  type: bool
+                  profiles:
+                    - xpath: [ "enable" ]
+          ospfv3:
+            profiles:
+              - xpath: [ "ospfv3" ]
+            spec:
+              params:
+                enable:
+                  type: bool
+                  profiles:
+                    - xpath: [ "enable" ]
+    ecmp:
+      profiles:
+        - xpath: [ "ecmp" ]
+      spec:
+        params:
+          enable:
+            type: bool
+            profiles:
+              - xpath: [ "enable" ]
+          symmetric-return:
+            type: bool
+            profiles:
+              - xpath: [ "symmetric-return" ]
+          strict-source-path:
+            type: bool
+            profiles:
+              - xpath: [ "strict-source-path" ]
+          max-paths:
+            type: int64
+            value:
+              min: 2
+              max: 4
+            profiles:
+              - xpath: [ "max-path" ]
+          algorithm:
+            profiles:
+              - xpath: [ "algorithm" ]
+            spec:
+              params:
+                ip-modulo:
+                  profiles:
+                    - xpath: [ "ip-modulo" ]
+                  spec:
+                    params:
+                ip-hash:
+                  profiles:
+                    - xpath: [ "ip-hash" ]
+                  spec:
+                    params:
+                      src-only:
+                        type: bool
+                        profiles:
+                          - xpath: [ "src-only" ]
+                      use-port:
+                        type: bool
+                        profiles:
+                          - xpath: [ "use-port" ]
+                      hash-seed:
+                        type: int64
+                        value:
+                          min: 0
+                          max: 4294967295
+                        profiles:
+                          - xpath: [ "hash-seed" ]
+                weighted-round-robin:
+                  profiles:
+                    - xpath: [ "weighted-round-robin" ]
+                  spec:
+                    params:
+                      interfaces:
+                        type: list
+                        items:
+                          type: entry
+                        profiles:
+                          - xpath: [ "interface", "entry" ]
+                            type: entry
+                        spec:
+                          params:
+                            weight:
+                              type: int64
+                              value:
+                                min: 1
+                                max: 255
+                              profiles:
+                                - xpath: [ "weight" ]
+                balanced-round-robin:
+                  profiles:
+                    - xpath: [ "balanced-round-robin" ]
+                  spec:
+                    params:
+    administrative-distances:
+      profiles:
+        - xpath: [ "admin-dists" ]
+      spec:
+        params:
+          static:
+            type: int64
+            default: 10
+            value:
+              min: 10
+              max: 240
+            profiles:
+              - xpath: [ "static" ]
+          static-ipv6:
+            type: int64
+            default: 10
+            value:
+              min: 10
+              max: 240
+            profiles:
+              - xpath: [ "static-ipv6" ]
+          ospf-int:
+            type: int64
+            default: 30
+            value:
+              min: 10
+              max: 240
+            profiles:
+              - xpath: [ "ospf-int" ]
+          ospf-ext:
+            type: int64
+            default: 110
+            value:
+              min: 10
+              max: 240
+            profiles:
+              - xpath: [ "ospf-ext" ]
+          ospfv3-int:
+            type: int64
+            default: 30
+            value:
+              min: 10
+              max: 240
+            profiles:
+              - xpath: [ "ospfv3-int" ]
+          ospfv3-ext:
+            type: int64
+            default: 110
+            value:
+              min: 10
+              max: 240
+            profiles:
+              - xpath: [ "ospfv3-ext" ]
+          ibgp:
+            type: int64
+            default: 200
+            value:
+              min: 10
+              max: 240
+            profiles:
+              - xpath: [ "ibgp" ]
+          ebgp:
+            type: int64
+            default: 20
+            value:
+              min: 10
+              max: 240
+            profiles:
+              - xpath: [ "ebgp" ]
+          rip:
+            type: int64
+            default: 120
+            value:
+              min: 10
+              max: 240
+            profiles:
+              - xpath: [ "rip" ]

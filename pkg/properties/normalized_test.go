@@ -410,7 +410,7 @@ func TestGetNormalizations(t *testing.T) {
 
 	// then
 	assert.NotNil(t, config)
-	assert.GreaterOrEqual(t, 15, len(config), "Expected to have 15 spec YAML files")
+	assert.LessOrEqual(t, 15, len(config), "Expected to have 15 spec YAML files")
 }
 
 func TestSanity(t *testing.T) {

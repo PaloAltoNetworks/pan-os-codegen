@@ -1,0 +1,179 @@
+name: 'Ethernet interface'
+terraform_provider_suffix: 'ethernet_interface'
+go_sdk_path:
+  - 'network'
+  - 'interface'
+  - 'ethernet'
+xpath_suffix:
+  - 'network'
+  - 'interface'
+  - 'ethernet'
+locations:
+  'ngfw':
+    description: 'Located in a specific vsys.'
+    device:
+      panorama: false
+      ngfw: true
+    xpath:
+      - 'config'
+      - 'devices'
+      - '{{ Entry $ngfw_device }}'
+    vars:
+      'ngfw_device':
+        description: 'The NGFW device.'
+        default: 'localhost.localdomain'
+entry:
+  name:
+    description: 'The name of the ethernet interface.'
+version: '10.1.0'
+spec:
+  params:
+    comment:
+      type: string
+      length:
+        min: 0
+        max: 1023
+      profiles:
+        - xpath: [ "comment" ]
+    link-state:
+      type: string
+      default: 'auto'
+      values: [ 'auto', 'up', 'down' ]
+      profiles:
+        - xpath: [ "link-state" ]
+  one_of:
+    tap:
+      description: 'Tap mode interface'
+      profiles:
+        - xpath: [ "tap" ]
+      spec:
+        params:
+          netflow-profile:
+            type: string
+            profiles:
+              - xpath: [ "netflow-profile" ]
+    ha:
+      description: 'HA mode interface'
+      profiles:
+        - xpath: [ "ha" ]
+      spec:
+        params:
+    layer3:
+      description: 'Layer 3 interface'
+      profiles:
+        - xpath: [ "layer3" ]
+      spec:
+        params:
+          ndp-proxy:
+            type: bool
+            profiles:
+              - xpath: [ "ndp-proxy", "enabled" ]
+          lldp:
+            type: bool
+            profiles:
+              - xpath: [ "lldp", "enable" ]
+          mtu:
+            type: int64
+            description: "Maximum Transfer Unit, up to 9216 in Jumbo-Frame mode, up to 1500 otherwise"
+            value:
+              min: 576
+              max: 9216
+            profiles:
+              - xpath: [ "mtu" ]
+          ips:
+            type: list
+            description: "IP addresses or address objects names"
+            items:
+              type: string
+            profiles:
+              - type: entry
+                xpath: [ "ip" ]
+          ipv6:
+            profiles:
+              - xpath: [ "ipv6" ]
+            spec:
+              params:
+                enabled:
+                  type: bool
+                  profiles:
+                    - xpath: [ "enabled" ]
+                addresses:
+                  type: list
+                  items:
+                    type: entry
+                  profiles:
+                    - type: entry
+                      xpath: [ "address", "entry" ]
+                  spec:
+                    params:
+                      enable-on-interface:
+                        type: bool
+                        profiles:
+                          - xpath: [ "enable-on-interface" ]
+          dhcp-client:
+            profiles:
+              - xpath: [ "dhcp-client" ]
+            spec:
+              params:
+                enable:
+                  type: bool
+                  default: true
+                  profiles:
+                    - xpath: [ "enable" ]
+                create-default-route:
+                  type: bool
+                  default: true
+                  profiles:
+                    - xpath: [ "create-default-route" ]
+                default-route-metric:
+                  type: int64
+                  default: 10
+                  value:
+                    min: 1
+                    max: 65535
+                  profiles:
+                    - xpath: [ "default-route-metric" ]
+                send-hostname:
+                  profiles:
+                    - xpath: [ "send-hostname" ]
+                  spec:
+                    params:
+                      enable:
+                        type: bool
+                        profiles:
+                          - xpath: [ "enable" ]
+                      hostname:
+                        type: string
+                        profiles:
+                          - xpath: [ "hostname" ]
+          interface-management-profile:
+            type: string
+            profiles:
+              - xpath: [ "interface-management-profile" ]
+          netflow-profile:
+            type: string
+            profiles:
+              - xpath: [ "netflow-profile" ]
+          adjust-tcp-mss:
+            profiles:
+              - xpath: [ "adjust-tcp-mss" ]
+            spec:
+              params:
+                enable:
+                  type: bool
+                  profiles:
+                    - xpath: [ "enable" ]
+                ipv4-mss-adjustment:
+                  type: int64
+                  values:
+                    min: 40
+                    max: 300
+                  profiles:
+                    - xpath: [ "ipv4-mss-adjustment" ]
+                ipv6-mss-adjustment:
+                  type: int64
+                  values:
+                    min: 40
+                    max: 300
+                  profiles:
+                    - xpath: [ "ipv6-mss-adjustment" ]

@@ -38,7 +38,7 @@ spec:
   params:
     description:
       description: 'The description.'
-      type: 'string'
+      type: string
       length:
         min: 0
         max: 255
@@ -47,20 +47,20 @@ spec:
           xpath: ["description"]
     templates:
       description: 'List of templates'
-      type: 'list'
+      type: list
       items:
-        type: 'object'
+        type: object
         ref:
           - '#/specs/panorama/template.yaml'
       profiles:
         -
-          type: 'member'
+          type: member
           xpath: ["templates"]
     devices:
       description: 'List of devices'
-      type: 'list'
+      type: list
       items:
-        type: 'string'
+        type: string
       profiles:
         -
           type: 'entry'

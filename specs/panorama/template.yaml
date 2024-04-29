@@ -38,7 +38,7 @@ spec:
   params:
     description:
       description: 'The description.'
-      type: 'string'
+      type: string
       length:
         min: 0
         max: 255
@@ -47,7 +47,7 @@ spec:
           xpath: ["description"]
     default_vsys:
       description: 'Default virtual system'
-      type: 'string'
+      type: string
       profiles:
         -
           xpath: ['settings/default-vsys']
