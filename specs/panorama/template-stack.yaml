@@ -53,5 +53,20 @@ spec:
         type: string
       profiles:
         -
-          type: 'entry'
+          type: entry
           xpath: ["devices"]
+    default-vsys:
+      description: 'Default virtual system'
+      type: string
+      profiles:
+        -
+          xpath: ["settings", "default-vsys"]
+    user-group-source:
+      profiles:
+        - xpath: ["user-group-source"]
+      spec:
+        params:
+          master-device:
+            type: string
+            profiles:
+              - xpath: ["master-device"]

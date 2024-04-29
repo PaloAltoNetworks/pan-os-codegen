@@ -76,6 +76,15 @@ func checkTemplate(c *pango.XmlApiClient, ctx context.Context) {
 	entry := template.Entry{
 		Name:        "codegen_template",
 		Description: util.String("This is a template created by codegen."),
+		DefaultVsys: util.String("vsys1"),
+		Config: &template.SpecConfig{
+			Devices: []template.SpecConfigDevices{
+				{
+					Name: "localhost.localdomain",
+					Vsys: []string{"vsys1"},
+				},
+			},
+		},
 	}
 
 	location := template.Location{
@@ -98,6 +107,10 @@ func checkTemplateStack(c *pango.XmlApiClient, ctx context.Context) {
 		Name:        "codegen_template_stack",
 		Description: util.String("This is a template stack created by codegen."),
 		Templates:   []string{"codegen_template"},
+		UserGroupSource: &template_stack.SpecUserGroupSource{
+			MasterDevice: util.String(""),
+		},
+		DefaultVsys: util.String("vsys1"),
 	}
 
 	location := template_stack.Location{

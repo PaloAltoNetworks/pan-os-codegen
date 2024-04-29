@@ -37,9 +37,33 @@ spec:
       profiles:
         -
           xpath: ["description"]
-    default_vsys:
+    default-vsys:
       description: 'Default virtual system'
       type: string
       profiles:
         -
-          xpath: ['settings/default-vsys']
+          xpath: ["settings", "default-vsys"]
+    config:
+      profiles:
+        -
+          xpath: ["config"]
+      spec:
+        params:
+          devices:
+            type: list
+            items:
+              type: entry
+            profiles:
+              -
+                xpath: ["devices", "entry"]
+                type: entry
+            spec:
+              params:
+                vsys:
+                  type: list
+                  items:
+                    type: string
+                  profiles:
+                    -
+                      xpath: ["vsys"]
+                      type: entry
