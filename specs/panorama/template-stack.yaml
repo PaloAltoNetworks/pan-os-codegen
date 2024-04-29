@@ -15,18 +15,10 @@ locations:
       - 'config'
       - 'devices'
       - '{{ Entry $ngfw_device }}'
-      - 'vsys'
-      - '{{ Entry $vsys }}'
     vars:
       'ngfw_device':
         description: 'The NGFW device.'
         default: 'localhost.localdomain'
-      'vsys':
-        description: 'The vsys.'
-        default: 'vsys1'
-        validation:
-          not_values:
-            'shared': 'The vsys cannot be "shared". Use the "shared" path instead.'
 entry:
   name:
     description: 'The name of the template stack.'
@@ -49,9 +41,7 @@ spec:
       description: 'List of templates'
       type: list
       items:
-        type: object
-        ref:
-          - '#/specs/panorama/template.yaml'
+        type: string
       profiles:
         -
           type: member

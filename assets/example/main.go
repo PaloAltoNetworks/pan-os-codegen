@@ -17,6 +17,8 @@ import (
 	"github.com/PaloAltoNetworks/pango/objects/address"
 	"github.com/PaloAltoNetworks/pango/objects/service"
 	"github.com/PaloAltoNetworks/pango/objects/tag"
+	"github.com/PaloAltoNetworks/pango/panorama/template"
+	"github.com/PaloAltoNetworks/pango/panorama/template_stack"
 	"github.com/PaloAltoNetworks/pango/policies/rules/security"
 	"github.com/PaloAltoNetworks/pango/rule"
 	"github.com/PaloAltoNetworks/pango/util"
@@ -42,22 +44,73 @@ func main() {
 		return
 	}
 
+	if ok, _ := c.IsPanorama(); ok {
+		log.Printf("Connected to Panorama, so templates and device groups are going to be created")
+		checkTemplate(c, ctx)
+		checkTemplateStack(c, ctx)
+	} else {
+		log.Printf("Connected to firewall, so templates and device groups are not going to be created")
+	}
+
 	// CHECKS
-	checkVr(c, ctx)
-	checkZone(c, ctx)
-	checkInterfaceMgmtProfile(c, ctx)
-	checkEthernetLayer3Static(c, ctx)
-	checkEthernetLayer3Dhcp(c, ctx)
-	checkEthernetHa(c, ctx)
-	checkLoopback(c, ctx)
-	checkVrZoneWithEthernet(c, ctx)
-	checkSecurityPolicyRules(c, ctx)
-	checkSecurityPolicyRulesMove(c, ctx)
-	checkTag(c, ctx)
-	checkAddress(c, ctx)
-	checkService(c, ctx)
-	checkNtp(c, ctx)
-	checkDns(c, ctx)
+	// checkVr(c, ctx)
+	// checkZone(c, ctx)
+	// checkInterfaceMgmtProfile(c, ctx)
+	// checkEthernetLayer3Static(c, ctx)
+	// checkEthernetLayer3Dhcp(c, ctx)
+	// checkEthernetHa(c, ctx)
+	// checkLoopback(c, ctx)
+	// checkVrZoneWithEthernet(c, ctx)
+	// checkSecurityPolicyRules(c, ctx)
+	// checkSecurityPolicyRulesMove(c, ctx)
+	// checkTag(c, ctx)
+	// checkAddress(c, ctx)
+	// checkService(c, ctx)
+	// checkNtp(c, ctx)
+	// checkDns(c, ctx)
+}
+
+func checkTemplate(c *pango.XmlApiClient, ctx context.Context) {
+	entry := template.Entry{
+		Name:        "codegen_template",
+		Description: util.String("This is a template created by codegen."),
+	}
+
+	location := template.Location{
+		Vsys: &template.VsysLocation{
+			NgfwDevice: "localhost.localdomain",
+		},
+	}
+	api := template.NewService(c)
+
+	reply, err := api.Create(ctx, location, entry)
+	if err != nil {
+		log.Printf("Failed to create template: %s", err)
+		return
+	}
+	log.Printf("Template %s created\n", reply.Name)
+}
+
+func checkTemplateStack(c *pango.XmlApiClient, ctx context.Context) {
+	entry := template_stack.Entry{
+		Name:        "codegen_template_stack",
+		Description: util.String("This is a template stack created by codegen."),
+		Templates:   []string{"codegen_template"},
+	}
+
+	location := template_stack.Location{
+		Vsys: &template_stack.VsysLocation{
+			NgfwDevice: "localhost.localdomain",
+		},
+	}
+	api := template_stack.NewService(c)
+
+	reply, err := api.Create(ctx, location, entry)
+	if err != nil {
+		log.Printf("Failed to create template stack: %s", err)
+		return
+	}
+	log.Printf("Template stack %s created\n", reply.Name)
 }
 
 func checkVr(c *pango.XmlApiClient, ctx context.Context) {
