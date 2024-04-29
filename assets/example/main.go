@@ -15,7 +15,9 @@ import (
 	"github.com/PaloAltoNetworks/pango/network/virtual_router"
 	"github.com/PaloAltoNetworks/pango/network/zone"
 	"github.com/PaloAltoNetworks/pango/objects/address"
+	address_group "github.com/PaloAltoNetworks/pango/objects/address/group"
 	"github.com/PaloAltoNetworks/pango/objects/service"
+	service_group "github.com/PaloAltoNetworks/pango/objects/service/group"
 	"github.com/PaloAltoNetworks/pango/objects/tag"
 	"github.com/PaloAltoNetworks/pango/panorama/device_group"
 	"github.com/PaloAltoNetworks/pango/panorama/template"
@@ -883,6 +885,42 @@ func checkAddress(c *pango.XmlApiClient, ctx context.Context) {
 		}
 	}
 
+	// ADDRESS - GROUP
+	addressGroupObject := address_group.Entry{
+		Name:   "codegen_address_group_test1",
+		Static: []string{addressReply.Name},
+	}
+
+	var addressGroupLocation address_group.Location
+	if ok, _ := c.IsPanorama(); ok {
+		addressGroupLocation = address_group.Location{
+			DeviceGroup: &address_group.DeviceGroupLocation{
+				PanoramaDevice: "localhost.localdomain",
+				DeviceGroup:    "codegen_device_group",
+			},
+		}
+	} else {
+		addressGroupLocation = address_group.Location{
+			Shared: true,
+		}
+	}
+
+	addressGroupApi := address_group.NewService(c)
+	addressGroupReply, err := addressGroupApi.Create(ctx, addressGroupLocation, addressGroupObject)
+	if err != nil {
+		log.Printf("Failed to create object: %s", err)
+		return
+	}
+	log.Printf("Address group '%s' created", addressGroupReply.Name)
+
+	// ADDRESS - GROUP - DELETE
+	err = addressGroupApi.Delete(ctx, addressGroupLocation, addressGroupReply.Name)
+	if err != nil {
+		log.Printf("Failed to delete object: %s", err)
+		return
+	}
+	log.Printf("Address group '%s' deleted", addressGroupReply.Name)
+
 	// ADDRESS - DELETE
 	err = addressApi.Delete(ctx, addressLocation, addressReply.Name)
 	if err != nil {
@@ -964,6 +1002,46 @@ func checkService(c *pango.XmlApiClient, ctx context.Context) {
 	}
 	log.Printf("Service '%s=%d' renamed", serviceReply.Name, *serviceReply.Protocol.Tcp.DestinationPort)
 
+	// SERVICE GROUP ADD
+	serviceGroupEntry := service_group.Entry{
+		Name:    "codegen_service_group_test1",
+		Members: []string{serviceReply.Name},
+	}
+
+	var serviceGroupLocation service_group.Location
+	if ok, _ := c.IsPanorama(); ok {
+		serviceGroupLocation = service_group.Location{
+			DeviceGroup: &service_group.DeviceGroupLocation{
+				PanoramaDevice: "localhost.localdomain",
+				DeviceGroup:    "codegen_device_group",
+			},
+		}
+	} else {
+		serviceGroupLocation = service_group.Location{
+			Shared: false,
+			Vsys: &service_group.VsysLocation{
+				NgfwDevice: "localhost.localdomain",
+				Vsys:       "vsys1",
+			},
+		}
+	}
+
+	serviceGroupApi := service_group.NewService(c)
+	serviceGroupReply, err := serviceGroupApi.Create(ctx, serviceGroupLocation, serviceGroupEntry)
+	if err != nil {
+		log.Printf("Failed to create object: %s", err)
+		return
+	}
+	log.Printf("Service group '%s' created", serviceGroupReply.Name)
+
+	// SERVICE GROUP DELETE
+	err = serviceGroupApi.Delete(ctx, serviceGroupLocation, serviceGroupReply.Name)
+	if err != nil {
+		log.Printf("Failed to delete object: %s", err)
+		return
+	}
+	log.Printf("Service group '%s' deleted", serviceGroupReply.Name)
+
 	// SERVICE - LIST
 	//services, err := serviceApi.List(ctx, serviceLocation, "get", "name starts-with 'test'", "'")
 	services, err := serviceApi.List(ctx, serviceLocation, "get", "", "")
@@ -976,12 +1054,12 @@ func checkService(c *pango.XmlApiClient, ctx context.Context) {
 	}
 
 	// SERVICE - DELETE
-	err = serviceApi.Delete(ctx, serviceLocation, newServiceName)
-	if err != nil {
-		log.Printf("Failed to delete object: %s", err)
-		return
-	}
-	log.Printf("Service '%s' deleted", newServiceName)
+	// err = serviceApi.Delete(ctx, serviceLocation, newServiceName)
+	// if err != nil {
+	// 	log.Printf("Failed to delete object: %s", err)
+	// 	return
+	// }
+	// log.Printf("Service '%s' deleted", newServiceName)
 
 	// SERVICE - READ
 	serviceLocation = service.Location{
