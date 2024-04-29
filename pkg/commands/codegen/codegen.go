@@ -9,6 +9,13 @@ import (
 	"log"
 )
 
+type CommandType string
+
+const (
+	CommandTypeSDK       CommandType = "sdk"
+	CommandTypeTerraform CommandType = "terraform"
+)
+
 type Command struct {
 	ctx          context.Context
 	args         []string

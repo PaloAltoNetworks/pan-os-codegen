@@ -2,7 +2,6 @@ package provider
 
 import (
 	"context"
-	"github.com/paloaltonetworks/pan-os-codegen/assets/provider"
 
 	"github.com/PaloAltoNetworks/pango"
 
@@ -13,10 +12,10 @@ import (
 )
 
 type genericTfid struct {
-	Name     *string             `json:"name,omitempty"`
-	Names    []string            `json:"names,omitempty"`
-	Rules    []provider.RuleInfo `json:"rules,omitempty"`
-	Location map[string]any      `json:"location"`
+	Name     *string        `json:"name,omitempty"`
+	Names    []string       `json:"names,omitempty"`
+	Rules    []RuleInfo     `json:"rules,omitempty"`
+	Location map[string]any `json:"location"`
 }
 
 func (g genericTfid) IsValid() error { return nil }
@@ -151,9 +150,9 @@ func (d *tfidDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 	}
 
 	if len(state.Rules) > 0 {
-		tfid.Rules = make([]provider.RuleInfo, 0, len(state.Rules))
+		tfid.Rules = make([]RuleInfo, 0, len(state.Rules))
 		for _, x := range state.Rules {
-			tfid.Rules = append(tfid.Rules, provider.RuleInfo{
+			tfid.Rules = append(tfid.Rules, RuleInfo{
 				Name: x.Name.ValueString(),
 				Uuid: x.Uuid.ValueString(),
 			})
