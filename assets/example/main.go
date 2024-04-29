@@ -1054,12 +1054,12 @@ func checkService(c *pango.XmlApiClient, ctx context.Context) {
 	}
 
 	// SERVICE - DELETE
-	// err = serviceApi.Delete(ctx, serviceLocation, newServiceName)
-	// if err != nil {
-	// 	log.Printf("Failed to delete object: %s", err)
-	// 	return
-	// }
-	// log.Printf("Service '%s' deleted", newServiceName)
+	err = serviceApi.Delete(ctx, serviceLocation, newServiceName)
+	if err != nil {
+		log.Printf("Failed to delete object: %s", err)
+		return
+	}
+	log.Printf("Service '%s' deleted", newServiceName)
 
 	// SERVICE - READ
 	serviceLocation = service.Location{
