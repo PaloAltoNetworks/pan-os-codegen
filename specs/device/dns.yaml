@@ -51,7 +51,7 @@ spec:
   params:
     fqdn_refresh_time:
       description: 'Seconds for Periodic Timer to refresh expired FQDN object entries'
-      type: 'int'
+      type: int64
       value:
         min: 600
         max: 14399

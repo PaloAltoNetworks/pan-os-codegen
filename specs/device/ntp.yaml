@@ -89,7 +89,7 @@ spec:
                           params:
                             key_id:
                               description: 'Symmetric Key Number'
-                              type: 'int'
+                              type: int64
                               value:
                                 min: 1
                                 max: 65534
@@ -163,7 +163,7 @@ spec:
                           params:
                             key_id:
                               description: 'Symmetric Key Number'
-                              type: 'int'
+                              type: int64
                               value:
                                 min: 1
                                 max: 65534

@@ -29,7 +29,7 @@ version: '10.1.0'
 spec:
   params:
     comment:
-      type: 'string'
+      type: string
       length:
         min: 0
         max: 1023
@@ -71,9 +71,9 @@ spec:
           lldp:
             type: bool
             profiles:
-              - xpath: [ "lldp", "enabled" ]
+              - xpath: [ "lldp", "enable" ]
           mtu:
-            type: int
+            type: int64
             description: "Maximum Transfer Unit, up to 9216 in Jumbo-Frame mode, up to 1500 otherwise"
             value:
               min: 576
@@ -110,6 +110,42 @@ spec:
                         type: bool
                         profiles:
                           - xpath: [ "enable-on-interface" ]
+          dhcp-client:
+            profiles:
+              - xpath: [ "dhcp-client" ]
+            spec:
+              params:
+                enable:
+                  type: bool
+                  default: true
+                  profiles:
+                    - xpath: [ "enable" ]
+                create-default-route:
+                  type: bool
+                  default: true
+                  profiles:
+                    - xpath: [ "create-default-route" ]
+                default-route-metric:
+                  type: int64
+                  default: 10
+                  value:
+                    min: 1
+                    max: 65535
+                  profiles:
+                    - xpath: [ "default-route-metric" ]
+                send-hostname:
+                  profiles:
+                    - xpath: [ "send-hostname" ]
+                  spec:
+                    params:
+                      enable:
+                        type: bool
+                        profiles:
+                          - xpath: [ "enable" ]
+                      hostname:
+                        type: string
+                        profiles:
+                          - xpath: [ "hostname" ]
           interface-management-profile:
             type: string
             profiles:
@@ -128,14 +164,14 @@ spec:
                   profiles:
                     - xpath: [ "enable" ]
                 ipv4-mss-adjustment:
-                  type: int
+                  type: int64
                   values:
                     min: 40
                     max: 300
                   profiles:
                     - xpath: [ "ipv4-mss-adjustment" ]
                 ipv6-mss-adjustment:
-                  type: int
+                  type: int64
                   values:
                     min: 40
                     max: 300

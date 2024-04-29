@@ -92,7 +92,7 @@ spec:
   params:
     description:
       description: 'The description.'
-      type: 'string'
+      type: string
       length:
         min: 0
         max: 1023
@@ -109,16 +109,16 @@ spec:
         - xpath: [ "uuid" ]
     tags:
       description: 'The administrative tags.'
-      type: 'list'
+      type: list
       count:
         max: 64
       items:
-        type: 'string'
+        type: string
         length:
           max: 127
       profiles:
         -
-          type: 'member'
+          type: member
           xpath: ["tag"]
     source_zones:
       description: 'Source zones'
@@ -126,10 +126,10 @@ spec:
       count:
         max: 31
       items:
-        type: 'string'
+        type: string
       profiles:
         -
-          type: 'member'
+          type: member
           xpath: ["from"]
     destination_zones:
       description: 'Destination zones'
@@ -137,10 +137,10 @@ spec:
       count:
         max: 31
       items:
-        type: 'string'
+        type: string
       profiles:
         -
-          type: 'member'
+          type: member
           xpath: ["to"]
     source_addresses:
       description: 'Source addresses'
@@ -148,10 +148,10 @@ spec:
       count:
         max: 63
       items:
-        type: 'string'
+        type: string
       profiles:
         -
-          type: 'member'
+          type: member
           xpath: ["source"]
     destination_addresses:
       description: 'Destination addresses'
@@ -159,10 +159,10 @@ spec:
       count:
         max: 63
       items:
-        type: 'string'
+        type: string
       profiles:
         -
-          type: 'member'
+          type: member
           xpath: ["destination"]
     source_users:
       description: 'Source users'
@@ -170,10 +170,10 @@ spec:
       count:
         max: 1023
       items:
-        type: 'string'
+        type: string
       profiles:
         -
-          type: 'member'
+          type: member
           xpath: ["source-user"]
     services:
       description: 'Services'
@@ -181,10 +181,10 @@ spec:
       count:
         max: 63
       items:
-        type: 'string'
+        type: string
       profiles:
         -
-          type: 'member'
+          type: member
           xpath: ["service"]
     categories:
       description: 'Categories'
@@ -192,10 +192,10 @@ spec:
       count:
         max: 63
       items:
-        type: 'string'
+        type: string
       profiles:
         -
-          type: 'member'
+          type: member
           xpath: ["category"]
     applications:
       description: 'Applications'
@@ -203,10 +203,10 @@ spec:
       count:
         max: 63
       items:
-        type: 'string'
+        type: string
       profiles:
         -
-          type: 'member'
+          type: member
           xpath: ["application"]
     source_hips:
       description: 'Source HIPs'
@@ -214,10 +214,10 @@ spec:
       count:
         max: 63
       items:
-        type: 'string'
+        type: string
       profiles:
         -
-          type: 'member'
+          type: member
           xpath: ["source-hip"]
     destination_hips:
       description: 'Destination HIPs'
@@ -225,10 +225,10 @@ spec:
       count:
         max: 63
       items:
-        type: 'string'
+        type: string
       profiles:
         -
-          type: 'member'
+          type: member
           xpath: ["destination-hip"]
     negate_source:
       description: 'Negate source address'
@@ -315,9 +315,9 @@ spec:
                   count:
                     max: 1
                   items:
-                    type: 'string'
+                    type: string
                   profiles:
-                    - type: 'member'
+                    - type: member
                       xpath: [ "virus" ]
                 spyware:
                   description: 'Anti-Spyware profile'
@@ -325,9 +325,9 @@ spec:
                   count:
                     max: 1
                   items:
-                    type: 'string'
+                    type: string
                   profiles:
-                    - type: 'member'
+                    - type: member
                       xpath: [ "spyware" ]
                 vulnerability:
                   description: 'Vulnerability Protection profile'
@@ -335,9 +335,9 @@ spec:
                   count:
                     max: 1
                   items:
-                    type: 'string'
+                    type: string
                   profiles:
-                    - type: 'member'
+                    - type: member
                       xpath: [ "vulnerability" ]
                 url_filtering:
                   description: 'URL filtering profile'
@@ -345,9 +345,9 @@ spec:
                   count:
                     max: 1
                   items:
-                    type: 'string'
+                    type: string
                   profiles:
-                    - type: 'member'
+                    - type: member
                       xpath: [ "url-filtering" ]
                 file_blocking:
                   description: 'File blocking profile'
@@ -355,9 +355,9 @@ spec:
                   count:
                     max: 1
                   items:
-                    type: 'string'
+                    type: string
                   profiles:
-                    - type: 'member'
+                    - type: member
                       xpath: [ "file-blocking" ]
                 wildfire_analysis:
                   description: 'WildFire analysis profile'
@@ -365,9 +365,9 @@ spec:
                   count:
                     max: 1
                   items:
-                    type: 'string'
+                    type: string
                   profiles:
-                    - type: 'member'
+                    - type: member
                       xpath: [ "wildfire-analysis" ]
                 data_filtering:
                   description: 'Data filtering profile'
@@ -375,7 +375,7 @@ spec:
                   count:
                     max: 1
                   items:
-                    type: 'string'
+                    type: string
                   profiles:
-                    - type: 'member'
+                    - type: member
                       xpath: [ "data-filtering" ]

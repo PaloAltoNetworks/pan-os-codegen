@@ -72,7 +72,7 @@ spec:
   params:
     description:
       description: 'The description.'
-      type: 'string'
+      type: string
       length:
         min: 0
         max: 1023
@@ -81,28 +81,28 @@ spec:
           xpath: ["description"]
     members:
       description: 'Service group members.'
-      type: 'list'
+      type: list
       count:
         max: 63
       items:
-        type: 'object'
+        type: object
         ref:
           - '#/specs/objects/service.yaml'
           - '#/specs/objects/service-group.yaml'
       profiles:
         -
-          type: 'member'
+          type: member
           xpath: ["members"]
     tags:
       description: 'The administrative tags.'
-      type: 'list'
+      type: list
       count:
         max: 64
       items:
-        type: 'string'
+        type: string
         length:
           max: 127
       profiles:
         -
-          type: 'member'
+          type: member
           xpath: ["tag"]

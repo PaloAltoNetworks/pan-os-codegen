@@ -72,7 +72,7 @@ spec:
   params:
     description:
       description: 'The description.'
-      type: 'string'
+      type: string
       length:
         min: 0
         max: 1023
@@ -81,30 +81,30 @@ spec:
           xpath: ["description"]
     tags:
       description: 'The administrative tags.'
-      type: 'list'
+      type: list
       count:
         max: 64
       items:
-        type: 'string'
+        type: string
         length:
           max: 127
       profiles:
         -
-          type: 'member'
+          type: member
           xpath: ["tag"]
   one_of:
     'static':
-      type: 'list'
+      type: list
       count:
         min: 1
       items:
-        type: 'object'
+        type: object
         ref:
           - '#/specs/objects/address.yaml'
           - '#/specs/objects/address-group.yaml'
       profiles:
         -
-          type: 'member'
+          type: member
           xpath: ["static"]
     'dynamic':
       length:
