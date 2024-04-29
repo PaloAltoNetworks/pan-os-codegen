@@ -121,7 +121,15 @@ func checkTemplateStack(c *pango.Client, ctx context.Context) {
 		DefaultVsys: util.String("vsys1"),
 	}
 
+<<<<<<< HEAD:assets/pango/example/main.go
 	location := template_stack.NewPanoramaLocation()
+=======
+	location := template_stack.Location{
+		Panorama: &template_stack.PanoramaLocation{
+			PanoramaDevice: "localhost.localdomain",
+		},
+	}
+>>>>>>> ba0f7e2... Extend example to create device group:assets/example/main.go
 	api := template_stack.NewService(c)
 
 	reply, err := api.Create(ctx, *location, entry)
@@ -132,18 +140,34 @@ func checkTemplateStack(c *pango.Client, ctx context.Context) {
 	log.Printf("Template stack %s created\n", reply.Name)
 }
 
+<<<<<<< HEAD:assets/pango/example/main.go
 func checkDeviceGroup(c *pango.Client, ctx context.Context) {
+=======
+func checkDeviceGroup(c *pango.XmlApiClient, ctx context.Context) {
+>>>>>>> ba0f7e2... Extend example to create device group:assets/example/main.go
 	entry := device_group.Entry{
 		Name:        "codegen_device_group",
 		Description: util.String("This is a device group created by codegen."),
 		Templates:   []string{"codegen_template"},
 	}
 
+<<<<<<< HEAD:assets/pango/example/main.go
 	location := device_group.NewPanoramaLocation()
 
 	api := device_group.NewService(c)
 
 	reply, err := api.Create(ctx, *location, entry)
+=======
+	location := device_group.Location{
+		Panorama: &device_group.PanoramaLocation{
+			PanoramaDevice: "localhost.localdomain",
+		},
+	}
+
+	api := device_group.NewService(c)
+
+	reply, err := api.Create(ctx, location, entry)
+>>>>>>> ba0f7e2... Extend example to create device group:assets/example/main.go
 	if err != nil {
 		log.Printf("Failed to create device group: %s", err)
 		return
@@ -151,6 +175,7 @@ func checkDeviceGroup(c *pango.Client, ctx context.Context) {
 	log.Printf("Device group %s created\n", reply.Name)
 }
 
+<<<<<<< HEAD:assets/pango/example/main.go
 func checkSharedObjects(c *pango.Client, ctx context.Context) {
 	if ok, _ := c.IsPanorama(); ok {
 		addressObject := address.Entry{
@@ -180,6 +205,9 @@ func checkSharedObjects(c *pango.Client, ctx context.Context) {
 }
 
 func checkVr(c *pango.Client, ctx context.Context) {
+=======
+func checkVr(c *pango.XmlApiClient, ctx context.Context) {
+>>>>>>> ba0f7e2... Extend example to create device group:assets/example/main.go
 	entry := virtual_router.Entry{
 		Name: "codegen_vr",
 		Protocol: &virtual_router.Protocol{
