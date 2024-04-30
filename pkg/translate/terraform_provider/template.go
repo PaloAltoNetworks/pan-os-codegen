@@ -46,7 +46,21 @@ type {{ structName }}DeviceGroupLocation struct {
 
 type {{ structName }}Model struct {
 // TODO: Entry model struct via function
+		{{ TfidResourceModel }}
+        {{- range $pName, $pParam := $.Spec.Params}}
+            {{ ParamToModel $pName $pParam structName }}
+        {{- end}}
+        {{- range $pName, $pParam := $.Spec.OneOf}}
+            {{ ParamToModel $pName $pParam structName }}
+        {{- end}}
 }
+
+{{- range $pName, $pParam := $.Spec.Params}}
+	{{ CalculateModelStruct $pName $pParam structName }}
+{{- end}}
+{{- range $pName, $pParam := $.Spec.OneOf}}
+	{{ CalculateModelStruct $pName $pParam structName }}
+{{- end}}
 
 func (r *{{ structName }}) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "{{ metaName }}"

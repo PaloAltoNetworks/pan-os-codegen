@@ -20,7 +20,7 @@ type NameProvider struct {
 // NewNameProvider creates a new NameProvider based on given specifications.
 func NewNameProvider(spec *properties.Normalization, resourceName string) *NameProvider {
 	tfName := spec.Name
-	metaName := fmt.Sprintf("_%s", tfName)
+	metaName := fmt.Sprintf("_%s", naming.Underscore("", tfName, ""))
 	structName := naming.CamelCase("", tfName, resourceName, true)
 	return &NameProvider{tfName, metaName, structName}
 }
@@ -96,15 +96,23 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource", "")
+				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types", "")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
 
 				resourceType := "Resource"
 				names := NewNameProvider(spec, resourceType)
 				funcMap := template.FuncMap{
-					"metaName":   func() string { return names.MetaName },
-					"structName": func() string { return names.StructName },
-					"TfidStruct": func() (string, error) { return TfidStruct("entry", spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
+					"metaName":          func() string { return names.MetaName },
+					"structName":        func() string { return names.StructName },
+					"TfidStruct":        func() (string, error) { return TfidStruct("entry", spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
+					"TfidResourceModel": func() (string, error) { return TfidResourceModel("entry", names.StructName) },
+					"ParamToModel": func(paramName string, paramProp *properties.SpecParam, structName string) (string, error) {
+						return ParamToModelResource(paramName, paramProp, structName)
+					},
+					"CalculateModelStruct": func(paramName string, paramProp *properties.SpecParam, structName string) (string, error) {
+						return CalculateModelStruct(paramName, paramProp, structName)
+					},
 				}
 				err := g.generateTerraformEntityTemplate(resourceType, names, spec, terraformProvider, resourceTemplateStr, funcMap)
 				if err != nil {
@@ -117,15 +125,23 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource", "")
+				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types", "")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
 
 				resourceType := "Resource"
 				names := NewNameProvider(spec, resourceType)
 				funcMap := template.FuncMap{
-					"metaName":   func() string { return names.MetaName },
-					"structName": func() string { return names.StructName },
-					"TfidStruct": func() (string, error) { return TfidStruct("entry", spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
+					"metaName":          func() string { return names.MetaName },
+					"structName":        func() string { return names.StructName },
+					"TfidStruct":        func() (string, error) { return TfidStruct("entry", spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
+					"TfidResourceModel": func() (string, error) { return TfidResourceModel("entry", names.StructName) },
+					"ParamToModel": func(paramName string, paramProp *properties.SpecParam, structName string) (string, error) {
+						return ParamToModelResource(paramName, paramProp, structName)
+					},
+					"CalculateModelStruct": func(paramName string, paramProp *properties.SpecParam, structName string) (string, error) {
+						return CalculateModelStruct(paramName, paramProp, structName)
+					},
 				}
 				err := g.generateTerraformEntityTemplate(resourceType, names, spec, terraformProvider, resourceTemplateStr, funcMap)
 				if err != nil {
@@ -139,15 +155,23 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 			terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "")
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource", "")
+			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types", "")
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
 
 			resourceType := "Resource"
 			names := NewNameProvider(spec, resourceType)
 			funcMap := template.FuncMap{
-				"metaName":   func() string { return names.MetaName },
-				"structName": func() string { return names.StructName },
-				"TfidStruct": func() (string, error) { return TfidStruct("entry", spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
+				"metaName":          func() string { return names.MetaName },
+				"structName":        func() string { return names.StructName },
+				"TfidStruct":        func() (string, error) { return TfidStruct("entry", spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
+				"TfidResourceModel": func() (string, error) { return TfidResourceModel("entry", names.StructName) },
+				"ParamToModel": func(paramName string, paramProp *properties.SpecParam, structName string) (string, error) {
+					return ParamToModelResource(paramName, paramProp, structName)
+				},
+				"CalculateModelStruct": func(paramName string, paramProp *properties.SpecParam, structName string) (string, error) {
+					return CalculateModelStruct(paramName, paramProp, structName)
+				},
 			}
 			err := g.generateTerraformEntityTemplate(resourceType, names, spec, terraformProvider, resourceTemplateStr, funcMap)
 			if err != nil {
