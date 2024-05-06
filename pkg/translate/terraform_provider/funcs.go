@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
+	"log"
 	"strings"
 	"text/template"
 )
@@ -87,10 +88,13 @@ func ParamToModelResource(paramName string, paramProp *properties.SpecParam, str
 		"CamelCaseName":  func() string { return naming.CamelCase("", paramName, "", true) },
 		"UnderscoreName": func() string { return naming.Underscore("", paramName, "") },
 		"CamelCaseType":  func() string { return naming.CamelCase("", paramProp.Type, "", true) },
+		"structName":     func() string { return structName },
 	}
+
 	var builder strings.Builder
 	var modelTemplate *template.Template
-	// if the parameter has nested parameters (type is empty)
+
+	// If the parameter has nested parameters (type is empty)
 	if paramProp.Type == "" {
 		modelTemplate = template.Must(
 			template.New(
@@ -99,7 +103,7 @@ func ParamToModelResource(paramName string, paramProp *properties.SpecParam, str
 				funcMap,
 			).Parse(`
            {{- /* Begin */ -}}
-           {{ "    " }}{{ CamelCaseName }} ` + structName + `{{ CamelCaseName }}Object ` + "`" + `tfsdk:"{{ UnderscoreName }}"` + "`" + `
+	   {{ "    " }}{{ CamelCaseName }} ` + structName + `{{ CamelCaseName }}Object ` + "`" + `tfsdk:"{{ UnderscoreName }}"` + "`" + `
            {{- /* Done */ -}}`,
 			),
 		)
@@ -110,9 +114,9 @@ func ParamToModelResource(paramName string, paramProp *properties.SpecParam, str
 			).Funcs(
 				funcMap,
 			).Parse(`
-           {{- /* Begin */ -}}
-           {{ "    " }}{{ CamelCaseName }} types.{{ CamelCaseType }} ` + "`" + `tfsdk:"{{ UnderscoreName }}"` + "`" + `
-           {{- /* Done */ -}}`,
+               {{- /* Begin */ -}}
+               {{ "    " }}{{ CamelCaseName }} types.{{ CamelCaseType }} ` + "`" + `tfsdk:"{{ UnderscoreName }}"` + "`" + `
+               {{- /* Done */ -}}`,
 			),
 		)
 	}
@@ -145,19 +149,60 @@ func TfidResourceModel(structType string, structName string) (string, error) {
 	return builder.String(), err
 }
 
-func CalculateModelStruct(paramName string, paramProp *properties.SpecParam, structName string) (string, error) {
-	if paramProp.Type == "" {
-		if paramProp.Spec.Params != nil {
-			for nestedIndex, nestedParam := range paramProp.Spec.Params {
-				return fmt.Sprintf("%s.%v", nestedIndex, nestedParam), nil
-			}
+func ModelNestedStruct(paramName string, paramProp *properties.SpecParam, structName string) (string, error) {
+	if paramProp.Type == "" && paramProp.Spec != nil {
+		nestedStructsString := strings.Builder{}
+		createdStructs := make(map[string]bool)
+		nestedStruct, err := createNestedStruct(paramName, paramProp, structName, &nestedStructsString, createdStructs)
+		if err != nil {
+			return "", err
 		}
-		if paramProp.Spec.OneOf != nil {
-			for nestedIndex, nestedParam := range paramProp.Spec.OneOf {
-				return fmt.Sprintf("%s.%v", nestedIndex, nestedParam), nil
-			}
+		return nestedStruct, err
+	}
+
+	return "", nil
+}
+
+func createNestedStruct(paramName string, paramProp *properties.SpecParam, structName string, nestedStructString *strings.Builder, createdStructs map[string]bool) (string, error) {
+	if paramProp.Spec.Params != nil || paramProp.Spec.OneOf != nil {
+		var iterator map[string]*properties.SpecParam
+		if paramProp.Spec.Params != nil {
+			iterator = paramProp.Spec.Params
+		} else if paramProp.Spec.OneOf != nil {
+			log.Printf("[ DEBUG ] Found OneOf: %s, %s, %s \n", paramName, paramProp.Name, structName)
+			iterator = paramProp.Spec.OneOf
 		}
 
+		for nestedIndex, nestedParam := range iterator {
+			nestedStructName := fmt.Sprintf("%s%s", structName, naming.CamelCase("", paramName, "", true))
+			if _, exists := createdStructs[nestedStructName]; !exists {
+				createdStructs[nestedStructName] = true
+				log.Printf("paramName: %s, nestedIndex: %s, nestedParams: %v, structName: %s \n", paramName, nestedIndex, nestedParam, structName)
+				funcMap := template.FuncMap{
+					"structName": func() string { return nestedStructName },
+					"structItems": func(paramName string, paramProp *properties.SpecParam) (string, error) {
+						return ParamToModelResource(paramName, paramProp, nestedStructName)
+					},
+				}
+				nestedStructTemplate := template.Must(
+					template.New("nested-struct").Funcs(funcMap).Parse(resourceModelNestedStructTemplate))
+				err := nestedStructTemplate.Execute(nestedStructString, paramProp)
+				if err != nil {
+					log.Printf("Error executing nestedStructTemplate: %v", err)
+					return "", err
+				}
+				if nestedParam.Type == "" && nestedParam.Spec != nil {
+					nestedStruct, err := createNestedStruct(nestedIndex, nestedParam, nestedStructName, nestedStructString, createdStructs)
+					if err != nil {
+						log.Printf("Error executing nestedStructTemplate: %v", err)
+						return "", err
+					}
+					return nestedStruct, err
+				}
+			}
+		}
+		return nestedStructString.String(), nil
 	}
+
 	return "", nil
 }
