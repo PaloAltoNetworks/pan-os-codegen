@@ -67,6 +67,7 @@ func main() {
 	checkVrZoneWithEthernet(c, ctx)
 	checkSecurityPolicyRules(c, ctx)
 	checkSecurityPolicyRulesMove(c, ctx)
+	checkSharedObjects(c, ctx)
 	checkTag(c, ctx)
 	checkAddress(c, ctx)
 	checkService(c, ctx)
@@ -151,6 +152,34 @@ func checkDeviceGroup(c *pango.XmlApiClient, ctx context.Context) {
 		return
 	}
 	log.Printf("Device group %s created\n", reply.Name)
+}
+
+func checkSharedObjects(c *pango.XmlApiClient, ctx context.Context) {
+	if ok, _ := c.IsPanorama(); ok {
+		addressObject := address.Entry{
+			Name:        "codegen_address_shared1",
+			Description: util.String("This is a shared address created by codegen."),
+			IpNetmask:   util.String("1.2.3.4"),
+		}
+
+		addressLocation := address.Location{
+			Shared: true,
+		}
+		addressApi := address.NewService(c)
+		addressReply, err := addressApi.Create(ctx, addressLocation, addressObject)
+		if err != nil {
+			log.Printf("Failed to create object: %s", err)
+			return
+		}
+		log.Printf("Address '%s=%s' created", addressReply.Name, *addressReply.IpNetmask)
+
+		err = addressApi.Delete(ctx, addressLocation, addressReply.Name)
+		if err != nil {
+			log.Printf("Failed to delete object: %s", err)
+			return
+		}
+		log.Printf("Address '%s' deleted", addressReply.Name)
+	}
 }
 
 func checkVr(c *pango.XmlApiClient, ctx context.Context) {
