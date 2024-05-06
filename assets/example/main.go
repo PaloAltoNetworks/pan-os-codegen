@@ -67,6 +67,7 @@ func main() {
 	checkVrZoneWithEthernet(c, ctx)
 	checkSecurityPolicyRules(c, ctx)
 	checkSecurityPolicyRulesMove(c, ctx)
+	checkSharedObjects(c, ctx)
 	checkTag(c, ctx)
 	checkAddress(c, ctx)
 	checkService(c, ctx)
@@ -153,6 +154,34 @@ func checkDeviceGroup(c *pango.XmlApiClient, ctx context.Context) {
 	log.Printf("Device group %s created\n", reply.Name)
 }
 
+func checkSharedObjects(c *pango.XmlApiClient, ctx context.Context) {
+	if ok, _ := c.IsPanorama(); ok {
+		addressObject := address.Entry{
+			Name:        "codegen_address_shared1",
+			Description: util.String("This is a shared address created by codegen."),
+			IpNetmask:   util.String("1.2.3.4"),
+		}
+
+		addressLocation := address.Location{
+			Shared: true,
+		}
+		addressApi := address.NewService(c)
+		addressReply, err := addressApi.Create(ctx, addressLocation, addressObject)
+		if err != nil {
+			log.Printf("Failed to create object: %s", err)
+			return
+		}
+		log.Printf("Address '%s=%s' created", addressReply.Name, *addressReply.IpNetmask)
+
+		err = addressApi.Delete(ctx, addressLocation, addressReply.Name)
+		if err != nil {
+			log.Printf("Failed to delete object: %s", err)
+			return
+		}
+		log.Printf("Address '%s' deleted", addressReply.Name)
+	}
+}
+
 func checkVr(c *pango.XmlApiClient, ctx context.Context) {
 	entry := virtual_router.Entry{
 		Name: "codegen_vr",
@@ -236,6 +265,11 @@ func checkVr(c *pango.XmlApiClient, ctx context.Context) {
 				NgfwDevice:     "localhost.localdomain",
 				Template:       "codegen_template",
 			},
+			// TemplateStack: &virtual_router.TemplateStackLocation{
+			// 	PanoramaDevice: "localhost.localdomain",
+			// 	NgfwDevice:     "localhost.localdomain",
+			// 	TemplateStack:  "codegen_template_stack",
+			// },
 		}
 	} else {
 		location = virtual_router.Location{
@@ -291,6 +325,11 @@ func checkEthernetLayer3Static(c *pango.XmlApiClient, ctx context.Context) {
 				NgfwDevice:     "localhost.localdomain",
 				Template:       "codegen_template",
 			},
+			// TemplateStack: &ethernet.TemplateStackLocation{
+			// 	PanoramaDevice: "localhost.localdomain",
+			// 	NgfwDevice:     "localhost.localdomain",
+			// 	TemplateStack:  "codegen_template_stack",
+			// },
 		}
 	} else {
 		location = ethernet.Location{
@@ -334,6 +373,11 @@ func checkEthernetLayer3Dhcp(c *pango.XmlApiClient, ctx context.Context) {
 				NgfwDevice:     "localhost.localdomain",
 				Template:       "codegen_template",
 			},
+			// TemplateStack: &ethernet.TemplateStackLocation{
+			// 	PanoramaDevice: "localhost.localdomain",
+			// 	NgfwDevice:     "localhost.localdomain",
+			// 	TemplateStack:  "codegen_template_stack",
+			// },
 		}
 	} else {
 		location = ethernet.Location{
@@ -366,6 +410,11 @@ func checkEthernetHa(c *pango.XmlApiClient, ctx context.Context) {
 				NgfwDevice:     "localhost.localdomain",
 				Template:       "codegen_template",
 			},
+			// TemplateStack: &ethernet.TemplateStackLocation{
+			// 	PanoramaDevice: "localhost.localdomain",
+			// 	NgfwDevice:     "localhost.localdomain",
+			// 	TemplateStack:  "codegen_template_stack",
+			// },
 		}
 	} else {
 		location = ethernet.Location{
@@ -417,6 +466,11 @@ func checkLoopback(c *pango.XmlApiClient, ctx context.Context) {
 				NgfwDevice:     "localhost.localdomain",
 				Template:       "codegen_template",
 			},
+			// TemplateStack: &loopback.TemplateStackLocation{
+			// 	PanoramaDevice: "localhost.localdomain",
+			// 	NgfwDevice:     "localhost.localdomain",
+			// 	TemplateStack:  "codegen_template_stack",
+			// },
 		}
 	} else {
 		location = loopback.Location{
@@ -459,6 +513,12 @@ func checkZone(c *pango.XmlApiClient, ctx context.Context) {
 				Template:       "codegen_template",
 				Vsys:           "vsys1",
 			},
+			// TemplateStack: &zone.TemplateStackLocation{
+			// 	PanoramaDevice: "localhost.localdomain",
+			// 	NgfwDevice:     "localhost.localdomain",
+			// 	TemplateStack:  "codegen_template_stack",
+			// 	Vsys:           "vsys1",
+			// },
 		}
 	} else {
 		location = zone.Location{
@@ -493,6 +553,11 @@ func checkInterfaceMgmtProfile(c *pango.XmlApiClient, ctx context.Context) {
 				NgfwDevice:     "localhost.localdomain",
 				Template:       "codegen_template",
 			},
+			// TemplateStack: &interface_management.TemplateStackLocation{
+			// 	PanoramaDevice: "localhost.localdomain",
+			// 	NgfwDevice:     "localhost.localdomain",
+			// 	TemplateStack:  "codegen_template_stack",
+			// },
 		}
 	} else {
 		location = interface_management.Location{
@@ -521,6 +586,11 @@ func checkVrZoneWithEthernet(c *pango.XmlApiClient, ctx context.Context) {
 				NgfwDevice:     "localhost.localdomain",
 				Template:       "codegen_template",
 			},
+			// TemplateStack: &virtual_router.TemplateStackLocation{
+			// 	PanoramaDevice: "localhost.localdomain",
+			// 	NgfwDevice:     "localhost.localdomain",
+			// 	TemplateStack:  "codegen_template_stack",
+			// },
 		}
 	} else {
 		locationVr = virtual_router.Location{
@@ -557,6 +627,12 @@ func checkVrZoneWithEthernet(c *pango.XmlApiClient, ctx context.Context) {
 				Template:       "codegen_template",
 				Vsys:           "vsys1",
 			},
+			// TemplateStack: &zone.TemplateStackLocation{
+			// 	PanoramaDevice: "localhost.localdomain",
+			// 	NgfwDevice:     "localhost.localdomain",
+			// 	TemplateStack:  "codegen_template_stack",
+			// 	Vsys:           "vsys1",
+			// },
 		}
 	} else {
 		locationZone = zone.Location{
@@ -1131,6 +1207,11 @@ func checkNtp(c *pango.XmlApiClient, ctx context.Context) {
 				NgfwDevice:     "localhost.localdomain",
 				Template:       "codegen_template",
 			},
+			// TemplateStack: &ntp.TemplateStackLocation{
+			// 	PanoramaDevice: "localhost.localdomain",
+			// 	NgfwDevice:     "localhost.localdomain",
+			// 	TemplateStack:  "codegen_template_stack",
+			// },
 		}
 	} else {
 		ntpLocation = ntp.Location{
@@ -1178,6 +1259,11 @@ func checkDns(c *pango.XmlApiClient, ctx context.Context) {
 				NgfwDevice:     "localhost.localdomain",
 				Template:       "codegen_template",
 			},
+			// TemplateStack: &dns.TemplateStackLocation{
+			// 	PanoramaDevice: "localhost.localdomain",
+			// 	NgfwDevice:     "localhost.localdomain",
+			// 	TemplateStack:  "codegen_template_stack",
+			// },
 		}
 	} else {
 		dnsLocation = dns.Location{
