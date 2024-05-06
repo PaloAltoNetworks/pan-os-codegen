@@ -1,5 +1,19 @@
 package terraform_provider
 
+const resourceModelNestedStructTemplate = `
+type {{ structName }}Object struct {
+
+	{{- range $pName, $pParam := $.Spec.Params}}
+		{{ structItems $pName $pParam }}
+	{{- end}}
+
+	{{- range $pName, $pParam := $.Spec.OneOf}}
+		{{ structItems $pName $pParam  }}
+	{{- end}}
+
+}
+`
+
 const resourceTemplateStr = `
 {{- /* Begin */ -}}
 
@@ -48,18 +62,18 @@ type {{ structName }}Model struct {
 // TODO: Entry model struct via function
 		{{ TfidResourceModel }}
         {{- range $pName, $pParam := $.Spec.Params}}
-            {{ ParamToModel $pName $pParam structName }}
+            {{ ParamToModelResource $pName $pParam structName }}
         {{- end}}
         {{- range $pName, $pParam := $.Spec.OneOf}}
-            {{ ParamToModel $pName $pParam structName }}
+            {{ ParamToModelResource $pName $pParam structName }}
         {{- end}}
 }
 
 {{- range $pName, $pParam := $.Spec.Params}}
-	{{ CalculateModelStruct $pName $pParam structName }}
+	{{ ModelNestedStruct $pName $pParam structName }}
 {{- end}}
 {{- range $pName, $pParam := $.Spec.OneOf}}
-	{{ CalculateModelStruct $pName $pParam structName }}
+	{{ ModelNestedStruct $pName $pParam structName }}
 {{- end}}
 
 func (r *{{ structName }}) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
