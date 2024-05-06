@@ -27,6 +27,23 @@ locations:
         validation:
           not_values:
             'shared': 'The vsys cannot be "shared". Use the "shared" path instead.'
+  'from_panorama_vsys':
+    description: 'Located in a specific vsys in the config pushed from Panorama.'
+    read_only: true
+    device:
+      ngfw: true
+    xpath:
+      - 'config'
+      - 'panorama'
+      - 'vsys'
+      - '{{ Entry $vsys }}'
+    vars:
+      'vsys':
+        description: 'The vsys.'
+        default: 'vsys1'
+        validation:
+          not_values:
+            'shared': 'The vsys cannot be "shared". Use the "shared" path instead.'
   'template':
     description: 'Located in a specific template.'
     device:
