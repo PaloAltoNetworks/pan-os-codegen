@@ -153,6 +153,7 @@ func ModelNestedStruct(paramName string, paramProp *properties.SpecParam, struct
 	if paramProp.Type == "" && paramProp.Spec != nil {
 		nestedStructsString := strings.Builder{}
 		createdStructs := make(map[string]bool)
+		log.Printf("[ DEBUG ] create nested struct with: paramName: %s, paramProp: %v, structName: %s, createdStructs: %v \n", paramName, paramProp, structName, createdStructs)
 		nestedStruct, err := createNestedStruct(paramName, paramProp, structName, &nestedStructsString, createdStructs)
 		if err != nil {
 			return "", err
@@ -165,19 +166,26 @@ func ModelNestedStruct(paramName string, paramProp *properties.SpecParam, struct
 
 func createNestedStruct(paramName string, paramProp *properties.SpecParam, structName string, nestedStructString *strings.Builder, createdStructs map[string]bool) (string, error) {
 	if paramProp.Spec.Params != nil || paramProp.Spec.OneOf != nil {
-		var iterator map[string]*properties.SpecParam
+		params := make(map[string]*properties.SpecParam)
+
 		if paramProp.Spec.Params != nil {
-			iterator = paramProp.Spec.Params
-		} else if paramProp.Spec.OneOf != nil {
-			log.Printf("[ DEBUG ] Found OneOf: %s, %s, %s \n", paramName, paramProp.Name, structName)
-			iterator = paramProp.Spec.OneOf
+			for key, value := range paramProp.Spec.Params {
+				params[key] = value
+			}
+			log.Printf("[ DEBUG ] Found Params: %s, %s, %s \n", paramName, paramProp.Name, structName)
+		}
+		if paramProp.Spec.OneOf != nil {
+			for key, value := range paramProp.Spec.OneOf {
+				params[key] = value
+			}
+			log.Printf("[ DEBUG ] Found Params: %s, %s, %s \n", paramName, paramProp.Name, structName)
 		}
 
-		for nestedIndex, nestedParam := range iterator {
+		for nestedIndex, nestedParam := range params {
 			nestedStructName := fmt.Sprintf("%s%s", structName, naming.CamelCase("", paramName, "", true))
 			if _, exists := createdStructs[nestedStructName]; !exists {
 				createdStructs[nestedStructName] = true
-				log.Printf("paramName: %s, nestedIndex: %s, nestedParams: %v, structName: %s \n", paramName, nestedIndex, nestedParam, structName)
+				log.Printf("[ DEBUG ] working on iteration: paramName: %s, nestedIndex: %s, nestedParams: %v, structName: %s \n", paramName, nestedIndex, nestedParam, structName)
 				funcMap := template.FuncMap{
 					"structName": func() string { return nestedStructName },
 					"structItems": func(paramName string, paramProp *properties.SpecParam) (string, error) {
@@ -191,13 +199,13 @@ func createNestedStruct(paramName string, paramProp *properties.SpecParam, struc
 					log.Printf("Error executing nestedStructTemplate: %v", err)
 					return "", err
 				}
-				if nestedParam.Type == "" && nestedParam.Spec != nil {
-					nestedStruct, err := createNestedStruct(nestedIndex, nestedParam, nestedStructName, nestedStructString, createdStructs)
-					if err != nil {
-						log.Printf("Error executing nestedStructTemplate: %v", err)
-						return "", err
-					}
-					return nestedStruct, err
+			}
+			if nestedParam.Type == "" && nestedParam.Spec != nil {
+				log.Printf("[ DEBUG ] Found nested structure on: %s with spec: %v \n", nestedParam.Name, nestedParam.Spec)
+				_, err := createNestedStruct(nestedIndex, nestedParam, nestedStructName, nestedStructString, createdStructs)
+				if err != nil {
+					log.Printf("Error executing nestedStructTemplate: %v", err)
+					return "", err
 				}
 			}
 		}
