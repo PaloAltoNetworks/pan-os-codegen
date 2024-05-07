@@ -84,7 +84,11 @@ func checkTemplate(c *pango.XmlApiClient, ctx context.Context) {
 			Devices: []template.SpecConfigDevices{
 				{
 					Name: "localhost.localdomain",
-					Vsys: []string{"vsys1"},
+					Vsys: []template.SpecConfigDevicesVsys{
+						{
+							Name: "vsys1",
+						},
+					},
 				},
 			},
 		},
@@ -577,6 +581,34 @@ func checkInterfaceMgmtProfile(c *pango.XmlApiClient, ctx context.Context) {
 }
 
 func checkVrZoneWithEthernet(c *pango.XmlApiClient, ctx context.Context) {
+	// TEMPLATE
+	if ok, _ := c.IsPanorama(); ok {
+		location := template.Location{
+			Panorama: &template.PanoramaLocation{
+				PanoramaDevice: "localhost.localdomain",
+			},
+		}
+		api := template.NewService(c)
+
+		reply, err := api.Read(ctx, location, "codegen_template", "get")
+		if err != nil {
+			log.Printf("Failed to read template: %s", err)
+			return
+		}
+		reply.Config.Devices[0].Vsys[0].Import = &template.SpecConfigDevicesVsysImport{
+			Network: &template.SpecConfigDevicesVsysImportNetwork{
+				Interfaces: []string{"ethernet1/2", "ethernet1/3"},
+			},
+		}
+
+		reply, err = api.Update(ctx, location, *reply, "codegen_template")
+		if err != nil {
+			log.Printf("Failed to update template: %s", err)
+			return
+		}
+		log.Printf("Template %s updated by importing interfaces: %s\n", reply.Name, reply.Config.Devices[0].Vsys[0].Import.Network.Interfaces)
+	}
+
 	// VR
 	var locationVr virtual_router.Location
 	if ok, _ := c.IsPanorama(); ok {

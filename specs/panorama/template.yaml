@@ -62,8 +62,30 @@ spec:
                 vsys:
                   type: list
                   items:
-                    type: string
+                    type: entry
                   profiles:
                     -
-                      xpath: ["vsys"]
+                      xpath: ["vsys", "entry"]
                       type: entry
+                  spec:
+                    params:
+                      import:
+                        profiles:
+                          -
+                            xpath: ["import"]
+                        spec:
+                          params:
+                            network:
+                              profiles:
+                                -
+                                  xpath: ["network"]
+                              spec:
+                                params:
+                                  interfaces:
+                                    type: list
+                                    items:
+                                      type: string
+                                    profiles:
+                                      -
+                                        xpath: ["interface"]
+                                        type: member

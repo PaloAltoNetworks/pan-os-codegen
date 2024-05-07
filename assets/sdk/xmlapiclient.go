@@ -860,6 +860,7 @@ func (c *XmlApiClient) Communicate(ctx context.Context, cmd util.PangoCommand, s
 	if err != nil {
 		return nil, nil, err
 	}
+	// log.Printf("REQUEST: %s", data)
 
 	if c.ApiKeyInRequest && c.ApiKey != "" && data.Get("key") == "" {
 		data.Set("key", c.ApiKey)
@@ -1068,6 +1069,8 @@ func (c *XmlApiClient) sendRequest(ctx context.Context, req *http.Request, strip
 	if err != nil {
 		return body, resp, fmt.Errorf("err unmarshaling into provided interface: %s", err)
 	}
+
+	// log.Printf("RESPONSE: %s", body)
 
 	return body, resp, nil
 }

@@ -2,8 +2,9 @@ package translate
 
 import (
 	"fmt"
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 	"strings"
+
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 )
 
 // NormalizeAssignment generates a string, which contains entry/config assignment in Normalize() function
@@ -125,8 +126,8 @@ func startIfBlockForParamNotNil(parent []*properties.SpecParam, param *propertie
 func finishNestedObjectIfBlock(parent []*properties.SpecParam, param *properties.SpecParam, builder *strings.Builder) {
 	if isParamListAndProfileTypeIsExtendedEntry(param) {
 		builder.WriteString(fmt.Sprintf("nested%s = append(nested%s, nested%s)\n",
-			renderNestedVariableName(parent, true, false, false),
-			renderNestedVariableName(parent, true, false, false),
+			renderNestedVariableName(parent, true, true, false),
+			renderNestedVariableName(parent, true, true, false),
 			renderNestedVariableName(parent, false, false, false)))
 	}
 	builder.WriteString("}\n")
@@ -165,13 +166,13 @@ func createStructForParamWithSpec(parent []*properties.SpecParam, builder *strin
 
 func createListAndLoopForNestedEntry(parent []*properties.SpecParam, builder *strings.Builder, prefix string, suffix string, version string) {
 	builder.WriteString(fmt.Sprintf("nested%s = []%s%s%s%s{}\n",
-		renderNestedVariableName(parent, true, false, false), prefix,
+		renderNestedVariableName(parent, true, true, false), prefix,
 		renderNestedVariableName(parent, false, false, false), suffix,
 		CreateGoSuffixFromVersion(version)))
 
-	builder.WriteString(fmt.Sprintf("for _, o%s := range o.%s {\n",
+	builder.WriteString(fmt.Sprintf("for _, o%s := range o%s {\n",
 		renderNestedVariableName(parent, false, false, false),
-		renderNestedVariableName(parent, true, false, false)))
+		renderNestedVariableName(parent, true, true, true)))
 	builder.WriteString(fmt.Sprintf("nested%s := %s%s%s%s{}\n",
 		renderNestedVariableName(parent, false, false, false),
 		prefix, renderNestedVariableName(parent, false, false, false), suffix,
