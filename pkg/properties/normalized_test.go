@@ -1,13 +1,14 @@
 package properties
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
-	"testing"
 )
 
 const sampleSpec = `name: 'Address'
-terraform_provider_config: 
+terraform_provider_config:
   suffix: 'address'
 go_sdk_path:
   - 'objects'
@@ -74,6 +75,24 @@ entry:
     length:
       min: 1
       max: 63
+imports:
+  'template':
+    xpath:
+      - 'config'
+      - 'devices'
+      - '{{ Entry $ngfw_device }}'
+      - 'vsys'
+      - '{{ Entry $vsys }}'
+      - 'import'
+      - 'network'
+      - 'interface'
+    vars:
+      'ngfw_device':
+        description: 'The NGFW device.'
+        default: 'localhost.localdomain'
+      'vsys':
+        description: 'The vsys.'
+        default: 'vsys1'
 version: '10.1.0'
 spec:
   params:
@@ -265,6 +284,27 @@ entry:
         length:
             min: 1
             max: 63
+imports:
+    template:
+        name: null
+        xpath:
+            - config
+            - devices
+            - '{{ Entry $ngfw_device }}'
+            - vsys
+            - '{{ Entry $vsys }}'
+            - import
+            - network
+            - interface
+        vars:
+            ngfw_device:
+                name: null
+                description: The NGFW device.
+                default: localhost.localdomain
+            vsys:
+                name: null
+                description: The vsys.
+                default: vsys1
 version: 10.1.0
 spec:
     params:
@@ -444,7 +484,7 @@ func TestValidation(t *testing.T) {
 	// given
 	var sampleInvalidSpec = `
 name: 'Address'
-terraform_provider_config: 
+terraform_provider_config:
  suffix: 'address'
 xpath_suffix:
   - 'address'

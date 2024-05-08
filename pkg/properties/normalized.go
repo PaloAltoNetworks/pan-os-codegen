@@ -2,12 +2,13 @@ package properties
 
 import (
 	"fmt"
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/content"
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"io/fs"
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/content"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 )
 
 type Normalization struct {
@@ -17,6 +18,7 @@ type Normalization struct {
 	XpathSuffix             []string                `json:"xpath_suffix" yaml:"xpath_suffix"`
 	Locations               map[string]*Location    `json:"locations" yaml:"locations"`
 	Entry                   *Entry                  `json:"entry" yaml:"entry"`
+	Imports                 map[string]*Import      `json:"imports" yaml:"imports"`
 	Version                 string                  `json:"version" yaml:"version"`
 	Spec                    *Spec                   `json:"spec" yaml:"spec"`
 	Const                   map[string]*Const       `json:"const" yaml:"const"`
@@ -61,6 +63,18 @@ type LocationVarValidation struct {
 
 type Entry struct {
 	Name *EntryName `json:"name" yaml:"name"`
+}
+
+type Import struct {
+	Name  *NameVariant
+	Xpath []string              `json:"xpath" yaml:"xpath"`
+	Vars  map[string]*ImportVar `json:"vars" yaml:"vars"`
+}
+
+type ImportVar struct {
+	Name        *NameVariant
+	Description string `json:"description" yaml:"description"`
+	Default     string `json:"default" yaml:"default"`
 }
 
 type EntryName struct {
