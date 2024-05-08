@@ -1,16 +1,13 @@
 package terraform_provider
 
 const resourceModelNestedStructTemplate = `
-type {{ structName }}Object struct {
-
-	{{- range $pName, $pParam := $.Spec.Params}}
-		{{ structItems $pName $pParam }}
+type {{ .structName }}Object struct {
+	{{- range $pName, $pParam := $.Spec.Params -}}
+		{{- structItems $pName $pParam -}}
 	{{- end}}
-
-	{{- range $pName, $pParam := $.Spec.OneOf}}
-		{{ structItems $pName $pParam  }}
+	{{- range $pName, $pParam := $.Spec.OneOf -}}
+		{{- structItems $pName $pParam  -}}
 	{{- end}}
-
 }
 `
 
@@ -35,7 +32,7 @@ type {{ structName }} struct {
 
 type {{ structName }}Tfid struct {
 	//TODO: Generate tfid struct via function
-	{{ TfidStruct }}
+	{{ TFIDStruct }}
 }
 
 func (o *{{ structName }}Tfid) IsValid() error {
@@ -60,12 +57,12 @@ type {{ structName }}DeviceGroupLocation struct {
 
 type {{ structName }}Model struct {
 // TODO: Entry model struct via function
-		{{ TfidResourceModel }}
+		{{ TFIDResourceModel }}
         {{- range $pName, $pParam := $.Spec.Params}}
-            {{ ParamToModelResource $pName $pParam structName }}
+            {{- ParamToModelResource $pName $pParam structName -}}
         {{- end}}
         {{- range $pName, $pParam := $.Spec.OneOf}}
-            {{ ParamToModelResource $pName $pParam structName }}
+            {{- ParamToModelResource $pName $pParam structName -}}
         {{- end}}
 }
 
