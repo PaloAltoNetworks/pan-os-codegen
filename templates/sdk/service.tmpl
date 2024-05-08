@@ -1,9 +1,17 @@
 package {{packageName .GoSdkPath}}
 {{- if .Entry}}
-    {{- if $.Spec.Params.uuid}}
-        {{renderImports "service" "filtering" "audit" "rule" "version"}}
+    {{- if $.Imports}}
+        {{- if $.Spec.Params.uuid}}
+            {{renderImports "service" "filtering" "template" "audit" "rule" "version"}}
+        {{- else}}
+            {{renderImports "service" "filtering" "template"}}
+        {{- end}}
     {{- else}}
-        {{renderImports "service" "filtering"}}
+        {{- if $.Spec.Params.uuid}}
+            {{renderImports "service" "filtering" "audit" "rule" "version"}}
+        {{- else}}
+            {{renderImports "service" "filtering"}}
+        {{- end}}
     {{- end}}
 {{- else}}
     {{- $numberOfVersions := len .SupportedVersions }}
@@ -73,12 +81,86 @@ if _, _, err = s.client.Communicate(ctx, cmd, false, nil); err != nil {
 return nil, err
 }
 
+{{- if $.Imports}}
+if err := s.Import(ctx, loc, entry); err != nil {
+return nil, err
+}
+{{- end}}
+
 {{- if .Entry}}
     return s.Read(ctx, loc, entry.Name, "get")
 {{- else}}
     return s.Read(ctx, loc, "get")
 {{- end}}
 }
+
+{{- if $.Imports}}
+// Import imports the given config object into template, if location is set to template.
+func (s *Service) Import(ctx context.Context, loc Location, entry Entry) error {
+	if loc.Template != nil && entry.Layer3 != nil {
+		templateLocation := template.Location{
+			Panorama: &template.PanoramaLocation{
+				PanoramaDevice: "localhost.localdomain",
+			},
+		}
+
+		templateApi := template.NewService(s.client)
+
+		templateEntry, err := templateApi.Read(ctx, templateLocation, loc.Template.Template, "get")
+		if err != nil {
+			return err
+		}
+
+		importedNames := []string{}
+		if templateEntry.Config.Devices != nil {
+			for _, device := range templateEntry.Config.Devices {
+				if device.Name == "localhost.localdomain" && device.Vsys != nil {
+					for _, vsys := range device.Vsys {
+						if vsys.Name == "vsys1" && vsys.Import != nil {
+							if vsys.Import.Network != nil {
+								if vsys.Import.Network.Interfaces != nil {
+									importedNames = vsys.Import.Network.Interfaces
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		alreadyImported := false
+		for _, item := range importedNames {
+			if item == entry.Name {
+				alreadyImported = true
+			}
+		}
+		if !alreadyImported {
+			importedNames = append(importedNames, entry.Name)
+		}
+
+		if templateEntry.Config.Devices != nil {
+			for indexDevice, objectDevice := range templateEntry.Config.Devices {
+				if objectDevice.Name == "localhost.localdomain" && objectDevice.Vsys != nil {
+					for indexVsys, objectVsys := range objectDevice.Vsys {
+						if objectVsys.Name == "vsys1" {
+							templateEntry.Config.Devices[indexDevice].Vsys[indexVsys].Import = &template.SpecConfigDevicesVsysImport{
+								Network: &template.SpecConfigDevicesVsysImportNetwork{
+									Interfaces: importedNames,
+								},
+							}
+						}
+					}
+				}
+			}
+		}
+		_, err = templateApi.Update(ctx, templateLocation, *templateEntry, loc.Template.Template)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+{{- end}}
 
 // Read returns the given config object, using the specified action ("get" or "show").
 {{- if .Entry}}
