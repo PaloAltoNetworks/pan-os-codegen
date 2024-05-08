@@ -581,7 +581,7 @@ func checkInterfaceMgmtProfile(c *pango.XmlApiClient, ctx context.Context) {
 }
 
 func checkVrZoneWithEthernet(c *pango.XmlApiClient, ctx context.Context) {
-	// VR
+	// UPDATE VR ABOUT INTERFACES
 	var locationVr virtual_router.Location
 	if ok, _ := c.IsPanorama(); ok {
 		locationVr = virtual_router.Location{
@@ -621,7 +621,7 @@ func checkVrZoneWithEthernet(c *pango.XmlApiClient, ctx context.Context) {
 	}
 	log.Printf("VR %s updated with %s\n", replyVr.Name, replyVr.Interfaces)
 
-	// ZONE
+	// UPDATE ZONE ABOUT INTERFACES
 	var locationZone zone.Location
 	if ok, _ := c.IsPanorama(); ok {
 		locationZone = zone.Location{
@@ -667,6 +667,62 @@ func checkVrZoneWithEthernet(c *pango.XmlApiClient, ctx context.Context) {
 	}
 	log.Printf("Zone %s updated with %s\n", replyZone.Name, replyZone.Network.Layer3)
 
+	// DELETE INTERFACES FROM VR
+	replyVr.Interfaces = []string{}
+
+	replyVr, err = apiVr.Update(ctx, locationVr, *replyVr, "codegen_vr")
+	if err != nil {
+		log.Printf("Failed to update VR: %s", err)
+		return
+	}
+	log.Printf("VR %s updated with %s\n", replyVr.Name, replyVr.Interfaces)
+
+	// DELETE INTERFACES FROM ZONE
+	replyZone.Network = &zone.SpecNetwork{
+		EnablePacketBufferProtection: util.Bool(false),
+		Layer3:                       []string{},
+	}
+
+	replyZone, err = apiZone.Update(ctx, locationZone, *replyZone, "codegen_zone")
+	if err != nil {
+		log.Printf("Failed to update zone: %s", err)
+		return
+	}
+	log.Printf("Zone %s updated with %s\n", replyZone.Name, replyZone.Network.Layer3)
+
+	// DELETE INTERFACES
+	var ethernetLocation ethernet.Location
+	if ok, _ := c.IsPanorama(); ok {
+		ethernetLocation = ethernet.Location{
+			Template: &ethernet.TemplateLocation{
+				PanoramaDevice: "localhost.localdomain",
+				NgfwDevice:     "localhost.localdomain",
+				Template:       "codegen_template",
+			},
+			// TemplateStack: &ethernet.TemplateStackLocation{
+			// 	PanoramaDevice: "localhost.localdomain",
+			// 	NgfwDevice:     "localhost.localdomain",
+			// 	TemplateStack:  "codegen_template_stack",
+			// },
+		}
+	} else {
+		ethernetLocation = ethernet.Location{
+			Ngfw: &ethernet.NgfwLocation{
+				NgfwDevice: "localhost.localdomain",
+			},
+		}
+	}
+	api := ethernet.NewService(c)
+
+	interfacesToDelete := []string{"ethernet1/2", "ethernet1/3"}
+	for _, iface := range interfacesToDelete {
+		err = api.Delete(ctx, ethernetLocation, iface)
+		if err != nil {
+			log.Printf("Failed to delete ethernet: %s", err)
+			return
+		}
+		log.Printf("Ethernet %s deleted\n", iface)
+	}
 }
 
 func checkSecurityPolicyRules(c *pango.XmlApiClient, ctx context.Context) {

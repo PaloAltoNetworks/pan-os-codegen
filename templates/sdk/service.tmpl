@@ -464,6 +464,11 @@ return err
     Target: s.client.GetTarget(),
     })
 
+    {{- if $.Imports}}
+        if err = s.Unimport(ctx, loc, value); err != nil {
+			return err
+		}
+    {{- end}}
     }
 
     _, _, _, err = s.client.MultiConfig(ctx, deletes, false, nil)
@@ -547,6 +552,70 @@ return err
     return nil
 {{- end}}
 }
+
+{{- if $.Imports}}
+// Unimport imports the given config object into template, if location is set to template.
+func (s *Service) Unimport(ctx context.Context, loc Location, name string) error {
+	if loc.Template != nil {
+		templateLocation := template.Location{
+			Panorama: &template.PanoramaLocation{
+				PanoramaDevice: "localhost.localdomain",
+			},
+		}
+
+		templateApi := template.NewService(s.client)
+
+		templateEntry, err := templateApi.Read(ctx, templateLocation, loc.Template.Template, "get")
+		if err != nil {
+			return err
+		}
+
+		importedNames := []string{}
+		if templateEntry.Config.Devices != nil {
+			for _, device := range templateEntry.Config.Devices {
+				if device.Name == "localhost.localdomain" && device.Vsys != nil {
+					for _, vsys := range device.Vsys {
+						if vsys.Name == "vsys1" && vsys.Import != nil {
+							if vsys.Import.Network != nil {
+								if vsys.Import.Network.Interfaces != nil {
+									importedNames = vsys.Import.Network.Interfaces
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		for index, item := range importedNames {
+			if item == name {
+				importedNames = append(importedNames[:index], importedNames[index+1:]...)
+			}
+		}
+
+		if templateEntry.Config.Devices != nil {
+			for indexDevice, objectDevice := range templateEntry.Config.Devices {
+				if objectDevice.Name == "localhost.localdomain" && objectDevice.Vsys != nil {
+					for indexVsys, objectVsys := range objectDevice.Vsys {
+						if objectVsys.Name == "vsys1" {
+							templateEntry.Config.Devices[indexDevice].Vsys[indexVsys].Import = &template.SpecConfigDevicesVsysImport{
+								Network: &template.SpecConfigDevicesVsysImportNetwork{
+									Interfaces: importedNames,
+								},
+							}
+						}
+					}
+				}
+			}
+		}
+		_, err = templateApi.Update(ctx, templateLocation, *templateEntry, loc.Template.Template)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+{{- end}}
 
 {{- if .Entry}}
     // List returns a list of objects using the given action ("get" or "show").
