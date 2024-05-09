@@ -112,10 +112,11 @@ func (s *Service) Import(ctx context.Context, loc Location, entry Entry) error {
 			return err
 		}
 
-		importedNames := []string{}
         if entry.Import == nil {
 			entry.Import = DefaultImport{{$import.Name.CamelCase}}()
 		}
+
+		importedNames := []string{}
         {{- $prefixXpath := "" }}
         {{- $lastXpath := "" }}
         {{- $lastEntry := print $import.Name.LowerCamelCase "Entry" }}
@@ -161,21 +162,63 @@ func (s *Service) Import(ctx context.Context, loc Location, entry Entry) error {
 			importedNames = append(importedNames, entry.Name)
 		}
 
-		if {{$import.Name.LowerCamelCase}}Entry.Config.Devices != nil {
-			for indexDevice, objectDevice := range {{$import.Name.LowerCamelCase}}Entry.Config.Devices {
-				if objectDevice.Name == "localhost.localdomain" && objectDevice.Vsys != nil {
-					for indexVsys, objectVsys := range objectDevice.Vsys {
-						if objectVsys.Name == "vsys1" {
-							{{$import.Name.LowerCamelCase}}Entry.Config.Devices[indexDevice].Vsys[indexVsys].Import = &{{$import.Name.LowerCamelCase}}.SpecConfigDevicesVsysImport{
-								Network: &{{$import.Name.LowerCamelCase}}.SpecConfigDevicesVsysImportNetwork{
-									Interfaces: importedNames,
-								},
-							}
-						}
-					}
-				}
-			}
-		}
+        {{- $prefixXpath := "" }}
+        {{- $lastXpath := "" }}
+        {{- $entryPath := "Entry" }}
+        {{- $specClassName := "Spec"}}
+        {{- $lastEntry := print $import.Name.LowerCamelCase "Entry" }}
+        {{- $checkName := false}}
+        {{- $indexVar := 0}}
+        {{- $importInXpath := false}}
+        {{- range $_, $xpath := $import.Xpath}}
+            {{- if not $importInXpath}}
+                {{- $specClassName = print $specClassName (camelCase "" $xpath "" true)}}
+                {{- if not (contains $xpath "Entry")}}
+                    {{- $prefixXpath = print $prefixXpath "." (camelCase "" $xpath "" true)}}
+                    {{- $lastXpath = $xpath }}
+                    {{- if $checkName}}
+                        {{- $index := 0}}
+                        {{- range $_, $var := $import.Vars}}
+                            {{- if eq $indexVar $index}}
+                                if {{$lastEntry}}.Name == entry.Import.{{$var.Name.CamelCase}} {
+                            {{- end}}
+                            {{- $index = add $index 1}}
+                        {{- end}}
+                        {{- $indexVar = add $indexVar 1}}
+                        {{- $checkName = false}}
+                    {{- else}}
+                        if {{$lastEntry}}{{$prefixXpath}} != nil {
+                    {{- end}}
+                    {{- $entryPath = print $entryPath "." (camelCase "" $xpath "" true)}}
+                {{- else}}
+                    for {{$lastXpath}}Index, {{$lastXpath}} := range {{$lastEntry}}{{$prefixXpath}} {
+                    {{- $entryPath = print $entryPath (camelCase "" $xpath "" true) "[" $lastXpath "Index]"}}
+                    {{- $prefixXpath = "" }}
+                    {{- $lastEntry = $lastXpath }}
+                    {{- $lastXpath = "" }}
+                    {{- $checkName = true}}
+                {{- end}}
+            {{- end}}
+            {{- if eq $xpath "import"}}
+                {{- $importInXpath = true}}
+            {{- end}}
+        {{- end}}
+        {{$import.Name.LowerCamelCase}}{{$entryPath}} = &{{$import.Name.LowerCamelCase}}.{{$specClassName}}{
+            Network: &{{$import.Name.LowerCamelCase}}.{{$specClassName}}Network{
+                Interfaces:
+                importedNames,
+            },
+        }
+        {{- $importInXpath = false}}
+        {{- range $_, $xpath := $import.Xpath}}
+            {{- if not $importInXpath}}
+                }
+            {{- end}}
+            {{- if eq $xpath "import"}}
+                {{- $importInXpath = true}}
+            {{- end}}
+        {{- end}}
+
 		_, err = {{$import.Name.LowerCamelCase}}Api.Update(ctx, {{$import.Name.LowerCamelCase}}Location, *{{$import.Name.LowerCamelCase}}Entry, loc.{{$import.Name.CamelCase}}.{{$import.Name.CamelCase}})
 		if err != nil {
 			return err
