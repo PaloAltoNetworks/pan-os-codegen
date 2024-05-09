@@ -192,6 +192,7 @@ locations:
         name:
             underscore: device_group
             camelcase: DeviceGroup
+            lowercamelcase: deviceGroup
         description: Located in a specific device group.
         device:
             panorama: true
@@ -208,6 +209,7 @@ locations:
                 name:
                     underscore: device_group
                     camelcase: DeviceGroup
+                    lowercamelcase: deviceGroup
                 description: The device group.
                 required: true
                 validation:
@@ -217,6 +219,7 @@ locations:
                 name:
                     underscore: panorama_device
                     camelcase: PanoramaDevice
+                    lowercamelcase: panoramaDevice
                 description: The panorama device.
                 required: false
                 validation: null
@@ -224,6 +227,7 @@ locations:
         name:
             underscore: from_panorama
             camelcase: FromPanorama
+            lowercamelcase: fromPanorama
         description: Located in the config pushed from Panorama.
         device:
             panorama: false
@@ -237,6 +241,7 @@ locations:
         name:
             underscore: shared
             camelcase: Shared
+            lowercamelcase: shared
         description: Located in shared.
         device:
             panorama: true
@@ -250,6 +255,7 @@ locations:
         name:
             underscore: vsys
             camelcase: Vsys
+            lowercamelcase: vsys
         description: Located in a specific vsys.
         device:
             panorama: true
@@ -266,6 +272,7 @@ locations:
                 name:
                     underscore: ngfw_device
                     camelcase: NgfwDevice
+                    lowercamelcase: ngfwDevice
                 description: The NGFW device.
                 required: false
                 validation: null
@@ -273,6 +280,7 @@ locations:
                 name:
                     underscore: vsys
                     camelcase: Vsys
+                    lowercamelcase: vsys
                 description: The vsys.
                 required: false
                 validation:
@@ -286,7 +294,10 @@ entry:
             max: 63
 imports:
     template:
-        name: null
+        name:
+            underscore: template
+            camelcase: Template
+            lowercamelcase: template
         xpath:
             - config
             - devices
@@ -298,11 +309,17 @@ imports:
             - interface
         vars:
             ngfw_device:
-                name: null
+                name:
+                    underscore: ngfw_device
+                    camelcase: NgfwDevice
+                    lowercamelcase: ngfwDevice
                 description: The NGFW device.
                 default: localhost.localdomain
             vsys:
-                name: null
+                name:
+                    underscore: vsys
+                    camelcase: Vsys
+                    lowercamelcase: vsys
                 description: The vsys.
                 default: vsys1
 version: 10.1.0
@@ -312,6 +329,7 @@ spec:
             name:
                 underscore: description
                 camelcase: Description
+                lowercamelcase: description
             description: The description.
             type: string
             default: ""
@@ -329,6 +347,7 @@ spec:
             name:
                 underscore: tags
                 camelcase: Tags
+                lowercamelcase: tags
             description: The administrative tags.
             type: list
             default: ""
@@ -354,6 +373,7 @@ spec:
             name:
                 underscore: fqdn
                 camelcase: Fqdn
+                lowercamelcase: fqdn
             description: The FQDN value.
             type: string
             default: ""
@@ -372,6 +392,7 @@ spec:
             name:
                 underscore: ip_netmask
                 camelcase: IpNetmask
+                lowercamelcase: ipNetmask
             description: The IP netmask value.
             type: string
             default: ""
@@ -386,6 +407,7 @@ spec:
             name:
                 underscore: ip_range
                 camelcase: IpRange
+                lowercamelcase: ipRange
             description: The IP range value.
             type: string
             default: ""
@@ -400,6 +422,7 @@ spec:
             name:
                 underscore: ip_wildcard
                 camelcase: IpWildcard
+                lowercamelcase: ipWildcard
             description: The IP wildcard value.
             type: string
             default: ""
@@ -415,21 +438,25 @@ const:
         name:
             underscore: color
             camelcase: Color
+            lowercamelcase: color
         values:
             blue:
                 name:
                     underscore: blue
                     camelcase: Blue
+                    lowercamelcase: blue
                 value: color3
             light green:
                 name:
                     underscore: light_green
                     camelcase: LightGreen
+                    lowercamelcase: lightGreen
                 value: color9
             red:
                 name:
                     underscore: red
                     camelcase: Red
+                    lowercamelcase: red
                 value: color1
 `
 

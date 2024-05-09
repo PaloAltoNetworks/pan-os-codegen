@@ -554,7 +554,7 @@ return err
 }
 
 {{- if $.Imports}}
-// Unimport imports the given config object into template, if location is set to template.
+// Unimport removes from import the given config object in template, if location is set to template.
 func (s *Service) Unimport(ctx context.Context, loc Location, name string) error {
 	if loc.Template != nil {
 		templateLocation := template.Location{

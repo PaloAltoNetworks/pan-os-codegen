@@ -3,13 +3,15 @@ package generate
 import (
 	"bytes"
 	"fmt"
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate/golang/terraform"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate/golang/terraform"
 
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate"
@@ -197,6 +199,8 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		"createGoSuffixFromVersion": translate.CreateGoSuffixFromVersion,
 		"paramSupportedInVersion":   translate.ParamSupportedInVersion,
 		"xmlPathSuffixes":           translate.XmlPathSuffixes,
+		"underscore":                naming.Underscore,
+		"camelCase":                 naming.CamelCase,
 	}
 	return template.New(templateName).Funcs(funcMap).ParseFiles(templatePath)
 }
