@@ -3,7 +3,7 @@ package terraform_provider_test
 import (
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate/terraform_provider" // Update with the actual import path of your package
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate/terraform_provider"
 	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
