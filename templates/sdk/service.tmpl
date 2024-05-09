@@ -95,38 +95,61 @@ return nil, err
 }
 
 {{- if $.Imports}}
-// Import imports the given config object into template, if location is set to template.
+// Import imports the given config object
 func (s *Service) Import(ctx context.Context, loc Location, entry Entry) error {
-	if loc.Template != nil && entry.Layer3 != nil {
-		templateLocation := template.Location{
-			Panorama: &template.PanoramaLocation{
+    {{- range $_, $import := $.Imports}}
+	if loc.{{$import.Name.CamelCase}} != nil && entry.Layer3 != nil {
+		{{$import.Name.LowerCamelCase}}Location := {{$import.Name.LowerCamelCase}}.Location{
+			Panorama: &{{$import.Name.LowerCamelCase}}.PanoramaLocation{
 				PanoramaDevice: "localhost.localdomain",
 			},
 		}
 
-		templateApi := template.NewService(s.client)
+		{{$import.Name.LowerCamelCase}}Api := {{$import.Name.LowerCamelCase}}.NewService(s.client)
 
-		templateEntry, err := templateApi.Read(ctx, templateLocation, loc.Template.Template, "get")
+		{{$import.Name.LowerCamelCase}}Entry, err := {{$import.Name.LowerCamelCase}}Api.Read(ctx, {{$import.Name.LowerCamelCase}}Location, loc.{{$import.Name.CamelCase}}.{{$import.Name.CamelCase}}, "get")
 		if err != nil {
 			return err
 		}
 
 		importedNames := []string{}
-		if templateEntry.Config.Devices != nil {
-			for _, device := range templateEntry.Config.Devices {
-				if device.Name == "localhost.localdomain" && device.Vsys != nil {
-					for _, vsys := range device.Vsys {
-						if vsys.Name == "vsys1" && vsys.Import != nil {
-							if vsys.Import.Network != nil {
-								if vsys.Import.Network.Interfaces != nil {
-									importedNames = vsys.Import.Network.Interfaces
-								}
-							}
-						}
-					}
-				}
-			}
+        if entry.Import == nil {
+			entry.Import = DefaultImport{{$import.Name.CamelCase}}()
 		}
+        {{- $prefixXpath := "" }}
+        {{- $lastXpath := "" }}
+        {{- $lastEntry := print $import.Name.LowerCamelCase "Entry" }}
+        {{- $checkName := false}}
+        {{- $indexVar := 0}}
+        {{- range $_, $xpath := $import.Xpath}}
+            {{- if not (contains $xpath "Entry")}}
+                {{- $prefixXpath = print $prefixXpath "." (camelCase "" $xpath "" true)}}
+                {{- $lastXpath = $xpath }}
+                {{- if $checkName}}
+                    {{- $index := 0}}
+                    {{- range $_, $var := $import.Vars}}
+                        {{- if eq $indexVar $index}}
+                            if {{$lastEntry}}.Name == entry.Import.{{$var.Name.CamelCase}} && {{$lastEntry}}{{$prefixXpath}} != nil {
+                        {{- end}}
+                        {{- $index = add $index 1}}
+                    {{- end}}
+                    {{- $indexVar = add $indexVar 1}}
+                    {{- $checkName = false}}
+                {{- else}}
+                    if {{$lastEntry}}{{$prefixXpath}} != nil {
+                {{- end}}
+            {{- else}}
+                for _, {{$lastXpath}} := range {{$lastEntry}}{{$prefixXpath}} {
+                {{- $prefixXpath = "" }}
+                {{- $lastEntry = $lastXpath }}
+                {{- $lastXpath = "" }}
+                {{- $checkName = true}}
+            {{- end}}
+        {{- end}}
+        importedNames = {{$lastEntry}}{{$prefixXpath}}
+        {{- range $_, $xpath := $import.Xpath}}
+            }
+        {{- end}}
 
 		alreadyImported := false
 		for _, item := range importedNames {
@@ -138,13 +161,13 @@ func (s *Service) Import(ctx context.Context, loc Location, entry Entry) error {
 			importedNames = append(importedNames, entry.Name)
 		}
 
-		if templateEntry.Config.Devices != nil {
-			for indexDevice, objectDevice := range templateEntry.Config.Devices {
+		if {{$import.Name.LowerCamelCase}}Entry.Config.Devices != nil {
+			for indexDevice, objectDevice := range {{$import.Name.LowerCamelCase}}Entry.Config.Devices {
 				if objectDevice.Name == "localhost.localdomain" && objectDevice.Vsys != nil {
 					for indexVsys, objectVsys := range objectDevice.Vsys {
 						if objectVsys.Name == "vsys1" {
-							templateEntry.Config.Devices[indexDevice].Vsys[indexVsys].Import = &template.SpecConfigDevicesVsysImport{
-								Network: &template.SpecConfigDevicesVsysImportNetwork{
+							{{$import.Name.LowerCamelCase}}Entry.Config.Devices[indexDevice].Vsys[indexVsys].Import = &{{$import.Name.LowerCamelCase}}.SpecConfigDevicesVsysImport{
+								Network: &{{$import.Name.LowerCamelCase}}.SpecConfigDevicesVsysImportNetwork{
 									Interfaces: importedNames,
 								},
 							}
@@ -153,11 +176,12 @@ func (s *Service) Import(ctx context.Context, loc Location, entry Entry) error {
 				}
 			}
 		}
-		_, err = templateApi.Update(ctx, templateLocation, *templateEntry, loc.Template.Template)
+		_, err = {{$import.Name.LowerCamelCase}}Api.Update(ctx, {{$import.Name.LowerCamelCase}}Location, *{{$import.Name.LowerCamelCase}}Entry, loc.{{$import.Name.CamelCase}}.{{$import.Name.CamelCase}})
 		if err != nil {
 			return err
 		}
 	}
+    {{- end}}
 	return nil
 }
 {{- end}}
@@ -465,7 +489,11 @@ return err
     })
 
     {{- if $.Imports}}
-        if err = s.Unimport(ctx, loc, value); err != nil {
+        entry, err := s.Read(ctx, loc, value, "get")
+		if err != nil {
+			return err
+		}
+		if err = s.Unimport(ctx, loc, *entry); err != nil {
 			return err
 		}
     {{- end}}
@@ -554,25 +582,26 @@ return err
 }
 
 {{- if $.Imports}}
-// Unimport removes from import the given config object in template, if location is set to template.
-func (s *Service) Unimport(ctx context.Context, loc Location, name string) error {
-	if loc.Template != nil {
-		templateLocation := template.Location{
-			Panorama: &template.PanoramaLocation{
+// Unimport removes from import the given config object
+func (s *Service) Unimport(ctx context.Context, loc Location, entry Entry) error {
+    {{- range $_, $import := $.Imports}}
+	if loc.{{$import.Name.CamelCase}} != nil {
+		{{$import.Name.LowerCamelCase}}Location := {{$import.Name.LowerCamelCase}}.Location{
+			Panorama: &{{$import.Name.LowerCamelCase}}.PanoramaLocation{
 				PanoramaDevice: "localhost.localdomain",
 			},
 		}
 
-		templateApi := template.NewService(s.client)
+		{{$import.Name.LowerCamelCase}}Api := {{$import.Name.LowerCamelCase}}.NewService(s.client)
 
-		templateEntry, err := templateApi.Read(ctx, templateLocation, loc.Template.Template, "get")
+		{{$import.Name.LowerCamelCase}}Entry, err := {{$import.Name.LowerCamelCase}}Api.Read(ctx, {{$import.Name.LowerCamelCase}}Location, loc.{{$import.Name.CamelCase}}.{{$import.Name.CamelCase}}, "get")
 		if err != nil {
 			return err
 		}
 
 		importedNames := []string{}
-		if templateEntry.Config.Devices != nil {
-			for _, device := range templateEntry.Config.Devices {
+		if {{$import.Name.LowerCamelCase}}Entry.Config.Devices != nil {
+			for _, device := range {{$import.Name.LowerCamelCase}}Entry.Config.Devices {
 				if device.Name == "localhost.localdomain" && device.Vsys != nil {
 					for _, vsys := range device.Vsys {
 						if vsys.Name == "vsys1" && vsys.Import != nil {
@@ -588,18 +617,18 @@ func (s *Service) Unimport(ctx context.Context, loc Location, name string) error
 		}
 
 		for index, item := range importedNames {
-			if item == name {
+			if item == entry.Name {
 				importedNames = append(importedNames[:index], importedNames[index+1:]...)
 			}
 		}
 
-		if templateEntry.Config.Devices != nil {
-			for indexDevice, objectDevice := range templateEntry.Config.Devices {
+		if {{$import.Name.LowerCamelCase}}Entry.Config.Devices != nil {
+			for indexDevice, objectDevice := range {{$import.Name.LowerCamelCase}}Entry.Config.Devices {
 				if objectDevice.Name == "localhost.localdomain" && objectDevice.Vsys != nil {
 					for indexVsys, objectVsys := range objectDevice.Vsys {
 						if objectVsys.Name == "vsys1" {
-							templateEntry.Config.Devices[indexDevice].Vsys[indexVsys].Import = &template.SpecConfigDevicesVsysImport{
-								Network: &template.SpecConfigDevicesVsysImportNetwork{
+							{{$import.Name.LowerCamelCase}}Entry.Config.Devices[indexDevice].Vsys[indexVsys].Import = &{{$import.Name.LowerCamelCase}}.SpecConfigDevicesVsysImport{
+								Network: &{{$import.Name.LowerCamelCase}}.SpecConfigDevicesVsysImportNetwork{
 									Interfaces: importedNames,
 								},
 							}
@@ -608,11 +637,12 @@ func (s *Service) Unimport(ctx context.Context, loc Location, name string) error
 				}
 			}
 		}
-		_, err = templateApi.Update(ctx, templateLocation, *templateEntry, loc.Template.Template)
+		_, err = {{$import.Name.LowerCamelCase}}Api.Update(ctx, {{$import.Name.LowerCamelCase}}Location, *{{$import.Name.LowerCamelCase}}Entry, loc.{{$import.Name.CamelCase}}.{{$import.Name.CamelCase}})
 		if err != nil {
 			return err
 		}
 	}
+    {{- end}}
 	return nil
 }
 {{- end}}

@@ -81,7 +81,7 @@ imports:
       - '{{ Entry $vsys }}'
       - 'import'
       - 'network'
-      - 'interface'
+      - 'interfaces'
     vars:
       'ngfw_device':
         description: 'The NGFW device.'

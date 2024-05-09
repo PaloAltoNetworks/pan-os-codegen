@@ -191,6 +191,9 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		"nestedSpecMatchesFunction": translate.NestedSpecMatchesFunction,
 		"omitEmpty":                 translate.OmitEmpty,
 		"contains":                  strings.Contains,
+		"add": func(a, b int) int {
+			return a + b
+		},
 		"subtract": func(a, b int) int {
 			return a - b
 		},
