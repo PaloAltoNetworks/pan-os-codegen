@@ -24,8 +24,24 @@
         {{$param.Name.CamelCase}} {{specParamType "" $param}}
     {{- end}}
 
+    {{- if $.Imports}}
+    {{- range $_, $import := $.Imports}}
+        Import *Import{{$import.Name.CamelCase}}
+    {{- end}}
+    {{- end}}
+
     Misc map[string][]generic.Xml
     }
+
+    {{- if $.Imports}}
+    {{- range $_, $import := $.Imports}}
+    type Import{{$import.Name.CamelCase}} struct {
+        {{- range $_, $var := $import.Vars}}
+            {{$var.Name.CamelCase}} string
+        {{- end}}
+    }
+    {{- end}}
+    {{- end}}
 
     {{- range $name, $spec := nestedSpecs $.Spec }}
         type Spec{{$name}}{{createGoSuffixFromVersion ""}} struct {
@@ -107,6 +123,18 @@
             {{$const.Name.CamelCase}}{{$value.Name.CamelCase}} = "{{$value.Value}}"
         {{- end}}
         )
+    {{- end}}
+
+    {{- if $.Imports}}
+    {{- range $_, $import := $.Imports}}
+    func DefaultImport{{$import.Name.CamelCase}}() *Import{{$import.Name.CamelCase}} {
+        return &Import{{$import.Name.CamelCase}}{
+            {{- range $_, $var := $import.Vars}}
+                {{$var.Name.CamelCase}}: "{{$var.Default}}",
+            {{- end}}
+        }
+    }
+    {{- end}}
     {{- end}}
 
     func (e *Entry) Field(v string) (any, error) {
