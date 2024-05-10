@@ -67,9 +67,10 @@ type Entry struct {
 }
 
 type Import struct {
-	Name  *NameVariant
-	Xpath []string              `json:"xpath" yaml:"xpath"`
-	Vars  map[string]*ImportVar `json:"vars" yaml:"vars"`
+	Name          *NameVariant
+	Xpath         []string              `json:"xpath" yaml:"xpath"`
+	Vars          map[string]*ImportVar `json:"vars" yaml:"vars"`
+	OnlyForParams []string              `json:"only_for_params" yaml:"only_for_params"`
 }
 
 type ImportVar struct {

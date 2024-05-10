@@ -93,6 +93,8 @@ imports:
       'vsys':
         description: 'The vsys.'
         default: 'vsys1'
+    only_for_params:
+      - layer3
 version: '10.1.0'
 spec:
   params:
@@ -322,6 +324,8 @@ imports:
                     lowercamelcase: vsys
                 description: The vsys.
                 default: vsys1
+        only_for_params:
+            - layer3
 version: 10.1.0
 spec:
     params:
