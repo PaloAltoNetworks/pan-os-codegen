@@ -3,11 +3,10 @@ package codegen
 import (
 	"context"
 	"fmt"
-	"log"
-
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/generate"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/load"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
+	"log"
 )
 
 type CommandType string
@@ -96,7 +95,7 @@ func (c *Command) Execute() error {
 
 			newProviderObject := properties.NewTerraformProviderFile(spec.Name)
 			terraformGenerator := generate.NewCreator(config.Output.TerraformProvider, c.templatePath, spec)
-			err = terraformGenerator.RenderTerraformProvider(newProviderObject, spec)
+			err = terraformGenerator.RenderTerraformProviderFile(newProviderObject, spec)
 			if err != nil {
 				return fmt.Errorf("error generating Terraform provider - %s", err)
 			}
@@ -111,6 +110,18 @@ func (c *Command) Execute() error {
 			}
 		}
 
+	}
+
+	if c.commandType == CommandTypeTerraform {
+		providerSpec := new(properties.Normalization)
+		providerSpec.Name = "provider"
+
+		newProviderObject := properties.NewTerraformProviderFile(providerSpec.Name)
+		newProviderObject.DataSources = append(newProviderObject.DataSources, dataSourceList...)
+		newProviderObject.Resources = append(newProviderObject.Resources, resourceList...)
+
+		terraformGenerator := generate.NewCreator(config.Output.TerraformProvider, c.templatePath, providerSpec)
+		err = terraformGenerator.RenderTerraformProvider(newProviderObject, providerSpec, config.TerraformProviderConfig)
 	}
 
 	if err = generate.CopyAssets(config); err != nil {

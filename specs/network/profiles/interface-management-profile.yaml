@@ -1,5 +1,6 @@
 name: 'Interface management profile'
-terraform_provider_suffix: 'interface_management_profile'
+terraform_provider_config:
+  suffix: 'interface_management_profile'
 go_sdk_path:
   - 'network'
   - 'profiles'

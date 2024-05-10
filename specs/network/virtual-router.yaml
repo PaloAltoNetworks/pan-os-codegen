@@ -1,5 +1,6 @@
 name: 'Virtual router'
-terraform_provider_suffix: 'virtual_router'
+terraform_provider_config:
+  suffix: 'virtual_router'
 go_sdk_path:
   - 'network'
   - 'virtual_router'
