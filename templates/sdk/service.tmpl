@@ -98,7 +98,7 @@ return nil, err
 // Import imports the given config object
 func (s *Service) Import(ctx context.Context, loc Location, entry Entry) error {
     {{- range $_, $import := $.Imports}}
-	if loc.{{$import.Name.CamelCase}} != nil && entry.Layer3 != nil {
+    if loc.{{$import.Name.CamelCase}} != nil  {{- range $_, $param := $import.OnlyForParams}} && entry.{{ camelCase "" $param "" true }} != nil {{- end}} {
 		{{$import.Name.LowerCamelCase}}Location := {{$import.Name.LowerCamelCase}}.Location{
 			Panorama: &{{$import.Name.LowerCamelCase}}.PanoramaLocation{
 				PanoramaDevice: "localhost.localdomain",
@@ -204,10 +204,32 @@ func (s *Service) Import(ctx context.Context, loc Location, entry Entry) error {
             {{- end}}
         {{- end}}
         {{$import.Name.LowerCamelCase}}{{$entryPath}} = &{{$import.Name.LowerCamelCase}}.{{$specClassName}}{
-            Network: &{{$import.Name.LowerCamelCase}}.{{$specClassName}}Network{
-                Interfaces:
-                importedNames,
-            },
+            {{- $importInXpath = false}}
+            {{- range $index, $xpath := $import.Xpath}}
+                {{- if $importInXpath}}
+                {{ camelCase "" $xpath "" true }}:
+                    {{- if eq $index (subtract (len $import.Xpath) 1)}}
+                    importedNames,
+                    {{- else}}
+                    &{{$import.Name.LowerCamelCase}}.{{$specClassName}}{{ camelCase "" $xpath "" true }}{
+                    {{- end}}
+                {{- end}}
+                {{- if eq $xpath "import"}}
+                    {{- $importInXpath = true}}
+                {{- end}}
+            {{- end}}
+            {{- $importInXpath = false}}
+            {{- range $index, $xpath := $import.Xpath}}
+                {{- if $importInXpath}}
+                    {{- if eq $index (subtract (len $import.Xpath) 1)}}
+                    {{- else}}
+                    },
+                    {{- end}}
+                {{- end}}
+                {{- if eq $xpath "import"}}
+                    {{- $importInXpath = true}}
+                {{- end}}
+            {{- end}}
         }
         {{- $importInXpath = false}}
         {{- range $_, $xpath := $import.Xpath}}
@@ -624,6 +646,7 @@ return err
 {{- end}}
 }
 
+// TODO: Unimport
 {{- if $.Imports}}
 // Unimport removes from import the given config object
 func (s *Service) Unimport(ctx context.Context, loc Location, entry Entry) error {
