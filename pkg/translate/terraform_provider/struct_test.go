@@ -32,7 +32,7 @@ func TestTFIDStruct(t *testing.T) {
 	structName := "TestStruct"
 
 	// When
-	result, err := terraform_provider.TFIDStruct(structType, structName)
+	result, err := terraform_provider.CreateTfIdStruct(structType, structName)
 
 	// Then
 	assert.NoError(t, err)

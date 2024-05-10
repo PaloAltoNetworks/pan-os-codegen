@@ -93,8 +93,8 @@ func ParamToSchema(paramName string, paramProp properties.TerraformProviderParam
 {{- /* Done */ -}}`, "describe-param", paramProp, nil)
 }
 
-// TFIDStruct generates a template for a struct based on the provided structType and structName.
-func TFIDStruct(structType string, structName string) (string, error) {
+// CreateTfIdStruct generates a template for a struct based on the provided structType and structName.
+func CreateTfIdStruct(structType string, structName string) (string, error) {
 	if structType == "entry" {
 		return centralTemplateExec(`
 {{- /* Begin */ -}}
@@ -105,8 +105,8 @@ func TFIDStruct(structType string, structName string) (string, error) {
 	return "", nil
 }
 
-// TFIDResourceModel generates a Terraform resource struct part for TFID.
-func TFIDResourceModel(structType string, structName string) (string, error) {
+// CreateTfIdResourceModel generates a Terraform resource struct part for TFID.
+func CreateTfIdResourceModel(structType string, structName string) (string, error) {
 	if structType == "entry" {
 		return centralTemplateExec(`
 {{- /* Begin */ -}}

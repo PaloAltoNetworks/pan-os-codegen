@@ -32,7 +32,7 @@ type {{ structName }} struct {
 
 type {{ structName }}Tfid struct {
 	//TODO: Generate tfid struct via function
-	{{ TFIDStruct }}
+	{{ CreateTfIdStruct }}
 }
 
 func (o *{{ structName }}Tfid) IsValid() error {
@@ -57,7 +57,7 @@ type {{ structName }}DeviceGroupLocation struct {
 
 type {{ structName }}Model struct {
 // TODO: Entry model struct via function
-		{{ TFIDResourceModel }}
+		{{ CreateTfIdResourceModel }}
         {{- range $pName, $pParam := $.Spec.Params}}
             {{- ParamToModelResource $pName $pParam structName -}}
         {{- end}}
