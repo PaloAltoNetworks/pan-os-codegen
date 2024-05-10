@@ -82,26 +82,22 @@ terraform_provider_config:
   params:
     hostname:
       description: "The hostname or IP address of the PAN-OS instance (NGFW or Panorama)."
-      default_value: ""
       env_name: "PANOS_HOST"
       optional: true
       type: string
     username:
       description: "The username.  This is required if api_key is not configured."
-      default_value: ""
       env_name: "PANOS_USERNAME"
       optional: true
       type: string
     password:
       description: "The password.  This is required if the api_key is not configured."
-      default_value: ""
       env_name: "PANOS_PASSWORD"
       optional: true
       sensitive: true
       type: string
     api_key:
       description: "The API key for PAN-OS. Either specify this or give both username and password."
-      default_value: ""
       env_name: "PANOS_API"
       optional: true
       type: string
@@ -113,50 +109,39 @@ terraform_provider_config:
       type: string
     port:
       description: "If the port is non-standard for the protocol, the port number to use."
-      default_value: ""
       env_name: "PANOS_PORT"
       optional: true
       type: int64
     target:
       description: "Target setting (NGFW serial number)."
-      default_value: ""
       env_name: "PANOS_TARGET"
       optional: true
       type: string
     api_key_in_request:
       description: "Send the API key in the request body instead of using the authentication header."
-      default_value: ""
       env_name: "PANOS_API_KEY_IN_REQUEST"
       optional: true
       type: bool
     additional_headers:
       description: "Additional HTTP headers to send with API calls"
-      default_value: ""
       env_name: "PANOS_HEADERS"
       optional: true
       type: map
     skip_verify_certificate:
       description: "(For https protocol) Skip verifying the HTTPS certificate."
-      default_value: ""
       env_name: "PANOS_SKIP_VERIFY_CERTIFICATE"
       optional: true
       type: bool
     auth_file:
       description: "Filesystem path to a JSON config file that specifies the provider's params."
-      default_value: ""
-      env_name: ""
       optional: true
       type: string
   # Variables for local inspection.
     config_file:
       description: "(Local inspection mode) The PAN-OS config file to load read in using `file()`"
-      default_value: ""
-      env_name: ""
       optional: true
       type: string
     panos_version:
       description: "(Local inspection mode) The version of PAN-OS that exported the config file. This is only used if the root 'config' block does not contain the 'detail-version' attribute. Example: `10.2.3`."
-      default_value: ""
-      env_name: ""
       optional: true
       type: string
