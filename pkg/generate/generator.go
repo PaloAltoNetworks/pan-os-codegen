@@ -10,12 +10,10 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate/terraform_provider"
-
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
-
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate/terraform_provider"
 )
 
 type Creator struct {
