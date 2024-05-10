@@ -3,7 +3,7 @@ package generate
 import (
 	"bytes"
 	"fmt"
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate/golang/terraform"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate/terraform_provider"
 	"io"
 	"log"
 	"os"
@@ -67,10 +67,10 @@ func (c *Creator) RenderTemplate() error {
 	return nil
 }
 
-// RenderTerraformProvider generates a Go file for a Terraform provider based on the provided TerraformProviderFile and Normalization arguments.
+// RenderTerraformProviderFile generates a Go file for a Terraform provider based on the provided TerraformProviderFile and Normalization arguments.
 // It calls terraform.GenerateTerraformResource() passing the Normalization specification and the TerraformProviderFile.
-func (c *Creator) RenderTerraformProvider(terraformProvider *properties.TerraformProviderFile, spec *properties.Normalization) error {
-	tfp := terraform.GenerateTerraformProvider{}
+func (c *Creator) RenderTerraformProviderFile(terraformProvider *properties.TerraformProviderFile, spec *properties.Normalization) error {
+	tfp := terraform_provider.GenerateTerraformProvider{}
 
 	if err := tfp.GenerateTerraformDataSource(spec, terraformProvider); err != nil {
 		return err
@@ -93,10 +93,30 @@ func (c *Creator) RenderTerraformProvider(terraformProvider *properties.Terrafor
 	return nil
 }
 
+func (c *Creator) RenderTerraformProvider(terraformProvider *properties.TerraformProviderFile, spec *properties.Normalization, providerConfig properties.TerraformProvider) error {
+	tfp := terraform_provider.GenerateTerraformProvider{}
+	if err := tfp.GenerateTerraformProvider(terraformProvider, spec, providerConfig); err != nil {
+		return err
+	}
+	filePath := c.createTerraformProviderFilePath(spec.Name)
+
+	content := bytes.NewBufferString(terraformProvider.Code.String())
+	if err := c.createFileAndWriteContent(filePath, content); err != nil {
+		return err
+	}
+	return nil
+}
+
 // createTerraformProviderFilePath returns a file path for a Terraform provider based on the provided suffix.
-func (c *Creator) createTerraformProviderFilePath(terraformProviderSuffix string) string {
-	fileName := fmt.Sprintf("%s_object.go", terraformProviderSuffix)
-	return filepath.Join(c.GoOutputDir, "internal", fileName)
+func (c *Creator) createTerraformProviderFilePath(terraformProviderFileName string) string {
+	terraformProviderFileNameSuffix := "_object"
+
+	if terraformProviderFileName == "provider" {
+		terraformProviderFileNameSuffix = ""
+	}
+
+	fileName := fmt.Sprintf("%s%s.go", terraformProviderFileName, terraformProviderFileNameSuffix)
+	return filepath.Join(c.GoOutputDir, "internal/provider", fileName)
 }
 
 // createFileAndWriteContent creates a new file at the specified filePath and writes the content from the content buffer to the file.

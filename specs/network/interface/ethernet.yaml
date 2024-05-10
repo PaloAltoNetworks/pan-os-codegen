@@ -1,5 +1,6 @@
 name: 'Ethernet interface'
-terraform_provider_suffix: 'ethernet_interface'
+terraform_provider_config:
+  suffix: 'ethernet_interface'
 go_sdk_path:
   - 'network'
   - 'interface'

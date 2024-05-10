@@ -1,4 +1,15 @@
-package terraform
+package terraform_provider
+
+const resourceModelNestedStructTemplate = `
+type {{ .structName }}Object struct {
+	{{- range $pName, $pParam := $.Spec.Params -}}
+		{{- structItems $pName $pParam -}}
+	{{- end}}
+	{{- range $pName, $pParam := $.Spec.OneOf -}}
+		{{- structItems $pName $pParam  -}}
+	{{- end}}
+}
+`
 
 const resourceTemplateStr = `
 {{- /* Begin */ -}}
@@ -21,6 +32,7 @@ type {{ structName }} struct {
 
 type {{ structName }}Tfid struct {
 	//TODO: Generate tfid struct via function
+	{{ CreateTfIdStruct }}
 }
 
 func (o *{{ structName }}Tfid) IsValid() error {
@@ -45,7 +57,21 @@ type {{ structName }}DeviceGroupLocation struct {
 
 type {{ structName }}Model struct {
 // TODO: Entry model struct via function
+		{{ CreateTfIdResourceModel }}
+        {{- range $pName, $pParam := $.Spec.Params}}
+            {{- ParamToModelResource $pName $pParam structName -}}
+        {{- end}}
+        {{- range $pName, $pParam := $.Spec.OneOf}}
+            {{- ParamToModelResource $pName $pParam structName -}}
+        {{- end}}
 }
+
+{{- range $pName, $pParam := $.Spec.Params}}
+	{{ ModelNestedStruct $pName $pParam structName }}
+{{- end}}
+{{- range $pName, $pParam := $.Spec.OneOf}}
+	{{ ModelNestedStruct $pName $pParam structName }}
+{{- end}}
 
 func (r *{{ structName }}) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "{{ metaName }}"
@@ -210,7 +236,7 @@ func (d *{{ structName }}) Read(ctx context.Context, req datasource.ReadRequest,
     var data {{ structName }}Model
 
 	// Read Terraform prior state data into the model
-	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -236,3 +262,130 @@ package provider
 
 {{- /* Done */ -}}
 `
+const providerTemplateStr = `
+{{- /* Begin */ -}}
+package provider
+
+{{ RenderImports }}
+
+// Ensure the provider implementation interface is sound.
+var (
+	_ provider.Provider = &PanosProvider{}
+)
+
+// PanosProvider is the provider implementation.
+type PanosProvider struct {
+	version string
+}
+
+// PanosProviderModel maps provider schema data to a Go type.
+type PanosProviderModel struct {
+{{- range $pName, $pParam := ProviderParams }}
+{{ ParamToModel $pName $pParam }}
+{{- end }}
+}
+
+// Metadata returns the provider type name.
+func (p *PanosProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
+	resp.TypeName = "panos"
+	resp.Version = p.version
+}
+
+// Schema defines the provider-level schema for configuration data.
+func (p *PanosProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Terraform provider to interact with Palo Alto Networks PAN-OS.",
+		Attributes: map[string]schema.Attribute{
+{{- range $pName, $pParam := ProviderParams }}
+{{ ParamToSchema $pName $pParam }}
+{{- end }}
+		},
+	}
+}
+
+// Configure prepares the provider.
+func (p *PanosProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+	tflog.Info(ctx, "Configuring the provider client...")
+
+	var config PanosProviderModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var con *sdk.XmlApiClient
+
+	if config.ConfigFile.ValueStringPointer() != nil {
+		tflog.Info(ctx, "Configuring client for local inspection mode")
+		con = &sdk.XmlApiClient{}
+		if err := con.SetupLocalInspection(config.ConfigFile.ValueString(), config.PanosVersion.ValueString()); err != nil {
+			resp.Diagnostics.AddError("Error setting up local inspection mode", err.Error())
+			return
+		}
+	} else {
+		tflog.Info(ctx, "Configuring client for API mode")
+		con = &sdk.XmlApiClient{
+			Hostname:        config.Hostname.ValueString(),
+			Username:        config.Username.ValueString(),
+			Password:        config.Password.ValueString(),
+			ApiKey:          config.ApiKey.ValueString(),
+			Protocol:        config.Protocol.ValueString(),
+			Port:            int(config.Port.ValueInt64()),
+			Target:          config.Target.ValueString(),
+			ApiKeyInRequest: config.ApiKeyInRequest.ValueBool(),
+			// Headers from AdditionalHeaders
+			SkipVerifyCertificate: config.SkipVerifyCertificate.ValueBool(),
+			AuthFile:              config.AuthFile.ValueString(),
+			CheckEnvironment:      true,
+			//Agent:            fmt.Sprintf("Terraform/%s Provider/scm Version/%s", req.TerraformVersion, p.version),
+		}
+
+		if err := con.Setup(); err != nil {
+			resp.Diagnostics.AddError("Provider parameter value error", err.Error())
+			return
+		}
+
+		//con.HttpClient.Transport = sdkapi.NewTransport(con.HttpClient.Transport, con)
+
+		if err := con.Initialize(ctx); err != nil {
+			resp.Diagnostics.AddError("Initialization error", err.Error())
+			return
+		}
+	}
+
+	resp.DataSourceData = con
+	resp.ResourceData = con
+
+	// Done.
+	tflog.Info(ctx, "Configured client", map[string]any{"success": true})
+}
+
+// DataSources defines the data sources for this provider.
+func (p *PanosProvider) DataSources(_ context.Context) []func() datasource.DataSource {
+	return []func() datasource.DataSource{
+		NewTfidDataSource,
+{{- range $fnName := DataSources }}
+        New{{ $fnName }},
+{{- end }}
+	}
+}
+
+// Resources defines the data sources for this provider.
+func (p *PanosProvider) Resources(_ context.Context) []func() resource.Resource {
+	return []func() resource.Resource{
+{{- range $fnName := Resources }}
+        New{{ $fnName }},
+{{- end }}
+	}
+}
+
+// New is a helper function to get the provider implementation.
+func New(version string) func() provider.Provider {
+	return func() provider.Provider {
+		return &PanosProvider{
+			version: version,
+		}
+	}
+}
+
+{{- /* Done */ -}}`
