@@ -86,21 +86,25 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 	resourceType := "Resource"
 	names := NewNameProvider(spec, resourceType)
 	funcMap := template.FuncMap{
-		"metaName":                func() string { return names.MetaName },
-		"structName":              func() string { return names.StructName },
-		"CreateTfIdStruct":        func() (string, error) { return CreateTfIdStruct("entry", spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
-		"CreateTfIdResourceModel": func() (string, error) { return CreateTfIdResourceModel("entry", names.StructName) },
-		"ParamToModelResource": func(paramName string, paramProp *properties.SpecParam, structName string) (string, error) {
-			return ParamToModelResource(paramName, paramProp, structName)
-		},
-		"ModelNestedStruct": func(paramName string, paramProp *properties.SpecParam, structName string) (string, error) {
-			return ModelNestedStruct(paramName, paramProp, structName)
-		},
+		"metaName":                        func() string { return names.MetaName },
+		"structName":                      func() string { return names.StructName },
+		"CreateTfIdStruct":                func() (string, error) { return CreateTfIdStruct("entry", spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
+		"CreateTfIdResourceModel":         func() (string, error) { return CreateTfIdResourceModel("entry", names.StructName) },
+		"ParamToModelResource":            ParamToModelResource,
+		"ModelNestedStruct":               ModelNestedStruct,
+		"ParamToSchema":                   ParamToSchemaResource,
+		"ResourceSchemaLocationAttribute": CreateResourceSchemaLocationAttribute,
 	}
 	terraformProvider.ImportManager.AddStandardImport("context", "")
 	terraformProvider.ImportManager.AddStandardImport("fmt", "")
 	terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "")
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
+	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator", "")
+	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier", "")
+	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier", "")
+	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault", "")
+	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier", "")
+	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/schema/validator", "")
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource", "")
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types", "")
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
@@ -199,8 +203,8 @@ func (g *GenerateTerraformProvider) GenerateTerraformProvider(terraformProvider 
 		"DataSources":    func() []string { return terraformProvider.DataSources },
 		"Resources":      func() []string { return terraformProvider.Resources },
 		"ProviderParams": func() map[string]properties.TerraformProviderParams { return providerConfig.TerraformProviderParams },
-		"ParamToModel": func(paramName string, paramProp properties.TerraformProviderParams) (string, error) {
-			return ParamToModel(paramName, paramProp)
+		"ParamToModelBasic": func(paramName string, paramProp properties.TerraformProviderParams) (string, error) {
+			return ParamToModelBasic(paramName, paramProp)
 		},
 		"ParamToSchema": func(paramName string, paramProp properties.TerraformProviderParams) (string, error) {
 			return ParamToSchema(paramName, paramProp)

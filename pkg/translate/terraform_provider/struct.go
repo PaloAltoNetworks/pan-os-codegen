@@ -16,20 +16,26 @@ var centralFuncMap = template.FuncMap{
 	"CamelCaseType":  func(paramType string) string { return naming.CamelCase("", paramType, "", true) },
 }
 
-// mergeFuncMaps merges two template.FuncMap instances.
-// In case of a key conflict, the second map's value will override the first one.
-func mergeFuncMaps(map1, map2 template.FuncMap) template.FuncMap {
-	mergedMap := make(template.FuncMap)
+type vsysLocation struct {
+	name       string
+	ngfwDevice string
+}
 
-	for key, value := range map1 {
-		mergedMap[key] = value
-	}
+type deviceGroupLocation struct {
+	name           string
+	PanoramaDevice string
+	Rulebase       string
+}
 
-	for key, value := range map2 {
-		mergedMap[key] = value
-	}
+type sharedLocation struct {
+	Rulebase string
+}
 
-	return mergedMap
+type resourceLocation struct {
+	FromPanorama bool
+	Shared       sharedLocation
+	Vsys         vsysLocation
+	DeviceGroup  deviceGroupLocation
 }
 
 // centralTemplateExec handles the creation and execution of templates
@@ -51,31 +57,24 @@ func centralTemplateExec(templateText, templateName string, data interface{}, fu
 	return builder.String(), nil
 }
 
-// ParamToModel converts the given parameter name and properties to a model representation.
-func ParamToModel(paramName string, paramProp properties.TerraformProviderParams) (string, error) {
-	funcMap := template.FuncMap{
-		"CamelCaseName":  func() string { return naming.CamelCase("", paramName, "", true) },
-		"UnderscoreName": func() string { return naming.Underscore("", paramName, "") },
-		"CamelCaseType":  func() string { return naming.CamelCase("", paramProp.Type, "", true) },
+// ParamToModelBasic converts the given parameter name and properties to a model representation.
+func ParamToModelBasic(paramName string, paramProp properties.TerraformProviderParams) (string, error) {
+	data := map[string]interface{}{
+		"paramName": paramName,
 	}
-	modelTemplate := template.Must(
-		template.New(
-			"param-to-model",
-		).Funcs(
-			funcMap,
-		).Parse(`
+	paramPropMap := structToMap(paramProp)
+	for k, v := range paramPropMap {
+		data[k] = v
+	}
+
+	return centralTemplateExec(`
 {{- /* Begin */ -}}
-{{ "    " }}{{ CamelCaseName }} types.{{ CamelCaseType }} ` + "`" + `tfsdk:"{{ UnderscoreName }}"` + "`" + `
-{{- /* Done */ -}}`,
-		),
-	)
-	var builder strings.Builder
-	err := modelTemplate.Execute(&builder, paramProp)
-	return builder.String(), err
+{{ "    " }}{{ CamelCaseName .paramName }} types.{{ CamelCaseType .Type }} `+"`"+`tfsdk:"{{ UnderscoreName .paramName }}"`+"`"+`
+{{- /* Done */ -}}`, "param-to-model", data, nil)
 }
 
 // ParamToSchema converts the given parameter name and properties to a schema representation.
-func ParamToSchema(paramName string, paramProp properties.TerraformProviderParams) (string, error) {
+func ParamToSchema(paramName string, paramProp interface{}) (string, error) {
 	return centralTemplateExec(`
 {{- /* Begin */ -}}
     "`+paramName+`": schema.{{ CamelCaseType .Type }}Attribute{
@@ -91,6 +90,27 @@ func ParamToSchema(paramName string, paramProp properties.TerraformProviderParam
 {{- end }}
     },
 {{- /* Done */ -}}`, "describe-param", paramProp, nil)
+}
+
+func ParamToSchemaResource(paramName string, paramProp interface{}) (string, error) {
+	return centralTemplateExec(`
+{{- /* Begin */ -}}
+    "`+paramName+`": rsschema.{{ CamelCaseType .Type }}Attribute{
+        Description: "{{ .Description }}",
+		{{- if .Required }}
+        Required: true,
+		{{- else }} 
+		Optional:    true,
+		{{- end }}
+		{{- if .Default }}
+		Default: "{{ .Default }}",
+		{{- end }}
+    },
+{{- /* Done */ -}}`, "describe-param", paramProp, nil)
+}
+
+func CreateResourceSchemaLocationAttribute() (string, error) {
+	return centralTemplateExec(resourceTemplateSchemaLocationAttribute, "resource-schema-location", nil, nil)
 }
 
 // CreateTfIdStruct generates a template for a struct based on the provided structType and structName.
@@ -196,4 +216,20 @@ func CreateNestedStruct(paramName string, paramProp *properties.SpecParam, struc
 	}
 
 	return nestedStructString.String(), nil
+}
+
+func CreateLocationStruct() {
+
+}
+
+func CreateLocationVsysStruct() {
+
+}
+
+func CreateLocationDeviceGroupStruct() {
+
+}
+
+func CreateLocationSharedStruct() {
+
 }

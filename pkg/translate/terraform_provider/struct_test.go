@@ -17,7 +17,7 @@ func TestParamToModel(t *testing.T) {
 	}
 
 	// When
-	result, err := terraform_provider.ParamToModel(paramName, paramProp)
+	result, err := terraform_provider.ParamToModelBasic(paramName, paramProp)
 
 	// Then
 	assert.NoError(t, err)

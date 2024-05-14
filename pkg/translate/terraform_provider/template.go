@@ -11,6 +11,88 @@ type {{ .structName }}Object struct {
 }
 `
 
+const resourceTemplateSchemaLocationAttribute = `
+			"location": rsschema.SingleNestedAttribute{
+				Description: "The location of this object.",
+				Required:    true,
+				Attributes: map[string]rsschema.Attribute{
+					"device_group": rsschema.SingleNestedAttribute{
+						Description: "(Panorama) In the given device group. One of the following must be specified: ` + `device_group` + `, ` + `from_panorama` + `, ` + `shared` + `, or  ` + `vsys` + `.",
+						Optional:    true,
+						Attributes: map[string]rsschema.Attribute{
+							"name": rsschema.StringAttribute{
+								Description: "The device group name.",
+								Required:    true,
+								PlanModifiers: []planmodifier.String{
+									stringplanmodifier.RequiresReplace(),
+								},
+							},
+							"panorama_device": rsschema.StringAttribute{
+								Description: "The Panorama device. Default: ` + `localhost.localdomain` + `.",
+								Optional:    true,
+								Computed:    true,
+								Default:     stringdefault.StaticString("localhost.localdomain"),
+								PlanModifiers: []planmodifier.String{
+									stringplanmodifier.RequiresReplace(),
+								},
+							},
+						},
+					},
+					"from_panorama": rsschema.BoolAttribute{
+						Description: "(NGFW) Pushed from Panorama. This is a read-only location and only suitable for data sources. One of the following must be specified: ` + `device_group` + `, ` + `from_panorama` + `, ` + `shared` + `, or  ` + `vsys` + `.",
+						Optional:    true,
+						Validators: []validator.Bool{
+							boolvalidator.ExactlyOneOf(
+								path.MatchRoot("location").AtName("from_panorama"),
+								path.MatchRoot("location").AtName("device_group"),
+								path.MatchRoot("location").AtName("vsys"),
+								path.MatchRoot("location").AtName("shared"),
+							),
+						},
+						PlanModifiers: []planmodifier.Bool{
+							boolplanmodifier.RequiresReplace(),
+						},
+					},
+					"shared": rsschema.BoolAttribute{
+						Description: "(NGFW and Panorama) Located in shared. One of the following must be specified:` + `device_group` + `, ` + `from_panorama` + `, ` + `shared` + `, or  ` + `vsys` + `.",
+						Optional:    true,
+						PlanModifiers: []planmodifier.Bool{
+							boolplanmodifier.RequiresReplace(),
+						},
+					},
+					"vsys": rsschema.SingleNestedAttribute{
+						Description: "(NGFW) In the given vsys. One of the following must be specified:` + `device_group` + `, ` + `from_panorama` + `, ` + `shared` + `, or  ` + `vsys` + `.",
+						Optional:    true,
+						Attributes: map[string]rsschema.Attribute{
+							"name": rsschema.StringAttribute{
+								Description: "The vsys name.",
+								Optional:    true,
+								Computed:    true,
+								Default:     stringdefault.StaticString("vsys1"),
+								PlanModifiers: []planmodifier.String{
+									stringplanmodifier.RequiresReplace(),
+								},
+							},
+							"ngfw_device": rsschema.StringAttribute{
+								Description: "The NGFW device.",
+								Optional:    true,
+								Computed:    true,
+								Default:     stringdefault.StaticString("localhost.localdomain"),
+								PlanModifiers: []planmodifier.String{
+									stringplanmodifier.RequiresReplace(),
+								},
+							},
+						},
+					},
+				},
+			},
+			"tfid": rsschema.StringAttribute{
+				Description: "The Terraform ID.",
+				Computed:    true,
+			},
+
+`
+
 const resourceTemplateStr = `
 {{- /* Begin */ -}}
 
@@ -79,6 +161,18 @@ func (r *{{ structName }}) Metadata(ctx context.Context, req resource.MetadataRe
 
 func (r *{{ structName }}) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 // TODO: Fill schema via function
+	resp.Schema = rsschema.Schema{
+		Description: "",
+		Attributes: map[string]rsschema.Attribute{
+	{{- ResourceSchemaLocationAttribute }}
+	{{- range $pName, $pParam := $.Spec.Params }}
+	{{ ParamToSchema $pName $pParam }}
+	{{- end }}
+	{{- range $pName, $pParam := $.Spec.OneOf }}
+	{{ ParamToSchema $pName $pParam }}
+	{{- end }}
+		},
+	}
 }
 
 func (r *{{ structName }}) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -281,7 +375,7 @@ type PanosProvider struct {
 // PanosProviderModel maps provider schema data to a Go type.
 type PanosProviderModel struct {
 {{- range $pName, $pParam := ProviderParams }}
-{{ ParamToModel $pName $pParam }}
+{{ ParamToModelBasic $pName $pParam }}
 {{- end }}
 }
 
