@@ -55,13 +55,21 @@ func (logger *Logger) logSendData(b *strings.Builder, data url.Values) {
 	if b.Len() > 0 {
 		fmt.Fprintf(b, "\n")
 	}
-	realKey := data.Get("key")
-	if realKey != "" {
-		data.Set("key", "########")
+	realSecret := make(map[string]string)
+	realSecret["key"] = data.Get("key")
+	realSecret["password"] = data.Get("password")
+	if realSecret["key"] != "" {
+		data.Set("key", "***")
+	}
+	if realSecret["password"] != "" {
+		data.Set("password", "***")
 	}
 	fmt.Fprintf(b, "Sending data: %#v", data)
-	if realKey != "" {
-		data.Set("key", realKey)
+	if realSecret["key"] != "" {
+		data.Set("key", realSecret["key"])
+	}
+	if realSecret["password"] != "" {
+		data.Set("password", realSecret["password"])
 	}
 }
 
@@ -161,7 +169,16 @@ func (logger *Logger) logReceiveData(b *strings.Builder, body []byte) {
 	if b.Len() > 0 {
 		fmt.Fprintf(b, "\n")
 	}
-	fmt.Fprintf(b, "Received data: %s", body)
+
+	// Replace sensitive content
+	replacedBody := string(body)
+	startIndex := strings.Index(replacedBody, "<key>")
+	endIndex := strings.Index(replacedBody, "</key>")
+	if startIndex != -1 && endIndex != -1 {
+		replacedBody = replacedBody[:startIndex] + "***" + replacedBody[endIndex+len("</key>"):]
+	}
+
+	fmt.Fprintf(b, "Received data: %s", replacedBody)
 }
 
 // LogDebug logs the provided data at the debug level if debug logging is enabled.
