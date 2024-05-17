@@ -72,6 +72,26 @@ locations:
 entry:
   name:
     description: 'The name of the ethernet interface.'
+imports:
+  'template':
+    xpath:
+      - 'config'
+      - 'devices'
+      - '{{ Entry $ngfw_device }}'
+      - 'vsys'
+      - '{{ Entry $vsys }}'
+      - 'import'
+      - 'network'
+      - 'interfaces'
+    vars:
+      'ngfw_device':
+        description: 'The NGFW device.'
+        default: 'localhost.localdomain'
+      'vsys':
+        description: 'The vsys.'
+        default: 'vsys1'
+    only_for_params:
+      - layer3
 version: '10.1.0'
 spec:
   params:

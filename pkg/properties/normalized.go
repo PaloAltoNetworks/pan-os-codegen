@@ -2,12 +2,13 @@ package properties
 
 import (
 	"fmt"
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/content"
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"io/fs"
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/content"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 )
 
 type Normalization struct {
@@ -17,6 +18,7 @@ type Normalization struct {
 	XpathSuffix             []string                `json:"xpath_suffix" yaml:"xpath_suffix"`
 	Locations               map[string]*Location    `json:"locations" yaml:"locations"`
 	Entry                   *Entry                  `json:"entry" yaml:"entry"`
+	Imports                 map[string]*Import      `json:"imports" yaml:"imports"`
 	Version                 string                  `json:"version" yaml:"version"`
 	Spec                    *Spec                   `json:"spec" yaml:"spec"`
 	Const                   map[string]*Const       `json:"const" yaml:"const"`
@@ -30,8 +32,9 @@ type TerraformProviderConfig struct {
 }
 
 type NameVariant struct {
-	Underscore string
-	CamelCase  string
+	Underscore     string
+	CamelCase      string
+	LowerCamelCase string
 }
 
 type Location struct {
@@ -61,6 +64,19 @@ type LocationVarValidation struct {
 
 type Entry struct {
 	Name *EntryName `json:"name" yaml:"name"`
+}
+
+type Import struct {
+	Name          *NameVariant
+	Xpath         []string              `json:"xpath" yaml:"xpath"`
+	Vars          map[string]*ImportVar `json:"vars" yaml:"vars"`
+	OnlyForParams []string              `json:"only_for_params" yaml:"only_for_params"`
+}
+
+type ImportVar struct {
+	Name        *NameVariant
+	Description string `json:"description" yaml:"description"`
+	Default     string `json:"default" yaml:"default"`
 }
 
 type EntryName struct {
@@ -173,6 +189,11 @@ func ParseSpec(input []byte) (*Normalization, error) {
 		return nil, err
 	}
 
+	err = spec.AddNameVariantsForImports()
+	if err != nil {
+		return nil, err
+	}
+
 	err = spec.AddNameVariantsForParams()
 	if err != nil {
 		return nil, err
@@ -195,14 +216,37 @@ func ParseSpec(input []byte) (*Normalization, error) {
 func (spec *Normalization) AddNameVariantsForLocation() error {
 	for key, location := range spec.Locations {
 		location.Name = &NameVariant{
-			Underscore: naming.Underscore("", key, ""),
-			CamelCase:  naming.CamelCase("", key, "", true),
+			Underscore:     naming.Underscore("", key, ""),
+			CamelCase:      naming.CamelCase("", key, "", true),
+			LowerCamelCase: naming.CamelCase("", key, "", false),
 		}
 
 		for subkey, variable := range location.Vars {
 			variable.Name = &NameVariant{
-				Underscore: naming.Underscore("", subkey, ""),
-				CamelCase:  naming.CamelCase("", subkey, "", true),
+				Underscore:     naming.Underscore("", subkey, ""),
+				CamelCase:      naming.CamelCase("", subkey, "", true),
+				LowerCamelCase: naming.CamelCase("", subkey, "", false),
+			}
+		}
+	}
+
+	return nil
+}
+
+// AddNameVariantsForImports add name variants for imports (under_score and CamelCase).
+func (spec *Normalization) AddNameVariantsForImports() error {
+	for key, imp := range spec.Imports {
+		imp.Name = &NameVariant{
+			Underscore:     naming.Underscore("", key, ""),
+			CamelCase:      naming.CamelCase("", key, "", true),
+			LowerCamelCase: naming.CamelCase("", key, "", false),
+		}
+
+		for subkey, variable := range imp.Vars {
+			variable.Name = &NameVariant{
+				Underscore:     naming.Underscore("", subkey, ""),
+				CamelCase:      naming.CamelCase("", subkey, "", true),
+				LowerCamelCase: naming.CamelCase("", subkey, "", false),
 			}
 		}
 	}
@@ -213,8 +257,9 @@ func (spec *Normalization) AddNameVariantsForLocation() error {
 // AddNameVariantsForParams recursively add name variants for params for nested specs.
 func AddNameVariantsForParams(name string, param *SpecParam) error {
 	param.Name = &NameVariant{
-		Underscore: naming.Underscore("", name, ""),
-		CamelCase:  naming.CamelCase("", name, "", true),
+		Underscore:     naming.Underscore("", name, ""),
+		CamelCase:      naming.CamelCase("", name, "", true),
+		LowerCamelCase: naming.CamelCase("", name, "", false),
 	}
 	if param.Spec != nil {
 		for key, childParam := range param.Spec.Params {
@@ -253,13 +298,15 @@ func (spec *Normalization) AddNameVariantsForTypes() error {
 	if spec.Const != nil {
 		for nameType, customType := range spec.Const {
 			customType.Name = &NameVariant{
-				Underscore: naming.Underscore("", nameType, ""),
-				CamelCase:  naming.CamelCase("", nameType, "", true),
+				Underscore:     naming.Underscore("", nameType, ""),
+				CamelCase:      naming.CamelCase("", nameType, "", true),
+				LowerCamelCase: naming.CamelCase("", nameType, "", false),
 			}
 			for nameValue, customValue := range customType.Values {
 				customValue.Name = &NameVariant{
-					Underscore: naming.Underscore("", nameValue, ""),
-					CamelCase:  naming.CamelCase("", nameValue, "", true),
+					Underscore:     naming.Underscore("", nameValue, ""),
+					CamelCase:      naming.CamelCase("", nameValue, "", true),
+					LowerCamelCase: naming.CamelCase("", nameValue, "", false),
 				}
 			}
 		}

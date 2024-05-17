@@ -3,7 +3,6 @@ package generate
 import (
 	"bytes"
 	"fmt"
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate/terraform_provider"
 	"io"
 	"log"
 	"os"
@@ -11,8 +10,10 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate/terraform_provider"
 )
 
 type Creator struct {
@@ -209,6 +210,9 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		"nestedSpecMatchesFunction": translate.NestedSpecMatchesFunction,
 		"omitEmpty":                 translate.OmitEmpty,
 		"contains":                  strings.Contains,
+		"add": func(a, b int) int {
+			return a + b
+		},
 		"subtract": func(a, b int) int {
 			return a - b
 		},
@@ -217,6 +221,8 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		"createGoSuffixFromVersion": translate.CreateGoSuffixFromVersion,
 		"paramSupportedInVersion":   translate.ParamSupportedInVersion,
 		"xmlPathSuffixes":           translate.XmlPathSuffixes,
+		"underscore":                naming.Underscore,
+		"camelCase":                 naming.CamelCase,
 	}
 	return template.New(templateName).Funcs(funcMap).ParseFiles(templatePath)
 }
