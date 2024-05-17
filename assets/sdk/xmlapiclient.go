@@ -60,6 +60,7 @@ type XmlApiClient struct {
 	con        *http.Client
 	api_url    string
 	configTree *generic.Xml
+	logger     util.Logger
 
 	// Variables for testing, response bytes, headers, and response index.
 	testInput       []*http.Request
@@ -236,6 +237,9 @@ func (c *XmlApiClient) Setup() error {
 	}
 
 	// Logging.
+	if c.Logging == nil {
+		c.Logging = make(map[string]bool)
+	}
 	if len(c.Logging) == 0 {
 		if val := os.Getenv("PANOS_LOGGING"); c.CheckEnvironment && val != "" {
 			ll := strings.Split(val, ",")
@@ -254,6 +258,17 @@ func (c *XmlApiClient) Setup() error {
 			"quiet": true,
 		}
 	}
+
+	// Setup the logger.
+	c.logger = util.Logger{
+		Logging:               c.Logging,
+		SkipVerifyCertificate: c.SkipVerifyCertificate,
+		Headers:               c.Headers,
+		Hostname:              c.Hostname,
+		Protocol:              c.Protocol,
+		Port:                  c.Port,
+	}
+	c.logger.LogDebug("logging settings", c.Logging)
 
 	// Setup the client.
 	if c.Transport == nil {
@@ -865,6 +880,8 @@ func (c *XmlApiClient) Communicate(ctx context.Context, cmd util.PangoCommand, s
 		data.Set("key", c.ApiKey)
 	}
 
+	c.logger.LogSend(data)
+
 	req, err := http.NewRequestWithContext(ctx, "POST", c.api_url, strings.NewReader(data.Encode()))
 	if err != nil {
 		return nil, nil, err
@@ -890,7 +907,7 @@ func (c *XmlApiClient) ImportFile(ctx context.Context, cmd *xmlapi.Import, conte
 		data.Set("key", c.ApiKey)
 	}
 
-	//c.logSend(data)
+	c.logger.LogSend(data)
 
 	buf := bytes.Buffer{}
 	w := multipart.NewWriter(&buf)
@@ -1068,6 +1085,8 @@ func (c *XmlApiClient) sendRequest(ctx context.Context, req *http.Request, strip
 	if err != nil {
 		return body, resp, fmt.Errorf("err unmarshaling into provided interface: %s", err)
 	}
+
+	c.logger.LogReceive(body)
 
 	return body, resp, nil
 }

@@ -35,6 +35,7 @@ func main() {
 	c := &pango.XmlApiClient{
 		CheckEnvironment:      true,
 		SkipVerifyCertificate: true,
+		ApiKeyInRequest:       true,
 	}
 	if err = c.Setup(); err != nil {
 		log.Printf("Failed to setup client: %s", err)
