@@ -82,7 +82,7 @@ return nil, err
 }
 
 {{- if $.Imports}}
-if err := s.Import(ctx, loc, entry); err != nil {
+if err := s.AddToImport(ctx, loc, entry); err != nil {
 return nil, err
 }
 {{- end}}
@@ -95,8 +95,8 @@ return nil, err
 }
 
 {{- if $.Imports}}
-// Import imports the given config object
-func (s *Service) Import(ctx context.Context, loc Location, entry Entry) error {
+// AddToImport adds the given config object to import
+func (s *Service) AddToImport(ctx context.Context, loc Location, entry Entry) error {
     {{- range $_, $import := $.Imports}}
     if loc.{{$import.Name.CamelCase}} != nil  {{- range $_, $param := $import.OnlyForParams}} && entry.{{ camelCase "" $param "" true }} != nil {{- end}} {
 		templateLocation, templateApi, templateEntry, importedNames, err := s.getImportedNamesFor{{$import.Name.CamelCase}}(ctx, loc, entry)
@@ -583,7 +583,7 @@ return err
 		if err != nil {
 			return err
 		}
-		if err = s.Unimport(ctx, loc, *entry); err != nil {
+		if err = s.RemoveFromImport(ctx, loc, *entry); err != nil {
 			return err
 		}
     {{- end}}
@@ -672,8 +672,8 @@ return err
 }
 
 {{- if $.Imports}}
-// Unimport removes from import the given config object
-func (s *Service) Unimport(ctx context.Context, loc Location, entry Entry) error {
+// RemoveFromImport removes the given config object from import
+func (s *Service) RemoveFromImport(ctx context.Context, loc Location, entry Entry) error {
     {{- range $_, $import := $.Imports}}
     if loc.{{$import.Name.CamelCase}} != nil {
 		templateLocation, templateApi, templateEntry, importedNames, err := s.getImportedNamesFor{{$import.Name.CamelCase}}(ctx, loc, entry)
