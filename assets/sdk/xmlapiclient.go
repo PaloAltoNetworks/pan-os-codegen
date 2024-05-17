@@ -260,12 +260,15 @@ func (c *XmlApiClient) Setup() error {
 	}
 
 	// Setup the logger.
-	c.logger.Logging = c.Logging
-	c.logger.SkipVerifyCertificate = c.SkipVerifyCertificate
-	c.logger.Headers = c.Headers
-	c.logger.Hostname = c.Hostname
-	c.logger.Protocol = c.Protocol
-	c.logger.Port = c.Port
+	c.logger = util.Logger{
+		Logging:               c.Logging,
+		SkipVerifyCertificate: c.SkipVerifyCertificate,
+		Headers:               c.Headers,
+		Hostname:              c.Hostname,
+		Protocol:              c.Protocol,
+		Port:                  c.Port,
+	}
+	c.logger.LogDebug("logging settings", c.Logging)
 
 	// Setup the client.
 	if c.Transport == nil {

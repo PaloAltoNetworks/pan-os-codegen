@@ -7,23 +7,35 @@ import (
 	"strings"
 )
 
-// Replace "path/to" with the actual import path of the XmlApiClient package.
-
+// Logger is a struct that contains the configuration for logging.
 type Logger struct {
+	// Logging is a map of the types of logging to perform.
+	// The keys are "send", "receive", and "curl".
+	// The values are booleans indicating whether to perform that type of logging.
+	// The "send" key indicates whether to log the data being sent.
+	// The "receive" key indicates whether to log the data being received.
+	// The "curl" key indicates whether to log the data as a curl command.
+	// The "personal-data" key indicates whether to log personal data.
+	// The "debug" key indicates whether to log debug data.
 	Logging map[string]bool
 
-	Headers               map[string]string
+	// Headers is a map of additional headers to include in requests.
+	Headers map[string]string
+
+	// SkipVerifyCertificate indicates whether to skip certificate verification when making requests.
 	SkipVerifyCertificate bool
-	Hostname              string
-	Protocol              string
-	Port                  int
+
+	// Hostname is the hostname of the server to connect to.
+	Hostname string
+
+	// Protocol is the protocol to use for the connection (e.g., "http", "https").
+	Protocol string
+
+	// Port is the port number to use for the connection.
+	Port int
 }
 
-// logSend logs the data being sent by the XmlApiClient.
-// It checks the Logging map to determine which type of logging to perform.
-// If Logging["send"] is true, it logs the data using the logSendData method.
-// If Logging["curl"] is true, it logs the data as a curl command using the logDataAsCurl method.
-// Finally, if there is any logged data, it prints it using log.Printf.
+// LogSend logs the data sent in the specified format.
 func (logger *Logger) LogSend(data url.Values) {
 	b := &strings.Builder{}
 
@@ -57,6 +69,8 @@ func (logger *Logger) logDataAsCurl(b *strings.Builder, data url.Values) {
 	if b.Len() > 0 {
 		fmt.Fprintf(b, "\n")
 	}
+
+	// Separate out the special keys.
 	special := map[string]string{
 		"key":     "",
 		"element": "",
@@ -130,6 +144,7 @@ func (logger *Logger) logDataAsCurl(b *strings.Builder, data url.Values) {
 	}
 }
 
+// LogReceive logs the received data if the "receive" flag is enabled.
 func (logger *Logger) LogReceive(body []byte) {
 	b := &strings.Builder{}
 
@@ -142,10 +157,16 @@ func (logger *Logger) LogReceive(body []byte) {
 	}
 }
 
-// logReceiveData logs the received data.
 func (logger *Logger) logReceiveData(b *strings.Builder, body []byte) {
 	if b.Len() > 0 {
 		fmt.Fprintf(b, "\n")
 	}
 	fmt.Fprintf(b, "Received data: %s", body)
+}
+
+// LogDebug logs the provided data at the debug level if debug logging is enabled.
+func (logger *Logger) LogDebug(subject string, data interface{}) {
+	if logger.Logging["debug"] {
+		log.Printf("Debug [%s]: %v", subject, data)
+	}
 }
