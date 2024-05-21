@@ -16,6 +16,29 @@ type Location struct {
         }
     {{end}}
 {{- end}}
+
+{{range $key, $location := .Locations}}
+    {{- if $location.Vars}}
+        func New{{locationType $location false}}() *Location {
+            return &Location{
+                {{- $location.Name.CamelCase}}: &{{locationType $location false}}{
+                {{- range $key, $var := $location.Vars}}
+                    {{$var.Name.CamelCase}}: "{{$var.Default}}",
+                {{- end}}
+                },
+            }
+        }
+    {{- else}}
+        {{- if eq $location.Name.CamelCase "Shared"}}
+        func NewSharedLocation() *Location {
+            return &Location{
+                Shared: true,
+            }
+        }
+        {{- end}}
+    {{- end}}
+{{- end}}
+
 func (o Location) IsValid() error {
 count := 0
 
