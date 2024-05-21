@@ -32,7 +32,7 @@ func main() {
 	ctx := context.Background()
 
 	// FW
-	c := &pango.XmlApiClient{
+	c := &pango.Client{
 		CheckEnvironment:      true,
 		SkipVerifyCertificate: true,
 		ApiKeyInRequest:       true,
@@ -76,7 +76,7 @@ func main() {
 	checkDns(c, ctx)
 }
 
-func checkTemplate(c *pango.XmlApiClient, ctx context.Context) {
+func checkTemplate(c *pango.Client, ctx context.Context) {
 	entry := template.Entry{
 		Name:        "codegen_template",
 		Description: util.String("This is a template created by codegen."),
@@ -106,7 +106,7 @@ func checkTemplate(c *pango.XmlApiClient, ctx context.Context) {
 	log.Printf("Template %s created\n", reply.Name)
 }
 
-func checkTemplateStack(c *pango.XmlApiClient, ctx context.Context) {
+func checkTemplateStack(c *pango.Client, ctx context.Context) {
 	entry := template_stack.Entry{
 		Name:        "codegen_template_stack",
 		Description: util.String("This is a template stack created by codegen."),
@@ -125,7 +125,7 @@ func checkTemplateStack(c *pango.XmlApiClient, ctx context.Context) {
 	log.Printf("Template stack %s created\n", reply.Name)
 }
 
-func checkDeviceGroup(c *pango.XmlApiClient, ctx context.Context) {
+func checkDeviceGroup(c *pango.Client, ctx context.Context) {
 	entry := device_group.Entry{
 		Name:        "codegen_device_group",
 		Description: util.String("This is a device group created by codegen."),
@@ -144,7 +144,7 @@ func checkDeviceGroup(c *pango.XmlApiClient, ctx context.Context) {
 	log.Printf("Device group %s created\n", reply.Name)
 }
 
-func checkSharedObjects(c *pango.XmlApiClient, ctx context.Context) {
+func checkSharedObjects(c *pango.Client, ctx context.Context) {
 	if ok, _ := c.IsPanorama(); ok {
 		addressObject := address.Entry{
 			Name:        "codegen_address_shared1",
@@ -172,7 +172,7 @@ func checkSharedObjects(c *pango.XmlApiClient, ctx context.Context) {
 	}
 }
 
-func checkVr(c *pango.XmlApiClient, ctx context.Context) {
+func checkVr(c *pango.Client, ctx context.Context) {
 	entry := virtual_router.Entry{
 		Name: "codegen_vr",
 		Protocol: &virtual_router.SpecProtocol{
@@ -264,7 +264,7 @@ func checkVr(c *pango.XmlApiClient, ctx context.Context) {
 	log.Printf("VR %s created\n", reply.Name)
 }
 
-func checkEthernetLayer3Static(c *pango.XmlApiClient, ctx context.Context) {
+func checkEthernetLayer3Static(c *pango.Client, ctx context.Context) {
 	entry := ethernet.Entry{
 		Name:    "ethernet1/2",
 		Comment: util.String("This is a ethernet1/2"),
@@ -310,7 +310,7 @@ func checkEthernetLayer3Static(c *pango.XmlApiClient, ctx context.Context) {
 	log.Printf("Ethernet layer3 %s created\n", reply.Name)
 }
 
-func checkEthernetLayer3Dhcp(c *pango.XmlApiClient, ctx context.Context) {
+func checkEthernetLayer3Dhcp(c *pango.Client, ctx context.Context) {
 	entry := ethernet.Entry{
 		Name:    "ethernet1/3",
 		Comment: util.String("This is a ethernet1/3"),
@@ -344,7 +344,7 @@ func checkEthernetLayer3Dhcp(c *pango.XmlApiClient, ctx context.Context) {
 	log.Printf("Ethernet layer3 %s created\n", reply.Name)
 }
 
-func checkEthernetHa(c *pango.XmlApiClient, ctx context.Context) {
+func checkEthernetHa(c *pango.Client, ctx context.Context) {
 	entry := ethernet.Entry{
 		Name:    "ethernet1/10",
 		Comment: util.String("This is a ethernet1/10"),
@@ -367,7 +367,7 @@ func checkEthernetHa(c *pango.XmlApiClient, ctx context.Context) {
 	log.Printf("Ethernet HA %s created\n", reply.Name)
 }
 
-func checkLoopback(c *pango.XmlApiClient, ctx context.Context) {
+func checkLoopback(c *pango.Client, ctx context.Context) {
 	entry := loopback.Entry{
 		Name: "loopback.123",
 		AdjustTcpMss: &loopback.SpecAdjustTcpMss{
@@ -409,7 +409,7 @@ func checkLoopback(c *pango.XmlApiClient, ctx context.Context) {
 	log.Printf("Loopback %s created\n", reply.Name)
 }
 
-func checkZone(c *pango.XmlApiClient, ctx context.Context) {
+func checkZone(c *pango.Client, ctx context.Context) {
 	entry := zone.Entry{
 		Name:                     "codegen_zone",
 		EnableUserIdentification: util.Bool(true),
@@ -441,7 +441,7 @@ func checkZone(c *pango.XmlApiClient, ctx context.Context) {
 	log.Printf("Zone %s created\n", reply.Name)
 }
 
-func checkInterfaceMgmtProfile(c *pango.XmlApiClient, ctx context.Context) {
+func checkInterfaceMgmtProfile(c *pango.Client, ctx context.Context) {
 	entry := interface_management.Entry{
 		Name:         "codegen_mgmt_profile",
 		Http:         util.Bool(true),
@@ -465,7 +465,7 @@ func checkInterfaceMgmtProfile(c *pango.XmlApiClient, ctx context.Context) {
 	log.Printf("Interface management profile %s created\n", reply.Name)
 }
 
-func checkVrZoneWithEthernet(c *pango.XmlApiClient, ctx context.Context) {
+func checkVrZoneWithEthernet(c *pango.Client, ctx context.Context) {
 	// UPDATE VR ABOUT INTERFACES
 	var locationVr *virtual_router.Location
 	if ok, _ := c.IsPanorama(); ok {
@@ -565,7 +565,7 @@ func checkVrZoneWithEthernet(c *pango.XmlApiClient, ctx context.Context) {
 	}
 }
 
-func checkSecurityPolicyRules(c *pango.XmlApiClient, ctx context.Context) {
+func checkSecurityPolicyRules(c *pango.Client, ctx context.Context) {
 	// SECURITY POLICY RULE - ADD
 	securityPolicyRuleEntry := security.Entry{
 		Name:                 "codegen_rule",
@@ -683,7 +683,7 @@ func checkSecurityPolicyRules(c *pango.XmlApiClient, ctx context.Context) {
 	}
 }
 
-func checkSecurityPolicyRulesMove(c *pango.XmlApiClient, ctx context.Context) {
+func checkSecurityPolicyRulesMove(c *pango.Client, ctx context.Context) {
 	// SECURITY POLICY RULE - MOVE GROUP
 	var securityPolicyRuleLocation *security.Location
 	if ok, _ := c.IsPanorama(); ok {
@@ -761,7 +761,7 @@ func checkSecurityPolicyRulesMove(c *pango.XmlApiClient, ctx context.Context) {
 	}
 }
 
-func checkTag(c *pango.XmlApiClient, ctx context.Context) {
+func checkTag(c *pango.Client, ctx context.Context) {
 	// TAG - CREATE
 	tagColor := tag.ColorAzureBlue
 	tagObject := tag.Entry{
@@ -794,7 +794,7 @@ func checkTag(c *pango.XmlApiClient, ctx context.Context) {
 	log.Printf("Tag '%s' deleted", tagReply.Name)
 }
 
-func checkAddress(c *pango.XmlApiClient, ctx context.Context) {
+func checkAddress(c *pango.Client, ctx context.Context) {
 	// ADDRESS - CREATE
 	addressObject := address.Entry{
 		Name:      "codegen_address_test1",
@@ -866,7 +866,7 @@ func checkAddress(c *pango.XmlApiClient, ctx context.Context) {
 	log.Printf("Address '%s' deleted", addressReply.Name)
 }
 
-func checkService(c *pango.XmlApiClient, ctx context.Context) {
+func checkService(c *pango.Client, ctx context.Context) {
 	// SERVICE - ADD
 	serviceObject := service.Entry{
 		Name:        "codegen_service_test1",
@@ -1025,7 +1025,7 @@ func checkService(c *pango.XmlApiClient, ctx context.Context) {
 		serviceReply.Name, *serviceReply.Protocol.Tcp.DestinationPort, readDescription, xmls, keys)
 }
 
-func checkNtp(c *pango.XmlApiClient, ctx context.Context) {
+func checkNtp(c *pango.Client, ctx context.Context) {
 	// NTP - ADD
 	ntpConfig := ntp.Config{
 		NtpServers: &ntp.SpecNtpServers{
@@ -1061,7 +1061,7 @@ func checkNtp(c *pango.XmlApiClient, ctx context.Context) {
 	return
 }
 
-func checkDns(c *pango.XmlApiClient, ctx context.Context) {
+func checkDns(c *pango.Client, ctx context.Context) {
 	// DNS - ADD
 	dnsConfig := dns.Config{
 		DnsSetting: &dns.SpecDnsSetting{

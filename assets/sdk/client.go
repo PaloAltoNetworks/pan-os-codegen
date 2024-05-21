@@ -25,10 +25,10 @@ import (
 	"github.com/PaloAltoNetworks/pango/xmlapi"
 )
 
-// XmlApiClient is an XML API client connection.  If provides wrapper functions
+// Client is an XML API client connection.  If provides wrapper functions
 // for invoking the various PAN-OS API methods.  After creating the client,
 // invoke Setup() followed by Initialize() to prepare it for use.
-type XmlApiClient struct {
+type Client struct {
 	Hostname        string            `json:"hostname"`
 	Username        string            `json:"username"`
 	Password        string            `json:"password"`
@@ -70,22 +70,22 @@ type XmlApiClient struct {
 }
 
 // Versioning returns the version number of PAN-OS.
-func (c *XmlApiClient) Versioning() version.Number {
+func (c *Client) Versioning() version.Number {
 	return c.Version
 }
 
 // Plugins returns the list of plugins.
-func (c *XmlApiClient) Plugins() []plugin.Info {
+func (c *Client) Plugins() []plugin.Info {
 	return c.Plugin
 }
 
 // GetTarget returns the Target param, used in certain API calls.
-func (c *XmlApiClient) GetTarget() string {
+func (c *Client) GetTarget() string {
 	return c.Target
 }
 
 // IsPanorama returns true if this is Panorama.
-func (c *XmlApiClient) IsPanorama() (bool, error) {
+func (c *Client) IsPanorama() (bool, error) {
 	if len(c.SystemInfo) == 0 {
 		return false, fmt.Errorf("SystemInfo is nil")
 	}
@@ -99,7 +99,7 @@ func (c *XmlApiClient) IsPanorama() (bool, error) {
 }
 
 // IsFirewall returns true if this PAN-OS seems to be a NGFW instance.
-func (c *XmlApiClient) IsFirewall() (bool, error) {
+func (c *Client) IsFirewall() (bool, error) {
 	ans, err := c.IsPanorama()
 	if err != nil {
 		return ans, err
@@ -110,11 +110,11 @@ func (c *XmlApiClient) IsFirewall() (bool, error) {
 
 // Setup does validation and initialization in preparation to start executing API
 // commands against PAN-OS.
-func (c *XmlApiClient) Setup() error {
+func (c *Client) Setup() error {
 	var err error
 
 	// Load up the JSON config file.
-	var json_client XmlApiClient
+	var json_client Client
 	if c.AuthFile != "" {
 		var b []byte
 		if len(c.testOutput) == 0 {
@@ -305,7 +305,7 @@ func (c *XmlApiClient) Setup() error {
 //
 // The version number is taken from the schema if it's present.  If it is not
 // present, then the version number falls back to what's specified in panosVersion.
-func (c *XmlApiClient) SetupLocalInspection(schema, panosVersion string) error {
+func (c *Client) SetupLocalInspection(schema, panosVersion string) error {
 	var err error
 
 	if err = c.LoadPanosConfig([]byte(schema)); err != nil {
@@ -327,7 +327,7 @@ func (c *XmlApiClient) SetupLocalInspection(schema, panosVersion string) error {
 }
 
 // Initialize retrieves the API key if needed then retrieves the system info.
-func (c *XmlApiClient) Initialize(ctx context.Context) error {
+func (c *Client) Initialize(ctx context.Context) error {
 	var err error
 
 	if c.ApiKey == "" {
@@ -348,7 +348,7 @@ func (c *XmlApiClient) Initialize(ctx context.Context) error {
 }
 
 // RetrieveSystemInfo performs "show system info" and saves it SystemInfo.
-func (c *XmlApiClient) RetrieveSystemInfo(ctx context.Context) error {
+func (c *Client) RetrieveSystemInfo(ctx context.Context) error {
 	var err error
 
 	type req struct {
@@ -397,7 +397,7 @@ func (c *XmlApiClient) RetrieveSystemInfo(ctx context.Context) error {
 // If the name is candidate, then the candidate config is retrieved.  If the
 // name is running, then the running config is retrieved.  Otherwise, then
 // the name is assumed to be the name of the saved config.
-func (c *XmlApiClient) RetrievePanosConfig(ctx context.Context, name string) ([]byte, error) {
+func (c *Client) RetrievePanosConfig(ctx context.Context, name string) ([]byte, error) {
 	type req struct {
 		XMLName   xml.Name `xml:"show"`
 		Running   *string  `xml:"config>running"`
@@ -442,7 +442,7 @@ func (c *XmlApiClient) RetrievePanosConfig(ctx context.Context, name string) ([]
 //
 // This function unsets the ApiKey value and thus requires that the Username and Password
 // be specified.
-func (c *XmlApiClient) RetrieveApiKey(ctx context.Context) error {
+func (c *Client) RetrieveApiKey(ctx context.Context) error {
 	type key_gen_ans struct {
 		Key string `xml:"result>key"`
 	}
@@ -464,7 +464,7 @@ func (c *XmlApiClient) RetrieveApiKey(ctx context.Context) error {
 }
 
 // RetrievePlugins refreshes the Plugins info from PAN-OS.
-func (c *XmlApiClient) RetrievePlugins(ctx context.Context) error {
+func (c *Client) RetrievePlugins(ctx context.Context) error {
 	cmd := &xmlapi.Op{
 		Command: plugin.GetPlugins{},
 	}
@@ -488,7 +488,7 @@ func (c *XmlApiClient) RetrievePlugins(ctx context.Context) error {
 //
 // If the 'detail-version' attribute is present in the XML, then it's saved to this
 // instance's Version attribute.
-func (c *XmlApiClient) LoadPanosConfig(config []byte) error {
+func (c *Client) LoadPanosConfig(config []byte) error {
 	var ans generic.Xml
 	if err := xml.Unmarshal(config, &ans); err != nil {
 		return err
@@ -520,7 +520,7 @@ func (c *XmlApiClient) LoadPanosConfig(config []byte) error {
 // referred to as local inspection mode.
 //
 // If the XPATH is a listing, then set withPackaging to false.
-func (c *XmlApiClient) ReadFromConfig(ctx context.Context, path []string, withPackaging bool, ans any) ([]byte, error) {
+func (c *Client) ReadFromConfig(ctx context.Context, path []string, withPackaging bool, ans any) ([]byte, error) {
 	if c.configTree == nil {
 		return nil, fmt.Errorf("no config loaded")
 	}
@@ -584,7 +584,7 @@ func (c *XmlApiClient) ReadFromConfig(ctx context.Context, path []string, withPa
 	return newb, err
 }
 
-func (c *XmlApiClient) Clock(ctx context.Context) (time.Time, error) {
+func (c *Client) Clock(ctx context.Context) (time.Time, error) {
 	type creq struct {
 		XMLName xml.Name `xml:"show"`
 		Cmd     string   `xml:"clock"`
@@ -614,7 +614,7 @@ func (c *XmlApiClient) Clock(ctx context.Context) (time.Time, error) {
 // Note that the error returned from this function is only if there was an error
 // unmarshaling the response into the the multi config response struct.  If the
 // multi config itself failed, then the reason can be found in its results.
-func (c *XmlApiClient) MultiConfig(ctx context.Context, mc *xmlapi.MultiConfig, strict bool, extras url.Values) ([]byte, *http.Response, *xmlapi.MultiConfigResponse, error) {
+func (c *Client) MultiConfig(ctx context.Context, mc *xmlapi.MultiConfig, strict bool, extras url.Values) ([]byte, *http.Response, *xmlapi.MultiConfigResponse, error) {
 	cmd := &xmlapi.Config{
 		Action:              "multi-config",
 		Element:             mc,
@@ -644,7 +644,7 @@ func (c *XmlApiClient) MultiConfig(ctx context.Context, mc *xmlapi.MultiConfig, 
 }
 
 // RequestPasswordHash requests a password hash of the given string.
-func (c *XmlApiClient) RequestPasswordHash(ctx context.Context, v string) (string, error) {
+func (c *Client) RequestPasswordHash(ctx context.Context, v string) (string, error) {
 	type phash_req struct {
 		XMLName xml.Name `xml:"request"`
 		Val     string   `xml:"password-hash>password"`
@@ -673,7 +673,7 @@ func (c *XmlApiClient) RequestPasswordHash(ctx context.Context, v string) (strin
 //
 // Use WaitForJob and the uint returned from this function to get the
 // results of the job.
-func (c *XmlApiClient) ValidateConfig(ctx context.Context, sleep time.Duration) (uint, error) {
+func (c *Client) ValidateConfig(ctx context.Context, sleep time.Duration) (uint, error) {
 	type req struct {
 		XMLName xml.Name `xml:"validate"`
 		Cmd     string   `xml:"full"`
@@ -693,7 +693,7 @@ func (c *XmlApiClient) ValidateConfig(ctx context.Context, sleep time.Duration) 
 // The sleep param is the time to wait between polling. Note that a sleep
 // time less than 2 seconds may cause PAN-OS to take longer to finish the
 // job.
-func (c *XmlApiClient) WaitForLogs(ctx context.Context, id uint, sleep time.Duration, resp any) ([]byte, error) {
+func (c *Client) WaitForLogs(ctx context.Context, id uint, sleep time.Duration, resp any) ([]byte, error) {
 	if id == 0 {
 		return nil, fmt.Errorf("job ID must be specified")
 	}
@@ -751,7 +751,7 @@ func (c *XmlApiClient) WaitForLogs(ctx context.Context, id uint, sleep time.Dura
 // The sleep param is the time to wait between polling. Note that a sleep
 // time less than 2 seconds may cause PAN-OS to take longer to finish the
 // job.
-func (c *XmlApiClient) WaitForJob(ctx context.Context, id uint, sleep time.Duration, resp any) error {
+func (c *Client) WaitForJob(ctx context.Context, id uint, sleep time.Duration, resp any) error {
 	var err error
 	var prev uint
 	var data []byte
@@ -830,7 +830,7 @@ func (c *XmlApiClient) WaitForJob(ctx context.Context, id uint, sleep time.Durat
 
 // RevertToRunningConfig discards any changes made and reverts to the last
 // committed config.
-func (c *XmlApiClient) RevertToRunningConfig(ctx context.Context, vsys string) error {
+func (c *Client) RevertToRunningConfig(ctx context.Context, vsys string) error {
 	type req struct {
 		XMLName xml.Name `xml:"load"`
 		Cmd     string   `xml:"config>from"`
@@ -851,7 +851,7 @@ func (c *XmlApiClient) RevertToRunningConfig(ctx context.Context, vsys string) e
 // StartJob sends the given command, which starts a job on PAN-OS.
 //
 // The uint returned is the job ID.
-func (c *XmlApiClient) StartJob(ctx context.Context, cmd util.PangoCommand) (uint, []byte, *http.Response, error) {
+func (c *Client) StartJob(ctx context.Context, cmd util.PangoCommand) (uint, []byte, *http.Response, error) {
 	var ans util.JobResponse
 	b, resp, err := c.Communicate(ctx, cmd, false, &ans)
 	if err != nil {
@@ -866,7 +866,7 @@ func (c *XmlApiClient) StartJob(ctx context.Context, cmd util.PangoCommand) (uin
 // The API key is sent either in the request body or as a header.
 //
 // The timeout for the operation is taken from the context.
-func (c *XmlApiClient) Communicate(ctx context.Context, cmd util.PangoCommand, strip bool, ans any) ([]byte, *http.Response, error) {
+func (c *Client) Communicate(ctx context.Context, cmd util.PangoCommand, strip bool, ans any) ([]byte, *http.Response, error) {
 	if cmd == nil {
 		return nil, nil, fmt.Errorf("cmd is nil")
 	}
@@ -893,7 +893,7 @@ func (c *XmlApiClient) Communicate(ctx context.Context, cmd util.PangoCommand, s
 }
 
 // ImportFile imports the given file into PAN-OS.
-func (c *XmlApiClient) ImportFile(ctx context.Context, cmd *xmlapi.Import, content, filename, fp string, strip bool, ans any) ([]byte, *http.Response, error) {
+func (c *Client) ImportFile(ctx context.Context, cmd *xmlapi.Import, content, filename, fp string, strip bool, ans any) ([]byte, *http.Response, error) {
 	if cmd == nil {
 		return nil, nil, fmt.Errorf("cmd is nil")
 	}
@@ -938,7 +938,7 @@ func (c *XmlApiClient) ImportFile(ctx context.Context, cmd *xmlapi.Import, conte
 }
 
 // ExportFile retrieves a file from PAN-OS.
-func (c *XmlApiClient) ExportFile(ctx context.Context, cmd *xmlapi.Export, ans any) (string, []byte, *http.Response, error) {
+func (c *Client) ExportFile(ctx context.Context, cmd *xmlapi.Export, ans any) (string, []byte, *http.Response, error) {
 	if cmd == nil {
 		return "", nil, nil, fmt.Errorf("cmd is nil")
 	}
@@ -972,7 +972,7 @@ func (c *XmlApiClient) ExportFile(ctx context.Context, cmd *xmlapi.Export, ans a
 }
 
 // GetTechSupportFile returns the tech support file .tgz file.
-func (c *XmlApiClient) GetTechSupportFile(ctx context.Context) (string, []byte, error) {
+func (c *Client) GetTechSupportFile(ctx context.Context) (string, []byte, error) {
 	cmd := &xmlapi.Export{
 		Category: "tech-support",
 	}
@@ -1022,7 +1022,7 @@ func (c *XmlApiClient) GetTechSupportFile(ctx context.Context) (string, []byte, 
 // Internal functions.
 //
 
-func (c *XmlApiClient) sendRequest(ctx context.Context, req *http.Request, strip bool, ans any) ([]byte, *http.Response, error) {
+func (c *Client) sendRequest(ctx context.Context, req *http.Request, strip bool, ans any) ([]byte, *http.Response, error) {
 	// Optional: set the API key in the header.
 	if !c.ApiKeyInRequest && c.ApiKey != "" {
 		req.Header.Set("X-PAN-KEY", c.ApiKey)
