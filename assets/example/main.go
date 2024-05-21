@@ -1076,7 +1076,9 @@ func checkService(c *pango.XmlApiClient, ctx context.Context) {
 			Tcp: &service.SpecProtocolTcp{
 				DestinationPort: util.Int(8642),
 				Override: &service.SpecProtocolTcpOverride{
-					No: util.String(""),
+					HalfcloseTimeout: util.Int(124),
+					Timeout:          util.Int(125),
+					TimewaitTimeout:  util.Int(127),
 				},
 			},
 		},

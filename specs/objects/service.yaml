@@ -144,30 +144,24 @@ spec:
                 override:
                   description: 'Override session timeout.'
                   profiles:
-                    - xpath: [ "override" ]
+                    - xpath: [ "override", "yes" ]
                   spec:
-                    one_of:
-                      yes:
+                    params:
+                      'timeout':
+                        description: 'TCP session timeout value (in second)'
+                        type: int64
                         profiles:
-                          -
-                            xpath: [ "yes"]
-                        spec:
-                          params:
-                            'timeout':
-                              description: 'TCP session timeout value (in second)'
-                              profiles:
-                                - xpath: [ "timeout" ]
-                            'halfclose-timeout':
-                              description: 'TCP session half-close timeout value (in second)'
-                              profiles:
-                                - xpath: [ "halfclose-timeout" ]
-                            'timewait-timeout':
-                              description: 'TCP session time-wait timeout value (in second)'
-                              profiles:
-                                - xpath: [ "timewait-timeout" ]
-                      no:
+                          - xpath: [ "timeout" ]
+                      'halfclose-timeout':
+                        description: 'TCP session half-close timeout value (in second)'
+                        type: int64
                         profiles:
-                          - xpath: [ "no" ]
+                          - xpath: [ "halfclose-timeout" ]
+                      'timewait-timeout':
+                        description: 'TCP session time-wait timeout value (in second)'
+                        type: int64
+                        profiles:
+                          - xpath: [ "timewait-timeout" ]
           udp:
             description: 'UDP protocol'
             profiles:
