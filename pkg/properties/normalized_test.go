@@ -213,6 +213,7 @@ locations:
                     camelcase: DeviceGroup
                     lowercamelcase: deviceGroup
                 description: The device group.
+                default: ""
                 required: true
                 validation:
                     not_values:
@@ -223,6 +224,7 @@ locations:
                     camelcase: PanoramaDevice
                     lowercamelcase: panoramaDevice
                 description: The panorama device.
+                default: localhost.localdomain
                 required: false
                 validation: null
     from_panorama:
@@ -276,6 +278,7 @@ locations:
                     camelcase: NgfwDevice
                     lowercamelcase: ngfwDevice
                 description: The NGFW device.
+                default: localhost.localdomain
                 required: false
                 validation: null
             vsys:
@@ -284,6 +287,7 @@ locations:
                     camelcase: Vsys
                     lowercamelcase: vsys
                 description: The vsys.
+                default: vsys1
                 required: false
                 validation:
                     not_values:

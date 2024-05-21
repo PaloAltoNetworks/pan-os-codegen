@@ -54,6 +54,7 @@ type LocationDevice struct {
 type LocationVar struct {
 	Name        *NameVariant
 	Description string                 `json:"description" yaml:"description"`
+	Default     string                 `json:"default" yaml:"default"`
 	Required    bool                   `json:"required" yaml:"required"`
 	Validation  *LocationVarValidation `json:"validation" yaml:"validation"`
 }
