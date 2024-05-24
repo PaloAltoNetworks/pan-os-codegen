@@ -1090,25 +1090,3 @@ func (c *Client) sendRequest(ctx context.Context, req *http.Request, strip bool,
 
 	return body, resp, nil
 }
-
-// https://github.com/PaloAltoNetworks/terraform-panos-ngfw-modules/pull/54
-// https://github.com/PaloAltoNetworks/pango/pull/113
-// https://github.com/PaloAltoNetworks/pango/pull/111
-
-// func (c *Client) Commit() {
-// }
-
-// func (c *Client) CommitLocks() {
-// }
-
-// func (c *Client) ConfigLocks() {
-// }
-
-// func (c *Client) ConfigTree() {
-// }
-
-// func (c *Client) LockCommits() {
-// }
-
-// func (c *Client) LockConfig() {
-// }
