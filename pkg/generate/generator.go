@@ -22,7 +22,7 @@ type Creator struct {
 	Spec         *properties.Normalization
 }
 
-// NewCreator initialize Creator instance.
+// NewCreator initializes a Creator instance.
 func NewCreator(goOutputDir, templatesDir string, spec *properties.Normalization) *Creator {
 	return &Creator{
 		GoOutputDir:  goOutputDir,
@@ -31,7 +31,7 @@ func NewCreator(goOutputDir, templatesDir string, spec *properties.Normalization
 	}
 }
 
-// RenderTemplate loop through all templates, parse them and render content, which is saved to output file.
+// RenderTemplate loops through all templates, parses them, and renders content, which is saved to the output file.
 func (c *Creator) RenderTemplate() error {
 	log.Println("Start rendering templates")
 
@@ -48,35 +48,14 @@ func (c *Creator) RenderTemplate() error {
 			return fmt.Errorf("error creating directories for %s: %w", filePath, err)
 		}
 
-		tmpl, err := c.parseTemplate(templateName)
-		if err != nil {
-			return fmt.Errorf("error parsing template %s: %w", templateName, err)
-		}
-
-		var data bytes.Buffer
-		if err := tmpl.Execute(&data, c.Spec); err != nil {
-			return fmt.Errorf("error executing template %s: %w", templateName, err)
-		}
-
-		formattedCode, err := format.Source(data.Bytes())
-		if err != nil {
-			return fmt.Errorf("error formatting code %w", err)
-		}
-		formattedBuf := bytes.NewBuffer(formattedCode)
-
-		// If from template no data was rendered (e.g. for DNS spec entry should not be created),
-		// then we don't need to create empty file (e.g. `entry.go`) with no content
-		if data.Len() > 0 {
-			if err := c.createAndWriteFile(filePath, formattedBuf); err != nil {
-				return fmt.Errorf("error creating and writing to file %s: %w", filePath, err)
-			}
+		if err := c.processTemplate(templateName, filePath); err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
 // RenderTerraformProviderFile generates a Go file for a Terraform provider based on the provided TerraformProviderFile and Normalization arguments.
-// It calls terraform.GenerateTerraformResource() passing the Normalization specification and the TerraformProviderFile.
 func (c *Creator) RenderTerraformProviderFile(terraformProvider *properties.TerraformProviderFile, spec *properties.Normalization) error {
 	tfp := terraform_provider.GenerateTerraformProvider{}
 
@@ -93,21 +72,10 @@ func (c *Creator) RenderTerraformProviderFile(terraformProvider *properties.Terr
 	}
 	filePath := c.createTerraformProviderFilePath(spec.TerraformProviderConfig.Suffix)
 
-	content := bytes.NewBufferString(terraformProvider.Code.String())
-
-	formattedCode, err := format.Source(content.Bytes())
-	if err != nil {
-		return fmt.Errorf("error formatting code %w", err)
-	}
-	formattedBuf := bytes.NewBuffer(formattedCode)
-
-	if err := c.createFileAndWriteContent(filePath, formattedBuf); err != nil {
-		return err
-	}
-
-	return nil
+	return c.writeFormattedContentToFile(filePath, terraformProvider.Code.String())
 }
 
+// RenderTerraformProvider generates and writes a Terraform provider file.
 func (c *Creator) RenderTerraformProvider(terraformProvider *properties.TerraformProviderFile, spec *properties.Normalization, providerConfig properties.TerraformProvider) error {
 	tfp := terraform_provider.GenerateTerraformProvider{}
 	if err := tfp.GenerateTerraformProvider(terraformProvider, spec, providerConfig); err != nil {
@@ -115,17 +83,45 @@ func (c *Creator) RenderTerraformProvider(terraformProvider *properties.Terrafor
 	}
 	filePath := c.createTerraformProviderFilePath(spec.Name)
 
-	content := bytes.NewBufferString(terraformProvider.Code.String())
-	formattedCode, err := format.Source(content.Bytes())
+	return c.writeFormattedContentToFile(filePath, terraformProvider.Code.String())
+}
+
+// processTemplate processes a single template and writes the rendered content to a file.
+func (c *Creator) processTemplate(templateName, filePath string) error {
+	tmpl, err := c.parseTemplate(templateName)
+	if err != nil {
+		return fmt.Errorf("error parsing template %s: %w", templateName, err)
+	}
+
+	var data bytes.Buffer
+	if err := tmpl.Execute(&data, c.Spec); err != nil {
+		return fmt.Errorf("error executing template %s: %w", templateName, err)
+	}
+
+	// If no data was rendered from the template, skip creating an empty file.
+	if data.Len() > 0 {
+		formattedCode, err := format.Source(data.Bytes())
+		if err != nil {
+			return fmt.Errorf("error formatting code %w", err)
+		}
+		formattedBuf := bytes.NewBuffer(formattedCode)
+
+		if err := c.createAndWriteFile(filePath, formattedBuf); err != nil {
+			return fmt.Errorf("error creating and writing to file %s: %w", filePath, err)
+		}
+	}
+	return nil
+}
+
+// writeFormattedContentToFile formats the content and writes it to a file.
+func (c *Creator) writeFormattedContentToFile(filePath, content string) error {
+	formattedCode, err := format.Source([]byte(content))
 	if err != nil {
 		return fmt.Errorf("error formatting code %w", err)
 	}
 	formattedBuf := bytes.NewBuffer(formattedCode)
 
-	if err := c.createFileAndWriteContent(filePath, formattedBuf); err != nil {
-		return err
-	}
-	return nil
+	return c.createFileAndWriteContent(filePath, formattedBuf)
 }
 
 // createTerraformProviderFilePath returns a file path for a Terraform provider based on the provided suffix.
@@ -163,13 +159,13 @@ func (c *Creator) createAndWriteFile(filePath string, content *bytes.Buffer) err
 	return writeContentToFile(content, outputFile)
 }
 
-// createFullFilePath returns a full path for output file generated from template passed as argument to function.
+// createFullFilePath returns a full path for the output file generated from the template passed as an argument.
 func (c *Creator) createFullFilePath(templateName string) string {
 	fileBaseName := strings.TrimSuffix(templateName, filepath.Ext(templateName))
 	return filepath.Join(c.GoOutputDir, filepath.Join(c.Spec.GoSdkPath...), fmt.Sprintf("%s.go", fileBaseName))
 }
 
-// listOfTemplates return list of templates defined in TemplatesDir.
+// listOfTemplates returns a list of templates defined in TemplatesDir.
 func (c *Creator) listOfTemplates() ([]string, error) {
 	var files []string
 	err := filepath.WalkDir(c.TemplatesDir, func(path string, entry os.DirEntry, err error) error {
@@ -190,13 +186,13 @@ func (c *Creator) listOfTemplates() ([]string, error) {
 	return files, nil
 }
 
-// makeAllDirs creates all required directories, which are in the file path.
+// makeAllDirs creates all required directories in the file path.
 func (c *Creator) makeAllDirs(filePath string) error {
 	dirPath := filepath.Dir(filePath)
 	return os.MkdirAll(dirPath, os.ModePerm)
 }
 
-// createFile just create a file and return it.
+// createFile creates a file and returns it.
 func (c *Creator) createFile(filePath string) (*os.File, error) {
 	outputFile, err := os.Create(filePath)
 	if err != nil {
@@ -213,7 +209,7 @@ func writeContentToFile(content *bytes.Buffer, file *os.File) error {
 	return nil
 }
 
-// parseTemplate parse template passed as argument and with function map defined below.
+// parseTemplate parses the template passed as an argument with the function map defined below.
 func (c *Creator) parseTemplate(templateName string) (*template.Template, error) {
 	templatePath := filepath.Join(c.TemplatesDir, templateName)
 	funcMap := template.FuncMap{
