@@ -72,6 +72,10 @@ terraform_provider_config:
       env_name: "PANOS_HEADERS"
       optional: true
       type: map
+      items:
+        type: string
+        length:
+          max: 60
     skip_verify_certificate:
       description: "(For https protocol) Skip verifying the HTTPS certificate."
       env_name: "PANOS_SKIP_VERIFY_CERTIFICATE"

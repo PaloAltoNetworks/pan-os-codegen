@@ -57,10 +57,17 @@ func (c *Creator) RenderTemplate() error {
 		if err := tmpl.Execute(&data, c.Spec); err != nil {
 			return fmt.Errorf("error executing template %s: %w", templateName, err)
 		}
+
+		formattedCode, err := format.Source(data.Bytes())
+		if err != nil {
+			return fmt.Errorf("error formatting code %w", err)
+		}
+		formattedBuf := bytes.NewBuffer(formattedCode)
+
 		// If from template no data was rendered (e.g. for DNS spec entry should not be created),
 		// then we don't need to create empty file (e.g. `entry.go`) with no content
 		if data.Len() > 0 {
-			if err := c.createAndWriteFile(filePath, &data); err != nil {
+			if err := c.createAndWriteFile(filePath, formattedBuf); err != nil {
 				return fmt.Errorf("error creating and writing to file %s: %w", filePath, err)
 			}
 		}
@@ -87,7 +94,14 @@ func (c *Creator) RenderTerraformProviderFile(terraformProvider *properties.Terr
 	filePath := c.createTerraformProviderFilePath(spec.TerraformProviderConfig.Suffix)
 
 	content := bytes.NewBufferString(terraformProvider.Code.String())
-	if err := c.createFileAndWriteContent(filePath, content); err != nil {
+
+	formattedCode, err := format.Source(content.Bytes())
+	if err != nil {
+		return fmt.Errorf("error formatting code %w", err)
+	}
+	formattedBuf := bytes.NewBuffer(formattedCode)
+
+	if err := c.createFileAndWriteContent(filePath, formattedBuf); err != nil {
 		return err
 	}
 
@@ -102,7 +116,13 @@ func (c *Creator) RenderTerraformProvider(terraformProvider *properties.Terrafor
 	filePath := c.createTerraformProviderFilePath(spec.Name)
 
 	content := bytes.NewBufferString(terraformProvider.Code.String())
-	if err := c.createFileAndWriteContent(filePath, content); err != nil {
+	formattedCode, err := format.Source(content.Bytes())
+	if err != nil {
+		return fmt.Errorf("error formatting code %w", err)
+	}
+	formattedBuf := bytes.NewBuffer(formattedCode)
+
+	if err := c.createFileAndWriteContent(filePath, formattedBuf); err != nil {
 		return err
 	}
 	return nil

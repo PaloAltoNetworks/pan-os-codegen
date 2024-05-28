@@ -88,25 +88,43 @@ func ParamToSchema(paramName string, paramProp interface{}) (string, error) {
 {{- if .Sensitive }}
         Sensitive: true,
 {{- end }}
+{{- if .Items }}
+		ElementType: types.{{CamelCaseType .Items.Type}}Type,
+{{- end }}
     },
 {{- /* Done */ -}}`, "describe-param", paramProp, nil)
 }
 
-func ParamToSchemaResource(paramName string, paramProp interface{}) (string, error) {
+func ParamToSchemaResource(paramName string, paramProp interface{}, terraformProvider *properties.TerraformProviderFile) (string, error) {
+	if paramProp.(properties.SpecParam).Type == "bool" && paramProp.(properties.SpecParam).Default != "" {
+		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault", "")
+	}
+
 	return centralTemplateExec(`
 {{- /* Begin */ -}}
+{{- if .Type }}
     "`+paramName+`": rsschema.{{ CamelCaseType .Type }}Attribute{
+{{- else }}
+    "`+paramName+`": rsschema.SingleNestedAttribute{
+{{- end }} 
         Description: "{{ .Description }}",
 		{{- if .Required }}
         Required: true,
 		{{- else }} 
 		Optional:    true,
 		{{- end }}
+		{{- if .Items }}
+		ElementType: types.{{CamelCaseType .Items.Type}}Type,
+		{{- end }}
 		{{- if .Default }}
-		Default: "{{ .Default }}",
+		Default: {{.Type}}default.Static{{ CamelCaseType .Type }}({{- if eq .Type "string" }}{{ printf "%q" .Default }}{{ else if eq .Type "bool" }}{{ .Default }}{{ else }}{{ .Default }}{{ end }}),
 		{{- end }}
     },
 {{- /* Done */ -}}`, "describe-param", paramProp, nil)
+}
+
+func checkForObjectValidation(paramProp interface{}) bool {
+	return true
 }
 
 func CreateResourceSchemaLocationAttribute() (string, error) {

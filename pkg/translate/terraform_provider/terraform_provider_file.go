@@ -86,13 +86,15 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 	resourceType := "Resource"
 	names := NewNameProvider(spec, resourceType)
 	funcMap := template.FuncMap{
-		"metaName":                        func() string { return names.MetaName },
-		"structName":                      func() string { return names.StructName },
-		"CreateTfIdStruct":                func() (string, error) { return CreateTfIdStruct("entry", spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
-		"CreateTfIdResourceModel":         func() (string, error) { return CreateTfIdResourceModel("entry", names.StructName) },
-		"ParamToModelResource":            ParamToModelResource,
-		"ModelNestedStruct":               ModelNestedStruct,
-		"ParamToSchema":                   ParamToSchemaResource,
+		"metaName":                func() string { return names.MetaName },
+		"structName":              func() string { return names.StructName },
+		"CreateTfIdStruct":        func() (string, error) { return CreateTfIdStruct("entry", spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
+		"CreateTfIdResourceModel": func() (string, error) { return CreateTfIdResourceModel("entry", names.StructName) },
+		"ParamToModelResource":    ParamToModelResource,
+		"ModelNestedStruct":       ModelNestedStruct,
+		"ResourceParamToSchema": func(paramName string, paramParameters properties.SpecParam) (string, error) {
+			return ParamToSchemaResource(paramName, paramParameters, terraformProvider)
+		},
 		"ResourceSchemaLocationAttribute": CreateResourceSchemaLocationAttribute,
 	}
 	terraformProvider.ImportManager.AddStandardImport("context", "")

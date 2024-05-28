@@ -17,7 +17,7 @@ const resourceTemplateSchemaLocationAttribute = `
 				Required:    true,
 				Attributes: map[string]rsschema.Attribute{
 					"device_group": rsschema.SingleNestedAttribute{
-						Description: "(Panorama) In the given device group. One of the following must be specified: ` + `device_group` + `, ` + `from_panorama` + `, ` + `shared` + `, or  ` + `vsys` + `.",
+						Description: "(Panorama) In the given device group. One of the following must be specified: ` + "`" + `device_group` + "`" + `, ` + "`" + `from_panorama` + "`" + `, ` + "`" + `shared` + "`" + `, or ` + "`" + `vsys` + "`" + `.",
 						Optional:    true,
 						Attributes: map[string]rsschema.Attribute{
 							"name": rsschema.StringAttribute{
@@ -39,7 +39,7 @@ const resourceTemplateSchemaLocationAttribute = `
 						},
 					},
 					"from_panorama": rsschema.BoolAttribute{
-						Description: "(NGFW) Pushed from Panorama. This is a read-only location and only suitable for data sources. One of the following must be specified: ` + `device_group` + `, ` + `from_panorama` + `, ` + `shared` + `, or  ` + `vsys` + `.",
+						Description: "(NGFW) Pushed from Panorama. This is a read-only location and only suitable for data sources. One of the following must be specified: ` + "`" + `device_group` + "`" + `, ` + "`" + `from_panorama` + "`" + `, ` + "`" + `shared` + "`" + `, or ` + "`" + `vsys` + "`" + `.",
 						Optional:    true,
 						Validators: []validator.Bool{
 							boolvalidator.ExactlyOneOf(
@@ -54,14 +54,14 @@ const resourceTemplateSchemaLocationAttribute = `
 						},
 					},
 					"shared": rsschema.BoolAttribute{
-						Description: "(NGFW and Panorama) Located in shared. One of the following must be specified:` + `device_group` + `, ` + `from_panorama` + `, ` + `shared` + `, or  ` + `vsys` + `.",
+						Description: "(NGFW and Panorama) Located in shared. One of the following must be specified:` + "`" + `device_group` + "`" + `, ` + "`" + `from_panorama` + "`" + `, ` + "`" + `shared` + "`" + `, or ` + "`" + `vsys` + "`" + `.",
 						Optional:    true,
 						PlanModifiers: []planmodifier.Bool{
 							boolplanmodifier.RequiresReplace(),
 						},
 					},
 					"vsys": rsschema.SingleNestedAttribute{
-						Description: "(NGFW) In the given vsys. One of the following must be specified:` + `device_group` + `, ` + `from_panorama` + `, ` + `shared` + `, or  ` + `vsys` + `.",
+						Description: "(NGFW) In the given vsys. One of the following must be specified:` + "`" + `device_group` + "`" + `, ` + "`" + `from_panorama` + "`" + `, ` + "`" + `shared` + "`" + `, or ` + "`" + `vsys` + "`" + `.",
 						Optional:    true,
 						Attributes: map[string]rsschema.Attribute{
 							"name": rsschema.StringAttribute{
@@ -90,7 +90,6 @@ const resourceTemplateSchemaLocationAttribute = `
 				Description: "The Terraform ID.",
 				Computed:    true,
 			},
-
 `
 
 const resourceTemplateStr = `
@@ -166,10 +165,10 @@ func (r *{{ structName }}) Schema(ctx context.Context, req resource.SchemaReques
 		Attributes: map[string]rsschema.Attribute{
 	{{- ResourceSchemaLocationAttribute }}
 	{{- range $pName, $pParam := $.Spec.Params }}
-	{{ ParamToSchema $pName $pParam }}
+	{{ ResourceParamToSchema $pName $pParam }}
 	{{- end }}
 	{{- range $pName, $pParam := $.Spec.OneOf }}
-	{{ ParamToSchema $pName $pParam }}
+	{{ ResourceParamToSchema $pName $pParam }}
 	{{- end }}
 		},
 	}
