@@ -96,6 +96,11 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 			return ParamToSchemaResource(paramName, paramParameters, terraformProvider)
 		},
 		"ResourceSchemaLocationAttribute": CreateResourceSchemaLocationAttribute,
+		"CreateLocationStruct":            func(structName string) (string, error) { return CreateLocationStruct(resourceLocation{}, structName) },
+		"CreateLocationVsysStruct":        func(structName string) (string, error) { return CreateLocationStruct(vsysLocation{}, structName) },
+		"CreateLocationDeviceGroupStruct": func(structName string) (string, error) {
+			return CreateLocationStruct(deviceGroupLocation{}, structName)
+		},
 	}
 	terraformProvider.ImportManager.AddStandardImport("context", "")
 	terraformProvider.ImportManager.AddStandardImport("fmt", "")

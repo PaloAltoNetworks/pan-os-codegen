@@ -5,6 +5,7 @@ import (
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 	"log"
+	"reflect"
 	"strings"
 	"text/template"
 )
@@ -16,6 +17,17 @@ var centralFuncMap = template.FuncMap{
 	"CamelCaseType":  func(paramType string) string { return naming.CamelCase("", paramType, "", true) },
 }
 
+type Field struct {
+	Name    string
+	Type    string
+	TagName string
+}
+
+type StructData struct {
+	StructName string
+	Fields     []Field
+}
+
 type vsysLocation struct {
 	name       string
 	ngfwDevice string
@@ -24,16 +36,11 @@ type vsysLocation struct {
 type deviceGroupLocation struct {
 	name           string
 	PanoramaDevice string
-	Rulebase       string
-}
-
-type sharedLocation struct {
-	Rulebase string
 }
 
 type resourceLocation struct {
 	FromPanorama bool
-	Shared       sharedLocation
+	Shared       bool
 	Vsys         vsysLocation
 	DeviceGroup  deviceGroupLocation
 }
@@ -58,7 +65,7 @@ func centralTemplateExec(templateText, templateName string, data interface{}, fu
 }
 
 // ParamToModelBasic converts the given parameter name and properties to a model representation.
-func ParamToModelBasic(paramName string, paramProp properties.TerraformProviderParams) (string, error) {
+func ParamToModelBasic(paramName string, paramProp interface{}) (string, error) {
 	data := map[string]interface{}{
 		"paramName": paramName,
 	}
@@ -103,9 +110,9 @@ func ParamToSchemaResource(paramName string, paramProp interface{}, terraformPro
 	return centralTemplateExec(`
 {{- /* Begin */ -}}
 {{- if .Type }}
-    "`+paramName+`": rsschema.{{ CamelCaseType .Type }}Attribute{
+    "`+strings.ReplaceAll(paramName, "-", "_")+`": rsschema.{{ CamelCaseType .Type }}Attribute{
 {{- else }}
-    "`+paramName+`": rsschema.SingleNestedAttribute{
+    "`+strings.ReplaceAll(paramName, "-", "_")+`": rsschema.SingleNestedAttribute{
 {{- end }} 
         Description: "{{ .Description }}",
 		{{- if .Required }}
@@ -118,6 +125,7 @@ func ParamToSchemaResource(paramName string, paramProp interface{}, terraformPro
 		{{- end }}
 		{{- if .Default }}
 		Default: {{.Type}}default.Static{{ CamelCaseType .Type }}({{- if eq .Type "string" }}{{ printf "%q" .Default }}{{ else if eq .Type "bool" }}{{ .Default }}{{ else }}{{ .Default }}{{ end }}),
+		Computed: true ,
 		{{- end }}
     },
 {{- /* Done */ -}}`, "describe-param", paramProp, nil)
@@ -236,18 +244,41 @@ func CreateNestedStruct(paramName string, paramProp *properties.SpecParam, struc
 	return nestedStructString.String(), nil
 }
 
-func CreateLocationStruct() {
+func CreateLocationStruct(v interface{}, structName string) (string, error) {
+	val := reflect.ValueOf(v)
+	t := val.Type()
 
+	if t.Kind() != reflect.Struct {
+		return "", fmt.Errorf("provided value is not a struct")
+	}
+
+	fields := []Field{}
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		fields = append(fields, Field{
+			Name:    naming.CamelCase("", field.Name, "", true),
+			Type:    mapGoTypeToTFType(structName, field.Type),
+			TagName: naming.Underscore("", field.Name, ""),
+		})
+	}
+
+	structData := StructData{
+		StructName: structName,
+		Fields:     fields,
+	}
+
+	return centralTemplateExec(locationStructTemplate, "LocationStruct", structData, nil)
 }
 
-func CreateLocationVsysStruct() {
-
-}
-
-func CreateLocationDeviceGroupStruct() {
-
-}
-
-func CreateLocationSharedStruct() {
-
+func mapGoTypeToTFType(structName string, t reflect.Type) string {
+	switch t.Kind() {
+	case reflect.Bool:
+		return "types.Bool"
+	case reflect.String:
+		return "types.String"
+	case reflect.Struct:
+		return "*" + structName + naming.CamelCase("", t.Name(), "", true)
+	default:
+		return "types.Unknown"
+	}
 }

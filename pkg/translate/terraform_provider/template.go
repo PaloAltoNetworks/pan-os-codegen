@@ -1,5 +1,10 @@
 package terraform_provider
 
+const locationStructTemplate = `
+{{- range .Fields }}
+	{{ .Name }} {{ .Type }} ` + "`tfsdk:\"{{ .TagName }}\"`" + `
+{{- end }}`
+
 const resourceModelNestedStructTemplate = `
 type {{ .structName }}Object struct {
 	{{- range $pName, $pParam := $.Spec.Params -}}
@@ -108,7 +113,7 @@ func New{{ structName }}() resource.Resource {
 }
 
 type {{ structName }} struct {
-	client *pango.XmlApiClient
+	client *pango.Client
 }
 
 type {{ structName }}Tfid struct {
@@ -126,19 +131,23 @@ func (o *{{ structName }}Tfid) IsValid() error {
 
 type {{ structName }}Location struct {
 // TODO: Generate Location struct via function
+	{{- CreateLocationStruct structName }}
 }
 
 type {{ structName }}VsysLocation struct {
 // TODO: Generate Location struct via function
+{{- CreateLocationVsysStruct structName }}
 }
 
 type {{ structName }}DeviceGroupLocation struct {
 // TODO: Generate Device Group struct via function
+{{- CreateLocationDeviceGroupStruct structName }}
 }
 
 type {{ structName }}Model struct {
 // TODO: Entry model struct via function
 		{{ CreateTfIdResourceModel }}
+		Name types.String` + "`" + `tfsdk:"name"` + "`" + `
         {{- range $pName, $pParam := $.Spec.Params}}
             {{- ParamToModelResource $pName $pParam structName -}}
         {{- end}}
@@ -164,6 +173,10 @@ func (r *{{ structName }}) Schema(ctx context.Context, req resource.SchemaReques
 		Description: "",
 		Attributes: map[string]rsschema.Attribute{
 	{{- ResourceSchemaLocationAttribute }}
+	"name": rsschema.StringAttribute{
+		Description: "The name of the resource.",
+		Required:    true,
+	},	
 	{{- range $pName, $pParam := $.Spec.Params }}
 	{{ ResourceParamToSchema $pName $pParam }}
 	{{- end }}
@@ -180,7 +193,7 @@ func (r *{{ structName }}) Configure(ctx context.Context, req resource.Configure
 		return
 	}
 
-	r.client = req.ProviderData.(*pango.XmlApiClient)
+	r.client = req.ProviderData.(*pango.Client)
 	
 	//TODO: There should be some error handling
 	//if !ok {
@@ -273,7 +286,7 @@ func New{{ structName }}() datasource.DataSource {
 }
 
 type {{ structName }} struct {
-    client *pango.XmlApiClient
+    client *pango.Client
 }
 
 type {{ structName }}Model struct {
@@ -322,7 +335,7 @@ func (d *{{ structName }}) Configure(_ context.Context, req datasource.Configure
 		return
 	}
 
-	d.client = req.ProviderData.(*pango.XmlApiClient)
+	d.client = req.ProviderData.(*pango.Client)
 }
 
 func (d *{{ structName }}) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -406,18 +419,18 @@ func (p *PanosProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		return
 	}
 
-	var con *sdk.XmlApiClient
+	var con *sdk.Client
 
 	if config.ConfigFile.ValueStringPointer() != nil {
 		tflog.Info(ctx, "Configuring client for local inspection mode")
-		con = &sdk.XmlApiClient{}
+		con = &sdk.Client{}
 		if err := con.SetupLocalInspection(config.ConfigFile.ValueString(), config.PanosVersion.ValueString()); err != nil {
 			resp.Diagnostics.AddError("Error setting up local inspection mode", err.Error())
 			return
 		}
 	} else {
 		tflog.Info(ctx, "Configuring client for API mode")
-		con = &sdk.XmlApiClient{
+		con = &sdk.Client{
 			Hostname:        config.Hostname.ValueString(),
 			Username:        config.Username.ValueString(),
 			Password:        config.Password.ValueString(),
