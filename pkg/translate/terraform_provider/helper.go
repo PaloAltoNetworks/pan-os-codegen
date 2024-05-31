@@ -1,9 +1,18 @@
 package terraform_provider
 
 import (
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"reflect"
+	"strings"
 	"text/template"
 )
+
+// Package-level function map to avoid repetition in each function
+var centralFuncMap = template.FuncMap{
+	"CamelCaseName":  func(paramName string) string { return naming.CamelCase("", paramName, "", true) },
+	"UnderscoreName": func(paramName string) string { return naming.Underscore("", paramName, "") },
+	"CamelCaseType":  func(paramType string) string { return naming.CamelCase("", paramType, "", true) },
+}
 
 // mergeFuncMaps merges two template.FuncMap instances.
 // In case of a key conflict, the second map's value will override the first one.
@@ -21,6 +30,8 @@ func mergeFuncMaps(map1, map2 template.FuncMap) template.FuncMap {
 	return mergedMap
 }
 
+// structToMap converts a struct to a map[string]interface{}.
+// It takes an item of any type and returns a map where the keys are the exported field names and the values are the field values.
 func structToMap(item interface{}) map[string]interface{} {
 	out := make(map[string]interface{})
 	v := reflect.ValueOf(item)
@@ -36,4 +47,37 @@ func structToMap(item interface{}) map[string]interface{} {
 		}
 	}
 	return out
+}
+
+// centralTemplateExec handles the creation and execution of templates
+func centralTemplateExec(templateText, templateName string, data interface{}, funcMap template.FuncMap) (string, error) {
+	if len(funcMap) == 0 {
+		funcMap = centralFuncMap
+	} else {
+		funcMap = mergeFuncMaps(funcMap, centralFuncMap)
+	}
+
+	tmpl, err := template.New(templateName).Funcs(funcMap).Parse(templateText)
+	if err != nil {
+		return "", err
+	}
+	var builder strings.Builder
+	if err := tmpl.Execute(&builder, data); err != nil {
+		return "", err
+	}
+	return builder.String(), nil
+}
+
+// mapGoTypeToTFType maps a Go type to its corresponding Terraform type.
+func mapGoTypeToTFType(structName string, t reflect.Type) string {
+	switch t.Kind() {
+	case reflect.Bool:
+		return "types.Bool"
+	case reflect.String:
+		return "types.String"
+	case reflect.Struct:
+		return "*" + structName + naming.CamelCase("", t.Name(), "", true)
+	default:
+		return "types.Unknown"
+	}
 }

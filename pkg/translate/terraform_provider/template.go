@@ -136,12 +136,12 @@ type {{ structName }}Location struct {
 
 type {{ structName }}VsysLocation struct {
 // TODO: Generate Location struct via function
-{{- CreateLocationVsysStruct structName }}
+	{{- CreateLocationVsysStruct structName }}
 }
 
 type {{ structName }}DeviceGroupLocation struct {
 // TODO: Generate Device Group struct via function
-{{- CreateLocationDeviceGroupStruct structName }}
+	{{- CreateLocationDeviceGroupStruct structName }}
 }
 
 type {{ structName }}Model struct {
@@ -194,76 +194,22 @@ func (r *{{ structName }}) Configure(ctx context.Context, req resource.Configure
 	}
 
 	r.client = req.ProviderData.(*pango.Client)
-	
-	//TODO: There should be some error handling
-	//if !ok {
-	//	resp.Diagnostics.AddError(
-	//		"Unexpected Resource Configure Type",
-	//		fmt.Sprintf("Expected *http.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-	//	)
-	//
-	//	return
-	//}
-	//
-	//r.client = client
 }
 
 func (r *{{ structName }}) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data {{ structName }}Model
-
-	// Read Terraform plan data into the model
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Write logs using the tflog package
-	// Documentation: https://terraform.io/plugin/log
-	tflog.Trace(ctx, "created a resource")
-
-	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	{{ ResourceCreateFunction structName serviceName}}
 }
 
 func (r *{{ structName }}) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data {{ structName }}Model
-
-	// Read Terraform prior state data into the model
-	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Save updated data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	{{ ResourceReadFunction structName serviceName}}
 }
 
 func (r *{{ structName }}) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data {{ structName }}Model
-
-	// Read Terraform plan data into the model
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Save updated data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	{{ ResourceUpdateFunction structName serviceName}}
 }
 
 func (r *{{ structName }}) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data {{ structName }}Model
-
-	// Read Terraform prior state data into the model
-	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
+	{{ ResourceDeleteFunction structName serviceName}}
 }
 
 func (r *{{ structName }}) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
@@ -271,6 +217,283 @@ func (r *{{ structName }}) ImportState(ctx context.Context, req resource.ImportS
 }
 
 {{- /* Done */ -}}`
+
+const resourceCreateTemplateStr = `
+{{- /* Begin */ -}}
+	var state {{ .structName }}Model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Basic logging.
+	tflog.Info(ctx, "performing resource create", map[string]any{
+		"resource_name": "panos_{{ UnderscoreName .structName }}",
+		"function":      "Create",
+		"name":          state.Name.ValueString(),
+	})
+
+	// Verify mode.
+	if r.client.Hostname == "" {
+		resp.Diagnostics.AddError("Invalid mode error", InspectionModeError)
+		return
+	}
+
+	// Create the service.
+	svc := {{ .serviceName }}.NewService(r.client)
+
+	// Determine the location.
+	loc := {{ .structName }}Tfid{Name: state.Name.ValueString()}
+	if !state.Location.Shared.IsNull() && state.Location.Shared.ValueBool() {
+		loc.Location.Shared = true
+	}
+	if !state.Location.FromPanorama.IsNull() && state.Location.FromPanorama.ValueBool() {
+		loc.Location.FromPanoramaShared = true
+	}
+	if state.Location.Vsys != nil {
+		loc.Location.Vsys = &{{ .serviceName }}.VsysLocation{}
+		loc.Location.Vsys.NgfwDevice = state.Location.Vsys.NgfwDevice.ValueString()
+	}
+	if state.Location.DeviceGroup != nil {
+		loc.Location.DeviceGroup = &{{ .serviceName }}.DeviceGroupLocation{}
+		loc.Location.DeviceGroup.PanoramaDevice = state.Location.DeviceGroup.PanoramaDevice.ValueString()
+	}
+	if err := loc.IsValid(); err != nil {
+		resp.Diagnostics.AddError("Invalid location", err.Error())
+		return
+	}
+
+	// Load the desired config.
+	var obj {{ .serviceName }}.Entry
+
+	//resp.Diagnostics.Append(state.Tags.ElementsAs(ctx, &obj.Tags, false)...)
+	//if resp.Diagnostics.HasError() {
+	//	return
+	//}
+
+	/*
+		// Timeout handling.
+		ctx, cancel := context.WithTimeout(ctx, GetTimeout(state.Timeouts.Create))
+		defer cancel()
+	*/
+
+	// Perform the operation.
+	_, err := svc.Create(ctx, loc.Location, obj)
+	if err != nil {
+		resp.Diagnostics.AddError("Error in create", err.Error())
+		return
+	}
+
+	// Tfid handling.
+	_, err = EncodeLocation(&loc)
+	if err != nil {
+		resp.Diagnostics.AddError("Error creating tfid", err.Error())
+		return
+	}
+
+	// Save the state.
+
+
+	// Done.
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+
+{{- /* Done */ -}}
+`
+
+const resourceReadTemplateStr = `
+	var savestate, state {{ .structName }}Model
+	resp.Diagnostics.Append(req.State.Get(ctx, &savestate)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Parse the location from tfid.
+	var loc {{ .structName }}Tfid
+	if err := DecodeLocation(savestate.Tfid.ValueString(), &loc); err != nil {
+		resp.Diagnostics.AddError("Error parsing tfid", err.Error())
+		return
+	}
+
+	// Basic logging.
+	tflog.Info(ctx, "performing resource read", map[string]any{
+		"resource_name": "panos_{{ UnderscoreName .structName }}",
+		"function":      "Read",
+		"name":          loc.Name,
+	})
+
+	// Verify mode.
+	if r.client.Hostname == "" {
+		resp.Diagnostics.AddError("Invalid mode error", InspectionModeError)
+		return
+	}
+
+	// Create the service.
+	svc := {{ .serviceName }}.NewService(r.client)
+
+	/*
+		// Timeout handling.
+		ctx, cancel := context.WithTimeout(ctx, GetTimeout(savestate.Timeouts.Read))
+		defer cancel()
+	*/
+
+	// Perform the operation.
+	_, err := svc.Read(ctx, loc.Location, loc.Name, "get")
+	if err != nil {
+		if IsObjectNotFound(err) {
+			resp.State.RemoveResource(ctx)
+		} else {
+			resp.Diagnostics.AddError("Error reading config", err.Error())
+		}
+		return
+	}
+
+	// Save location to state.
+	if loc.Location.Shared {
+		state.Location.Shared = types.BoolValue(true)
+	}
+	if loc.Location.FromPanoramaShared {
+		state.Location.FromPanorama = types.BoolValue(true)
+	}
+	if loc.Location.Vsys != nil {
+		state.Location.Vsys = &{{ .structName }}VsysLocation{}
+		state.Location.Vsys.NgfwDevice = types.StringValue(loc.Location.Vsys.NgfwDevice)
+	}
+	if loc.Location.DeviceGroup != nil {
+		state.Location.DeviceGroup = &{{ .structName }}DeviceGroupLocation{}
+		state.Location.DeviceGroup.PanoramaDevice = types.StringValue(loc.Location.DeviceGroup.PanoramaDevice)
+	}
+
+	/*
+			// Keep the timeouts.
+		    // TODO: This won't work for state import.
+			state.Timeouts = savestate.Timeouts
+	*/
+
+	// Save tfid to state.
+	state.Tfid = savestate.Tfid
+
+	// Save the answer to state.
+
+
+	// Done.
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+`
+
+const resourceUpdateTemplateStr = `
+	var plan, state {{ .structName }}Model
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var loc {{ .structName }}Tfid
+	if err := DecodeLocation(state.Tfid.ValueString(), &loc); err != nil {
+		resp.Diagnostics.AddError("Error parsing tfid", err.Error())
+		return
+	}
+
+	// Basic logging.
+	tflog.Info(ctx, "performing resource update", map[string]any{
+		"resource_name": "panos_{{ UnderscoreName .structName }}",
+		"function":      "Update",
+		"tfid":          state.Tfid.ValueString(),
+	})
+
+	// Verify mode.
+	if r.client.Hostname == "" {
+		resp.Diagnostics.AddError("Invalid mode error", InspectionModeError)
+		return
+	}
+
+	// Create the service.
+	svc := {{ .serviceName }}.NewService(r.client)
+
+	// Load the desired config.
+	var obj {{ .serviceName }}.Entry
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	/*
+		// Timeout handling.
+		ctx, cancel := context.WithTimeout(ctx, GetTimeout(plan.Timeouts.Update))
+		defer cancel()
+	*/
+
+	// Perform the operation.
+	_, err := svc.Update(ctx, loc.Location, obj, loc.Name)
+	if err != nil {
+		resp.Diagnostics.AddError("Error in update", err.Error())
+		return
+	}
+
+	// Save the location.
+	state.Location = plan.Location
+
+	/*
+		// Keep the timeouts.
+		state.Timeouts = plan.Timeouts
+	*/
+
+	// Save the tfid.
+	loc.Name = obj.Name
+	tfid, err := EncodeLocation(&loc)
+	if err != nil {
+		resp.Diagnostics.AddError("error creating tfid", err.Error())
+		return
+	}
+	state.Tfid = types.StringValue(tfid)
+
+	// Save the state.
+
+
+	// Done.
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+`
+
+const resourceDeleteTemplateStr = `
+	var state {{ .structName }}Model
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Parse the location from tfid.
+	var loc {{ .structName }}Tfid
+	if err := DecodeLocation(state.Tfid.ValueString(), &loc); err != nil {
+		resp.Diagnostics.AddError("error parsing tfid", err.Error())
+		return
+	}
+
+	// Basic logging.
+	tflog.Info(ctx, "performing resource delete", map[string]any{
+		"resource_name": "panos_{{ UnderscoreName .structName }}",
+		"function":      "Delete",
+		"name":          loc.Name,
+	})
+
+	// Verify mode.
+	if r.client.Hostname == "" {
+		resp.Diagnostics.AddError("Invalid mode error", InspectionModeError)
+		return
+	}
+
+	// Create the service.
+	svc := {{ .serviceName }}.NewService(r.client)
+
+	/*
+		// Timeout handling.
+		ctx, cancel := context.WithTimeout(ctx, GetTimeout(state.Timeouts.Delete))
+		defer cancel()
+	*/
+
+	// Perform the operation.
+	if err := svc.Delete(ctx, loc.Location, loc.Name); err != nil && !IsObjectNotFound(err) {
+		resp.Diagnostics.AddError("Error in delete", err.Error())
+	}
+`
 
 const dataSourceSingletonTemplateStr = `
 {{- /* Begin */ -}}

@@ -10,13 +10,6 @@ import (
 	"text/template"
 )
 
-// Package-level function map to avoid repetition in each function
-var centralFuncMap = template.FuncMap{
-	"CamelCaseName":  func(paramName string) string { return naming.CamelCase("", paramName, "", true) },
-	"UnderscoreName": func(paramName string) string { return naming.Underscore("", paramName, "") },
-	"CamelCaseType":  func(paramType string) string { return naming.CamelCase("", paramType, "", true) },
-}
-
 type Field struct {
 	Name    string
 	Type    string
@@ -43,25 +36,6 @@ type resourceLocation struct {
 	Shared       bool
 	Vsys         vsysLocation
 	DeviceGroup  deviceGroupLocation
-}
-
-// centralTemplateExec handles the creation and execution of templates
-func centralTemplateExec(templateText, templateName string, data interface{}, funcMap template.FuncMap) (string, error) {
-	if len(funcMap) == 0 {
-		funcMap = centralFuncMap
-	} else {
-		funcMap = mergeFuncMaps(funcMap, centralFuncMap)
-	}
-
-	tmpl, err := template.New(templateName).Funcs(funcMap).Parse(templateText)
-	if err != nil {
-		return "", err
-	}
-	var builder strings.Builder
-	if err := tmpl.Execute(&builder, data); err != nil {
-		return "", err
-	}
-	return builder.String(), nil
 }
 
 // ParamToModelBasic converts the given parameter name and properties to a model representation.
@@ -268,17 +242,4 @@ func CreateLocationStruct(v interface{}, structName string) (string, error) {
 	}
 
 	return centralTemplateExec(locationStructTemplate, "LocationStruct", structData, nil)
-}
-
-func mapGoTypeToTFType(structName string, t reflect.Type) string {
-	switch t.Kind() {
-	case reflect.Bool:
-		return "types.Bool"
-	case reflect.String:
-		return "types.String"
-	case reflect.Struct:
-		return "*" + structName + naming.CamelCase("", t.Name(), "", true)
-	default:
-		return "types.Unknown"
-	}
 }

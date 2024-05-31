@@ -99,11 +99,11 @@ func (c *Creator) processTemplate(templateName, filePath string) error {
 
 	// If no data was rendered from the template, skip creating an empty file.
 	if data.Len() > 0 {
-		formattedCode, err := format.Source(data.Bytes())
-		if err != nil {
-			return fmt.Errorf("error formatting code %w", err)
-		}
-		formattedBuf := bytes.NewBuffer(formattedCode)
+		//formattedCode, err := format.Source(data.Bytes())
+		//if err != nil {
+		//	return fmt.Errorf("error formatting code %w", err)
+		//}
+		formattedBuf := bytes.NewBuffer(data.Bytes())
 
 		if err := c.createAndWriteFile(filePath, formattedBuf); err != nil {
 			return fmt.Errorf("error creating and writing to file %s: %w", filePath, err)
@@ -114,11 +114,11 @@ func (c *Creator) processTemplate(templateName, filePath string) error {
 
 // writeFormattedContentToFile formats the content and writes it to a file.
 func (c *Creator) writeFormattedContentToFile(filePath, content string) error {
-	formattedCode, err := format.Source([]byte(content))
-	if err != nil {
-		return fmt.Errorf("error formatting code %w", err)
-	}
-	formattedBuf := bytes.NewBuffer(formattedCode)
+	//formattedCode, err := format.Source([]byte(content))
+	//if err != nil {
+	//	return fmt.Errorf("error formatting code %w", err)
+	//}
+	formattedBuf := bytes.NewBuffer([]byte(content))
 
 	return c.createFileAndWriteContent(filePath, formattedBuf)
 }

@@ -88,8 +88,13 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 	funcMap := template.FuncMap{
 		"metaName":                func() string { return names.MetaName },
 		"structName":              func() string { return names.StructName },
+		"serviceName":             func() string { return names.TfName },
 		"CreateTfIdStruct":        func() (string, error) { return CreateTfIdStruct("entry", spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
 		"CreateTfIdResourceModel": func() (string, error) { return CreateTfIdResourceModel("entry", names.StructName) },
+		"ResourceCreateFunction":  ResourceCreateFunction,
+		"ResourceReadFunction":    ResourceReadFunction,
+		"ResourceUpdateFunction":  ResourceUpdateFunction,
+		"ResourceDeleteFunction":  ResourceDeleteFunction,
 		"ParamToModelResource":    ParamToModelResource,
 		"ModelNestedStruct":       ModelNestedStruct,
 		"ResourceParamToSchema": func(paramName string, paramParameters properties.SpecParam) (string, error) {
