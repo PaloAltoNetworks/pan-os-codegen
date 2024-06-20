@@ -3,6 +3,7 @@ package generate
 import (
 	"bytes"
 	"fmt"
+	"go/format"
 	"io"
 	"log"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate/terraform_provider"
 )
 
 type Creator struct {
@@ -99,11 +101,11 @@ func (c *Creator) processTemplate(templateName, filePath string) error {
 
 	// If no data was rendered from the template, skip creating an empty file.
 	if data.Len() > 0 {
-		//formattedCode, err := format.Source(data.Bytes())
-		//if err != nil {
-		//	return fmt.Errorf("error formatting code %w", err)
-		//}
-		formattedBuf := bytes.NewBuffer(data.Bytes())
+		formattedCode, err := format.Source(data.Bytes())
+		if err != nil {
+			return fmt.Errorf("error formatting code %w", err)
+		}
+		formattedBuf := bytes.NewBuffer(formattedCode)
 
 		if err := c.createAndWriteFile(filePath, formattedBuf); err != nil {
 			return fmt.Errorf("error creating and writing to file %s: %w", filePath, err)
@@ -114,24 +116,18 @@ func (c *Creator) processTemplate(templateName, filePath string) error {
 
 // writeFormattedContentToFile formats the content and writes it to a file.
 func (c *Creator) writeFormattedContentToFile(filePath, content string) error {
-	//formattedCode, err := format.Source([]byte(content))
-	//if err != nil {
-	//	return fmt.Errorf("error formatting code %w", err)
-	//}
-	formattedBuf := bytes.NewBuffer([]byte(content))
+	formattedCode, err := format.Source([]byte(content))
+	if err != nil {
+		return fmt.Errorf("error formatting code %w", err)
+	}
+	formattedBuf := bytes.NewBuffer(formattedCode)
 
 	return c.createFileAndWriteContent(filePath, formattedBuf)
 }
 
 // createTerraformProviderFilePath returns a file path for a Terraform provider based on the provided suffix.
 func (c *Creator) createTerraformProviderFilePath(terraformProviderFileName string) string {
-	terraformProviderFileNameSuffix := "_object"
-
-	if terraformProviderFileName == "provider" {
-		terraformProviderFileNameSuffix = ""
-	}
-
-	fileName := fmt.Sprintf("%s%s.go", terraformProviderFileName, terraformProviderFileNameSuffix)
+	fileName := fmt.Sprintf("%s.go", terraformProviderFileName)
 	return filepath.Join(c.GoOutputDir, "internal/provider", fileName)
 }
 
@@ -153,7 +149,9 @@ func (c *Creator) createAndWriteFile(filePath string, content *bytes.Buffer) err
 	if err != nil {
 		return err
 	}
-	defer outputFile.Close()
+	defer func(outputFile *os.File) {
+		_ = outputFile.Close()
+	}(outputFile)
 
 	return writeContentToFile(content, outputFile)
 }

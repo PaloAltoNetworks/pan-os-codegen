@@ -16,6 +16,19 @@ type {{ .structName }}Object struct {
 }
 `
 
+const resourceEntryConfigTemplate = `
+{{- range .Entries }}
+	{{- if eq .Type "list" }}
+	resp.Diagnostics.Append(state.{{ .Name }}.ElementsAs(ctx, &obj.{{ .Name }}, false)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	{{- else }}
+	obj.{{ .Name }} = state.{{ .Name }}.Value{{ CamelCaseType .Type }}Pointer()
+	{{- end -}}
+{{- end }}
+`
+
 const resourceTemplateSchemaLocationAttribute = `
 			"location": rsschema.SingleNestedAttribute{
 				Description: "The location of this object.",
@@ -240,10 +253,11 @@ const resourceCreateTemplateStr = `
 	}
 
 	// Create the service.
-	svc := {{ .serviceName }}.NewService(r.client)
+	svc := {{ .resourceSDKName }}.NewService(r.client)
 
 	// Determine the location.
 	loc := {{ .structName }}Tfid{Name: state.Name.ValueString()}
+	// TODO: this needs to handle location structure for UUID style shared has nested structure type 
 	if !state.Location.Shared.IsNull() && state.Location.Shared.ValueBool() {
 		loc.Location.Shared = true
 	}
@@ -256,6 +270,7 @@ const resourceCreateTemplateStr = `
 	}
 	if state.Location.DeviceGroup != nil {
 		loc.Location.DeviceGroup = &{{ .serviceName }}.DeviceGroupLocation{}
+		loc.Location.DeviceGroup.DeviceGroup = state.Location.DeviceGroup.Name.ValueString()
 		loc.Location.DeviceGroup.PanoramaDevice = state.Location.DeviceGroup.PanoramaDevice.ValueString()
 	}
 	if err := loc.IsValid(); err != nil {
@@ -264,12 +279,14 @@ const resourceCreateTemplateStr = `
 	}
 
 	// Load the desired config.
-	var obj {{ .serviceName }}.Entry
-
-	//resp.Diagnostics.Append(state.Tags.ElementsAs(ctx, &obj.Tags, false)...)
-	//if resp.Diagnostics.HasError() {
-	//	return
-	//}
+	var obj {{ .resourceSDKName }}.Entry
+	obj.Name = state.Name.ValueString()
+	{{- range $pName, $pParam := $.paramSpec.Params }}
+		{{ LoadConfigToEntry $pParam $pName }}
+	{{- end }}
+	{{- range $pName, $pParam := $.paramSpec.OneOf }}
+		{{ LoadConfigToEntry $pParam $pName }}
+	{{- end }}
 
 	/*
 		// Timeout handling.
@@ -278,21 +295,22 @@ const resourceCreateTemplateStr = `
 	*/
 
 	// Perform the operation.
-	_, err := svc.Create(ctx, loc.Location, obj)
+	create, err := svc.Create(ctx, loc.Location, obj)
 	if err != nil {
 		resp.Diagnostics.AddError("Error in create", err.Error())
 		return
 	}
 
 	// Tfid handling.
-	_, err = EncodeLocation(&loc)
+	tfid, err := EncodeLocation(&loc)
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating tfid", err.Error())
 		return
 	}
 
 	// Save the state.
-
+	state.Tfid = types.StringValue(tfid)
+	state.Name = types.StringValue(create.Name)
 
 	// Done.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -328,7 +346,7 @@ const resourceReadTemplateStr = `
 	}
 
 	// Create the service.
-	svc := {{ .serviceName }}.NewService(r.client)
+	svc := {{ .resourceSDKName }}.NewService(r.client)
 
 	/*
 		// Timeout handling.
@@ -407,10 +425,10 @@ const resourceUpdateTemplateStr = `
 	}
 
 	// Create the service.
-	svc := {{ .serviceName }}.NewService(r.client)
+	svc := {{ .resourceSDKName }}.NewService(r.client)
 
 	// Load the desired config.
-	var obj {{ .serviceName }}.Entry
+	var obj {{ .resourceSDKName }}.Entry
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -481,7 +499,7 @@ const resourceDeleteTemplateStr = `
 	}
 
 	// Create the service.
-	svc := {{ .serviceName }}.NewService(r.client)
+	svc := {{ .resourceSDKName }}.NewService(r.client)
 
 	/*
 		// Timeout handling.

@@ -48,7 +48,7 @@ func ParamToModelBasic(paramName string, paramProp interface{}) (string, error) 
 		data[k] = v
 	}
 
-	return centralTemplateExec(`
+	return processTemplate(`
 {{- /* Begin */ -}}
 {{ "    " }}{{ CamelCaseName .paramName }} types.{{ CamelCaseType .Type }} `+"`"+`tfsdk:"{{ UnderscoreName .paramName }}"`+"`"+`
 {{- /* Done */ -}}`, "param-to-model", data, nil)
@@ -56,7 +56,7 @@ func ParamToModelBasic(paramName string, paramProp interface{}) (string, error) 
 
 // ParamToSchema converts the given parameter name and properties to a schema representation.
 func ParamToSchema(paramName string, paramProp interface{}) (string, error) {
-	return centralTemplateExec(`
+	return processTemplate(`
 {{- /* Begin */ -}}
     "`+paramName+`": schema.{{ CamelCaseType .Type }}Attribute{
         Description: ProviderParamDescription(
@@ -81,7 +81,7 @@ func ParamToSchemaResource(paramName string, paramProp interface{}, terraformPro
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault", "")
 	}
 
-	return centralTemplateExec(`
+	return processTemplate(`
 {{- /* Begin */ -}}
 {{- if .Type }}
     "`+strings.ReplaceAll(paramName, "-", "_")+`": rsschema.{{ CamelCaseType .Type }}Attribute{
@@ -110,13 +110,13 @@ func checkForObjectValidation(paramProp interface{}) bool {
 }
 
 func CreateResourceSchemaLocationAttribute() (string, error) {
-	return centralTemplateExec(resourceTemplateSchemaLocationAttribute, "resource-schema-location", nil, nil)
+	return processTemplate(resourceTemplateSchemaLocationAttribute, "resource-schema-location", nil, nil)
 }
 
 // CreateTfIdStruct generates a template for a struct based on the provided structType and structName.
 func CreateTfIdStruct(structType string, structName string) (string, error) {
 	if structType == "entry" {
-		return centralTemplateExec(`
+		return processTemplate(`
 {{- /* Begin */ -}}
     Name     string          `+"`json:\"name\"`"+`
     Location `+structName+`.Location `+"`json:\"location\"`"+`
@@ -128,7 +128,7 @@ func CreateTfIdStruct(structType string, structName string) (string, error) {
 // CreateTfIdResourceModel generates a Terraform resource struct part for TFID.
 func CreateTfIdResourceModel(structType string, structName string) (string, error) {
 	if structType == "entry" {
-		return centralTemplateExec(`
+		return processTemplate(`
 {{- /* Begin */ -}}
     Tfid     types.String          `+"`tfsdk:\"tfid\"`"+`
     Location `+structName+`Location `+"`tfsdk:\"location\"`"+`
@@ -152,7 +152,7 @@ func ParamToModelResource(paramName string, paramProp *properties.SpecParam, str
         {{ CamelCaseName .Name }} types.{{ CamelCaseType .Type }} ` + "`tfsdk:\"{{ UnderscoreName .Name }}\"`" + `
     {{- end -}}
 {{- /* Done */ -}}`
-	return centralTemplateExec(templateText, "param-to-model", data, nil)
+	return processTemplate(templateText, "param-to-model", data, nil)
 }
 
 // ModelNestedStruct manages nested structure definitions.
@@ -187,7 +187,7 @@ func CreateNestedStruct(paramName string, paramProp *properties.SpecParam, struc
 		"Spec":       paramProp.Spec,
 		"structName": nestedStructName,
 	}
-	nestedStruct, err := centralTemplateExec(resourceModelNestedStructTemplate, "nested-struct", data, nestedStructFuncMap)
+	nestedStruct, err := processTemplate(resourceModelNestedStructTemplate, "nested-struct", data, nestedStructFuncMap)
 	if err != nil {
 		log.Printf("[ ERROR ] Executing nested struct template failed: %v", err)
 		return "", err
@@ -226,7 +226,7 @@ func CreateLocationStruct(v interface{}, structName string) (string, error) {
 		return "", fmt.Errorf("provided value is not a struct")
 	}
 
-	fields := []Field{}
+	var fields []Field
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 		fields = append(fields, Field{
@@ -241,5 +241,5 @@ func CreateLocationStruct(v interface{}, structName string) (string, error) {
 		Fields:     fields,
 	}
 
-	return centralTemplateExec(locationStructTemplate, "LocationStruct", structData, nil)
+	return processTemplate(locationStructTemplate, "location-struct-create", structData, nil)
 }

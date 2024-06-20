@@ -8,7 +8,7 @@ import (
 )
 
 // Package-level function map to avoid repetition in each function
-var centralFuncMap = template.FuncMap{
+var commonFuncMap = template.FuncMap{
 	"CamelCaseName":  func(paramName string) string { return naming.CamelCase("", paramName, "", true) },
 	"UnderscoreName": func(paramName string) string { return naming.Underscore("", paramName, "") },
 	"CamelCaseType":  func(paramType string) string { return naming.CamelCase("", paramType, "", true) },
@@ -49,12 +49,12 @@ func structToMap(item interface{}) map[string]interface{} {
 	return out
 }
 
-// centralTemplateExec handles the creation and execution of templates
-func centralTemplateExec(templateText, templateName string, data interface{}, funcMap template.FuncMap) (string, error) {
+// processTemplate handles the creation and execution of templates
+func processTemplate(templateText, templateName string, data interface{}, funcMap template.FuncMap) (string, error) {
 	if len(funcMap) == 0 {
-		funcMap = centralFuncMap
+		funcMap = commonFuncMap
 	} else {
-		funcMap = mergeFuncMaps(funcMap, centralFuncMap)
+		funcMap = mergeFuncMaps(funcMap, commonFuncMap)
 	}
 
 	tmpl, err := template.New(templateName).Funcs(funcMap).Parse(templateText)
@@ -79,5 +79,20 @@ func mapGoTypeToTFType(structName string, t reflect.Type) string {
 		return "*" + structName + naming.CamelCase("", t.Name(), "", true)
 	default:
 		return "types.Unknown"
+	}
+}
+
+func mapEntryTypeToTFType(t reflect.Type) string {
+	switch t.Kind() {
+	case reflect.Bool:
+		return "ValueBoolPointer()"
+	case reflect.String:
+		return "ValueStringPointer()"
+	case reflect.Slice:
+		return "ElementsAs"
+	case reflect.Struct:
+		return "Struct"
+	default:
+		return "Unknown"
 	}
 }

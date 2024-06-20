@@ -19,8 +19,15 @@ type NameProvider struct {
 
 // NewNameProvider creates a new NameProvider based on given specifications.
 func NewNameProvider(spec *properties.Normalization, resourceName string) *NameProvider {
+	var objectName string
+
 	tfName := spec.Name
-	metaName := fmt.Sprintf("_%s", naming.Underscore("", strings.ToLower(tfName), ""))
+	if !strings.Contains(tfName, "group") {
+		objectName = fmt.Sprintf("%s_object", tfName)
+	} else {
+		objectName = tfName
+	}
+	metaName := fmt.Sprintf("_%s", naming.Underscore("", strings.ToLower(objectName), ""))
 	structName := naming.CamelCase("", tfName, resourceName, true)
 	return &NameProvider{tfName, metaName, structName}
 }
@@ -38,7 +45,6 @@ func (g *GenerateTerraformProvider) createTemplate(resourceType string, spec *pr
 func (g *GenerateTerraformProvider) executeTemplate(resourceTemplate *template.Template, spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, resourceType string, names *NameProvider) error {
 	var renderedTemplate strings.Builder
 	if err := resourceTemplate.Execute(&renderedTemplate, spec); err != nil {
-		log.Fatalf("Error executing template: %v", err)
 		return fmt.Errorf("error executing %s template: %v", resourceType, err)
 	}
 	renderedTemplate.WriteString("\n")
@@ -73,6 +79,9 @@ func (g *GenerateTerraformProvider) appendResourceType(terraformProvider *proper
 
 // generateTerraformEntityTemplate is the common logic for generating Terraform resources and data sources.
 func (g *GenerateTerraformProvider) generateTerraformEntityTemplate(resourceType string, names *NameProvider, spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, templateStr string, funcMap template.FuncMap) error {
+	if templateStr == "" {
+		return nil
+	}
 	resourceTemplate, err := g.createTemplate(resourceType, spec, templateStr, funcMap)
 	if err != nil {
 		log.Fatalf("Error creating template: %v", err)
@@ -91,12 +100,20 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 		"serviceName":             func() string { return names.TfName },
 		"CreateTfIdStruct":        func() (string, error) { return CreateTfIdStruct("entry", spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
 		"CreateTfIdResourceModel": func() (string, error) { return CreateTfIdResourceModel("entry", names.StructName) },
-		"ResourceCreateFunction":  ResourceCreateFunction,
-		"ResourceReadFunction":    ResourceReadFunction,
-		"ResourceUpdateFunction":  ResourceUpdateFunction,
-		"ResourceDeleteFunction":  ResourceDeleteFunction,
-		"ParamToModelResource":    ParamToModelResource,
-		"ModelNestedStruct":       ModelNestedStruct,
+		"ResourceCreateFunction": func(structName string, serviceName string) (string, error) {
+			return ResourceCreateFunction(structName, serviceName, spec.Spec, terraformProvider, spec.GoSdkPath[len(spec.GoSdkPath)-1])
+		},
+		"ResourceReadFunction": func(structName string, serviceName string) (string, error) {
+			return ResourceReadFunction(structName, serviceName, spec.Spec, spec.GoSdkPath[len(spec.GoSdkPath)-1])
+		},
+		"ResourceUpdateFunction": func(structName string, serviceName string) (string, error) {
+			return ResourceUpdateFunction(structName, serviceName, spec.Spec, spec.GoSdkPath[len(spec.GoSdkPath)-1])
+		},
+		"ResourceDeleteFunction": func(structName string, serviceName string) (string, error) {
+			return ResourceDeleteFunction(structName, serviceName, spec.Spec, spec.GoSdkPath[len(spec.GoSdkPath)-1])
+		},
+		"ParamToModelResource": ParamToModelResource,
+		"ModelNestedStruct":    ModelNestedStruct,
 		"ResourceParamToSchema": func(paramName string, paramParameters properties.SpecParam) (string, error) {
 			return ParamToSchemaResource(paramName, paramParameters, terraformProvider)
 		},
@@ -129,7 +146,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 			_, uuid := spec.Spec.Params["uuid"]
 			if uuid {
 				// Generate Resource with uuid style
-				err := g.generateTerraformEntityTemplate(resourceType, names, spec, terraformProvider, resourceTemplateStr, funcMap)
+				err := g.generateTerraformEntityTemplate(resourceType, names, spec, terraformProvider, "", funcMap)
 				if err != nil {
 					return err
 				}
@@ -142,7 +159,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 			}
 		} else {
 			// Generate Resource with config style
-			err := g.generateTerraformEntityTemplate(resourceType, names, spec, terraformProvider, resourceTemplateStr, funcMap)
+			err := g.generateTerraformEntityTemplate(resourceType, names, spec, terraformProvider, "", funcMap)
 			if err != nil {
 				return err
 			}
