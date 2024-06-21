@@ -130,7 +130,6 @@ type {{ structName }} struct {
 }
 
 type {{ structName }}Tfid struct {
-	//TODO: Generate tfid struct via function
 	{{ CreateTfIdStruct }}
 }
 
@@ -158,7 +157,6 @@ type {{ structName }}DeviceGroupLocation struct {
 }
 
 type {{ structName }}Model struct {
-// TODO: Entry model struct via function
 		{{ CreateTfIdResourceModel }}
 		Name types.String` + "`" + `tfsdk:"name"` + "`" + `
         {{- range $pName, $pParam := $.Spec.Params}}
@@ -190,11 +188,20 @@ func (r *{{ structName }}) Schema(ctx context.Context, req resource.SchemaReques
 		Description: "The name of the resource.",
 		Required:    true,
 	},	
-	{{- range $pName, $pParam := $.Spec.Params }}
-	{{ ResourceParamToSchema $pName $pParam }}
+	"location": rsschema.SingleNestedAttribute{
+		Description: "The location of this object.",
+		Required:    true,
+		Attributes: map[string]rsschema.Attribute{	
+	{{- range $pName, $pParam := $.Locations -}}
+		{{ ResourceParamToSchema $pName $pParam }}
 	{{- end }}
-	{{- range $pName, $pParam := $.Spec.OneOf }}
-	{{ ResourceParamToSchema $pName $pParam }}
+	}
+},
+	{{- range $pName, $pParam := $.Spec.Params -}}
+		{{ ResourceParamToSchema $pName $pParam }}
+	{{- end }}
+	{{- range $pName, $pParam := $.Spec.OneOf -}}
+		{{ ResourceParamToSchema $pName $pParam }}
 	{{- end }}
 		},
 	}
@@ -644,7 +651,7 @@ func (p *PanosProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp
 		Description: "Terraform provider to interact with Palo Alto Networks PAN-OS.",
 		Attributes: map[string]schema.Attribute{
 {{- range $pName, $pParam := ProviderParams }}
-{{ ParamToSchema $pName $pParam }}
+{{ ParamToSchemaProvider $pName $pParam }}
 {{- end }}
 		},
 	}

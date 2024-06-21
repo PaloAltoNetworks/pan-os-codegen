@@ -114,12 +114,14 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 		},
 		"ParamToModelResource": ParamToModelResource,
 		"ModelNestedStruct":    ModelNestedStruct,
-		"ResourceParamToSchema": func(paramName string, paramParameters properties.SpecParam) (string, error) {
+		"ResourceParamToSchema": func(paramName string, paramParameters interface{}) (string, error) {
 			return ParamToSchemaResource(paramName, paramParameters, terraformProvider)
 		},
 		"ResourceSchemaLocationAttribute": CreateResourceSchemaLocationAttribute,
-		"CreateLocationStruct":            func(structName string) (string, error) { return CreateLocationStruct(resourceLocation{}, structName) },
-		"CreateLocationVsysStruct":        func(structName string) (string, error) { return CreateLocationStruct(vsysLocation{}, structName) },
+		"CreateLocationStruct": func(structName string) (string, error) {
+			return CreateLocationStruct(resourceObjectLocation{}, structName)
+		},
+		"CreateLocationVsysStruct": func(structName string) (string, error) { return CreateLocationStruct(vsysLocation{}, structName) },
 		"CreateLocationDeviceGroupStruct": func(structName string) (string, error) {
 			return CreateLocationStruct(deviceGroupLocation{}, structName)
 		},
@@ -165,6 +167,26 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 			}
 		}
 	}
+
+	// START DEBUG
+
+	log.Printf("Whole properties: %s \n", spec)
+	log.Printf("Whole Location: %s \n", spec.Locations)
+	log.Printf("Location formatted: %v \n", spec.Locations)
+
+	for i := range spec.Locations {
+		log.Printf("Location: %v \n", i)
+		log.Printf("Location spec: %v \n", spec.Locations[i])
+	}
+	for n := range spec.Spec.Params {
+		log.Printf("Spec param: %v \n", n)
+		log.Printf("Spec param spec: %v \n", spec.Spec.Params[n])
+	}
+	for k := range spec.Spec.OneOf {
+		log.Printf("Spec oneof: %v \n", k)
+		log.Printf("Spec oneof spec: %v \n", spec.Spec.OneOf[k])
+	}
+	// END OF DEBUG
 	return nil
 }
 
@@ -235,8 +257,8 @@ func (g *GenerateTerraformProvider) GenerateTerraformProvider(terraformProvider 
 		"ParamToModelBasic": func(paramName string, paramProp properties.TerraformProviderParams) (string, error) {
 			return ParamToModelBasic(paramName, paramProp)
 		},
-		"ParamToSchema": func(paramName string, paramProp properties.TerraformProviderParams) (string, error) {
-			return ParamToSchema(paramName, paramProp)
+		"ParamToSchemaProvider": func(paramName string, paramProp properties.TerraformProviderParams) (string, error) {
+			return ParamToSchemaProvider(paramName, paramProp)
 		},
 	}
 	return g.generateTerraformEntityTemplate("ProviderFile", &NameProvider{}, spec, terraformProvider, providerTemplateStr, funcMap)

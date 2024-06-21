@@ -31,11 +31,41 @@ type deviceGroupLocation struct {
 	PanoramaDevice string
 }
 
-type resourceLocation struct {
+type resourceObjectLocation struct {
 	FromPanorama bool
 	Shared       bool
 	Vsys         vsysLocation
 	DeviceGroup  deviceGroupLocation
+}
+
+type ngfwLocation struct {
+	NgfwDevice string
+}
+
+type templateLocation struct {
+	NgfwDevice     string
+	PanoramaDevice string
+	Template       string
+}
+
+type templateStackLocation struct {
+	NgfwDevice     string
+	PanoramaDevice string
+	TemplateStack  string
+}
+
+type resourceNGFWConfigLocation struct {
+	Ngfw          ngfwLocation
+	Template      templateLocation
+	TemplateStack templateStackLocation
+}
+
+type panoramaLocation struct {
+	PanoramaDevice string
+}
+
+type resourcePanoramaConfigLocation struct {
+	Panorama panoramaLocation
 }
 
 // ParamToModelBasic converts the given parameter name and properties to a model representation.
@@ -54,8 +84,8 @@ func ParamToModelBasic(paramName string, paramProp interface{}) (string, error) 
 {{- /* Done */ -}}`, "param-to-model", data, nil)
 }
 
-// ParamToSchema converts the given parameter name and properties to a schema representation.
-func ParamToSchema(paramName string, paramProp interface{}) (string, error) {
+// ParamToSchemaProvider converts the given parameter name and properties to a schema representation.
+func ParamToSchemaProvider(paramName string, paramProp interface{}) (string, error) {
 	return processTemplate(`
 {{- /* Begin */ -}}
     "`+paramName+`": schema.{{ CamelCaseType .Type }}Attribute{
@@ -77,11 +107,13 @@ func ParamToSchema(paramName string, paramProp interface{}) (string, error) {
 }
 
 func ParamToSchemaResource(paramName string, paramProp interface{}, terraformProvider *properties.TerraformProviderFile) (string, error) {
-	if paramProp.(properties.SpecParam).Type == "bool" && paramProp.(properties.SpecParam).Default != "" {
-		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault", "")
-	}
+	switch v := paramProp.(type) {
+	case *properties.SpecParam:
+		if v.Type == "bool" && v.Default != "" {
+			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault", "")
+		}
 
-	return processTemplate(`
+		return processTemplate(`
 {{- /* Begin */ -}}
 {{- if .Type }}
     "`+strings.ReplaceAll(paramName, "-", "_")+`": rsschema.{{ CamelCaseType .Type }}Attribute{
@@ -102,11 +134,24 @@ func ParamToSchemaResource(paramName string, paramProp interface{}, terraformPro
 		Computed: true ,
 		{{- end }}
     },
-{{- /* Done */ -}}`, "describe-param", paramProp, nil)
-}
+{{- /* Done */ -}}`, "describe-param", v, nil)
 
-func checkForObjectValidation(paramProp interface{}) bool {
-	return true
+	case *properties.Location:
+		return processTemplate(`
+{{- /* Begin */ -}}
+{{- if .Vars }}
+     "`+strings.ReplaceAll(paramName, "-", "_")+`": rsschema.SingleNestedAttribute{
+{{- else }}
+    "`+strings.ReplaceAll(paramName, "-", "_")+`": rsschema.StringAttribute{
+{{- end }}
+        Description: "{{ .Description }}",
+		Required: true,
+    },
+{{- /* Done */ -}}`, "describe-location", v, nil)
+
+	default:
+		return "", fmt.Errorf("unsupported type: %T", paramProp)
+	}
 }
 
 func CreateResourceSchemaLocationAttribute() (string, error) {
@@ -218,6 +263,7 @@ func CreateNestedStruct(paramName string, paramProp *properties.SpecParam, struc
 	return nestedStructString.String(), nil
 }
 
+// CreateLocationStruct generates a corresponding Terraform location struct if the provided value is a struct, otherwise, it returns an error.
 func CreateLocationStruct(v interface{}, structName string) (string, error) {
 	val := reflect.ValueOf(v)
 	t := val.Type()
