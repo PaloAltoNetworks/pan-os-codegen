@@ -118,7 +118,8 @@ func (c *Creator) processTemplate(templateName, filePath string) error {
 func (c *Creator) writeFormattedContentToFile(filePath, content string) error {
 	formattedCode, err := format.Source([]byte(content))
 	if err != nil {
-		return fmt.Errorf("error formatting code %w", err)
+		log.Printf("provided content: %s", content)
+		return fmt.Errorf("error formatting code: %w", err)
 	}
 	formattedBuf := bytes.NewBuffer(formattedCode)
 

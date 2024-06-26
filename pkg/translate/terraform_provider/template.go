@@ -192,10 +192,10 @@ func (r *{{ structName }}) Schema(ctx context.Context, req resource.SchemaReques
 		Description: "The location of this object.",
 		Required:    true,
 		Attributes: map[string]rsschema.Attribute{	
-	{{- range $pName, $pParam := $.Locations -}}
-		{{ ResourceParamToSchema $pName $pParam }}
-	{{- end }}
-	}
+			{{- range $pName, $pParam := $.Locations -}}
+				{{ ResourceParamToSchema $pName $pParam }}
+			{{- end }}
+	},
 },
 	{{- range $pName, $pParam := $.Spec.Params -}}
 		{{ ResourceParamToSchema $pName $pParam }}

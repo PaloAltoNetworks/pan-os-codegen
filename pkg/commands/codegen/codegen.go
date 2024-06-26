@@ -3,10 +3,11 @@ package codegen
 import (
 	"context"
 	"fmt"
+	"log"
+
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/generate"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/load"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
-	"log"
 )
 
 type CommandType string
@@ -97,7 +98,7 @@ func (c *Command) Execute() error {
 			terraformGenerator := generate.NewCreator(config.Output.TerraformProvider, c.templatePath, spec)
 			err = terraformGenerator.RenderTerraformProviderFile(newProviderObject, spec)
 			if err != nil {
-				return fmt.Errorf("error generating Terraform provider - %s", err)
+				return fmt.Errorf("error rendering Terraform provider file for %s - %s", specPath, err)
 			}
 
 			resourceList = append(resourceList, newProviderObject.Resources...)
