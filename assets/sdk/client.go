@@ -8,6 +8,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"log/slog"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -25,6 +26,13 @@ import (
 	"github.com/PaloAltoNetworks/pango/xmlapi"
 )
 
+type LoggingInfo struct {
+	SLogHandler   slog.Handler `json:"-"`
+	LogCategories LogCategory  `json:"-"`
+	LogSymbols    []string     `json:"log_symbols"`
+	LogLevel      slog.Leveler `json:"log_level"`
+}
+
 // Client is an XML API client connection.  If provides wrapper functions
 // for invoking the various PAN-OS API methods.  After creating the client,
 // invoke Setup() followed by Initialize() to prepare it for use.
@@ -38,7 +46,7 @@ type Client struct {
 	Target          string            `json:"target"`
 	ApiKeyInRequest bool              `json:"api_key_in_request"`
 	Headers         map[string]string `json:"headers"`
-	Logging         map[string]bool   `json:"logging"`
+	Logging         *LoggingInfo      `json:"logging"`
 
 	// Set to true if you want to check environment variables
 	// for auth and connection properties.
@@ -60,7 +68,7 @@ type Client struct {
 	con        *http.Client
 	api_url    string
 	configTree *generic.Xml
-	logger     util.Logger
+	logger     *selectiveLogger
 
 	// Variables for testing, response bytes, headers, and response index.
 	testInput       []*http.Request
@@ -236,39 +244,7 @@ func (c *Client) Setup() error {
 		}
 	}
 
-	// Logging.
-	if c.Logging == nil {
-		c.Logging = make(map[string]bool)
-	}
-	if len(c.Logging) == 0 {
-		if val := os.Getenv("PANOS_LOGGING"); c.CheckEnvironment && val != "" {
-			ll := strings.Split(val, ",")
-			for _, k := range ll {
-				c.Logging[k] = true
-			}
-		} else if len(json_client.Logging) != 0 {
-			c.Logging = make(map[string]bool)
-			for k, v := range json_client.Logging {
-				c.Logging[k] = v
-			}
-		}
-	}
-	if len(c.Logging) == 0 {
-		c.Logging = map[string]bool{
-			"quiet": true,
-		}
-	}
-
-	// Setup the logger.
-	c.logger = util.Logger{
-		Logging:               c.Logging,
-		SkipVerifyCertificate: c.SkipVerifyCertificate,
-		Headers:               c.Headers,
-		Hostname:              c.Hostname,
-		Protocol:              c.Protocol,
-		Port:                  c.Port,
-	}
-	c.logger.LogDebug("logging settings", c.Logging)
+	c.setupLogging(c.Logging)
 
 	// Setup the client.
 	if c.Transport == nil {
@@ -880,7 +856,13 @@ func (c *Client) Communicate(ctx context.Context, cmd util.PangoCommand, strip b
 		data.Set("key", c.ApiKey)
 	}
 
-	c.logger.LogSend(data)
+	sendData := slog.Group("data", c.prepareSendDataForLogging(data)...)
+	if c.logger.LogMask()&LogCategoryCurl == LogCategoryCurl {
+		curlEquivalent := slog.Group("curl", c.prepareSendDataAsCurl(data)...)
+		c.logger.WithLogCategory(LogCategorySend).Debug("data sent to the server", sendData, curlEquivalent)
+	} else {
+		c.logger.WithLogCategory(LogCategorySend).Debug("data sent to the server", sendData)
+	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", c.api_url, strings.NewReader(data.Encode()))
 	if err != nil {
@@ -907,7 +889,13 @@ func (c *Client) ImportFile(ctx context.Context, cmd *xmlapi.Import, content, fi
 		data.Set("key", c.ApiKey)
 	}
 
-	c.logger.LogSend(data)
+	sendData := slog.Group("data", c.prepareSendDataForLogging(data)...)
+	if c.logger.LogMask()&LogCategoryCurl == LogCategoryCurl {
+		curlEquivalent := slog.Group("curl", c.prepareSendDataAsCurl(data)...)
+		c.logger.WithLogCategory(LogCategorySend).Debug("data sent to the server", sendData, curlEquivalent)
+	} else {
+		c.logger.WithLogCategory(LogCategorySend).Debug("data sent to the server", sendData)
+	}
 
 	buf := bytes.Buffer{}
 	w := multipart.NewWriter(&buf)
@@ -1022,6 +1010,46 @@ func (c *Client) GetTechSupportFile(ctx context.Context) (string, []byte, error)
 // Internal functions.
 //
 
+func (c *Client) setupLogging(logging *LoggingInfo) {
+	var logger *slog.Logger
+
+	if logging.SLogHandler == nil {
+		logger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: logging.LogLevel}))
+		logger.Info("No slog handler provided, creating default os.Stderr handler.", "LogLevel", logging.LogLevel.Level())
+	} else {
+		logger = slog.New(logging.SLogHandler)
+		if logging.LogLevel != nil {
+			logger.Warn("LogLevel is ignored when using custom SLog handler.")
+		}
+	}
+
+	// 1. logging.LogCategories has the highest priority
+	// 2. If logging.LogCategories is not set, we check logging.LogSymbols
+	// 3. If logging.LogSymbols is empty and c.CheckEnvironment is true we consult
+	//    PANOS_LOGGING environment variable.
+	// 4. If no logging has been configured, we default to logging only pango logs.
+	logMask := logging.LogCategories
+	if logMask == 0 {
+		logMask = NewLogCategoryFromSymbols(logging.LogSymbols)
+		if logMask == 0 {
+			if val := os.Getenv("PANOS_LOGGING"); c.CheckEnvironment && val != "" {
+				symbols := strings.Split(val, ",")
+				logMask = NewLogCategoryFromSymbols(symbols)
+			}
+		}
+
+	}
+
+	if logMask == 0 {
+		logMask = LogCategoryPango
+	}
+
+	enabledLogging := logMask.GetLoggingSymbols()
+	logger.Info("Pango logging configured", "symbols", enabledLogging)
+
+	c.logger = newSelectiveLogger(logger, logMask)
+}
+
 func (c *Client) sendRequest(ctx context.Context, req *http.Request, strip bool, ans any) ([]byte, *http.Response, error) {
 	// Optional: set the API key in the header.
 	if !c.ApiKeyInRequest && c.ApiKey != "" {
@@ -1086,7 +1114,116 @@ func (c *Client) sendRequest(ctx context.Context, req *http.Request, strip bool,
 		return body, resp, fmt.Errorf("err unmarshaling into provided interface: %s", err)
 	}
 
-	c.logger.LogReceive(body)
+	c.logger.WithLogCategory(LogCategoryReceive).Debug("Received data from server", "body", c.prepareReceiveDataForLogging(body))
 
 	return body, resp, nil
+}
+
+func (c *Client) prepareSendDataForLogging(data url.Values) []any {
+	filterSensitive := c.logger.LogMask()&LogCategorySensitive == 0
+
+	preparedValues := make([]any, 0)
+
+	for key, values := range data {
+		for _, value := range values {
+			preparedValues = append(preparedValues, key)
+			if filterSensitive {
+				switch key {
+				case "key", "password":
+					preparedValues = append(preparedValues, "***")
+				default:
+					preparedValues = append(preparedValues, value)
+				}
+			} else {
+				preparedValues = append(preparedValues, value)
+			}
+		}
+	}
+
+	return preparedValues
+}
+
+func (c *Client) prepareSendDataAsCurl(data url.Values) []any {
+	filterSensitive := c.logger.LogMask()&LogCategorySensitive == 0
+
+	special := map[string]string{
+		"key":      "",
+		"password": "",
+		"element":  "",
+	}
+
+	values := url.Values{}
+	for key, value := range data {
+		isSpecial := false
+		for needle := range special {
+			if key == needle {
+				isSpecial = true
+				special[key] = value[0]
+				break
+			}
+		}
+
+		if !isSpecial {
+			values[key] = value
+		} else {
+			values[key] = []string{strings.ToUpper(key)}
+		}
+	}
+
+	curlCmd := []string{"curl"}
+
+	if c.SkipVerifyCertificate {
+		curlCmd = append(curlCmd, "-k")
+	}
+
+	if len(c.Headers) > 0 && !filterSensitive {
+		for k, v := range c.Headers {
+			curlCmd = append(curlCmd, "--header")
+			var header string
+			if v == "" {
+				header = fmt.Sprintf("'%s;'", k)
+			} else {
+				header = fmt.Sprintf("'%s: %s'", k, v)
+			}
+			curlCmd = append(curlCmd, header)
+		}
+	}
+
+	hostname := c.Hostname
+	if filterSensitive {
+		hostname = "HOST"
+	}
+	port := ""
+	if c.Port != 0 {
+		port = fmt.Sprintf(":%d", c.Port)
+	}
+
+	encodedValues := ""
+	if len(values) > 0 {
+		encodedValues = fmt.Sprintf("?%s", values.Encode())
+	}
+
+	urlTemplate := "'%s://%s%s/api%s'"
+	apiUrl := fmt.Sprintf(urlTemplate, c.Protocol, hostname, port, encodedValues)
+
+	curlCmd = append(curlCmd, apiUrl)
+
+	curlData := []any{"command", strings.Join(curlCmd, " ")}
+
+	if special["element"] != "" {
+		curlData = append(curlData, "element.xml")
+		curlData = append(curlData, special["element"])
+	}
+
+	return curlData
+}
+
+func (c *Client) prepareReceiveDataForLogging(body []byte) string {
+	replacedBody := string(body)
+	keyStartIdx := strings.Index(replacedBody, "<key>")
+	keyEndIdx := strings.Index(replacedBody, "</key>")
+	if keyStartIdx != -1 && keyEndIdx != -1 {
+		replacedBody = replacedBody[:keyStartIdx] + "***" + replacedBody[keyEndIdx+len("</key>"):]
+	}
+	return replacedBody
 }
