@@ -9,28 +9,21 @@ import (
 	"log"
 )
 
-type CommandType string
-
-const (
-	CommandTypeSDK       CommandType = "sdk"
-	CommandTypeTerraform CommandType = "terraform"
-)
-
 type Command struct {
 	ctx          context.Context
 	args         []string
 	specs        []string
 	config       string
-	commandType  CommandType
+	commandType  properties.CommandType
 	templatePath string
 }
 
-func NewCommand(ctx context.Context, commandType CommandType, args ...string) (*Command, error) {
+func NewCommand(ctx context.Context, commandType properties.CommandType, args ...string) (*Command, error) {
 	var templatePath string
 	switch commandType {
-	case CommandTypeSDK:
+	case properties.CommandTypeSDK:
 		templatePath = "templates/sdk"
-	case CommandTypeTerraform:
+	case properties.CommandTypeTerraform:
 		templatePath = "templates/terraform"
 	default:
 		return nil, fmt.Errorf("unsupported command type: %s", commandType)
@@ -91,7 +84,7 @@ func (c *Command) Execute() error {
 			return fmt.Errorf("%s sanity failed: %s", specPath, err)
 		}
 
-		if c.commandType == CommandTypeTerraform {
+		if c.commandType == properties.CommandTypeTerraform {
 
 			newProviderObject := properties.NewTerraformProviderFile(spec.Name)
 			terraformGenerator := generate.NewCreator(config.Output.TerraformProvider, c.templatePath, spec)
@@ -103,7 +96,7 @@ func (c *Command) Execute() error {
 			resourceList = append(resourceList, newProviderObject.Resources...)
 			dataSourceList = append(dataSourceList, newProviderObject.DataSources...)
 
-		} else if c.commandType == CommandTypeSDK {
+		} else if c.commandType == properties.CommandTypeSDK {
 			generator := generate.NewCreator(config.Output.GoSdk, c.templatePath, spec)
 			if err = generator.RenderTemplate(); err != nil {
 				return fmt.Errorf("error rendering %s - %s", specPath, err)
@@ -112,7 +105,7 @@ func (c *Command) Execute() error {
 
 	}
 
-	if c.commandType == CommandTypeTerraform {
+	if c.commandType == properties.CommandTypeTerraform {
 		providerSpec := new(properties.Normalization)
 		providerSpec.Name = "provider"
 
@@ -124,7 +117,7 @@ func (c *Command) Execute() error {
 		err = terraformGenerator.RenderTerraformProvider(newProviderObject, providerSpec, config.TerraformProviderConfig)
 	}
 
-	if err = generate.CopyAssets(config); err != nil {
+	if err = generate.CopyAssets(config, c.commandType); err != nil {
 		return fmt.Errorf("error copying assets %s", err)
 	}
 
