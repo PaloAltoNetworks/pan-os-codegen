@@ -9,72 +9,17 @@ output:
 ####################################################
 assets:
   #~~~~~~~ SDK Static File section ~~~~~~~#
-  generic_package:
-    source: "assets/generic"
-    target:
-      go_sdk: true
-    destination: "generic"
-  util_package:
-    source: "assets/util"
-    target:
-      go_sdk: true
-    destination: "util"
-  audit_package:
-    source: "assets/audit"
-    target:
-      go_sdk: true
-    destination: "audit"
-  errors_package:
-    source: "assets/errors"
-    target:
-      go_sdk: true
-    destination: "errors"
-  version_package:
-    source: "assets/version"
-    target:
-      go_sdk: true
-    destination: "version"
-  example_package:
-    source: "assets/example"
-    target:
-      go_sdk: true
-    destination: "example"
-  sdk_package:
-    source: "assets/sdk"
+  pango:
+    source: "assets/pango/"
     target:
       go_sdk: true
     destination: ""
-  xmlapi_package:
-    source: "assets/xmlapi"
-    target:
-      go_sdk: true
-    destination: "xmlapi"
-  filtering_package:
-    source: "assets/filtering"
-    target:
-      go_sdk: true
-    destination: "filtering"
-  plugin_package:
-    source: "assets/plugin"
-    target:
-      go_sdk: true
-    destination: "plugin"
-  rule_package:
-    source: "assets/rule"
-    target:
-      go_sdk: true
-    destination: "rule"
   #~~~~~~~ Terraform Provider Static File section ~~~~~~~#
   provider_package:
-    source: "assets/provider"
+    source: "assets/terraform/"
     target:
       terraform_provider: true
     destination: ""
-  provider_internal_package:
-    source: "assets/provider_internal"
-    target:
-      terraform_provider: true
-    destination: "internal/provider"
 ####################################################
 #~~~ Codegen Terraform Provider Config section ~~~~#
 ####################################################

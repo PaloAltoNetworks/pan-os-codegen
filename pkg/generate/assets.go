@@ -2,29 +2,32 @@ package generate
 
 import (
 	"bytes"
-	"fmt"
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 	"io"
 	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
+
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 )
 
 // CopyAssets copy assets (static files) according to configuration.
-func CopyAssets(config *properties.Config) error {
+func CopyAssets(config *properties.Config, commandType properties.CommandType) error {
 	for _, asset := range config.Assets {
 		files, err := listAssets(asset)
 		if err != nil {
 			return err
 		}
 
-		if asset.Target.GoSdk {
+		log.Printf("%v", asset)
+		if asset.Target.GoSdk && commandType == properties.CommandTypeSDK {
 			if err = copyAsset(config.Output.GoSdk, asset, files); err != nil {
 				return err
 			}
 		}
-		if asset.Target.TerraformProvider {
+
+		if asset.Target.TerraformProvider && commandType == properties.CommandTypeTerraform {
 			if err = copyAsset(config.Output.TerraformProvider, asset, files); err != nil {
 				return err
 			}
@@ -57,7 +60,7 @@ func listAssets(asset *properties.Asset) ([]string, error) {
 // copyAsset copy single asset, which may contain multiple files.
 func copyAsset(target string, asset *properties.Asset, files []string) error {
 	// Prepare destination path
-	destinationDir := fmt.Sprintf("%s/%s", target, asset.Destination)
+	destinationDir := filepath.Join(target, asset.Destination)
 
 	// Create the destination directory if it doesn't exist
 	if err := os.MkdirAll(destinationDir, os.ModePerm); err != nil {
@@ -66,10 +69,20 @@ func copyAsset(target string, asset *properties.Asset, files []string) error {
 
 	for _, sourceFilePath := range files {
 		// Prepare destination path
-		destinationFilePath := filepath.Join(destinationDir, filepath.Base(sourceFilePath))
+		sourceFileDir := filepath.Dir(sourceFilePath)
+		sourceFileDirRelative := strings.TrimPrefix(filepath.Clean(sourceFileDir), filepath.Clean(asset.Source))
+
+		destinationSubDir := filepath.Join(destinationDir, sourceFileDirRelative)
+		if _, err := os.Stat(destinationSubDir); os.IsNotExist(err) {
+			if err := os.MkdirAll(destinationSubDir, os.ModePerm); err != nil {
+				return err
+			}
+		}
+
+		destinationFilePath := filepath.Join(destinationDir, sourceFileDirRelative, filepath.Base(sourceFilePath))
 		log.Printf("Copy file from %s to %s\n", sourceFilePath, destinationFilePath)
 
-		// Read the contents of the source file
+		// Read the contents of the source files
 		data, err := os.ReadFile(sourceFilePath)
 		if err != nil {
 			return err
