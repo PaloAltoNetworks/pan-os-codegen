@@ -824,6 +824,180 @@ func (c *Client) RevertToRunningConfig(ctx context.Context, vsys string) error {
 	return err
 }
 
+// ConfigTree returns the configuration tree that was loaded either via
+// `RetrievePanosConfig()` or `LoadPanosConfig()`.
+func (c *Client) ConfigTree() *generic.Xml {
+	return c.configTree
+}
+
+// LockCommits locks commits for the given scope with the given comment.
+//
+// If vsys is an empty string, the scope defaults to "shared".
+func (c *Client) LockCommits(ctx context.Context, vsys string, comment string) error {
+	if vsys == "" {
+		vsys = "shared"
+	}
+	c.logger.WithLogCategory(LogCategoryOp).Debug("Locking commits", "scope", vsys, "comment", comment)
+
+	type cmd struct {
+		XMLName xml.Name `xml:"request"`
+		Comment string   `xml:"commit-lock>add>comment,omitempty"`
+	}
+
+	op_cmd := &xmlapi.Op{
+		Command: cmd{Comment: comment},
+		Vsys:    vsys,
+	}
+
+	_, _, err := c.Communicate(ctx, op_cmd, false, nil)
+
+	return err
+}
+
+// UnlockCommits removes the commit lock on the given scope owned by the given
+// admin, if this admin is someone other than the current acting admin.
+//
+// If vsys is an empty string, the scope defaults to "shared".
+func (c *Client) UnlockCommits(ctx context.Context, vsys string, admin string) error {
+	c.logger.WithLogCategory(LogCategoryOp).Debug("Unlocking commits", "scope", vsys, "admin", admin)
+
+	if vsys == "" {
+		vsys = "shared"
+	}
+
+	type cmd struct {
+		XMLName xml.Name `xml:"request"`
+		Admin   string   `xml:"commit-lock>remove>admin,omitempty"`
+	}
+
+	op_cmd := &xmlapi.Op{
+		Command: cmd{Admin: admin},
+		Vsys:    vsys,
+	}
+
+	_, _, err := c.Communicate(ctx, op_cmd, false, nil)
+
+	return err
+}
+
+// ShowCommitLocks returns any commit locks that are currently in place.
+//
+// If vsys is an empty string, then the vsys will default to "shared".
+func (c *Client) ShowCommitLocks(ctx context.Context, vsys string) ([]xmlapi.Lock, error) {
+	c.logger.WithLogCategory(LogCategoryOp).Debug("Showing commit locks", "scope", vsys)
+
+	if vsys == "" {
+		vsys = "shared"
+	}
+
+	type cmd struct {
+		XMLName     xml.Name `xml:"show"`
+		CommitLocks xml.Name `xml:"commit-locks"`
+	}
+
+	op_cmd := &xmlapi.Op{
+		Command: cmd{},
+		Vsys:    vsys,
+	}
+
+	type commitLocks struct {
+		Locks []xmlapi.Lock `xml:"result>commit-locks>entry"`
+	}
+	ans := &commitLocks{}
+
+	_, _, err := c.Communicate(ctx, op_cmd, false, ans)
+	if err != nil {
+		return nil, err
+	}
+
+	return ans.Locks, nil
+}
+
+// LockConfig locks the config for the given scope with the given comment.
+//
+// If vsys is an empty string, the scope defaults to "shared".
+func (c *Client) LockConfig(ctx context.Context, vsys string, comment string) error {
+	if vsys == "" {
+		vsys = "shared"
+	}
+	c.logger.WithLogCategory(LogCategoryOp).Debug("Locking configuration", "scope", vsys, "comment", comment)
+
+	type cmd struct {
+		XMLName xml.Name `xml:"request"`
+		Comment string   `xml:"config-lock>add>comment,omitempty"`
+	}
+
+	op_cmd := &xmlapi.Op{
+		Command: cmd{Comment: comment},
+		Vsys:    vsys,
+	}
+
+	_, _, err := c.Communicate(ctx, op_cmd, false, nil)
+
+	return err
+}
+
+// UnlockConfig removes the config lock on the given scope.
+//
+// If vsys is an empty string, the scope defaults to "shared".
+func (c *Client) UnlockConfig(ctx context.Context, vsys string) error {
+	c.logger.WithLogCategory(LogCategoryOp).Debug("Unlocking configuration", "scope", vsys)
+
+	if vsys == "" {
+		vsys = "shared"
+	}
+
+	type cmd struct {
+		XMLName xml.Name `xml:"request"`
+		Cmd     string   `xml:"config-lock>remove"`
+	}
+
+	op_cmd := &xmlapi.Op{
+		Command: cmd{},
+		Vsys:    vsys,
+	}
+
+	_, _, err := c.Communicate(ctx, op_cmd, false, nil)
+
+	return err
+}
+
+// ShowConfigLocks returns any config locks that are currently in place.
+//
+// If vsys is an empty string, then the vsys will default to "shared".
+func (c *Client) ShowConfigLocks(ctx context.Context, vsys string) ([]xmlapi.Lock, error) {
+	c.logger.WithLogCategory(LogCategoryOp).Debug("Getting configuration locks", "scope", vsys)
+
+	if vsys == "" {
+		vsys = "all"
+	}
+
+	var op_cmd xmlapi.Op
+	if !c.Version.Gte(version.Number{Major: 9, Minor: 1}) {
+		type show struct {
+			Vsys string `xml:"config-locks>vsys"`
+		}
+		op_cmd.Command = show{Vsys: vsys}
+	} else {
+		type show struct {
+			ConfigLocks xml.Name `xml:"config-locks"`
+		}
+		op_cmd.Command = show{}
+	}
+
+	type configLocks struct {
+		Locks []xmlapi.Lock `xml:"result>config-locks>entry"`
+	}
+	ans := &configLocks{}
+
+	_, _, err := c.Communicate(ctx, &op_cmd, false, ans)
+	if err != nil {
+		return nil, err
+	}
+
+	return ans.Locks, nil
+}
+
 // StartJob sends the given command, which starts a job on PAN-OS.
 //
 // The uint returned is the job ID.
