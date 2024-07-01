@@ -188,15 +188,6 @@ func (r *{{ structName }}) Schema(ctx context.Context, req resource.SchemaReques
 		Description: "The name of the resource.",
 		Required:    true,
 	},	
-	"location": rsschema.SingleNestedAttribute{
-		Description: "The location of this object.",
-		Required:    true,
-		Attributes: map[string]rsschema.Attribute{	
-			{{- range $pName, $pParam := $.Locations -}}
-				{{ ResourceParamToSchema $pName $pParam }}
-			{{- end }}
-	},
-},
 	{{- range $pName, $pParam := $.Spec.Params -}}
 		{{ ResourceParamToSchema $pName $pParam }}
 	{{- end }}
