@@ -19,7 +19,7 @@ type EntryData struct {
 	Entries   []Entry
 }
 
-func ResourceCreateFunction(structName string, serviceName string, paramSpec interface{}, terraformProvider *properties.TerraformProviderFile, resourceSDKName string) (string, error) {
+func ResourceCreateFunction(structName string, serviceName string, paramSpec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, resourceSDKName string) (string, error) {
 	funcMap := template.FuncMap{
 		"LoadConfigToEntry": CreateEntryConfig,
 		"ResourceParamToSchema": func(paramName string, paramParameters properties.SpecParam) (string, error) {
@@ -32,13 +32,15 @@ func ResourceCreateFunction(structName string, serviceName string, paramSpec int
 	data := map[string]interface{}{
 		"structName":      structName,
 		"serviceName":     naming.CamelCase("", serviceName, "", false),
-		"paramSpec":       paramSpec,
+		"paramSpec":       paramSpec.Spec,
 		"resourceSDKName": resourceSDKName,
+		"locations":       paramSpec.Locations,
 	}
+
 	return processTemplate(resourceCreateTemplateStr, "resource-create-function", data, funcMap)
 }
 
-func ResourceReadFunction(structName string, serviceName string, paramSpec interface{}, resourceSDKName string) (string, error) {
+func ResourceReadFunction(structName string, serviceName string, paramSpec *properties.Normalization, resourceSDKName string) (string, error) {
 	if strings.Contains(serviceName, "group") {
 		serviceName = "group"
 	}
@@ -46,6 +48,7 @@ func ResourceReadFunction(structName string, serviceName string, paramSpec inter
 		"structName":      structName,
 		"serviceName":     naming.CamelCase("", serviceName, "", false),
 		"resourceSDKName": resourceSDKName,
+		"locations":       paramSpec.Locations,
 	}
 	return processTemplate(resourceReadTemplateStr, "resource-read-function", data, nil)
 }

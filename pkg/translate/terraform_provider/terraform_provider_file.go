@@ -101,10 +101,10 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 		"CreateTfIdStruct":        func() (string, error) { return CreateTfIdStruct("entry", spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
 		"CreateTfIdResourceModel": func() (string, error) { return CreateTfIdResourceModel("entry", names.StructName) },
 		"ResourceCreateFunction": func(structName string, serviceName string) (string, error) {
-			return ResourceCreateFunction(structName, serviceName, spec.Spec, terraformProvider, spec.GoSdkPath[len(spec.GoSdkPath)-1])
+			return ResourceCreateFunction(structName, serviceName, spec, terraformProvider, spec.GoSdkPath[len(spec.GoSdkPath)-1])
 		},
 		"ResourceReadFunction": func(structName string, serviceName string) (string, error) {
-			return ResourceReadFunction(structName, serviceName, spec.Spec, spec.GoSdkPath[len(spec.GoSdkPath)-1])
+			return ResourceReadFunction(structName, serviceName, spec, spec.GoSdkPath[len(spec.GoSdkPath)-1])
 		},
 		"ResourceUpdateFunction": func(structName string, serviceName string) (string, error) {
 			return ResourceUpdateFunction(structName, serviceName, spec.Spec, spec.GoSdkPath[len(spec.GoSdkPath)-1])
@@ -170,6 +170,8 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 
 	// START DEBUG
 
+	log.Printf("---------- \n")
+	log.Printf("Name: %s \n", spec.Name)
 	log.Printf("Whole properties: %s \n", spec)
 	log.Printf("Whole Location: %s \n", spec.Locations)
 	log.Printf("Location formatted: %v \n", spec.Locations)

@@ -255,22 +255,39 @@ const resourceCreateTemplateStr = `
 
 	// Determine the location.
 	loc := {{ .structName }}Tfid{Name: state.Name.ValueString()}
-	// TODO: this needs to handle location structure for UUID style shared has nested structure type 
+
+	// TODO: this needs to handle location structure for UUID style shared has nested structure type
+
+        {{- if .locations.shared }}
 	if !state.Location.Shared.IsNull() && state.Location.Shared.ValueBool() {
 		loc.Location.Shared = true
 	}
+        {{- end }}
+
+        {{- if .locations.from_panorama_shared }}
 	if !state.Location.FromPanorama.IsNull() && state.Location.FromPanorama.ValueBool() {
 		loc.Location.FromPanoramaShared = true
 	}
+        {{- end }}
+
+        {{- if .locations.vsys }}
 	if state.Location.Vsys != nil {
 		loc.Location.Vsys = &{{ .serviceName }}.VsysLocation{}
 		loc.Location.Vsys.NgfwDevice = state.Location.Vsys.NgfwDevice.ValueString()
 	}
+        {{- end }}
+
+        {{- if .locations.panorama }}
 	if state.Location.DeviceGroup != nil {
-		loc.Location.DeviceGroup = &{{ .serviceName }}.DeviceGroupLocation{}
-		loc.Location.DeviceGroup.DeviceGroup = state.Location.DeviceGroup.Name.ValueString()
-		loc.Location.DeviceGroup.PanoramaDevice = state.Location.DeviceGroup.PanoramaDevice.ValueString()
+		loc.Location = {{ .resourceSDKName }}.Location{
+                        Panorama: &{{ .resourceSDKName }}.PanoramaLocation{
+                                PanoramaDevice: state.Location.DeviceGroup.PanoramaDevice.ValueString(),
+                        },
+                }
 	}
+        {{- end }}
+
+
 	if err := loc.IsValid(); err != nil {
 		resp.Diagnostics.AddError("Invalid location", err.Error())
 		return
@@ -364,20 +381,29 @@ const resourceReadTemplateStr = `
 	}
 
 	// Save location to state.
+        {{- if .locations.shared }}
 	if loc.Location.Shared {
 		state.Location.Shared = types.BoolValue(true)
 	}
+        {{- end }}
+        {{- if .locations.from_panorama_shared }}
 	if loc.Location.FromPanoramaShared {
 		state.Location.FromPanorama = types.BoolValue(true)
 	}
+        {{- end }}
+        {{- if .locations.vsys }}
 	if loc.Location.Vsys != nil {
 		state.Location.Vsys = &{{ .structName }}VsysLocation{}
 		state.Location.Vsys.NgfwDevice = types.StringValue(loc.Location.Vsys.NgfwDevice)
 	}
-	if loc.Location.DeviceGroup != nil {
-		state.Location.DeviceGroup = &{{ .structName }}DeviceGroupLocation{}
-		state.Location.DeviceGroup.PanoramaDevice = types.StringValue(loc.Location.DeviceGroup.PanoramaDevice)
+        {{- end }}
+        {{- if .locations.panorama }}
+	if loc.Location.Panorama != nil {
+		state.Location.DeviceGroup = &{{ .structName }}DeviceGroupLocation{
+		        PanoramaDevice: types.StringValue(loc.Location.Panorama.PanoramaDevice),
+                }
 	}
+        {{- end }}
 
 	/*
 			// Keep the timeouts.
