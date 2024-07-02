@@ -171,22 +171,21 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 	// START DEBUG
 
 	log.Printf("---------- \n")
-	log.Printf("Name: %s \n", spec.Name)
-	log.Printf("Whole properties: %s \n", spec)
-	log.Printf("Whole Location: %s \n", spec.Locations)
-	log.Printf("Location formatted: %v \n", spec.Locations)
+	log.Printf("Spec name: %s \n", spec.Name)
+	log.Printf("Spec: %+v \n", spec)
+	log.Printf("Spec locations: %+v \n", spec.Locations)
 
 	for i := range spec.Locations {
 		log.Printf("Location: %v \n", i)
-		log.Printf("Location spec: %v \n", spec.Locations[i])
+		log.Printf("Location spec: %+v \n", spec.Locations[i])
 	}
 	for n := range spec.Spec.Params {
 		log.Printf("Spec param: %v \n", n)
-		log.Printf("Spec param spec: %v \n", spec.Spec.Params[n])
+		log.Printf("Spec param spec: %+v \n", spec.Spec.Params[n])
 	}
 	for k := range spec.Spec.OneOf {
 		log.Printf("Spec oneof: %v \n", k)
-		log.Printf("Spec oneof spec: %v \n", spec.Spec.OneOf[k])
+		log.Printf("Spec oneof spec: %+v \n", spec.Spec.OneOf[k])
 	}
 	// END OF DEBUG
 	return nil
