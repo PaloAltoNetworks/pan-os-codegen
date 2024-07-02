@@ -64,7 +64,6 @@ type Client struct {
 	Plugin     []plugin.Info     `json:"-"`
 
 	// Internal variables.
-	credsFile  string
 	con        *http.Client
 	api_url    string
 	configTree *generic.Xml
@@ -244,7 +243,10 @@ func (c *Client) Setup() error {
 		}
 	}
 
-	c.setupLogging(c.Logging)
+	err = c.setupLogging(c.Logging)
+	if err != nil {
+		return err
+	}
 
 	// Setup the client.
 	if c.Transport == nil {
@@ -857,7 +859,7 @@ func (c *Client) Communicate(ctx context.Context, cmd util.PangoCommand, strip b
 	}
 
 	sendData := slog.Group("data", c.prepareSendDataForLogging(data)...)
-	if c.logger.LogCategories()&LogCategoryCurl == LogCategoryCurl {
+	if c.logger.enabledFor(LogCategoryCurl) {
 		curlEquivalent := slog.Group("curl", c.prepareSendDataAsCurl(data)...)
 		c.logger.WithLogCategory(LogCategorySend).Debug("data sent to the server", sendData, curlEquivalent)
 	} else {
@@ -890,7 +892,7 @@ func (c *Client) ImportFile(ctx context.Context, cmd *xmlapi.Import, content, fi
 	}
 
 	sendData := slog.Group("data", c.prepareSendDataForLogging(data)...)
-	if c.logger.LogCategories()&LogCategoryCurl == LogCategoryCurl {
+	if c.logger.enabledFor(LogCategoryCurl) {
 		curlEquivalent := slog.Group("curl", c.prepareSendDataAsCurl(data)...)
 		c.logger.WithLogCategory(LogCategorySend).Debug("data sent to the server", sendData, curlEquivalent)
 	} else {
@@ -901,7 +903,10 @@ func (c *Client) ImportFile(ctx context.Context, cmd *xmlapi.Import, content, fi
 	w := multipart.NewWriter(&buf)
 
 	for k := range data {
-		w.WriteField(k, data.Get(k))
+		err = w.WriteField(k, data.Get(k))
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	w2, err := w.CreateFormFile(fp, filename)
@@ -1010,7 +1015,7 @@ func (c *Client) GetTechSupportFile(ctx context.Context) (string, []byte, error)
 // Internal functions.
 //
 
-func (c *Client) setupLogging(logging *LoggingInfo) {
+func (c *Client) setupLogging(logging *LoggingInfo) error {
 	var logger *slog.Logger
 
 	if logging.SLogHandler == nil {
@@ -1030,15 +1035,22 @@ func (c *Client) setupLogging(logging *LoggingInfo) {
 	// 4. If no logging categories have been selected, default to basic library logging
 	//    (i.e. "pango" category)
 	logMask := logging.LogCategories
+	var err error
 	if logMask == 0 {
-		logMask = NewLogCategoryFromSymbols(logging.LogSymbols)
+		logMask, err = LogCategoryFromStrings(logging.LogSymbols)
+		if err != nil {
+			return err
+		}
+
 		if logMask == 0 {
 			if val := os.Getenv("PANOS_LOGGING"); c.CheckEnvironment && val != "" {
 				symbols := strings.Split(val, ",")
-				logMask = NewLogCategoryFromSymbols(symbols)
+				logMask, err = LogCategoryFromStrings(symbols)
+				if err != nil {
+					return err
+				}
 			}
 		}
-
 	}
 
 	// To disable logging completely, use custom SLog handler that discards all logs,
@@ -1047,10 +1059,12 @@ func (c *Client) setupLogging(logging *LoggingInfo) {
 		logMask = LogCategoryPango
 	}
 
-	enabledLogging := logMask.GetLoggingSymbols()
+	enabledLogging, _ := LogCategoryAsStrings(logMask)
 	logger.Info("Pango logging configured", "symbols", enabledLogging)
 
 	c.logger = newCategoryLogger(logger, logMask)
+
+	return nil
 }
 
 func (c *Client) sendRequest(ctx context.Context, req *http.Request, strip bool, ans any) ([]byte, *http.Response, error) {
@@ -1123,7 +1137,7 @@ func (c *Client) sendRequest(ctx context.Context, req *http.Request, strip bool,
 }
 
 func (c *Client) prepareSendDataForLogging(data url.Values) []any {
-	filterSensitive := c.logger.LogCategories()&LogCategorySensitive == 0
+	filterSensitive := !c.logger.enabledFor(LogCategorySensitive)
 
 	preparedValues := make([]any, 0)
 
@@ -1147,7 +1161,7 @@ func (c *Client) prepareSendDataForLogging(data url.Values) []any {
 }
 
 func (c *Client) prepareSendDataAsCurl(data url.Values) []any {
-	filterSensitive := c.logger.LogCategories()&LogCategorySensitive == 0
+	filterSensitive := !c.logger.enabledFor(LogCategorySensitive)
 
 	special := map[string]string{
 		"key":      "",

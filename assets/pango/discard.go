@@ -1,5 +1,10 @@
 package pango
 
+import (
+	"context"
+	"log/slog"
+)
+
 // discardHandler is an slog handler which is always disabled.
 //
 // This slog handler implementation is always disabled, and therefore

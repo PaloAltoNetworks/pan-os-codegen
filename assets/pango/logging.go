@@ -1,7 +1,6 @@
 package pango
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
 	"math/bits"
@@ -27,7 +26,7 @@ import (
 type LogCategory uint
 
 const (
-	LogCategoryPango LogCategory = (1 << iota)
+	LogCategoryPango LogCategory = 1 << iota
 	LogCategoryOp
 	LogCategorySend
 	LogCategoryReceive
@@ -39,13 +38,26 @@ const (
 )
 
 var logCategoryToString = map[LogCategory]string{
-	LogCategoryOp:        "op",
 	LogCategoryPango:     "pango",
+	LogCategoryOp:        "op",
 	LogCategorySend:      "send",
 	LogCategoryReceive:   "receive",
 	LogCategoryCurl:      "curl",
 	LogCategoryAll:       "all",
 	LogCategorySensitive: "sensitive",
+}
+
+func createStringToCategoryMap(categories map[LogCategory]string) map[string]LogCategory {
+	// Instead of keeping two maps for two way association, we
+	// just generate reversed map on the fly. This function is not
+	// going to be used outside of the initial library setup, so
+	// the slight performance penalty is not an issue.
+	stringsMap := make(map[string]LogCategory, len(logCategoryToString))
+	for category, sym := range logCategoryToString {
+		stringsMap[sym] = category
+	}
+
+	return stringsMap
 }
 
 // LogCategoryFromStrings transforms list with categories into its bitmask equivalent.
@@ -58,29 +70,19 @@ var logCategoryToString = map[LogCategory]string{
 // logger. If unknown log category string is given as part of the
 // list, error is returned instead.
 func LogCategoryFromStrings(symbols []string) (LogCategory, error) {
-	// Instead of keeping two maps for two way association, we
-	// just generate reversed map on the fly. This function is not
-	// going to be used outside of the initial library setup, so
-	// the slight performance penalty is not an issue.
-	symbolMap := make(map[string]any)
-	for _, sym := range symbols {
-		symbolMap[sym] = nil
-	}
+	stringsMap := createStringToCategoryMap(logCategoryToString)
 
-	// Iterate over all keys in logCategoryToString to match
-	// category strings to their bitmask representation. Even if
-	// LogCategoryAll is matched, we still continue to check for
-	// the LogCategorySensitive presence.
 	var logCategoriesMask LogCategory
-	for key, value := range logCategoryToString {
-		if _, ok := symbolMap[value]; ok {
-			logCategoriesMask = logCategoriesMask | key
-		} else {
-			return 0, fmt.Errorf("unknown log category: %s", value)
+	for _, elt := range symbols {
+		category, ok := stringsMap[elt]
+		if !ok {
+			return 0, fmt.Errorf("unknown log category: %s", elt)
 		}
-	}
 
-	return logCategoriesMask
+		logCategoriesMask |= category
+		slog.Info("logCategoriesMask", "equal", logCategoriesMask)
+	}
+	return logCategoriesMask, nil
 }
 
 // LogCategoryAsStrings interprets given LogCategory bitmask into its string representation.
@@ -92,12 +94,12 @@ func LogCategoryFromStrings(symbols []string) (LogCategory, error) {
 //
 // It returns a list of categories as strings, or error if invalid
 // LogCategory mask has been provided.
-func (categories LogCategory) LogCategoryAsStrings() ([]string, error) {
+func LogCategoryAsStrings(categories LogCategory) ([]string, error) {
 	symbols := make([]string, 0)
 
 	// Calculate a number of high bits in the categories mask, to make
 	// sure all categories other than LogCategoryAll have been matched.
-	highBits := bits.OnesCount(categories)
+	highBits := bits.OnesCount(uint(categories))
 
 	// Iterate over all available log categories, skipping
 	// LogCategoryAll as we can't distinguish between explicitly
@@ -111,13 +113,15 @@ func (categories LogCategory) LogCategoryAsStrings() ([]string, error) {
 		}
 	}
 
+	slog.Info("symbols and bits", "symbols", symbols, "highBits", highBits)
+
 	// Return an error if number of high bits in the categories
 	// mask is lower than length of the symbols list
-	if len(symbols) < highBits && (categories&LogCategoryAll == LogCategoryAll) {
-		return nil, fmt.Errorf("invalid LogCategory mask")
+	if len(symbols) < highBits && (categories&LogCategoryAll != LogCategoryAll) {
+		return nil, fmt.Errorf("invalid LogCategory bitmask")
 	}
 
-	return symbols
+	return symbols, nil
 }
 
 // LogCategoryToSymbol returns string representation of the given LogCategory
@@ -132,12 +136,12 @@ func LogCategoryToString(category LogCategory) (string, error) {
 	if category&LogCategoryAll == LogCategoryAll {
 		return "", fmt.Errorf("cannot convert LogCategoryAll into a category string.")
 	}
-	symbol, ok := logCategoryToString[typ]
+	symbol, ok := logCategoryToString[category]
 	if ok {
 		return symbol, nil
 	}
 
-	return "", fmt.Errorf("unknown LogCategory: %s", typ)
+	return "", fmt.Errorf("unknown LogCategory: %d", category)
 }
 
 // StringToLogCategory returns LogCategory mask matching given string category.
@@ -175,17 +179,20 @@ func newCategoryLogger(logger *slog.Logger, categories LogCategory) *categoryLog
 }
 
 func (l *categoryLogger) WithLogCategory(category LogCategory) *slog.Logger {
-	category, ok := logCategoryToString[category]
+	matched, ok := logCategoryToString[category]
+
+	// If the category cannot be matched, instead of returning
+	// error we use "unknown" instead.
 	if !ok {
-		category = "unknown"
+		matched = "unknown"
 	}
 
 	if l.categories&category == category {
-		return l.logger.WithGroup(category)
+		return l.logger.WithGroup(matched)
 	}
-	return l.discardLogger.WithGroup(category)
+	return l.discardLogger.WithGroup(matched)
 }
 
-func (l *categoryLogger) logCategories() LogCategory {
-	return l.categories
+func (l *categoryLogger) enabledFor(category LogCategory) bool {
+	return l.categories&category == category
 }
