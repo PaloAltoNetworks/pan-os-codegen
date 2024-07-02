@@ -93,21 +93,21 @@ func SymbolToLogCategory(sym string) (LogCategory, error) {
 	return 0, fmt.Errorf("Unknown logging symbol: %s", sym)
 }
 
-type selectiveLogger struct {
+type categoryLogger struct {
 	logger        *slog.Logger
 	discardLogger *slog.Logger
 	logMask       LogCategory
 }
 
-func newSelectiveLogger(logger *slog.Logger, logMask LogCategory) *selectiveLogger {
-	return &selectiveLogger{
+func newCategoryLogger(logger *slog.Logger, logMask LogCategory) *categoryLogger {
+	return &categoryLogger{
 		logger:        logger,
 		discardLogger: slog.New(discardHandler{}),
 		logMask:       logMask,
 	}
 }
 
-func (l *selectiveLogger) WithLogCategory(typ LogCategory) *slog.Logger {
+func (l *categoryLogger) WithLogCategory(typ LogCategory) *slog.Logger {
 	category, ok := logCategoryToSymbol[typ]
 	if !ok {
 		category = "unknown"
@@ -119,6 +119,6 @@ func (l *selectiveLogger) WithLogCategory(typ LogCategory) *slog.Logger {
 	return l.discardLogger.WithGroup(category)
 }
 
-func (l *selectiveLogger) LogMask() LogCategory {
+func (l *categoryLogger) LogMask() LogCategory {
 	return l.logMask
 }

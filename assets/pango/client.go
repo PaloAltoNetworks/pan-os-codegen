@@ -68,7 +68,7 @@ type Client struct {
 	con        *http.Client
 	api_url    string
 	configTree *generic.Xml
-	logger     *selectiveLogger
+	logger     *categoryLogger
 
 	// Variables for testing, response bytes, headers, and response index.
 	testInput       []*http.Request
@@ -857,7 +857,7 @@ func (c *Client) Communicate(ctx context.Context, cmd util.PangoCommand, strip b
 	}
 
 	sendData := slog.Group("data", c.prepareSendDataForLogging(data)...)
-	if c.logger.LogMask()&LogCategoryCurl == LogCategoryCurl {
+	if c.logger.LogCategories()&LogCategoryCurl == LogCategoryCurl {
 		curlEquivalent := slog.Group("curl", c.prepareSendDataAsCurl(data)...)
 		c.logger.WithLogCategory(LogCategorySend).Debug("data sent to the server", sendData, curlEquivalent)
 	} else {
@@ -890,7 +890,7 @@ func (c *Client) ImportFile(ctx context.Context, cmd *xmlapi.Import, content, fi
 	}
 
 	sendData := slog.Group("data", c.prepareSendDataForLogging(data)...)
-	if c.logger.LogMask()&LogCategoryCurl == LogCategoryCurl {
+	if c.logger.LogCategories()&LogCategoryCurl == LogCategoryCurl {
 		curlEquivalent := slog.Group("curl", c.prepareSendDataAsCurl(data)...)
 		c.logger.WithLogCategory(LogCategorySend).Debug("data sent to the server", sendData, curlEquivalent)
 	} else {
@@ -1027,7 +1027,8 @@ func (c *Client) setupLogging(logging *LoggingInfo) {
 	// 2. If logging.LogCategories is not set, we check logging.LogSymbols
 	// 3. If logging.LogSymbols is empty and c.CheckEnvironment is true we consult
 	//    PANOS_LOGGING environment variable.
-	// 4. If no logging has been configured, we default to logging only pango logs.
+	// 4. If no logging categories have been selected, default to basic library logging
+	//    (i.e. "pango" category)
 	logMask := logging.LogCategories
 	if logMask == 0 {
 		logMask = NewLogCategoryFromSymbols(logging.LogSymbols)
@@ -1040,6 +1041,8 @@ func (c *Client) setupLogging(logging *LoggingInfo) {
 
 	}
 
+	// To disable logging completely, use custom SLog handler that discards all logs,
+	// e.g. https://github.com/golang/go/issues/62005 for the example of such handler.
 	if logMask == 0 {
 		logMask = LogCategoryPango
 	}
@@ -1047,7 +1050,7 @@ func (c *Client) setupLogging(logging *LoggingInfo) {
 	enabledLogging := logMask.GetLoggingSymbols()
 	logger.Info("Pango logging configured", "symbols", enabledLogging)
 
-	c.logger = newSelectiveLogger(logger, logMask)
+	c.logger = newCategoryLogger(logger, logMask)
 }
 
 func (c *Client) sendRequest(ctx context.Context, req *http.Request, strip bool, ans any) ([]byte, *http.Response, error) {
@@ -1120,7 +1123,7 @@ func (c *Client) sendRequest(ctx context.Context, req *http.Request, strip bool,
 }
 
 func (c *Client) prepareSendDataForLogging(data url.Values) []any {
-	filterSensitive := c.logger.LogMask()&LogCategorySensitive == 0
+	filterSensitive := c.logger.LogCategories()&LogCategorySensitive == 0
 
 	preparedValues := make([]any, 0)
 
@@ -1144,7 +1147,7 @@ func (c *Client) prepareSendDataForLogging(data url.Values) []any {
 }
 
 func (c *Client) prepareSendDataAsCurl(data url.Values) []any {
-	filterSensitive := c.logger.LogMask()&LogCategorySensitive == 0
+	filterSensitive := c.logger.LogCategories()&LogCategorySensitive == 0
 
 	special := map[string]string{
 		"key":      "",
