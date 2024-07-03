@@ -113,8 +113,6 @@ func LogCategoryAsStrings(categories LogCategory) ([]string, error) {
 		}
 	}
 
-	slog.Info("symbols and bits", "symbols", symbols, "highBits", highBits)
-
 	// Return an error if number of high bits in the categories
 	// mask is lower than length of the symbols list
 	if len(symbols) < highBits && (categories&LogCategoryAll != LogCategoryAll) {
