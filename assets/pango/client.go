@@ -858,13 +858,7 @@ func (c *Client) Communicate(ctx context.Context, cmd util.PangoCommand, strip b
 		data.Set("key", c.ApiKey)
 	}
 
-	sendData := slog.Group("data", c.prepareSendDataForLogging(data)...)
-	if c.logger.enabledFor(LogCategoryCurl) {
-		curlEquivalent := slog.Group("curl", c.prepareSendDataAsCurl(data)...)
-		c.logger.WithLogCategory(LogCategorySend).Debug("data sent to the server", sendData, curlEquivalent)
-	} else {
-		c.logger.WithLogCategory(LogCategorySend).Debug("data sent to the server", sendData)
-	}
+	c.logSendData(data)
 
 	req, err := http.NewRequestWithContext(ctx, "POST", c.api_url, strings.NewReader(data.Encode()))
 	if err != nil {
@@ -891,13 +885,7 @@ func (c *Client) ImportFile(ctx context.Context, cmd *xmlapi.Import, content, fi
 		data.Set("key", c.ApiKey)
 	}
 
-	sendData := slog.Group("data", c.prepareSendDataForLogging(data)...)
-	if c.logger.enabledFor(LogCategoryCurl) {
-		curlEquivalent := slog.Group("curl", c.prepareSendDataAsCurl(data)...)
-		c.logger.WithLogCategory(LogCategorySend).Debug("data sent to the server", sendData, curlEquivalent)
-	} else {
-		c.logger.WithLogCategory(LogCategorySend).Debug("data sent to the server", sendData)
-	}
+	c.logSendData(data)
 
 	buf := bytes.Buffer{}
 	w := multipart.NewWriter(&buf)
@@ -1136,6 +1124,17 @@ func (c *Client) sendRequest(ctx context.Context, req *http.Request, strip bool,
 	return body, resp, nil
 }
 
+func (c *Client) logSendData(data url.Values) {
+	c.logger.WithLogCategory(LogCategoryPango).Debug("Hello World!")
+	sendData := slog.Group("data", c.prepareSendDataForLogging(data)...)
+	if c.logger.enabledFor(LogCategoryCurl) {
+		curlEquivalent := slog.Group("curl", c.prepareSendDataAsCurl(data)...)
+		c.logger.WithLogCategory(LogCategorySend).Debug("data sent to the server", sendData, curlEquivalent)
+	} else {
+		c.logger.WithLogCategory(LogCategorySend).Debug("data sent to the server", sendData)
+	}
+}
+
 func (c *Client) prepareSendDataForLogging(data url.Values) []any {
 	filterSensitive := !c.logger.enabledFor(LogCategorySensitive)
 
@@ -1163,11 +1162,13 @@ func (c *Client) prepareSendDataForLogging(data url.Values) []any {
 func (c *Client) prepareSendDataAsCurl(data url.Values) []any {
 	filterSensitive := !c.logger.enabledFor(LogCategorySensitive)
 
+	// A map of items and their values for items that require additional
+	// processing, and not be sent as is.
 	special := map[string]string{
-		"key":      "",
-		"password": "",
-		"element":  "",
+		"element": "",
 	}
+
+	sensitive := []string{"user", "password", "key", "host"}
 
 	values := url.Values{}
 	for key, value := range data {
@@ -1180,10 +1181,23 @@ func (c *Client) prepareSendDataAsCurl(data url.Values) []any {
 			}
 		}
 
+		isSensitive := false
+		for _, needle := range sensitive {
+			if key == needle {
+				isSensitive = true
+				break
+			}
+		}
+
+		// Only non-special values should be part of the
+		// encoded url, and sensitive values should only be
+		// visible when LogCategorySensitiveis set.
 		if !isSpecial {
-			values[key] = value
-		} else {
-			values[key] = []string{strings.ToUpper(key)}
+			if isSensitive && filterSensitive {
+				values[key] = []string{strings.ToUpper(key)}
+			} else {
+				values[key] = value
+			}
 		}
 	}
 
