@@ -1124,7 +1124,7 @@ func (c *Client) sendRequest(ctx context.Context, req *http.Request, strip bool,
 	return body, resp, nil
 }
 
-func (c *Client) logSendData(data url.Values) {
+func (c *Client) logSend(data url.Values) {
 	c.logger.WithLogCategory(LogCategoryPango).Debug("Hello World!")
 	sendData := slog.Group("data", c.prepareSendDataForLogging(data)...)
 	if c.logger.enabledFor(LogCategoryCurl) {
