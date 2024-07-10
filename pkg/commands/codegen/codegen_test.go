@@ -7,17 +7,19 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 )
 
 func TestNewCommand(t *testing.T) {
 	// given
 	tests := []struct {
 		name        string
-		commandType CommandType
+		commandType properties.CommandType
 		wantPath    string
 	}{
-		{"SDK Command", CommandTypeSDK, "templates/sdk"},
-		{"Terraform Command", CommandTypeTerraform, "templates/terraform"},
+		{"SDK Command", properties.CommandTypeSDK, "templates/sdk"},
+		{"Terraform Command", properties.CommandTypeTerraform, "templates/terraform"},
 	}
 
 	for _, tt := range tests {
@@ -36,7 +38,7 @@ func TestNewCommand(t *testing.T) {
 func TestCommandFunctionality(t *testing.T) {
 	// given
 	ctx := context.Background()
-	cmdType := CommandTypeSDK
+	cmdType := properties.CommandTypeSDK
 
 	// Create a temporary file to simulate the config file
 	tmpDir := t.TempDir()
@@ -71,7 +73,7 @@ func TestCommandSetup(t *testing.T) {
 	//given
 	ctx := context.Background()
 
-	cmd, err := NewCommand(ctx, CommandTypeSDK, "config.yml")
+	cmd, err := NewCommand(ctx, properties.CommandTypeSDK, "config.yml")
 	assert.NoError(t, err)
 
 	// when

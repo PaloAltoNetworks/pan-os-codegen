@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/commands/codegen"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 )
 
 // Config holds the configuration values for the application.
@@ -25,7 +26,7 @@ func parseFlags() Config {
 }
 
 // runCommand executed command to generate code for SDK or Terraform.
-func runCommand(ctx context.Context, cmdType codegen.CommandType, cfg string) {
+func runCommand(ctx context.Context, cmdType properties.CommandType, cfg string) {
 	cmd, err := codegen.NewCommand(ctx, cmdType, cfg)
 	if err != nil {
 		log.Fatalf("Failed to create command: %s", err)
@@ -54,20 +55,20 @@ func main() {
 	log.Printf("Using configuration file: %s\n", cfg.ConfigFile)
 	log.Println(opTypeMessage)
 
-	cmdType := codegen.CommandTypeSDK // Default command type
+	cmdType := properties.CommandTypeSDK // Default command type
 	if cfg.OpType == "mktp" {
-		cmdType = codegen.CommandTypeTerraform
+		cmdType = properties.CommandTypeTerraform
 	} else if cfg.OpType == "mksdk" {
-		cmdType = codegen.CommandTypeSDK
+		cmdType = properties.CommandTypeSDK
 	}
 
 	if cfg.OpType == "mktp" || cfg.OpType == "mksdk" {
 		runCommand(ctx, cmdType, cfg.ConfigFile)
 	} else { // Default behavior to execute both if no specific OpType is provided
 		// Execute SDK
-		runCommand(ctx, codegen.CommandTypeSDK, cfg.ConfigFile)
+		runCommand(ctx, properties.CommandTypeSDK, cfg.ConfigFile)
 
 		// Execute Terraform
-		runCommand(ctx, codegen.CommandTypeTerraform, cfg.ConfigFile)
+		runCommand(ctx, properties.CommandTypeTerraform, cfg.ConfigFile)
 	}
 }
