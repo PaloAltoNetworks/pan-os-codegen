@@ -858,7 +858,7 @@ func (c *Client) Communicate(ctx context.Context, cmd util.PangoCommand, strip b
 		data.Set("key", c.ApiKey)
 	}
 
-	c.logSendData(data)
+	c.logSend(data)
 
 	req, err := http.NewRequestWithContext(ctx, "POST", c.api_url, strings.NewReader(data.Encode()))
 	if err != nil {
@@ -885,7 +885,7 @@ func (c *Client) ImportFile(ctx context.Context, cmd *xmlapi.Import, content, fi
 		data.Set("key", c.ApiKey)
 	}
 
-	c.logSendData(data)
+	c.logSend(data)
 
 	buf := bytes.Buffer{}
 	w := multipart.NewWriter(&buf)
