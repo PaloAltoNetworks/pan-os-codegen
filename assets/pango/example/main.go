@@ -1,10 +1,12 @@
-package example
+package main
 
 import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"log/slog"
 
 	"github.com/PaloAltoNetworks/pango"
 	"github.com/PaloAltoNetworks/pango/device/services/dns"
@@ -36,6 +38,11 @@ func main() {
 		CheckEnvironment:      true,
 		SkipVerifyCertificate: true,
 		ApiKeyInRequest:       true,
+		Logging: &pango.LoggingInfo{
+			LogCategories: pango.LogCategoryPango,
+			SLogHandler:   slog.NewTextHandler(ioutil.Discard, nil),
+			LogLevel:      slog.LevelDebug,
+		},
 	}
 	if err = c.Setup(); err != nil {
 		log.Printf("Failed to setup client: %s", err)
