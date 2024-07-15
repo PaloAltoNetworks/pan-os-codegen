@@ -19,7 +19,7 @@
     }
 
     {{- range $name, $spec := nestedSpecs $.Spec }}
-        type Spec{{$name}}{{createGoSuffixFromVersion ""}} struct {
+        type {{$name}}{{createGoSuffixFromVersion ""}} struct {
         {{- range $_, $param := $spec.Params}}
             {{$param.Name.CamelCase}} {{specParamType $name $param}}
         {{- end}}
@@ -64,7 +64,7 @@
 
     {{- range $version := .SupportedVersions }}
         {{- range $name, $spec := nestedSpecs $.Spec }}
-            type spec{{$name}}Xml{{createGoSuffixFromVersion $version}} struct {
+            type {{$name}}Xml{{createGoSuffixFromVersion $version}} struct {
             {{- range $_, $param := $spec.Params}}
                 {{- if paramSupportedInVersion $param $version}}
                     {{- if $param.Spec}}

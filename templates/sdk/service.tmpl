@@ -189,14 +189,14 @@ func (s *Service) setImportedNamesFor{{$import.Name.CamelCase}}(ctx context.Cont
     {{- $prefixXpath := "" }}
     {{- $lastXpath := "" }}
     {{- $entryPath := "Entry" }}
-    {{- $specClassName := "Spec"}}
+    {{- $typeName := ""}}
     {{- $lastEntry := print $import.Name.LowerCamelCase "Entry" }}
     {{- $checkName := false}}
     {{- $indexVar := 0}}
     {{- $importInXpath := false}}
     {{- range $_, $xpath := $import.Xpath}}
         {{- if not $importInXpath}}
-            {{- $specClassName = print $specClassName (camelCase "" $xpath "" true)}}
+            {{- $typeName = print $typeName (camelCase "" $xpath "" true)}}
             {{- if not (contains $xpath "Entry")}}
                 {{- $prefixXpath = print $prefixXpath "." (camelCase "" $xpath "" true)}}
                 {{- $lastXpath = $xpath }}
@@ -227,7 +227,7 @@ func (s *Service) setImportedNamesFor{{$import.Name.CamelCase}}(ctx context.Cont
             {{- $importInXpath = true}}
         {{- end}}
     {{- end}}
-    {{$import.Name.LowerCamelCase}}{{$entryPath}} = &{{$import.Name.LowerCamelCase}}.{{$specClassName}}{
+    {{$import.Name.LowerCamelCase}}{{$entryPath}} = &{{$import.Name.LowerCamelCase}}.{{$typeName}}{
         {{- $importInXpath = false}}
         {{- range $index, $xpath := $import.Xpath}}
             {{- if $importInXpath}}
@@ -235,7 +235,7 @@ func (s *Service) setImportedNamesFor{{$import.Name.CamelCase}}(ctx context.Cont
                 {{- if eq $index (subtract (len $import.Xpath) 1)}}
                 importedNames,
                 {{- else}}
-                &{{$import.Name.LowerCamelCase}}.{{$specClassName}}{{ camelCase "" $xpath "" true }}{
+                &{{$import.Name.LowerCamelCase}}.{{$typeName}}{{ camelCase "" $xpath "" true }}{
                 {{- end}}
             {{- end}}
             {{- if eq $xpath "import"}}

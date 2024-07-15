@@ -11,14 +11,14 @@ import (
 // in entry.tmpl/config.tmpl template. If param contains nested specs, then recursively are executed
 // internal functions, which are creating entry assignment.
 func NormalizeAssignment(objectType string, param *properties.SpecParam, version string) string {
-	return prepareAssignment(objectType, param, "util.MemToStr", "util.EntToStr", "util.AsBool", "Spec", "", version)
+	return prepareAssignment(objectType, param, "util.MemToStr", "util.EntToStr", "util.AsBool", "", "", version)
 }
 
 // SpecifyEntryAssignment generates a string, which contains entry/config assignment in SpecifyEntry() function
 // in entry.tmpl/config.tmpl template. If param contains nested specs, then recursively are executed
 // internal functions, which are creating entry assignment.
 func SpecifyEntryAssignment(objectType string, param *properties.SpecParam, version string) string {
-	return prepareAssignment(objectType, param, "util.StrToMem", "util.StrToEnt", "util.YesNo", "spec", "Xml", version)
+	return prepareAssignment(objectType, param, "util.StrToMem", "util.StrToEnt", "util.YesNo", "", "Xml", version)
 }
 
 func prepareAssignment(objectType string, param *properties.SpecParam, listFunction, entryFunction, boolFunction, prefix, suffix string, version string) string {

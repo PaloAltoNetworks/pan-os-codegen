@@ -2,9 +2,10 @@ package translate
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
-	"strings"
 )
 
 // GenerateEntryXpath functions used in location.tmpl to generate XPath for location.
@@ -46,7 +47,7 @@ func specMatchFunctionName(parent []string, param *properties.SpecParam) string 
 	} else if param.Type == "int64" {
 		return "util.Ints64Match"
 	} else {
-		return fmt.Sprintf("specMatch%s%s", strings.Join(parent, ""), param.Name.CamelCase)
+		return fmt.Sprintf("match%s%s", strings.Join(parent, ""), param.Name.CamelCase)
 	}
 }
 
@@ -83,7 +84,7 @@ func defineSpecMatchesFunction(parent []string, params map[string]*properties.Sp
 
 func renderSpecMatchesFunctionSignature(parent []string, builder *strings.Builder, param *properties.SpecParam) {
 	prefix := determinePrefix(param, false)
-	builder.WriteString(fmt.Sprintf("func specMatch%s%s(a %s%s, b %s%s) bool {",
+	builder.WriteString(fmt.Sprintf("func match%s%s(a %s%s, b %s%s) bool {",
 		strings.Join(parent, ""), param.Name.CamelCase,
 		prefix, argumentTypeForSpecMatchesFunction(parent, param),
 		prefix, argumentTypeForSpecMatchesFunction(parent, param)))
@@ -95,7 +96,7 @@ func argumentTypeForSpecMatchesFunction(parent []string, param *properties.SpecP
 	} else if param.Type == "int" {
 		return "int"
 	} else {
-		return fmt.Sprintf("Spec%s%s",
+		return fmt.Sprintf("%s%s",
 			strings.Join(parent, ""), param.Name.CamelCase)
 	}
 }

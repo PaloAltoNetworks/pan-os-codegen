@@ -2,10 +2,11 @@ package translate
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/version"
-	"strings"
 )
 
 // LocationType function used in template location.tmpl to generate location type name.
@@ -21,7 +22,7 @@ func LocationType(location *properties.Location, pointer bool) string {
 	}
 }
 
-// NestedSpecs go through all params and one of (recursively) and return map of all nested specs.
+// NestedSpecs goes through all params and one ofs (recursively) and returns map of all nested specs.
 func NestedSpecs(spec *properties.Spec) (map[string]*properties.Spec, error) {
 	nestedSpecs := make(map[string]*properties.Spec)
 
@@ -65,7 +66,7 @@ func addNameAsParamForNestedSpec(parent []string, nestedSpecs map[string]*proper
 	}
 }
 
-// SpecParamType return param type (it can be nested spec) (for struct based on spec from YAML files).
+// SpecParamType returns param type (it can be a nested spec) for structs based on spec from YAML files.
 func SpecParamType(parent string, param *properties.SpecParam) string {
 	prefix := determinePrefix(param, false)
 
@@ -122,11 +123,11 @@ func determineListType(param *properties.SpecParam) string {
 }
 
 func calculateNestedSpecType(parent string, param *properties.SpecParam) string {
-	return fmt.Sprintf("Spec%s%s", parent, naming.CamelCase("", param.Name.CamelCase, "", true))
+	return fmt.Sprintf("%s%s", parent, naming.CamelCase("", param.Name.CamelCase, "", true))
 }
 
 func calculateNestedXmlSpecType(parent string, param *properties.SpecParam) string {
-	return fmt.Sprintf("spec%s%sXml", parent, naming.CamelCase("", param.Name.CamelCase, "", true))
+	return fmt.Sprintf("%s%sXml", parent, naming.CamelCase("", param.Name.CamelCase, "", true))
 }
 
 // XmlName creates a string with xml name (e.g. `description`).
