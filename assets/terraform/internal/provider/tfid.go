@@ -31,7 +31,7 @@ func NewTfidDataSource() datasource.DataSource {
 }
 
 type tfidDataSource struct {
-	client *pango.XmlApiClient
+	client *pango.Client
 }
 
 type tfidDsModel struct {
@@ -105,7 +105,7 @@ func (d *tfidDataSource) Configure(_ context.Context, req datasource.ConfigureRe
 		return
 	}
 
-	d.client = req.ProviderData.(*pango.XmlApiClient)
+	d.client = req.ProviderData.(*pango.Client)
 }
 
 func (d *tfidDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
