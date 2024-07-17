@@ -78,7 +78,7 @@ func TestNestedSpecMatchesFunction(t *testing.T) {
 			},
 		},
 	}
-	expectedNestedSpec := `func specMatchAB(a *SpecAB, b *SpecAB) bool {if a == nil && b != nil || a != nil && b == nil {
+	expectedNestedSpec := `func matchAB(a *AB, b *AB) bool {if a == nil && b != nil || a != nil && b == nil {
 	return false
 } else if a == nil && b == nil {
 	return true
@@ -88,12 +88,12 @@ if !util.StringsMatch(a.C, b.C) {
 }
 return true
 }
-func specMatchA(a *SpecA, b *SpecA) bool {if a == nil && b != nil || a != nil && b == nil {
+func matchA(a *A, b *A) bool {if a == nil && b != nil || a != nil && b == nil {
 	return false
 } else if a == nil && b == nil {
 	return true
 }
-if !specMatchAB(a.B, b.B) {
+if !matchAB(a.B, b.B) {
 	return false
 }
 return true
