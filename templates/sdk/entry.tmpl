@@ -33,7 +33,7 @@
     Misc map[string][]generic.Xml
     }
 
-    {{- if $.Imports}}
+    {{ if $.Imports}}
     {{- range $_, $import := $.Imports}}
     type Import{{$import.Name.CamelCase}} struct {
         {{- range $_, $var := $import.Vars}}
@@ -43,8 +43,8 @@
     {{- end}}
     {{- end}}
 
-    {{- range $name, $spec := nestedSpecs $.Spec }}
-        type Spec{{$name}}{{createGoSuffixFromVersion ""}} struct {
+    {{ range $name, $spec := nestedSpecs $.Spec }}
+        type {{$name}}{{createGoSuffixFromVersion ""}} struct {
         {{- range $_, $param := $spec.Params}}
             {{$param.Name.CamelCase}} {{specParamType $name $param}}
         {{- end}}
@@ -54,13 +54,13 @@
         }
     {{- end}}
 
-    {{- range $version := .SupportedVersions }}
+    {{ range $version := .SupportedVersions }}
         type entryXmlContainer{{createGoSuffixFromVersion $version}} struct {
         Answer []entryXml{{createGoSuffixFromVersion $version}} `xml:"entry"`
         }
     {{- end}}
 
-    {{- range $version := .SupportedVersions }}
+    {{ range $version := .SupportedVersions }}
         type entryXml{{createGoSuffixFromVersion $version}} struct {
         XMLName xml.Name `xml:"entry"`
         Name string `xml:"name,attr"`
@@ -87,9 +87,9 @@
         }
     {{- end}}
 
-    {{- range $version := .SupportedVersions }}
+    {{ range $version := .SupportedVersions }}
         {{- range $name, $spec := nestedSpecs $.Spec }}
-            type spec{{$name}}Xml{{createGoSuffixFromVersion $version}} struct {
+            type {{$name}}Xml{{createGoSuffixFromVersion $version}} struct {
             {{- range $_, $param := $spec.Params}}
                 {{- if eq $param.Name.CamelCase "Name"}}
                     XMLName xml.Name `xml:"entry"`
@@ -117,7 +117,7 @@
         {{- end}}
     {{- end}}
 
-    {{- range $name, $const := .Const}}
+    {{ range $name, $const := .Const}}
         const (
         {{- range $value := $const.Values}}
             {{$const.Name.CamelCase}}{{$value.Name.CamelCase}} = "{{$value.Value}}"
@@ -125,7 +125,7 @@
         )
     {{- end}}
 
-    {{- if $.Imports}}
+    {{ if $.Imports}}
     {{- range $_, $import := $.Imports}}
     func DefaultImport{{$import.Name.CamelCase}}() *Import{{$import.Name.CamelCase}} {
         return &Import{{$import.Name.CamelCase}}{
@@ -191,7 +191,7 @@
     {{- end}}
     }
 
-    {{- range $version := .SupportedVersions }}
+    {{ range $version := .SupportedVersions }}
         func specifyEntry{{createGoSuffixFromVersion $version}}(o Entry) (any, error) {
         entry := entryXml{{createGoSuffixFromVersion $version}}{}
 

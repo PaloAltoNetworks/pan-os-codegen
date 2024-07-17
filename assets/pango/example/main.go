@@ -88,11 +88,11 @@ func checkTemplate(c *pango.Client, ctx context.Context) {
 		Name:        "codegen_template",
 		Description: util.String("This is a template created by codegen."),
 		DefaultVsys: util.String("vsys1"),
-		Config: &template.SpecConfig{
-			Devices: []template.SpecConfigDevices{
+		Config: &template.Config{
+			Devices: []template.ConfigDevices{
 				{
 					Name: "localhost.localdomain",
-					Vsys: []template.SpecConfigDevicesVsys{
+					Vsys: []template.ConfigDevicesVsys{
 						{
 							Name: "vsys1",
 						},
@@ -182,28 +182,28 @@ func checkSharedObjects(c *pango.Client, ctx context.Context) {
 func checkVr(c *pango.Client, ctx context.Context) {
 	entry := virtual_router.Entry{
 		Name: "codegen_vr",
-		Protocol: &virtual_router.SpecProtocol{
-			Bgp: &virtual_router.SpecProtocolBgp{
+		Protocol: &virtual_router.Protocol{
+			Bgp: &virtual_router.ProtocolBgp{
 				Enable: util.Bool(false),
 			},
-			Ospf: &virtual_router.SpecProtocolOspf{
+			Ospf: &virtual_router.ProtocolOspf{
 				Enable: util.Bool(false),
 			},
-			Ospfv3: &virtual_router.SpecProtocolOspfv3{
+			Ospfv3: &virtual_router.ProtocolOspfv3{
 				Enable: util.Bool(false),
 			},
-			Rip: &virtual_router.SpecProtocolRip{
+			Rip: &virtual_router.ProtocolRip{
 				Enable: util.Bool(false),
 			},
 		},
-		RoutingTable: &virtual_router.SpecRoutingTable{
-			// Ip: &virtual_router.SpecRoutingTableIp{
-			// 	StaticRoutes: []virtual_router.SpecRoutingTableIpStaticRoutes{
+		RoutingTable: &virtual_router.RoutingTable{
+			// Ip: &virtual_router.RoutingTableIp{
+			// 	StaticRoutes: []virtual_router.RoutingTableIpStaticRoutes{
 			// 		{
 			// 			Name:        "default",
 			// 			Destination: util.String("0.0.0.0/0"),
 			// 			Interface:   util.String("ethernet1/2"),
-			// 			NextHop: &virtual_router.SpecRoutingTableIpStaticRoutesNextHop{
+			// 			NextHop: &virtual_router.RoutingTableIpStaticRoutesNextHop{
 			// 				IpAddress: util.String("1.1.1.1"),
 			// 			},
 			// 			Metric:    util.Int(64),
@@ -211,12 +211,12 @@ func checkVr(c *pango.Client, ctx context.Context) {
 			// 		},
 			// 	},
 			// },
-			// Ipv6: &virtual_router.SpecRoutingTableIpv6{
-			// 	StaticRoutes: []virtual_router.SpecRoutingTableIpv6StaticRoutes{
+			// Ipv6: &virtual_router.RoutingTableIpv6{
+			// 	StaticRoutes: []virtual_router.RoutingTableIpv6StaticRoutes{
 			// 		{
 			// 			Name:        "default",
 			// 			Destination: util.String("0.0.0.0/0"),
-			// 			NextHop: &virtual_router.SpecRoutingTableIpv6StaticRoutesNextHop{
+			// 			NextHop: &virtual_router.RoutingTableIpv6StaticRoutesNextHop{
 			// 				Ipv6Address: util.String("2001:0000:130F:0000:0000:09C0:876A:230D"),
 			// 			},
 			// 			Metric:    util.Int(24),
@@ -225,18 +225,18 @@ func checkVr(c *pango.Client, ctx context.Context) {
 			// 	},
 			// },
 		},
-		Ecmp: &virtual_router.SpecEcmp{
+		Ecmp: &virtual_router.Ecmp{
 			Enable:          util.Bool(true),
 			SymmetricReturn: util.Bool(true),
 			MaxPaths:        util.Int(3),
-			Algorithm:       &virtual_router.SpecEcmpAlgorithm{
-				// IpHash: &virtual_router.SpecEcmpAlgorithmIpHash{
+			Algorithm:       &virtual_router.EcmpAlgorithm{
+				// IpHash: &virtual_router.EcmpAlgorithmIpHash{
 				// 	HashSeed: util.Int(1234),
 				// 	UsePort:  util.Bool(true),
 				// 	SrcOnly:  util.Bool(true),
 				// },
-				// WeightedRoundRobin: &virtual_router.SpecEcmpAlgorithmWeightedRoundRobin{
-				// 	Interfaces: []virtual_router.SpecEcmpAlgorithmWeightedRoundRobinInterfaces{
+				// WeightedRoundRobin: &virtual_router.EcmpAlgorithmWeightedRoundRobin{
+				// 	Interfaces: []virtual_router.EcmpAlgorithmWeightedRoundRobinInterfaces{
 				// 		{
 				// 			Name:   "ethernet1/2",
 				// 			Weight: util.Int(1),
@@ -249,7 +249,7 @@ func checkVr(c *pango.Client, ctx context.Context) {
 				// },
 			},
 		},
-		AdministrativeDistances: &virtual_router.SpecAdministrativeDistances{
+		AdministrativeDistances: &virtual_router.AdministrativeDistances{
 			OspfInt: util.Int(77),
 			OspfExt: util.Int(88),
 		},
@@ -275,18 +275,18 @@ func checkEthernetLayer3Static(c *pango.Client, ctx context.Context) {
 	entry := ethernet.Entry{
 		Name:    "ethernet1/2",
 		Comment: util.String("This is a ethernet1/2"),
-		Layer3: &ethernet.SpecLayer3{
+		Layer3: &ethernet.Layer3{
 			NdpProxy: util.Bool(true),
 			Lldp:     util.Bool(true),
-			AdjustTcpMss: &ethernet.SpecLayer3AdjustTcpMss{
+			AdjustTcpMss: &ethernet.Layer3AdjustTcpMss{
 				Enable:            util.Bool(true),
 				Ipv4MssAdjustment: util.Int(250),
 				Ipv6MssAdjustment: util.Int(250),
 			},
 			Mtu: util.Int(1280),
 			Ips: []string{"11.11.11.11", "22.22.22.22"},
-			Ipv6: &ethernet.SpecLayer3Ipv6{
-				Addresses: []ethernet.SpecLayer3Ipv6Addresses{
+			Ipv6: &ethernet.Layer3Ipv6{
+				Addresses: []ethernet.Layer3Ipv6Addresses{
 					{
 						EnableOnInterface: util.Bool(false),
 						Name:              "2001:0000:130F:0000:0000:09C0:876A:230B",
@@ -321,13 +321,13 @@ func checkEthernetLayer3Dhcp(c *pango.Client, ctx context.Context) {
 	entry := ethernet.Entry{
 		Name:    "ethernet1/3",
 		Comment: util.String("This is a ethernet1/3"),
-		Layer3: &ethernet.SpecLayer3{
+		Layer3: &ethernet.Layer3{
 			InterfaceManagementProfile: util.String("codegen_mgmt_profile"),
-			DhcpClient: &ethernet.SpecLayer3DhcpClient{
+			DhcpClient: &ethernet.Layer3DhcpClient{
 				CreateDefaultRoute: util.Bool(false),
 				DefaultRouteMetric: util.Int(64),
 				Enable:             util.Bool(true),
-				SendHostname: &ethernet.SpecLayer3DhcpClientSendHostname{
+				SendHostname: &ethernet.Layer3DhcpClientSendHostname{
 					Enable:   util.Bool(true),
 					Hostname: util.String("codegen_dhcp"),
 				},
@@ -355,7 +355,7 @@ func checkEthernetHa(c *pango.Client, ctx context.Context) {
 	entry := ethernet.Entry{
 		Name:    "ethernet1/10",
 		Comment: util.String("This is a ethernet1/10"),
-		Ha:      &ethernet.SpecHa{},
+		Ha:      &ethernet.Ha{},
 	}
 	var location *ethernet.Location
 	if ok, _ := c.IsPanorama(); ok {
@@ -377,7 +377,7 @@ func checkEthernetHa(c *pango.Client, ctx context.Context) {
 func checkLoopback(c *pango.Client, ctx context.Context) {
 	entry := loopback.Entry{
 		Name: "loopback.123",
-		AdjustTcpMss: &loopback.SpecAdjustTcpMss{
+		AdjustTcpMss: &loopback.AdjustTcpMss{
 			Enable:            util.Bool(true),
 			Ipv4MssAdjustment: util.Int(250),
 			Ipv6MssAdjustment: util.Int(250),
@@ -385,8 +385,8 @@ func checkLoopback(c *pango.Client, ctx context.Context) {
 		Comment: util.String("This is a loopback entry"),
 		Mtu:     util.Int(1280),
 		Ips:     []string{"1.1.1.1", "2.2.2.2"},
-		Ipv6: &loopback.SpecIpv6{
-			Addresses: []loopback.SpecIpv6Addresses{
+		Ipv6: &loopback.Ipv6{
+			Addresses: []loopback.Ipv6Addresses{
 				{
 					EnableOnInterface: util.Bool(false),
 					Name:              "2001:0000:130F:0000:0000:09C0:876A:130B",
@@ -420,14 +420,14 @@ func checkZone(c *pango.Client, ctx context.Context) {
 	entry := zone.Entry{
 		Name:                     "codegen_zone",
 		EnableUserIdentification: util.Bool(true),
-		Network: &zone.SpecNetwork{
+		Network: &zone.Network{
 			EnablePacketBufferProtection: util.Bool(false),
 			Layer3:                       []string{},
 		},
-		DeviceAcl: &zone.SpecDeviceAcl{
+		DeviceAcl: &zone.DeviceAcl{
 			IncludeList: []string{"1.2.3.4"},
 		},
-		UserAcl: &zone.SpecUserAcl{
+		UserAcl: &zone.UserAcl{
 			ExcludeList: []string{"1.2.3.4"},
 		},
 	}
@@ -516,7 +516,7 @@ func checkVrZoneWithEthernet(c *pango.Client, ctx context.Context) {
 	}
 	log.Printf("Zone %s read\n", replyZone.Name)
 
-	replyZone.Network = &zone.SpecNetwork{
+	replyZone.Network = &zone.Network{
 		EnablePacketBufferProtection: util.Bool(false),
 		Layer3:                       []string{"ethernet1/2", "ethernet1/3"},
 	}
@@ -539,7 +539,7 @@ func checkVrZoneWithEthernet(c *pango.Client, ctx context.Context) {
 	log.Printf("VR %s updated with %s\n", replyVr.Name, replyVr.Interfaces)
 
 	// DELETE INTERFACES FROM ZONE
-	replyZone.Network = &zone.SpecNetwork{
+	replyZone.Network = &zone.Network{
 		EnablePacketBufferProtection: util.Bool(false),
 		Layer3:                       []string{},
 	}
@@ -878,10 +878,10 @@ func checkService(c *pango.Client, ctx context.Context) {
 	serviceObject := service.Entry{
 		Name:        "codegen_service_test1",
 		Description: util.String("test description"),
-		Protocol: &service.SpecProtocol{
-			Tcp: &service.SpecProtocolTcp{
+		Protocol: &service.Protocol{
+			Tcp: &service.ProtocolTcp{
 				DestinationPort: util.Int(8642),
-				Override: &service.SpecProtocolTcpOverride{
+				Override: &service.ProtocolTcpOverride{
 					HalfcloseTimeout: util.Int(124),
 					Timeout:          util.Int(125),
 					TimewaitTimeout:  util.Int(127),
@@ -1035,8 +1035,8 @@ func checkService(c *pango.Client, ctx context.Context) {
 func checkNtp(c *pango.Client, ctx context.Context) {
 	// NTP - ADD
 	ntpConfig := ntp.Config{
-		NtpServers: &ntp.SpecNtpServers{
-			PrimaryNtpServer: &ntp.SpecNtpServersPrimaryNtpServer{
+		NtpServers: &ntp.NtpServers{
+			PrimaryNtpServer: &ntp.NtpServersPrimaryNtpServer{
 				NtpServerAddress: util.String("11.12.13.14"),
 			},
 		},
@@ -1071,8 +1071,8 @@ func checkNtp(c *pango.Client, ctx context.Context) {
 func checkDns(c *pango.Client, ctx context.Context) {
 	// DNS - ADD
 	dnsConfig := dns.Config{
-		DnsSetting: &dns.SpecDnsSetting{
-			Servers: &dns.SpecDnsSettingServers{
+		DnsSetting: &dns.DnsSetting{
+			Servers: &dns.DnsSettingServers{
 				Primary:   util.String("8.8.8.8"),
 				Secondary: util.String("4.4.4.4"),
 			},

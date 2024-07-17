@@ -75,14 +75,14 @@ func TestSpecifyEntryAssignmentForNestedObject(t *testing.T) {
 			},
 		},
 	}
-	expectedAssignmentString := `var nestedA *specAXml
+	expectedAssignmentString := `var nestedA *AXml
 if o.A != nil {
-nestedA = &specAXml{}
+nestedA = &AXml{}
 if _, ok := o.Misc["A"]; ok {
 nestedA.Misc = o.Misc["A"]
 }
 if o.A.B != nil {
-nestedA.B = &specABXml{}
+nestedA.B = &ABXml{}
 if _, ok := o.Misc["AB"]; ok {
 nestedA.B.Misc = o.Misc["AB"]
 }
@@ -132,14 +132,14 @@ func TestNormalizeAssignmentForNestedObject(t *testing.T) {
 			},
 		},
 	}
-	expectedAssignmentString := `var nestedA *SpecA
+	expectedAssignmentString := `var nestedA *A
 if o.A != nil {
-nestedA = &SpecA{}
+nestedA = &A{}
 if o.A.Misc != nil {
 entry.Misc["A"] = o.A.Misc
 }
 if o.A.B != nil {
-nestedA.B = &SpecAB{}
+nestedA.B = &AB{}
 if o.A.B.Misc != nil {
 entry.Misc["AB"] = o.A.B.Misc
 }
