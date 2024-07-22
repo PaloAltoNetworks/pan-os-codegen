@@ -114,7 +114,6 @@ const resourceTemplateStr = `
 {{- /* Begin */ -}}
 
 // Generate Terraform Resource object
-
 var (
 	_ resource.Resource                = &{{ structName }}{}
 	_ resource.ResourceWithConfigure   = &{{ structName }}{}
@@ -257,7 +256,6 @@ const resourceCreateTemplateStr = `
 	loc := {{ .structName }}Tfid{Name: state.Name.ValueString()}
 
 	// TODO: this needs to handle location structure for UUID style shared has nested structure type
-
         {{- if .locations.shared }}
 	if !state.Location.Shared.IsNull() && state.Location.Shared.ValueBool() {
 		loc.Location.Shared = true
@@ -297,10 +295,10 @@ const resourceCreateTemplateStr = `
 	var obj {{ .resourceSDKName }}.Entry
 	obj.Name = state.Name.ValueString()
 	{{- range $pName, $pParam := $.paramSpec.Params }}
-		{{ LoadConfigToEntry $pParam $pName }}
+		{{- ConfigToEntry $pName $pParam }}
 	{{- end }}
 	{{- range $pName, $pParam := $.paramSpec.OneOf }}
-		{{ LoadConfigToEntry $pParam $pName }}
+		{{- ConfigToEntry $pName $pParam }}
 	{{- end }}
 
 	/*

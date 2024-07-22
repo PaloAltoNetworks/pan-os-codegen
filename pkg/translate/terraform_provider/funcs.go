@@ -1,12 +1,12 @@
 package terraform_provider
 
 import (
-	"fmt"
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
-	"reflect"
+	"log"
 	"strings"
 	"text/template"
+
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 )
 
 type Entry struct {
@@ -21,14 +21,16 @@ type EntryData struct {
 
 func ResourceCreateFunction(structName string, serviceName string, paramSpec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, resourceSDKName string) (string, error) {
 	funcMap := template.FuncMap{
-		"LoadConfigToEntry": CreateEntryConfig,
+		"ConfigToEntry": ConfigEntry,
 		"ResourceParamToSchema": func(paramName string, paramParameters properties.SpecParam) (string, error) {
 			return ParamToSchemaResource(paramName, paramParameters, terraformProvider)
 		},
 	}
+
 	if strings.Contains(serviceName, "group") && serviceName != "Device group" {
 		serviceName = "group"
 	}
+
 	data := map[string]interface{}{
 		"structName":      structName,
 		"serviceName":     naming.CamelCase("", serviceName, "", false),
@@ -44,12 +46,14 @@ func ResourceReadFunction(structName string, serviceName string, paramSpec *prop
 	if strings.Contains(serviceName, "group") {
 		serviceName = "group"
 	}
+
 	data := map[string]interface{}{
 		"structName":      structName,
 		"serviceName":     naming.CamelCase("", serviceName, "", false),
 		"resourceSDKName": resourceSDKName,
 		"locations":       paramSpec.Locations,
 	}
+
 	return processTemplate(resourceReadTemplateStr, "resource-read-function", data, nil)
 }
 
@@ -57,11 +61,13 @@ func ResourceUpdateFunction(structName string, serviceName string, paramSpec int
 	if strings.Contains(serviceName, "group") {
 		serviceName = "group"
 	}
+
 	data := map[string]interface{}{
 		"structName":      structName,
 		"serviceName":     naming.CamelCase("", serviceName, "", false),
 		"resourceSDKName": resourceSDKName,
 	}
+
 	return processTemplate(resourceUpdateTemplateStr, "resource-update-function", data, nil)
 }
 
@@ -69,31 +75,28 @@ func ResourceDeleteFunction(structName string, serviceName string, paramSpec int
 	if strings.Contains(serviceName, "group") {
 		serviceName = "group"
 	}
+
 	data := map[string]interface{}{
 		"structName":      structName,
 		"serviceName":     naming.CamelCase("", serviceName, "", false),
 		"resourceSDKName": resourceSDKName,
 	}
+
 	return processTemplate(resourceDeleteTemplateStr, "resource-delete-function", data, nil)
 }
 
-func CreateEntryConfig(spec interface{}, entryName string) (string, error) {
-	specValReflect := reflect.ValueOf(spec)
-	specValIndirect := reflect.Indirect(specValReflect)
-	t := specValIndirect.Type()
-
+func ConfigEntry(entryName string, param *properties.SpecParam) (string, error) {
 	var entries []Entry
-	for i := 0; i < t.NumField(); i++ {
-		entry := t.Field(i)
-		if entry.Name == "Type" {
-			valueRaw := reflect.Indirect(specValReflect).Field(i).Interface()
-			valueFormatted := fmt.Sprintf("%v", valueRaw)
-			entries = append(entries, Entry{
-				Name: naming.CamelCase("", entryName, "", true),
-				Type: fmt.Sprintf("%v", valueFormatted),
-			})
-		}
+
+	if param.Type != "" {
+		entries = append(entries, Entry{
+			Name: naming.CamelCase("", entryName, "", true),
+			Type: param.Type,
+		})
+		// TODO: handle nested specs
 	}
+
+	log.Printf("entries: %v", entries)
 
 	entryData := EntryData{
 		EntryName: entryName,

@@ -2,12 +2,13 @@ package terraform_provider
 
 import (
 	"fmt"
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 	"log"
 	"reflect"
 	"strings"
 	"text/template"
+
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 )
 
 type Field struct {
