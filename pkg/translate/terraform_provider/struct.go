@@ -2,11 +2,12 @@ package terraform_provider
 
 import (
 	"fmt"
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 	"log"
 	"strings"
 	"text/template"
+
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 )
 
 // Package-level function map to avoid repetition in each function

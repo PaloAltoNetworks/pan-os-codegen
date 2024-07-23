@@ -1,12 +1,14 @@
 package terraform_provider_test
 
 import (
+	"strings"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate/terraform_provider"
-	"github.com/stretchr/testify/assert"
-	"strings"
-	"testing"
 )
 
 func TestParamToModel(t *testing.T) {

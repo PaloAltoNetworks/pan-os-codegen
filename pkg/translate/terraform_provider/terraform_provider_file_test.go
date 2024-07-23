@@ -1,11 +1,13 @@
 package terraform_provider
 
 import (
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
-	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
 	"text/template"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 )
 
 func TestCreateTemplate(t *testing.T) {
