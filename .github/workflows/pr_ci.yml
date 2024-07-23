@@ -29,7 +29,7 @@ jobs:
       - name: Check if all dependencies were commited
         shell: bash
         run: |
-          if [ "$(git status --porcelain)" ]; then 
+          if [ "$(git status --porcelain)" ]; then
            git status
            exit 1
           else

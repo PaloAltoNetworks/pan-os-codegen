@@ -152,4 +152,3 @@ spec:
               max: 300
             profiles:
               - xpath: [ "ipv6-mss-adjustment" ]
-
