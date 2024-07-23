@@ -156,7 +156,7 @@ func ParamToSchemaResource(paramName string, paramProp interface{}, terraformPro
 }
 
 func CreateResourceSchemaLocationAttribute() (string, error) {
-	return processTemplate(resourceTemplateSchemaLocationAttribute, "resource-schema-location", nil, nil)
+	return processTemplate(resourceSchemaLocationAttribute, "resource-schema-location", nil, nil)
 }
 
 // CreateTfIdStruct generates a template for a struct based on the provided structType and structName.
@@ -233,7 +233,7 @@ func CreateNestedStruct(paramName string, paramProp *properties.SpecParam, struc
 		"Spec":       paramProp.Spec,
 		"structName": nestedStructName,
 	}
-	nestedStruct, err := processTemplate(resourceModelNestedStructTemplate, "nested-struct", data, nestedStructFuncMap)
+	nestedStruct, err := processTemplate(resourceModelNestedStruct, "model-nested-struct", data, nestedStructFuncMap)
 	if err != nil {
 		log.Printf("[ ERROR ] Executing nested struct template failed: %v", err)
 		return "", err
@@ -288,5 +288,5 @@ func CreateLocationStruct(v interface{}, structName string) (string, error) {
 		Fields:     fields,
 	}
 
-	return processTemplate(locationStructTemplate, "location-struct-create", structData, nil)
+	return processTemplate(locationStructFields, "location-struct-fields", structData, nil)
 }

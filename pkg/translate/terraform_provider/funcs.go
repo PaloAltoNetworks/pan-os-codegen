@@ -146,7 +146,7 @@ func ResourceCreateFunction(structName string, serviceName string, paramSpec *pr
 		"locations":       paramSpec.Locations,
 	}
 
-	return processTemplate(resourceCreateTemplateStr, "resource-create-function", data, funcMap)
+	return processTemplate(resourceCreateFunction, "resource-create-function", data, funcMap)
 }
 
 func ResourceReadFunction(structName string, serviceName string, paramSpec *properties.Normalization, resourceSDKName string) (string, error) {
@@ -161,7 +161,7 @@ func ResourceReadFunction(structName string, serviceName string, paramSpec *prop
 		"locations":       paramSpec.Locations,
 	}
 
-	return processTemplate(resourceReadTemplateStr, "resource-read-function", data, nil)
+	return processTemplate(resourceReadFunction, "resource-read-function", data, nil)
 }
 
 func ResourceUpdateFunction(structName string, serviceName string, paramSpec interface{}, resourceSDKName string) (string, error) {
@@ -175,7 +175,7 @@ func ResourceUpdateFunction(structName string, serviceName string, paramSpec int
 		"resourceSDKName": resourceSDKName,
 	}
 
-	return processTemplate(resourceUpdateTemplateStr, "resource-update-function", data, nil)
+	return processTemplate(resourceUpdateFunction, "resource-update-function", data, nil)
 }
 
 func ResourceDeleteFunction(structName string, serviceName string, paramSpec interface{}, resourceSDKName string) (string, error) {
@@ -189,7 +189,7 @@ func ResourceDeleteFunction(structName string, serviceName string, paramSpec int
 		"resourceSDKName": resourceSDKName,
 	}
 
-	return processTemplate(resourceDeleteTemplateStr, "resource-delete-function", data, nil)
+	return processTemplate(resourceDeleteFunction, "resource-delete-function", data, nil)
 }
 
 func ConfigEntry(entryName string, param *properties.SpecParam) (string, error) {
@@ -211,5 +211,5 @@ func ConfigEntry(entryName string, param *properties.SpecParam) (string, error) 
 		Entries:   entries,
 	}
 
-	return processTemplate(resourceEntryConfigTemplate, "config-to-entry", entryData, nil)
+	return processTemplate(resourceConfigEntry, "config-entry", entryData, nil)
 }

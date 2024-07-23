@@ -1,11 +1,11 @@
 package terraform_provider
 
-const locationStructTemplate = `
+const locationStructFields = `
 {{- range .Fields }}
 	{{ .Name }} {{ .Type }} ` + "`tfsdk:\"{{ .TagName }}\"`" + `
 {{- end }}`
 
-const resourceModelNestedStructTemplate = `
+const resourceModelNestedStruct = `
 type {{ .structName }}Object struct {
 	{{- range $pName, $pParam := $.Spec.Params -}}
 		{{- structItems $pName $pParam -}}
@@ -16,7 +16,7 @@ type {{ .structName }}Object struct {
 }
 `
 
-const resourceEntryConfigTemplate = `
+const resourceConfigEntry = `
 {{- range .Entries }}
 	{{- if eq .Type "list" }}
 	resp.Diagnostics.Append(state.{{ .Name }}.ElementsAs(ctx, &obj.{{ .Name }}, false)...)
@@ -34,7 +34,7 @@ const resourceEntryConfigTemplate = `
 {{- end }}
 `
 
-const resourceTemplateSchemaLocationAttribute = `
+const resourceSchemaLocationAttribute = `
 			"location": rsschema.SingleNestedAttribute{
 				Description: "The location of this object.",
 				Required:    true,
@@ -115,7 +115,7 @@ const resourceTemplateSchemaLocationAttribute = `
 			},
 `
 
-const resourceTemplateStr = `
+const resourceObj = `
 {{- /* Begin */ -}}
 
 // Generate Terraform Resource object
@@ -235,7 +235,7 @@ func (r *{{ structName }}) ImportState(ctx context.Context, req resource.ImportS
 
 {{- /* Done */ -}}`
 
-const resourceCreateTemplateStr = `
+const resourceCreateFunction = `
 {{- /* Begin */ -}}
 	var state {{ .structName }}Model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &state)...)
@@ -338,7 +338,7 @@ const resourceCreateTemplateStr = `
 {{- /* Done */ -}}
 `
 
-const resourceReadTemplateStr = `
+const resourceReadFunction = `
 	var savestate, state {{ .structName }}Model
 	resp.Diagnostics.Append(req.State.Get(ctx, &savestate)...)
 	if resp.Diagnostics.HasError() {
@@ -426,7 +426,7 @@ const resourceReadTemplateStr = `
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 `
 
-const resourceUpdateTemplateStr = `
+const resourceUpdateFunction = `
 	var plan, state {{ .structName }}Model
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -500,7 +500,7 @@ const resourceUpdateTemplateStr = `
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 `
 
-const resourceDeleteTemplateStr = `
+const resourceDeleteFunction = `
 	var state {{ .structName }}Model
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
@@ -542,7 +542,7 @@ const resourceDeleteTemplateStr = `
 	}
 `
 
-const dataSourceSingletonTemplateStr = `
+const dataSourceSingletonObj = `
 {{- /* Begin */ -}}
 
 // Generate Terraform Data Source object.
@@ -625,9 +625,9 @@ func (d *{{ structName }}) Read(ctx context.Context, req datasource.ReadRequest,
 {{- /* Done */ -}}
 `
 
-const dataSourceListTemplatetStr = ``
+const dataSourceListObj = ``
 
-const providerFileTemplateStr = `
+const providerFile = `
 {{- /* Begin */ -}}
 package provider
 
@@ -638,7 +638,7 @@ package provider
 
 {{- /* Done */ -}}
 `
-const providerTemplateStr = `
+const provider = `
 {{- /* Begin */ -}}
 package provider
 
