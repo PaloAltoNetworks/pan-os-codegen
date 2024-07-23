@@ -13,7 +13,6 @@ type Command struct {
 	ctx          context.Context
 	args         []string
 	specs        []string
-	config       string
 	commandType  properties.CommandType
 	templatePath string
 }
@@ -42,7 +41,7 @@ func (c *Command) Setup() error {
 	if c.specs == nil {
 		c.specs, err = properties.GetNormalizations()
 		if err != nil {
-			return fmt.Errorf("error getting normalizations: %s", err)
+			return fmt.Errorf("error getting normalizations: %w", err)
 		}
 	}
 	return nil
@@ -58,12 +57,12 @@ func (c *Command) Execute() error {
 
 	content, err := load.File(configPath)
 	if err != nil {
-		return fmt.Errorf("error loading %s - %s", configPath, err)
+		return fmt.Errorf("error loading %s: %w", configPath, err)
 	}
 
 	config, err := properties.ParseConfig(content)
 	if err != nil {
-		return fmt.Errorf("error parsing %s - %s", configPath, err)
+		return fmt.Errorf("error parsing %s: %w", configPath, err)
 	}
 	var resourceList []string
 	var dataSourceList []string
@@ -72,16 +71,16 @@ func (c *Command) Execute() error {
 		log.Printf("Parsing %s...\n", specPath)
 		content, err := load.File(specPath)
 		if err != nil {
-			return fmt.Errorf("error loading %s - %s", specPath, err)
+			return fmt.Errorf("error loading %s: %w", specPath, err)
 		}
 
 		spec, err := properties.ParseSpec(content)
 		if err != nil {
-			return fmt.Errorf("error parsing %s - %s", specPath, err)
+			return fmt.Errorf("error parsing %s: %w", specPath, err)
 		}
 
 		if err = spec.Sanity(); err != nil {
-			return fmt.Errorf("%s sanity failed: %s", specPath, err)
+			return fmt.Errorf("%s sanity failed: %w", specPath, err)
 		}
 
 		if c.commandType == properties.CommandTypeTerraform {
@@ -90,7 +89,7 @@ func (c *Command) Execute() error {
 			terraformGenerator := generate.NewCreator(config.Output.TerraformProvider, c.templatePath, spec)
 			err = terraformGenerator.RenderTerraformProviderFile(newProviderObject, spec)
 			if err != nil {
-				return fmt.Errorf("error generating Terraform provider - %s", err)
+				return fmt.Errorf("error generating Terraform provider: %w", err)
 			}
 
 			resourceList = append(resourceList, newProviderObject.Resources...)
@@ -99,7 +98,7 @@ func (c *Command) Execute() error {
 		} else if c.commandType == properties.CommandTypeSDK {
 			generator := generate.NewCreator(config.Output.GoSdk, c.templatePath, spec)
 			if err = generator.RenderTemplate(); err != nil {
-				return fmt.Errorf("error rendering %s - %s", specPath, err)
+				return fmt.Errorf("error rendering %s: %w", specPath, err)
 			}
 		}
 
@@ -115,10 +114,13 @@ func (c *Command) Execute() error {
 
 		terraformGenerator := generate.NewCreator(config.Output.TerraformProvider, c.templatePath, providerSpec)
 		err = terraformGenerator.RenderTerraformProvider(newProviderObject, providerSpec, config.TerraformProviderConfig)
+		if err != nil {
+			return err
+		}
 	}
 
 	if err = generate.CopyAssets(config, c.commandType); err != nil {
-		return fmt.Errorf("error copying assets %s", err)
+		return fmt.Errorf("error copying assets %w", err)
 	}
 
 	log.Println("Generation complete.")

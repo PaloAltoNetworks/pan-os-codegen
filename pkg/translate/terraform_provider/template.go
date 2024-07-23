@@ -249,8 +249,6 @@ func (d *{{ structName }}) Read(ctx context.Context, req datasource.ReadRequest,
 {{- /* Done */ -}}
 `
 
-const dataSourceListTemplatetStr = ``
-
 const providerFileTemplateStr = `
 {{- /* Begin */ -}}
 package provider
