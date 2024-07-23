@@ -24,7 +24,12 @@ const resourceEntryConfigTemplate = `
 		return
 	}
 	{{- else }}
+	// {{ .Type }}
+		{{- if eq .Type "object" }}
+	// obj.{{ .Name }} = copy{{ .Name }}FromTerraformToPango(state.{{ .Name }})
+		{{- else }}
 	obj.{{ .Name }} = state.{{ .Name }}.Value{{ CamelCaseType .Type }}Pointer()
+		{{- end }}
 	{{- end -}}
 {{- end }}
 `
@@ -205,6 +210,8 @@ func (r *{{ structName }}) Configure(ctx context.Context, req resource.Configure
 
 	r.client = req.ProviderData.(*pango.Client)
 }
+
+{{ CopyNestedFromTerraformToPango }}
 
 func (r *{{ structName }}) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	{{ ResourceCreateFunction structName serviceName}}

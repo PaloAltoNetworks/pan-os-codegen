@@ -1,6 +1,7 @@
 package terraform_provider
 
 import (
+	"fmt"
 	"log"
 	"strings"
 	"text/template"
@@ -17,6 +18,109 @@ type Entry struct {
 type EntryData struct {
 	EntryName string
 	Entries   []Entry
+}
+
+type spec struct {
+	Name           string
+	FunctionSuffix string
+	PangoType      string
+	TerraformType  string
+	Params         map[string]*properties.SpecParam
+	OneOf          map[string]*properties.SpecParam
+}
+
+func getReturnPangoTypeForProperty(pkgName string, prop *properties.SpecParam) string {
+	if prop.Type == "" {
+		return fmt.Sprintf("%s.%s", pkgName, prop.Name.CamelCase)
+	} else if prop.Type == "list" {
+		if prop.Items.Type == "" {
+			return fmt.Sprintf("[]%s.%s", pkgName, prop.Name.CamelCase)
+		} else {
+			return fmt.Sprintf("[]%s.%s", pkgName, prop.Type)
+		}
+	} else {
+		if prop.Required {
+			return fmt.Sprintf("%s.%s", pkgName, prop.Type)
+		} else {
+			return fmt.Sprintf("%s.%s", pkgName, prop.Type)
+		}
+	}
+}
+
+func generateFromTerraformToPangoSpec(pkgName string, parent string, prop *properties.SpecParam) []spec {
+	var specs []spec
+	if prop.Type == "" {
+		name := fmt.Sprintf("%s%s", parent, prop.Name.CamelCase)
+		terraformType := fmt.Sprintf("%s%sObject", parent, prop.Name.CamelCase)
+		returnType := getReturnPangoTypeForProperty(pkgName, prop)
+		specs = append(specs, spec{
+			Name:           name,
+			TerraformType:  terraformType,
+			PangoType:      returnType,
+			FunctionSuffix: name,
+			Params:         prop.Spec.Params,
+			OneOf:          prop.Spec.OneOf,
+		})
+
+		for _, p := range prop.Spec.Params {
+			specs = append(specs, generateFromTerraformToPangoSpec(pkgName, name, p)...)
+		}
+
+		for _, p := range prop.Spec.OneOf {
+			specs = append(specs, generateFromTerraformToPangoSpec(pkgName, name, p)...)
+		}
+
+	}
+	return specs
+}
+
+const copyNestedFromTerraformToPangoStr = `
+{{- range .Specs }}
+{{- $spec := . }}
+func CopyFromTerraformToPango{{ .Name }}(obj *{{ .TerraformType }}) *{{ .PangoType }} {
+	return &{{ .PangoType }}{
+  {{- range .Params }}
+    {{- if eq .Type "" }}
+	{{ .Name.CamelCase }}: CopyFromTerraformToPango{{ $spec.FunctionSuffix }}{{ .Name.CamelCase }}(obj.{{ .Name.CamelCase }}),
+    {{- else }}
+	{{ .Name.CamelCase }}: obj.{{ .Name.CamelCase }},
+    {{- end }}
+  {{- end }}
+
+  {{- range .OneOf }}
+    {{- if eq .Type "" }}
+	{{ .Name.CamelCase }}: CopyFromTerraformToPango{{ $spec.FunctionSuffix }}{{ .Name.CamelCase }}(obj.{{ .Name.CamelCase }}),
+    {{- else }}
+	{{ .Name.CamelCase }}: obj.{{ .Name.CamelCase }},
+    {{- end }}
+  {{- end }}
+	}
+}
+{{- end }}
+`
+
+func CopyNestedFromTerraformToPango(pkgName string, structName string, props *properties.Normalization) (string, error) {
+	var specs []spec
+	for _, elt := range props.Spec.Params {
+		if elt.Type == "" {
+			specs = append(specs, generateFromTerraformToPangoSpec(pkgName, structName, elt)...)
+		}
+	}
+
+	for _, elt := range props.Spec.OneOf {
+		if elt.Type == "" {
+			specs = append(specs, generateFromTerraformToPangoSpec(pkgName, structName, elt)...)
+		}
+	}
+
+	type context struct {
+		Specs []spec
+	}
+
+	data := context{
+		Specs: specs,
+	}
+	return processTemplate(copyNestedFromTerraformToPangoStr, "create-nested-copy-from-tf-to-pango", data, nil)
 }
 
 func ResourceCreateFunction(structName string, serviceName string, paramSpec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, resourceSDKName string) (string, error) {
@@ -88,13 +192,14 @@ func ResourceDeleteFunction(structName string, serviceName string, paramSpec int
 func ConfigEntry(entryName string, param *properties.SpecParam) (string, error) {
 	var entries []Entry
 
-	if param.Type != "" {
-		entries = append(entries, Entry{
-			Name: naming.CamelCase("", entryName, "", true),
-			Type: param.Type,
-		})
-		// TODO: handle nested specs
+	paramType := param.Type
+	if paramType == "" {
+		paramType = "object"
 	}
+	entries = append(entries, Entry{
+		Name: naming.CamelCase("", entryName, "", true),
+		Type: paramType,
+	})
 
 	log.Printf("entries: %v", entries)
 
