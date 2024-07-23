@@ -12,10 +12,9 @@ import (
 
 // NameProvider encapsulates naming conventions for Terraform resources.
 type NameProvider struct {
-	TfName      string
-	MetaName    string
-	StructName  string
-	PackageName string
+	TfName     string
+	MetaName   string
+	StructName string
 }
 
 // NewNameProvider creates a new NameProvider based on given specifications.
@@ -30,15 +29,7 @@ func NewNameProvider(spec *properties.Normalization, resourceName string) *NameP
 	}
 	metaName := fmt.Sprintf("_%s", naming.Underscore("", strings.ToLower(objectName), ""))
 	structName := naming.CamelCase("", tfName, resourceName, true)
-	// FIXME(kklimonda): This is a terrible hack, but may work for now?
-	parts := strings.Split(tfName, " ")
-	var packageName string
-	if len(parts) == 0 {
-		packageName = strings.ToLower(tfName)
-	} else {
-		packageName = strings.ToLower(parts[0])
-	}
-	return &NameProvider{tfName, metaName, structName, packageName}
+	return &NameProvider{tfName, metaName, structName}
 }
 
 // GenerateTerraformProvider handles the generation of Terraform resources and data sources.
@@ -110,7 +101,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 		"CreateTfIdStruct":        func() (string, error) { return CreateTfIdStruct("entry", spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
 		"CreateTfIdResourceModel": func() (string, error) { return CreateTfIdResourceModel("entry", names.StructName) },
 		"CopyNestedFromTerraformToPango": func() (string, error) {
-			return CopyNestedFromTerraformToPango(names.PackageName, names.StructName, spec)
+			return CopyNestedFromTerraformToPango(spec.GoSdkPath[len(spec.GoSdkPath)-1], names.StructName, spec)
 		},
 		"ResourceCreateFunction": func(structName string, serviceName string) (string, error) {
 			return ResourceCreateFunction(structName, serviceName, spec, terraformProvider, spec.GoSdkPath[len(spec.GoSdkPath)-1])
