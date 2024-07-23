@@ -80,21 +80,25 @@ func generateFromTerraformToPangoSpec(pkgName string, structName string, parent 
 const copyNestedFromTerraformToPangoStr = `
 {{- range .Specs }}
 {{- $spec := . }}
-func CopyFromTerraformToPango{{ .ParentFunctionSuffix }}{{ .Name }}(obj *{{ .TerraformType }}) *{{ .PangoType }} {
+func CopyFromTerraformToPango{{ .ParentFunctionSuffix }}{{ .Name }}(obj {{ .TerraformType }}) *{{ .PangoType }} {
 	return &{{ .PangoType }}{
   {{- range .Params }}
     {{- if eq .Type "" }}
-	{{ .Name.CamelCase }}: CopyFromTerraformToPango{{ $spec.FunctionSuffix }}{{ .Name.CamelCase }}(obj.{{ .Name.CamelCase }}),
+	{{ .Name.CamelCase }}: CopyFromTerraformToPango{{ $spec.ParentFunctionSuffix }}{{ $spec.Name }}{{ .Name.CamelCase }}(obj.{{ .Name.CamelCase }}),
+    {{- else if eq .Type "list" }}
+	// TODO {{ .Name.CamelCase }} {{ .Type }}
     {{- else }}
-	{{ .Name.CamelCase }}: obj.{{ .Name.CamelCase }},
+	{{ .Name.CamelCase }}: obj.{{ .Name.CamelCase }}.Value{{ CamelCaseType .Type }}Pointer(),
     {{- end }}
   {{- end }}
 
   {{- range .OneOf }}
     {{- if eq .Type "" }}
-	{{ .Name.CamelCase }}: CopyFromTerraformToPango{{ $spec.FunctionSuffix }}{{ .Name.CamelCase }}(obj.{{ .Name.CamelCase }}),
+	{{ .Name.CamelCase }}: CopyFromTerraformToPango{{ $spec.ParentFunctionSuffix }}{{ $spec.Name }}{{ .Name.CamelCase }}(obj.{{ .Name.CamelCase }}),
+    {{- else if eq .Type "list" }}
+	// TODO {{ .Name.CamelCase }} {{ .Type }}
     {{- else }}
-	{{ .Name.CamelCase }}: obj.{{ .Name.CamelCase }},
+	{{ .Name.CamelCase }}: obj.{{ .Name.CamelCase }}.Value{{ CamelCaseType .Type }}Pointer(),
     {{- end }}
   {{- end }}
 	}
@@ -123,7 +127,7 @@ func CopyNestedFromTerraformToPango(pkgName string, structName string, props *pr
 	data := context{
 		Specs: specs,
 	}
-	return processTemplate(copyNestedFromTerraformToPangoStr, "create-nested-copy-from-tf-to-pango", data, nil)
+	return processTemplate(copyNestedFromTerraformToPangoStr, "create-nested-copy-from-tf-to-pango", data, commonFuncMap)
 }
 
 func ResourceCreateFunction(structName string, serviceName string, paramSpec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, resourceSDKName string) (string, error) {
