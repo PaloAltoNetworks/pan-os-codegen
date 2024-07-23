@@ -21,53 +21,56 @@ type EntryData struct {
 }
 
 type spec struct {
-	Name           string
-	FunctionSuffix string
-	PangoType      string
-	TerraformType  string
-	Params         map[string]*properties.SpecParam
-	OneOf          map[string]*properties.SpecParam
+	Name                 string
+	ParentFunctionSuffix string
+	FunctionSuffix       string
+	PangoType            string
+	TerraformType        string
+	Params               map[string]*properties.SpecParam
+	OneOf                map[string]*properties.SpecParam
 }
 
-func getReturnPangoTypeForProperty(pkgName string, prop *properties.SpecParam) string {
+func getReturnPangoTypeForProperty(pkgName string, parent string, prop *properties.SpecParam) string {
 	if prop.Type == "" {
-		return fmt.Sprintf("%s.%s", pkgName, prop.Name.CamelCase)
+		return fmt.Sprintf("%s.%s%s", pkgName, parent, prop.Name.CamelCase)
 	} else if prop.Type == "list" {
 		if prop.Items.Type == "" {
-			return fmt.Sprintf("[]%s.%s", pkgName, prop.Name.CamelCase)
+			return fmt.Sprintf("[]%s.%s%s", pkgName, parent, prop.Name.CamelCase)
 		} else {
-			return fmt.Sprintf("[]%s.%s", pkgName, prop.Type)
+			return fmt.Sprintf("[]%s.%s%s", pkgName, parent, prop.Type)
 		}
 	} else {
 		if prop.Required {
-			return fmt.Sprintf("%s.%s", pkgName, prop.Type)
+			return fmt.Sprintf("%s.%s%s", pkgName, parent, prop.Type)
 		} else {
-			return fmt.Sprintf("%s.%s", pkgName, prop.Type)
+			return fmt.Sprintf("%s.%s%s", pkgName, parent, prop.Type)
 		}
 	}
 }
 
-func generateFromTerraformToPangoSpec(pkgName string, parent string, prop *properties.SpecParam) []spec {
+func generateFromTerraformToPangoSpec(pkgName string, structName string, parent string, prop *properties.SpecParam) []spec {
 	var specs []spec
 	if prop.Type == "" {
-		name := fmt.Sprintf("%s%s", parent, prop.Name.CamelCase)
-		terraformType := fmt.Sprintf("%s%sObject", parent, prop.Name.CamelCase)
-		returnType := getReturnPangoTypeForProperty(pkgName, prop)
+		name := fmt.Sprintf("%s", prop.Name.CamelCase)
+		terraformType := fmt.Sprintf("%s%s%sObject", structName, parent, prop.Name.CamelCase)
+		returnType := getReturnPangoTypeForProperty(pkgName, parent, prop)
 		specs = append(specs, spec{
-			Name:           name,
-			TerraformType:  terraformType,
-			PangoType:      returnType,
-			FunctionSuffix: name,
-			Params:         prop.Spec.Params,
-			OneOf:          prop.Spec.OneOf,
+			Name:                 name,
+			TerraformType:        terraformType,
+			PangoType:            returnType,
+			ParentFunctionSuffix: fmt.Sprintf("%s%s", structName, parent),
+			FunctionSuffix:       fmt.Sprintf("%s%s", structName, name),
+			Params:               prop.Spec.Params,
+			OneOf:                prop.Spec.OneOf,
 		})
 
+		parent += name
 		for _, p := range prop.Spec.Params {
-			specs = append(specs, generateFromTerraformToPangoSpec(pkgName, name, p)...)
+			specs = append(specs, generateFromTerraformToPangoSpec(pkgName, structName, parent, p)...)
 		}
 
 		for _, p := range prop.Spec.OneOf {
-			specs = append(specs, generateFromTerraformToPangoSpec(pkgName, name, p)...)
+			specs = append(specs, generateFromTerraformToPangoSpec(pkgName, structName, parent, p)...)
 		}
 
 	}
@@ -77,7 +80,7 @@ func generateFromTerraformToPangoSpec(pkgName string, parent string, prop *prope
 const copyNestedFromTerraformToPangoStr = `
 {{- range .Specs }}
 {{- $spec := . }}
-func CopyFromTerraformToPango{{ .Name }}(obj *{{ .TerraformType }}) *{{ .PangoType }} {
+func CopyFromTerraformToPango{{ .ParentFunctionSuffix }}{{ .Name }}(obj *{{ .TerraformType }}) *{{ .PangoType }} {
 	return &{{ .PangoType }}{
   {{- range .Params }}
     {{- if eq .Type "" }}
@@ -103,13 +106,13 @@ func CopyNestedFromTerraformToPango(pkgName string, structName string, props *pr
 	var specs []spec
 	for _, elt := range props.Spec.Params {
 		if elt.Type == "" {
-			specs = append(specs, generateFromTerraformToPangoSpec(pkgName, structName, elt)...)
+			specs = append(specs, generateFromTerraformToPangoSpec(pkgName, structName, "", elt)...)
 		}
 	}
 
 	for _, elt := range props.Spec.OneOf {
 		if elt.Type == "" {
-			specs = append(specs, generateFromTerraformToPangoSpec(pkgName, structName, elt)...)
+			specs = append(specs, generateFromTerraformToPangoSpec(pkgName, structName, "", elt)...)
 		}
 	}
 
