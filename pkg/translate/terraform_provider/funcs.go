@@ -189,11 +189,7 @@ func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Conte
     {{- if eq .Type "" }}
 	{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_entry,
     {{- else if eq .Type "list" }}
-	{{- if eq .Items.Type "object" }}
-		// TODO: List objects {{ .Name.CamelCase }},
-        {{- else }}
-		{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_pango_entries,
-        {{- end }}
+	{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_pango_entries,
     {{- else }}
 	{{ .Name.CamelCase }}: o.{{ .Name.CamelCase }}.Value{{ CamelCaseType .Type }}Pointer(),
     {{- end }}
@@ -203,11 +199,7 @@ func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Conte
     {{- if eq .Type "" }}
 	{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_entry,
     {{- else if eq .Type "list" }}
-	{{- if eq .Items.Type "object" }}
-		// TODO: List objects {{ .Name.CamelCase }},
-        {{- else }}
-		{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_pango_entries,
-        {{- end }}
+	{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_pango_entries,
     {{- else }}
 	{{ .Name.CamelCase }}: o.{{ .Name.CamelCase }}.Value{{ CamelCaseType .Type }}Pointer(),
     {{- end }}
