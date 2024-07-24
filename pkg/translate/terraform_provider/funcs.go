@@ -54,23 +54,33 @@ func generateFromTerraformToPangoSpec(pkgName string, structName string, parent 
 		name := fmt.Sprintf("%s", prop.Name.CamelCase)
 		terraformType := fmt.Sprintf("%s%s%sObject", structName, parent, prop.Name.CamelCase)
 		returnType := getReturnPangoTypeForProperty(pkgName, parent, prop)
+
+		var params map[string]*properties.SpecParam
+		var variants map[string]*properties.SpecParam
+		if prop.Type == "" {
+			params = prop.Spec.Params
+			variants = prop.Spec.OneOf
+		}
+
 		specs = append(specs, spec{
 			Name:                 name,
 			TerraformType:        terraformType,
 			PangoType:            returnType,
 			ParentFunctionSuffix: fmt.Sprintf("%s%s", structName, parent),
 			FunctionSuffix:       fmt.Sprintf("%s%s", structName, name),
-			Params:               prop.Spec.Params,
-			OneOf:                prop.Spec.OneOf,
+			Params:               params,
+			OneOf:                variants,
 		})
 
-		parent += name
-		for _, p := range prop.Spec.Params {
-			specs = append(specs, generateFromTerraformToPangoSpec(pkgName, structName, parent, p)...)
-		}
+		if prop.Type == "" {
+			parent += name
+			for _, p := range params {
+				specs = append(specs, generateFromTerraformToPangoSpec(pkgName, structName, parent, p)...)
+			}
 
-		for _, p := range prop.Spec.OneOf {
-			specs = append(specs, generateFromTerraformToPangoSpec(pkgName, structName, parent, p)...)
+			for _, p := range variants {
+				specs = append(specs, generateFromTerraformToPangoSpec(pkgName, structName, parent, p)...)
+			}
 		}
 
 	}
@@ -78,15 +88,68 @@ func generateFromTerraformToPangoSpec(pkgName string, structName string, parent 
 }
 
 const copyNestedFromTerraformToPangoStr = `
+{{- define "terraformNestedElementsAssign" }}
+  {{- with .Parameter }}
+
+  {{- $result := .Name.LowerCamelCase }}
+  {{- $diag := .Name.LowerCamelCase | printf "%s_diags" }}
+
+	var {{ $result }} *{{ $.Parent }}{{ .Name.CamelCase }}
+	var {{ $diag }} diag.Diagnostics
+	{{ $result }}, {{ $diag }} = {{ $.CopyFunction }}
+	diags.Append({{ $diag }}...)
+
+  {{- end }}
+{{- end }}
+
+{{- define "terraformListElementsAs" }}
+  {{- with .Parameter }}
+    {{- if eq .Items.Type "entry" }}
+	var {{ .Name.LowerCamelCase }}_elements []{{ .Name.CamelCase }}
+    {{- else }}
+	var {{ .Name.LowerCamelCase }}_elements []{{ .Items.Type }}
+    {{- end }}
+	{
+		d := obj.{{ .Name.CamelCase }}.ElementsAs(ctx, &{{ .Name.LowerCamelCase }}_elements, false)
+		diags.Append(d...)
+	}
+  {{- end }}
+{{- end }}
+
 {{- range .Specs }}
 {{- $spec := . }}
-func CopyFromTerraformToPango{{ .ParentFunctionSuffix }}{{ .Name }}(obj {{ .TerraformType }}) *{{ .PangoType }} {
-	return &{{ .PangoType }}{
+func CopyFromTerraformToPango{{ .ParentFunctionSuffix }}{{ .Name }}(ctx context.Context, obj {{ .TerraformType }}) (*{{ .PangoType }}, diag.Diagnostics) {
+	var diags diag.Diagnostics
   {{- range .Params }}
     {{- if eq .Type "" }}
-	{{ .Name.CamelCase }}: CopyFromTerraformToPango{{ $spec.ParentFunctionSuffix }}{{ $spec.Name }}{{ .Name.CamelCase }}(obj.{{ .Name.CamelCase }}),
+        {{- $copyFn := printf "CopyFromTerraformToPango%s%s%s(ctx, obj.%s)" $spec.ParentFunctionSuffix $spec.Name .Name.CamelCase .Name.CamelCase }}
+	{{- template "terraformNestedElementsAssign" Map "Parameter" . "CopyFunction" $copyFn "Parent" $spec.PangoType }}
     {{- else if eq .Type "list" }}
-	// TODO {{ .Name.CamelCase }} {{ .Type }}
+        {{- $copyFn := printf "COPY LIST LOL(obj.%s)" .Name.CamelCase }}
+	{{- template "terraformListElementsAs" Map "Parameter" . "CopyFunction" $copyFn }}
+    {{- end }}
+  {{- end }}
+
+  {{- range .OneOf }}
+    {{- if eq .Type "" }}
+        {{- $copyFn := printf "CopyFromTerraformToPango%s%s%s(ctx, obj.%s)" $spec.ParentFunctionSuffix $spec.Name .Name.CamelCase .Name.CamelCase }}
+        {{- template "terraformNestedElementsAssign" Map "Parameter" . "CopyFunction" $copyFn "Parent" $spec.PangoType }}
+    {{- else if eq .Type "list" }}
+        {{- $copyFn := printf "COPY LIST LOL(obj.%s)" .Name.CamelCase }}
+	{{- template "terraformListElementsAs" Map "Parameter" . "CopyFunction" $copyFn }}
+    {{- end }}
+  {{- end }}
+
+	result := &{{ .PangoType }}{
+  {{- range .Params }}
+    {{- if eq .Type "" }}
+	{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }},
+    {{- else if eq .Type "list" }}
+	{{- if eq .Items.Type "object" }}
+		// TODO: List objects {{ .Name.CamelCase }},
+        {{- else }}
+		{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_elements,
+        {{- end }}
     {{- else }}
 	{{ .Name.CamelCase }}: obj.{{ .Name.CamelCase }}.Value{{ CamelCaseType .Type }}Pointer(),
     {{- end }}
@@ -94,14 +157,20 @@ func CopyFromTerraformToPango{{ .ParentFunctionSuffix }}{{ .Name }}(obj {{ .Terr
 
   {{- range .OneOf }}
     {{- if eq .Type "" }}
-	{{ .Name.CamelCase }}: CopyFromTerraformToPango{{ $spec.ParentFunctionSuffix }}{{ $spec.Name }}{{ .Name.CamelCase }}(obj.{{ .Name.CamelCase }}),
+	{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }},
     {{- else if eq .Type "list" }}
-	// TODO {{ .Name.CamelCase }} {{ .Type }}
+	{{- if eq .Items.Type "object" }}
+		// TODO: List objects {{ .Name.CamelCase }},
+        {{- else }}
+		{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_elements,
+        {{- end }}
     {{- else }}
 	{{ .Name.CamelCase }}: obj.{{ .Name.CamelCase }}.Value{{ CamelCaseType .Type }}Pointer(),
     {{- end }}
   {{- end }}
 	}
+
+	return result, diags
 }
 {{- end }}
 `
