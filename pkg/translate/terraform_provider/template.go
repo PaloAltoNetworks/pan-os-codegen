@@ -210,7 +210,9 @@ func (r *{{ structName }}) Configure(ctx context.Context, req resource.Configure
 	r.client = req.ProviderData.(*pango.Client)
 }
 
-{{ CopyNestedFromTerraformToPango }}
+{{ RenderCopyToPangoFunctions }}
+
+{{ RenderCopyFromPangoFunctions }}
 
 func (r *{{ structName }}) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	{{ ResourceCreateFunction structName serviceName}}

@@ -100,8 +100,11 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 		"serviceName":             func() string { return names.TfName },
 		"CreateTfIdStruct":        func() (string, error) { return CreateTfIdStruct("entry", spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
 		"CreateTfIdResourceModel": func() (string, error) { return CreateTfIdResourceModel("entry", names.StructName) },
-		"CopyNestedFromTerraformToPango": func() (string, error) {
-			return CopyNestedFromTerraformToPango(spec.GoSdkPath[len(spec.GoSdkPath)-1], names.StructName, spec)
+		"RenderCopyToPangoFunctions": func() (string, error) {
+			return RenderCopyToPangoFunctions(spec.GoSdkPath[len(spec.GoSdkPath)-1], names.StructName, spec)
+		},
+		"RenderCopyFromPangoFunctions": func() (string, error) {
+			return RenderCopyFromPangoFunctions(spec.GoSdkPath[len(spec.GoSdkPath)-1], names.StructName, spec)
 		},
 		"ResourceCreateFunction": func(structName string, serviceName string) (string, error) {
 			return ResourceCreateFunction(structName, serviceName, spec, terraformProvider, spec.GoSdkPath[len(spec.GoSdkPath)-1])

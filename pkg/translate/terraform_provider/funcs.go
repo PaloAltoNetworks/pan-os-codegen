@@ -118,7 +118,7 @@ func generateFromTerraformToPangoParameter(pkgName string, terraformPrefix strin
 	return specs
 }
 
-const copyNestedFromTerraformToPangoStr = `
+const copyToPangoTmpl = `
 {{- define "terraformNestedElementsAssign" }}
   {{- with .Parameter }}
 
@@ -211,7 +211,138 @@ func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Conte
 {{- end }}
 `
 
-func CopyNestedFromTerraformToPango(pkgName string, terraformTypePrefix string, property *properties.Normalization) (string, error) {
+const copyFromPangoTmpl = `
+{{- define "renderFromPangoToTfParameter" }}
+  {{- if eq .Type "" }}
+	// TODO: Missing implementation
+  {{- else }}
+	// {{ .Name.CamelCase }}: types.{{ .Type | PascalCase }}Value(*elt.{{ .Name.CamelCase }}),
+  {{- end }}
+{{- end }}
+
+{{- define "terraformListElementsAsParam" }}
+  {{- with .Parameter }}
+    {{- $pangoType := printf "%s%s" $.Spec.PangoType .Name.CamelCase }}
+    {{- $terraformType := printf "%s%s%s" $.Spec.TerraformType .Name.CamelCase $.Spec.ModelOrObject }}
+    {{- $pangoEntries := printf "%s_pango_entries" .Name.LowerCamelCase }}
+    {{- $tfEntries := printf "%s_tf_entries" .Name.LowerCamelCase }}
+    {{- if eq .Items.Type "entry" }}
+		var {{ $tfEntries }} []{{ $terraformType }}
+		var {{ $pangoEntries }} []{{ $pangoType }}
+	{
+		for _, elt := range {{ $pangoEntries }} {
+			_ = elt // FIXME: remove after we've implemented this code
+			entry := &{{ $terraformType }} {
+      {{- range .Spec.Params }}
+			{{- template "renderFromPangoToTfParameter" . }}
+      {{- end }}
+      {{- range .Spec.OneOf }}
+			{{- template "renderFromPangoToTfParameter" . }}
+      {{- end }}
+			}
+			{{ $tfEntries }} = append({{ $tfEntries }}, *entry)
+		}
+	}
+    {{- else }}
+		var {{ $pangoEntries }} []{{ .Items.Type }}
+	{
+		d := o.{{ .Name.CamelCase }}.ElementsAs(ctx, &{{ $pangoEntries }}, false)
+		diags.Append(d...)
+	}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- define "terraformListElementsAs" }}
+  {{- range .Params }}
+    {{- if eq .Type "list" }}
+      {{- template "terraformListElementsAsParam" Map "Spec" $ "Parameter" . }}
+    {{- end }}
+  {{- end }}
+
+  {{- range .OneOf }}
+    {{- if eq .Type "list" }}
+      {{- template "terraformListElementsAsParam" Map "Spec" $ "Parameter" . }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- define "terraformCreateEntryAssignmentForParam" }}
+  {{- with .Parameter }}
+
+  {{- $result := .Name.LowerCamelCase }}
+  {{- $diag := .Name.LowerCamelCase | printf "%s_diags" }}
+	var {{ $result }}_object *{{ $.Spec.TerraformType }}{{ .Name.CamelCase }}Object
+	var {{ $diag }} diag.Diagnostics
+	{{ $result }}_object, {{ $diag }} = o.{{ .Name.CamelCase }}.CopyFromPango(ctx, *obj.{{ .Name.CamelCase }})
+	diags.Append({{ $diag }}...)
+  {{- end }}
+{{- end }}
+
+{{- define "terraformCreateEntryAssignment" }}
+  {{- range .Params }}
+    {{- if eq .Type "" }}
+      {{- template "terraformCreateEntryAssignmentForParam" Map "Spec" $ "Parameter" . }}
+    {{- end }}
+  {{- end }}
+
+  {{- range .OneOf }}
+    {{- if eq .Type "" }}
+      {{- template "terraformCreateEntryAssignmentForParam" Map "Spec" $ "Parameter" . }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- define "assignFromPangoToTerraform" }}
+  {{- with .Parameter }}
+  {{- if eq .Type "" }}
+	{{ .Name.CamelCase }}: *{{ .Name.LowerCamelCase }}_object,
+  {{- else if eq .Type "list" }}
+	// {{ .Name.CamelCase }}: types.ListValueFrom{{ .Name.LowerCamelCase }}_tf_entries,
+  {{- else }}
+	{{ .Name.CamelCase }}: types.{{ .Type | PascalCase }}Value(*obj.{{ .Name.CamelCase }}),
+  {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- range .Specs }}
+{{- $spec := . }}
+{{ $terraformType := printf "%s%s" .TerraformType .ModelOrObject }}
+func (o *{{ $terraformType }}) CopyFromPango(ctx context.Context, obj {{ .PangoReturnType }}) (*{{ $terraformType }}, diag.Diagnostics) {
+	var diags diag.Diagnostics
+  {{- template "terraformListElementsAs" $spec }}
+  {{- template "terraformCreateEntryAssignment" $spec }}
+	return &{{ $terraformType }}{
+  {{- range .Params }}
+    {{- template "assignFromPangoToTerraform" Map "Spec" $spec "Parameter" . }}
+  {{- end }}
+  {{- range .OneOf }}
+    {{- template "assignFromPangoToTerraform" Map "Spec" $spec "Parameter" . }}
+  {{- end }}
+	}, diags
+}
+{{- end }}
+`
+
+func pascalCase(value string) string {
+	var parts []string
+	if strings.Contains(value, "-") {
+		parts = strings.Split(value, "-")
+	} else if strings.Contains(value, "_") {
+		parts = strings.Split(value, "_")
+	} else {
+		parts = []string{value}
+	}
+
+	var result []string
+	for _, elt := range parts {
+		result = append(result, strings.Title(elt))
+	}
+
+	return strings.Join(result, "")
+}
+
+func RenderCopyToPangoFunctions(pkgName string, terraformTypePrefix string, property *properties.Normalization) (string, error) {
 	specs := generateFromTerraformToPangoParameter(pkgName, terraformTypePrefix, "", property, "")
 
 	type context struct {
@@ -221,7 +352,27 @@ func CopyNestedFromTerraformToPango(pkgName string, terraformTypePrefix string, 
 	data := context{
 		Specs: specs,
 	}
-	return processTemplate(copyNestedFromTerraformToPangoStr, "create-nested-copy-from-tf-to-pango", data, commonFuncMap)
+	funcMap := mergeFuncMaps(commonFuncMap, template.FuncMap{
+		"PascalCase": pascalCase,
+	})
+	return processTemplate(copyToPangoTmpl, "copy-to-pango", data, funcMap)
+}
+
+func RenderCopyFromPangoFunctions(pkgName string, terraformTypePrefix string, property *properties.Normalization) (string, error) {
+	specs := generateFromTerraformToPangoParameter(pkgName, terraformTypePrefix, "", property, "")
+
+	type context struct {
+		Specs []spec
+	}
+
+	data := context{
+		Specs: specs,
+	}
+
+	funcMap := mergeFuncMaps(commonFuncMap, template.FuncMap{
+		"PascalCase": pascalCase,
+	})
+	return processTemplate(copyFromPangoTmpl, "copy-from-pango", data, funcMap)
 }
 
 func ResourceCreateFunction(structName string, serviceName string, paramSpec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, resourceSDKName string) (string, error) {
