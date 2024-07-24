@@ -183,7 +183,6 @@ func (r *{{ structName }}) Metadata(ctx context.Context, req resource.MetadataRe
 }
 
 func (r *{{ structName }}) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
-// TODO: Fill schema via function
 	resp.Schema = rsschema.Schema{
 		Description: "",
 		Attributes: map[string]rsschema.Attribute{
