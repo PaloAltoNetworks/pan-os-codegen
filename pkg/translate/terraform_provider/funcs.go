@@ -514,7 +514,7 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 	}
 
 	var attributes []attributeCtx
-	for name, data := range spec.Locations {
+	for _, data := range spec.Locations {
 		var schemaType string
 		if len(data.Vars) == 0 {
 			schemaType = "rsschema.BoolAttribute"
@@ -523,9 +523,9 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 		}
 
 		var variableAttrs []attributeCtx
-		for variableName, variable := range data.Vars {
+		for _, variable := range data.Vars {
 			attribute := attributeCtx{
-				Name:        variableName,
+				Name:        variable.Name.Underscore,
 				Description: variable.Description,
 				SchemaType:  "rsschema.StringAttribute",
 				Required:    false,
@@ -547,7 +547,7 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 		}
 
 		attribute := attributeCtx{
-			Name:         name,
+			Name:         data.Name.Underscore,
 			SchemaType:   schemaType,
 			Description:  data.Description,
 			Required:     false,
