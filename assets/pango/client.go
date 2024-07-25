@@ -30,7 +30,7 @@ type LoggingInfo struct {
 	SLogHandler   slog.Handler `json:"-"`
 	LogCategories LogCategory  `json:"-"`
 	LogSymbols    []string     `json:"log_symbols"`
-	LogLevel      slog.Leveler `json:"log_level"`
+	LogLevel      slog.Level   `json:"log_level"`
 }
 
 // Client is an XML API client connection.  If provides wrapper functions
@@ -46,7 +46,7 @@ type Client struct {
 	Target          string            `json:"target"`
 	ApiKeyInRequest bool              `json:"api_key_in_request"`
 	Headers         map[string]string `json:"headers"`
-	Logging         *LoggingInfo      `json:"logging"`
+	Logging         LoggingInfo       `json:"logging"`
 
 	// Set to true if you want to check environment variables
 	// for auth and connection properties.
@@ -1003,7 +1003,7 @@ func (c *Client) GetTechSupportFile(ctx context.Context) (string, []byte, error)
 // Internal functions.
 //
 
-func (c *Client) setupLogging(logging *LoggingInfo) error {
+func (c *Client) setupLogging(logging LoggingInfo) error {
 	var logger *slog.Logger
 
 	if logging.SLogHandler == nil {
@@ -1011,7 +1011,7 @@ func (c *Client) setupLogging(logging *LoggingInfo) error {
 		logger.Info("No slog handler provided, creating default os.Stderr handler.", "LogLevel", logging.LogLevel.Level())
 	} else {
 		logger = slog.New(logging.SLogHandler)
-		if logging.LogLevel != nil {
+		if logging.LogLevel != 0 {
 			logger.Warn("LogLevel is ignored when using custom SLog handler.")
 		}
 	}
