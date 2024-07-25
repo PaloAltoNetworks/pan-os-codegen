@@ -342,8 +342,8 @@ func pascalCase(value string) string {
 	return strings.Join(result, "")
 }
 
-func RenderCopyToPangoFunctions(pkgName string, terraformTypePrefix string, property *properties.Normalization) (string, error) {
-	specs := generateFromTerraformToPangoParameter(pkgName, terraformTypePrefix, "", property, "")
+func RenderCopyToPangoFunctions(pkgName string, names *NameProvider, property *properties.Normalization) (string, error) {
+	specs := generateFromTerraformToPangoParameter(pkgName, names.ResourceStructName, "", property, "")
 
 	type context struct {
 		Specs []spec
@@ -358,8 +358,9 @@ func RenderCopyToPangoFunctions(pkgName string, terraformTypePrefix string, prop
 	return processTemplate(copyToPangoTmpl, "copy-to-pango", data, funcMap)
 }
 
-func RenderCopyFromPangoFunctions(pkgName string, terraformTypePrefix string, property *properties.Normalization) (string, error) {
-	specs := generateFromTerraformToPangoParameter(pkgName, terraformTypePrefix, "", property, "")
+func RenderCopyFromPangoFunctions(pkgName string, names *NameProvider, property *properties.Normalization) (string, error) {
+	specs := generateFromTerraformToPangoParameter(pkgName, names.ResourceStructName, "", property, "")
+	specs = append(specs, generateFromTerraformToPangoParameter(pkgName, names.DataSourceStructName, "", property, "")...)
 
 	type context struct {
 		Specs []spec

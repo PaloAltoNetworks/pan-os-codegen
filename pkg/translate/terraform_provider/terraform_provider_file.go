@@ -12,9 +12,11 @@ import (
 
 // NameProvider encapsulates naming conventions for Terraform resources.
 type NameProvider struct {
-	TfName     string
-	MetaName   string
-	StructName string
+	TfName               string
+	MetaName             string
+	StructName           string
+	ResourceStructName   string
+	DataSourceStructName string
 }
 
 // NewNameProvider creates a new NameProvider based on given specifications.
@@ -28,8 +30,10 @@ func NewNameProvider(spec *properties.Normalization, resourceName string) *NameP
 		objectName = tfName
 	}
 	metaName := fmt.Sprintf("_%s", naming.Underscore("", strings.ToLower(objectName), ""))
+	resourceStructName := naming.CamelCase("", tfName, "Resource", true)
+	datasourceStructName := naming.CamelCase("", tfName, "DataSource", true)
 	structName := naming.CamelCase("", tfName, resourceName, true)
-	return &NameProvider{tfName, metaName, structName}
+	return &NameProvider{tfName, metaName, structName, resourceStructName, datasourceStructName}
 }
 
 // GenerateTerraformProvider handles the generation of Terraform resources and data sources.
@@ -101,10 +105,10 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 		"CreateTfIdStruct":        func() (string, error) { return CreateTfIdStruct("entry", spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
 		"CreateTfIdResourceModel": func() (string, error) { return CreateTfIdResourceModel("entry", names.StructName) },
 		"RenderCopyToPangoFunctions": func() (string, error) {
-			return RenderCopyToPangoFunctions(spec.GoSdkPath[len(spec.GoSdkPath)-1], names.StructName, spec)
+			return RenderCopyToPangoFunctions(spec.GoSdkPath[len(spec.GoSdkPath)-1], names, spec)
 		},
 		"RenderCopyFromPangoFunctions": func() (string, error) {
-			return RenderCopyFromPangoFunctions(spec.GoSdkPath[len(spec.GoSdkPath)-1], names.StructName, spec)
+			return RenderCopyFromPangoFunctions(spec.GoSdkPath[len(spec.GoSdkPath)-1], names, spec)
 		},
 		"ResourceCreateFunction": func(structName string, serviceName string) (string, error) {
 			return ResourceCreateFunction(structName, serviceName, spec, terraformProvider, spec.GoSdkPath[len(spec.GoSdkPath)-1])
