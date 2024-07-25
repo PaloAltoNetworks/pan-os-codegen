@@ -6,15 +6,19 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/imports"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 )
 
 // NameProvider encapsulates naming conventions for Terraform resources.
 type NameProvider struct {
-	TfName     string
-	MetaName   string
-	StructName string
+	TfName               string
+	MetaName             string
+	StructName           string
+	DataSourceStructName string
+	ResourceStructName   string
+	PackageName          string
 }
 
 // NewNameProvider creates a new NameProvider based on given specifications.
@@ -28,8 +32,11 @@ func NewNameProvider(spec *properties.Normalization, resourceName string) *NameP
 		objectName = tfName
 	}
 	metaName := fmt.Sprintf("_%s", naming.Underscore("", strings.ToLower(objectName), ""))
-	structName := naming.CamelCase("", tfName, resourceName, true)
-	return &NameProvider{tfName, metaName, structName}
+	structName := naming.CamelCase("", tfName, "", true)
+	dataSourceStructName := naming.CamelCase("", tfName, "DataSource", true)
+	resourceStructName := naming.CamelCase("", tfName, "Resource", true)
+	packageName := spec.GoSdkPath[len(spec.GoSdkPath)-1]
+	return &NameProvider{tfName, metaName, structName, dataSourceStructName, resourceStructName, packageName}
 }
 
 // GenerateTerraformProvider handles the generation of Terraform resources and data sources.
@@ -48,12 +55,12 @@ func (g *GenerateTerraformProvider) executeTemplate(template *template.Template,
 		return fmt.Errorf("error executing %s template: %v", resourceType, err)
 	}
 	renderedTemplate.WriteString("\n")
-	return g.updateProviderFile(&renderedTemplate, terraformProvider, resourceType, names.StructName)
+	return g.updateProviderFile(&renderedTemplate, terraformProvider, resourceType, names)
 }
 
 // updateProviderFile updates the Terraform provider file by appending the rendered template
 // to the appropriate slice in the TerraformProviderFile based on the provided resourceType.
-func (g *GenerateTerraformProvider) updateProviderFile(renderedTemplate *strings.Builder, terraformProvider *properties.TerraformProviderFile, resourceType string, structName string) error {
+func (g *GenerateTerraformProvider) updateProviderFile(renderedTemplate *strings.Builder, terraformProvider *properties.TerraformProviderFile, resourceType string, names *NameProvider) error {
 	switch resourceType {
 	case "ProviderFile":
 		terraformProvider.Code = renderedTemplate
@@ -62,17 +69,17 @@ func (g *GenerateTerraformProvider) updateProviderFile(renderedTemplate *strings
 			return fmt.Errorf("error writing %s template: %v", resourceType, err)
 		}
 	}
-	return g.appendResourceType(terraformProvider, resourceType, structName)
+	return g.appendResourceType(terraformProvider, resourceType, names)
 }
 
 // appendResourceType appends the given struct name to the appropriate slice in the TerraformProviderFile
 // based on the provided resourceType.
-func (g *GenerateTerraformProvider) appendResourceType(terraformProvider *properties.TerraformProviderFile, resourceType string, structName string) error {
+func (g *GenerateTerraformProvider) appendResourceType(terraformProvider *properties.TerraformProviderFile, resourceType string, names *NameProvider) error {
 	switch resourceType {
 	case "DataSource", "DataSourceList":
-		terraformProvider.DataSources = append(terraformProvider.DataSources, structName)
+		terraformProvider.DataSources = append(terraformProvider.DataSources, names.DataSourceStructName)
 	case "Resource":
-		terraformProvider.Resources = append(terraformProvider.Resources, structName)
+		terraformProvider.Resources = append(terraformProvider.Resources, names.ResourceStructName)
 	}
 	return nil
 }
@@ -95,28 +102,32 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 	resourceType := "Resource"
 	names := NewNameProvider(spec, resourceType)
 	funcMap := template.FuncMap{
-		"metaName":                func() string { return names.MetaName },
-		"structName":              func() string { return names.StructName },
-		"serviceName":             func() string { return names.TfName },
-		"CreateTfIdStruct":        func() (string, error) { return CreateTfIdStruct("entry", spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
-		"CreateTfIdResourceModel": func() (string, error) { return CreateTfIdResourceModel("entry", names.StructName) },
+		"metaName":                   func() string { return names.MetaName },
+		"structName":                 func() string { return names.StructName },
+		"dataSourceStructName":       func() string { return names.DataSourceStructName },
+		"resourceStructName":         func() string { return names.ResourceStructName },
+		"serviceName":                func() string { return names.TfName },
+		"CreateTfIdStruct":           func() (string, error) { return CreateTfIdStruct("entry", spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
+		"CreateTfIdResourceModel":    func() (string, error) { return CreateTfIdResourceModel("entry", names.StructName) },
+		"RenderLocationStructs":      func() (string, error) { return RenderLocationStructs(names, spec) },
+		"RenderLocationSchemaGetter": func() (string, error) { return RenderLocationSchemaGetter(names, spec) },
 		"RenderCopyToPangoFunctions": func() (string, error) {
-			return RenderCopyToPangoFunctions(spec.GoSdkPath[len(spec.GoSdkPath)-1], names.StructName, spec)
+			return RenderCopyToPangoFunctions(names.PackageName, names.ResourceStructName, spec)
 		},
 		"RenderCopyFromPangoFunctions": func() (string, error) {
-			return RenderCopyFromPangoFunctions(spec.GoSdkPath[len(spec.GoSdkPath)-1], names.StructName, spec)
+			return RenderCopyFromPangoFunctions(names.PackageName, names.ResourceStructName, spec)
 		},
 		"ResourceCreateFunction": func(structName string, serviceName string) (string, error) {
-			return ResourceCreateFunction(structName, serviceName, spec, terraformProvider, spec.GoSdkPath[len(spec.GoSdkPath)-1])
+			return ResourceCreateFunction(names, serviceName, spec, terraformProvider, names.PackageName)
 		},
 		"ResourceReadFunction": func(structName string, serviceName string) (string, error) {
-			return ResourceReadFunction(structName, serviceName, spec, spec.GoSdkPath[len(spec.GoSdkPath)-1])
+			return ResourceReadFunction(names, serviceName, spec, names.PackageName)
 		},
 		"ResourceUpdateFunction": func(structName string, serviceName string) (string, error) {
-			return ResourceUpdateFunction(structName, serviceName, spec.Spec, spec.GoSdkPath[len(spec.GoSdkPath)-1])
+			return ResourceUpdateFunction(names, serviceName, spec, names.PackageName)
 		},
 		"ResourceDeleteFunction": func(structName string, serviceName string) (string, error) {
-			return ResourceDeleteFunction(structName, serviceName, spec.Spec, spec.GoSdkPath[len(spec.GoSdkPath)-1])
+			return ResourceDeleteFunction(structName, serviceName, spec.Spec, names.PackageName)
 		},
 		"ParamToModelResource": ParamToModelResource,
 		"ModelNestedStruct":    ModelNestedStruct,
@@ -170,18 +181,16 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 				// Generate Resource with entry style
 				terraformProvider.ImportManager.AddSdkImport(sdkPkgPath(spec), "")
 
+				conditionallyAddValidators(terraformProvider.ImportManager, spec)
+				conditionallyAddModifiers(terraformProvider.ImportManager, spec)
+
 				terraformProvider.ImportManager.AddStandardImport("fmt", "")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/diag", "")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource", "")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
-				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier", "")
-				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier", "")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault", "")
-				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier", "")
-				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/schema/validator", "")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types", "")
-				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator", "")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
 
 				err := g.generateTerraformEntityTemplate(resourceType, names, spec, terraformProvider, resourceObj, funcMap)
@@ -232,7 +241,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(spec *properties
 		names := NewNameProvider(spec, resourceType)
 		funcMap := template.FuncMap{
 			"metaName":   func() string { return names.MetaName },
-			"structName": func() string { return names.StructName },
+			"structName": func() string { return names.DataSourceStructName },
 		}
 		err := g.generateTerraformEntityTemplate(resourceType, names, spec, terraformProvider, dataSourceSingletonObj, funcMap)
 		if err != nil {
@@ -300,4 +309,35 @@ func sdkPkgPath(spec *properties.Normalization) string {
 	path := fmt.Sprintf("github.com/PaloAltoNetworks/pango/%s", strings.Join(spec.GoSdkPath, "/"))
 
 	return path
+}
+
+func conditionallyAddValidators(manager *imports.Manager, spec *properties.Normalization) {
+
+}
+
+func conditionallyAddModifiers(manager *imports.Manager, spec *properties.Normalization) {
+	planRequired := true
+	boolRequired := false
+	objectRequired := false
+	stringRequired := false
+	for _, loc := range spec.Locations {
+		if len(loc.Vars) == 0 {
+			boolRequired = true
+		} else {
+			objectRequired = true
+			stringRequired = true
+		}
+	}
+	if planRequired {
+		manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier", "")
+	}
+	if boolRequired {
+		manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier", "")
+	}
+	if objectRequired {
+		manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier", "")
+	}
+	if stringRequired {
+		manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier", "")
+	}
 }

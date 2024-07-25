@@ -12,6 +12,7 @@ import (
 // Package-level function map to avoid repetition in each function
 var commonFuncMap = template.FuncMap{
 	"Map":            templateMap,
+	"LowerCase":      func(value string) string { return strings.ToLower(value) },
 	"CamelCaseName":  func(paramName string) string { return naming.CamelCase("", paramName, "", true) },
 	"UnderscoreName": func(paramName string) string { return naming.Underscore("", paramName, "") },
 	"CamelCaseType":  func(paramType string) string { return naming.CamelCase("", paramType, "", true) },

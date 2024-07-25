@@ -55,10 +55,10 @@ func TestCreateNestedStruct(t *testing.T) {
 	createdStructs := make(map[string]bool)
 
 	// When
-	result, err := terraform_provider.CreateNestedStruct(paramName, paramProp, structName, nestedStructString, createdStructs)
+	err := terraform_provider.CreateNestedStruct(paramName, paramProp, structName, nestedStructString, createdStructs)
 
 	// Then
 	assert.NoError(t, err)
-	assert.NotEmpty(t, result)
-	assert.Contains(t, result, "BaseNestedObject")
+	assert.NotEmpty(t, nestedStructString.String())
+	assert.Contains(t, nestedStructString.String(), "BaseNestedObject")
 }
