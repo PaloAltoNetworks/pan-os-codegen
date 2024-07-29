@@ -504,7 +504,6 @@ type {{ structName }}Filter struct {
 
 {{ RenderDataSourceStructs }}
 
-
 // Metadata returns the data source type name.
 func (d *{{ structName }}) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
     resp.TypeName = req.ProviderTypeName + "{{ metaName }}"

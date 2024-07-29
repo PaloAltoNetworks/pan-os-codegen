@@ -325,7 +325,6 @@ func conditionallyAddModifiers(manager *imports.Manager, spec *properties.Normal
 		} else {
 			manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier", "")
 			manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier", "")
-
 		}
 	}
 }
