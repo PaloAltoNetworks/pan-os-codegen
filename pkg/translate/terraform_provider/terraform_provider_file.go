@@ -316,28 +316,13 @@ func conditionallyAddValidators(manager *imports.Manager, spec *properties.Norma
 }
 
 func conditionallyAddModifiers(manager *imports.Manager, spec *properties.Normalization) {
-	planRequired := true
-	boolRequired := false
-	objectRequired := false
-	stringRequired := false
+	manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier", "")
 	for _, loc := range spec.Locations {
 		if len(loc.Vars) == 0 {
-			boolRequired = true
+			manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier", "")
 		} else {
-			objectRequired = true
-			stringRequired = true
+			manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier", "")
+			manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier", "")
 		}
-	}
-	if planRequired {
-		manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier", "")
-	}
-	if boolRequired {
-		manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier", "")
-	}
-	if objectRequired {
-		manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier", "")
-	}
-	if stringRequired {
-		manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier", "")
 	}
 }
