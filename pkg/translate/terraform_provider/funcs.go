@@ -30,7 +30,7 @@ type spec struct {
 	OneOf           map[string]*properties.SpecParam
 }
 
-func getReturnPangoTypeForProperty(pkgName string, parent string, prop *properties.SpecParam) string {
+func returnPangoTypeForProperty(pkgName string, parent string, prop *properties.SpecParam) string {
 	if prop.Type == "" {
 		return fmt.Sprintf("%s.%s", pkgName, parent)
 	} else if prop.Type == "list" {
@@ -697,7 +697,7 @@ type datasourceStructSpec struct {
 	Fields        []datasourceStructFieldSpec
 }
 
-func getTerraformTypeForProperty(structPrefix string, prop *properties.SpecParam) string {
+func terraformTypeForProperty(structPrefix string, prop *properties.SpecParam) string {
 	if prop.Type == "" {
 		return fmt.Sprintf("*%s%sObject", structPrefix, prop.Name.CamelCase)
 	}
@@ -713,11 +713,11 @@ func getTerraformTypeForProperty(structPrefix string, prop *properties.SpecParam
 	return fmt.Sprintf("types.%s", pascalCase(prop.Type))
 }
 
-func renderFieldSpec(param *properties.SpecParam, structPrefix string) datasourceStructFieldSpec {
+func structFieldSpec(param *properties.SpecParam, structPrefix string) datasourceStructFieldSpec {
 	tfTag := fmt.Sprintf("`tfsdk:\"%s\"`", param.Name.Underscore)
 	return datasourceStructFieldSpec{
 		Name: param.Name.CamelCase,
-		Type: getTerraformTypeForProperty(structPrefix, param),
+		Type: terraformTypeForProperty(structPrefix, param),
 		Tags: []string{tfTag},
 	}
 }
@@ -730,11 +730,11 @@ func dataSourceStructContextForParam(structPrefix string, param *properties.Spec
 	var params []datasourceStructFieldSpec
 	if param.Spec != nil {
 		for _, elt := range param.Spec.Params {
-			params = append(params, renderFieldSpec(elt, structName))
+			params = append(params, structFieldSpec(elt, structName))
 		}
 
 		for _, elt := range param.Spec.OneOf {
-			params = append(params, renderFieldSpec(elt, structName))
+			params = append(params, structFieldSpec(elt, structName))
 		}
 	}
 
@@ -775,14 +775,14 @@ func dataSourceStructContext(spec *properties.Normalization) []datasourceStructS
 	var fields []datasourceStructFieldSpec
 
 	for _, elt := range spec.Spec.Params {
-		fields = append(fields, renderFieldSpec(elt, names.DataSourceStructName))
+		fields = append(fields, structFieldSpec(elt, names.DataSourceStructName))
 		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
 			structs = append(structs, dataSourceStructContextForParam(names.DataSourceStructName, elt)...)
 		}
 	}
 
 	for _, elt := range spec.Spec.OneOf {
-		fields = append(fields, renderFieldSpec(elt, names.DataSourceStructName))
+		fields = append(fields, structFieldSpec(elt, names.DataSourceStructName))
 		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
 			structs = append(structs, dataSourceStructContextForParam(names.DataSourceStructName, elt)...)
 		}
