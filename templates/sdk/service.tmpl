@@ -56,12 +56,16 @@ return nil, err
 
 {{- if .Entry}}
     path, err := loc.XpathWithEntryName(vn, entry.Name)
+    if err != nil {
+        return nil, err
+    }
 {{- else}}
     path, err := loc.Xpath(vn)
+    if err != nil {
+        return nil, err
+    }
+    path = path[:len(path)-1]
 {{- end}}
-if err != nil {
-return nil, err
-}
 
 {{- if .Entry}}
     createSpec, err := specifier(entry)
@@ -72,10 +76,21 @@ if err != nil {
 return nil, err
 }
 
+data, err := xml.Marshal(createSpec)
+if err != nil {
+	return nil, err
+}
+
+// Optionally remove top entry element from marshalled data to fullfill
+// PAN-OS API requirements.
+// PAN-OS behaviour change: SET operations in the XML API no longer support
+// partial XPath values.
+data = pangoxml.StripEntryElement(data)
+
 cmd := &xmlapi.Config{
 Action:  "set",
-Xpath:   util.AsXpath(path[:len(path)-1]),
-Element: createSpec,
+Xpath:   util.AsXpath(path),
+Element: string(data),
 Target:  s.client.GetTarget(),
 }
 
