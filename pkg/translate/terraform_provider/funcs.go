@@ -30,7 +30,7 @@ type spec struct {
 	OneOf           map[string]*properties.SpecParam
 }
 
-func getReturnPangoTypeForProperty(pkgName string, parent string, prop *properties.SpecParam) string {
+func returnPangoTypeForProperty(pkgName string, parent string, prop *properties.SpecParam) string {
 	if prop.Type == "" {
 		return fmt.Sprintf("%s.%s", pkgName, parent)
 	} else if prop.Type == "list" {
@@ -673,6 +673,139 @@ func RenderLocationsStateToPango(names *NameProvider, spec *properties.Normaliza
 	}
 	data := context{Locations: renderLocationsGetContext(names, spec)}
 	return processTemplate(locationsStateToPango, "render-locations-state-to-pango", data, commonFuncMap)
+}
+
+const dataSourceStructs = `
+{{- range .Structs }}
+type {{ .StructName }}{{ .ModelOrObject }} struct {
+  {{- range .Fields }}
+	{{ .Name }} {{ .Type }} {{ range .Tags }}{{ . }} {{ end }}
+  {{- end }}
+}
+{{- end }}
+`
+
+type datasourceStructFieldSpec struct {
+	Name string
+	Type string
+	Tags []string
+}
+
+type datasourceStructSpec struct {
+	StructName    string
+	ModelOrObject string
+	Fields        []datasourceStructFieldSpec
+}
+
+func terraformTypeForProperty(structPrefix string, prop *properties.SpecParam) string {
+	if prop.Type == "" {
+		return fmt.Sprintf("*%s%sObject", structPrefix, prop.Name.CamelCase)
+	}
+
+	if prop.Type == "list" && prop.Items.Type == "entry" {
+		return fmt.Sprintf("[]%s%sObject", structPrefix, prop.Name.CamelCase)
+	}
+
+	if prop.Type == "list" {
+		return fmt.Sprintf("[]types.%s", pascalCase(prop.Items.Type))
+	}
+
+	return fmt.Sprintf("types.%s", pascalCase(prop.Type))
+}
+
+func structFieldSpec(param *properties.SpecParam, structPrefix string) datasourceStructFieldSpec {
+	tfTag := fmt.Sprintf("`tfsdk:\"%s\"`", param.Name.Underscore)
+	return datasourceStructFieldSpec{
+		Name: param.Name.CamelCase,
+		Type: terraformTypeForProperty(structPrefix, param),
+		Tags: []string{tfTag},
+	}
+}
+
+func dataSourceStructContextForParam(structPrefix string, param *properties.SpecParam) []datasourceStructSpec {
+	var structs []datasourceStructSpec
+
+	structName := fmt.Sprintf("%s%s", structPrefix, param.Name.CamelCase)
+
+	var params []datasourceStructFieldSpec
+	if param.Spec != nil {
+		for _, elt := range param.Spec.Params {
+			params = append(params, structFieldSpec(elt, structName))
+		}
+
+		for _, elt := range param.Spec.OneOf {
+			params = append(params, structFieldSpec(elt, structName))
+		}
+	}
+
+	structs = append(structs, datasourceStructSpec{
+		StructName:    structName,
+		ModelOrObject: "Object",
+		Fields:        params,
+	})
+
+	if param.Spec == nil {
+		return structs
+	}
+
+	for _, elt := range param.Spec.Params {
+		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
+			structs = append(structs, dataSourceStructContextForParam(structName, elt)...)
+		}
+	}
+
+	for _, elt := range param.Spec.OneOf {
+		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
+			structs = append(structs, dataSourceStructContextForParam(structName, elt)...)
+		}
+	}
+
+	return structs
+}
+
+func dataSourceStructContext(spec *properties.Normalization) []datasourceStructSpec {
+	var structs []datasourceStructSpec
+
+	if spec.Spec == nil {
+		return nil
+	}
+
+	names := NewNameProvider(spec)
+
+	var fields []datasourceStructFieldSpec
+
+	for _, elt := range spec.Spec.Params {
+		fields = append(fields, structFieldSpec(elt, names.DataSourceStructName))
+		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
+			structs = append(structs, dataSourceStructContextForParam(names.DataSourceStructName, elt)...)
+		}
+	}
+
+	for _, elt := range spec.Spec.OneOf {
+		fields = append(fields, structFieldSpec(elt, names.DataSourceStructName))
+		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
+			structs = append(structs, dataSourceStructContextForParam(names.DataSourceStructName, elt)...)
+		}
+	}
+
+	structs = append(structs, datasourceStructSpec{
+		StructName:    names.DataSourceStructName,
+		ModelOrObject: "Model",
+		Fields:        fields,
+	})
+	return structs
+}
+
+func RenderDataSourceStructs(names *NameProvider, spec *properties.Normalization) (string, error) {
+	type context struct {
+		Structs []datasourceStructSpec
+	}
+
+	data := context{
+		Structs: dataSourceStructContext(spec),
+	}
+
+	return processTemplate(dataSourceStructs, "render-locations-state-to-pango", data, commonFuncMap)
 }
 
 func ResourceCreateFunction(names *NameProvider, serviceName string, paramSpec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, resourceSDKName string) (string, error) {

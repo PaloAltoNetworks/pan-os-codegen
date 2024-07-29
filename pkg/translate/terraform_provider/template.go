@@ -498,17 +498,11 @@ type {{ structName }} struct {
     client *pango.Client
 }
 
-type {{ structName }}Model struct {
-//TODO: Generate Data Source model via function
-}
-
 type {{ structName }}Filter struct {
 //TODO: Generate Data Source filter via function
 }
 
-type {{ structName }}Entry struct {
-// TODO: Entry model struct via function
-}
+{{ RenderDataSourceStructs }}
 
 // Metadata returns the data source type name.
 func (d *{{ structName }}) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {

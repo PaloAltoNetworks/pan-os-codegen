@@ -22,7 +22,7 @@ type NameProvider struct {
 }
 
 // NewNameProvider creates a new NameProvider based on given specifications.
-func NewNameProvider(spec *properties.Normalization, resourceName string) *NameProvider {
+func NewNameProvider(spec *properties.Normalization) *NameProvider {
 	var objectName string
 
 	tfName := spec.Name
@@ -100,7 +100,7 @@ func (g *GenerateTerraformProvider) generateTerraformEntityTemplate(resourceType
 // GenerateTerraformResource generates a Terraform resource template.
 func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile) error {
 	resourceType := "Resource"
-	names := NewNameProvider(spec, resourceType)
+	names := NewNameProvider(spec)
 	funcMap := template.FuncMap{
 		"metaName":                   func() string { return names.MetaName },
 		"structName":                 func() string { return names.StructName },
@@ -235,13 +235,15 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(spec *properties
 
 	if !spec.TerraformProviderConfig.SkipDatasource {
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource/schema", "dsschema")
+		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types", "")
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource", "")
 
 		resourceType := "DataSource"
-		names := NewNameProvider(spec, resourceType)
+		names := NewNameProvider(spec)
 		funcMap := template.FuncMap{
-			"metaName":   func() string { return names.MetaName },
-			"structName": func() string { return names.DataSourceStructName },
+			"metaName":                func() string { return names.MetaName },
+			"structName":              func() string { return names.DataSourceStructName },
+			"RenderDataSourceStructs": func() (string, error) { return RenderDataSourceStructs(names, spec) },
 		}
 		err := g.generateTerraformEntityTemplate(resourceType, names, spec, terraformProvider, dataSourceSingletonObj, funcMap)
 		if err != nil {
