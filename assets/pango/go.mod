@@ -1,6 +1,6 @@
 module github.com/PaloAltoNetworks/pango
 
-go 1.21.4
+go 1.22
 
 require (
 	github.com/onsi/ginkgo/v2 v2.19.0
