@@ -587,7 +587,7 @@ type locationFieldCtx struct {
 type locationCtx struct {
 	Name                string
 	TerraformStructName string
-	PangoStructName     string
+	SdkStructName       string
 	IsBool              bool
 	Fields              []locationFieldCtx
 }
@@ -606,7 +606,7 @@ func renderLocationsGetContext(names *NameProvider, spec *properties.Normalizati
 		locations = append(locations, locationCtx{
 			Name:                location.Name.CamelCase,
 			TerraformStructName: fmt.Sprintf("%s%sLocation", names.StructName, location.Name.CamelCase),
-			PangoStructName:     fmt.Sprintf("%s.%sLocation", names.PackageName, location.Name.CamelCase),
+			SdkStructName:       fmt.Sprintf("%s.%sLocation", names.PackageName, location.Name.CamelCase),
 			IsBool:              len(location.Vars) == 0,
 			Fields:              fields,
 		})
@@ -655,7 +655,7 @@ if !state.Location.{{ .Name }}.IsNull() && state.Location.{{ .Name }}.ValueBool(
 }
   {{- else }}
 if state.Location.{{ .Name }} != nil {
-	location := &{{ .PangoStructName }}{
+	location := &{{ .SdkStructName }}{
     {{ $locationName := .Name }}
     {{- range .Fields }}
 		{{ .Name }}: state.Location.{{ $locationName }}.{{ .Name }}.ValueString(),
