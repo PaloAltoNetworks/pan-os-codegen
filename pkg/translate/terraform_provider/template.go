@@ -120,24 +120,24 @@ const resourceObj = `
 
 // Generate Terraform Resource object
 var (
-	_ resource.Resource                = &{{ structName }}{}
-	_ resource.ResourceWithConfigure   = &{{ structName }}{}
-	_ resource.ResourceWithImportState = &{{ structName }}{}
+	_ resource.Resource                = &{{ resourceStructName }}{}
+	_ resource.ResourceWithConfigure   = &{{ resourceStructName }}{}
+	_ resource.ResourceWithImportState = &{{ resourceStructName }}{}
 )
 
-func New{{ structName }}() resource.Resource {
-	return &{{ structName }}{}
+func New{{ resourceStructName }}() resource.Resource {
+	return &{{ resourceStructName }}{}
 }
 
-type {{ structName }} struct {
+type {{ resourceStructName }} struct {
 	client *pango.Client
 }
 
-type {{ structName }}Tfid struct {
+type {{ resourceStructName }}Tfid struct {
 	{{ CreateTfIdStruct }}
 }
 
-func (o *{{ structName }}Tfid) IsValid() error {
+func (o *{{ resourceStructName }}Tfid) IsValid() error {
 	if o.Name == "" {
 		return fmt.Errorf("name is unspecified")
 	}
@@ -145,48 +145,37 @@ func (o *{{ structName }}Tfid) IsValid() error {
 	return o.Location.IsValid()
 }
 
-type {{ structName }}Location struct {
-// TODO: Generate Location struct via function
-	{{- CreateLocationStruct structName }}
-}
+{{- RenderLocationStructs }}
 
-type {{ structName }}VsysLocation struct {
-// TODO: Generate Location struct via function
-	{{- CreateLocationVsysStruct structName }}
-}
+{{- RenderLocationSchemaGetter }}
 
-type {{ structName }}DeviceGroupLocation struct {
-// TODO: Generate Device Group struct via function
-	{{- CreateLocationDeviceGroupStruct structName }}
-}
-
-type {{ structName }}Model struct {
+type {{ resourceStructName }}Model struct {
 		{{ CreateTfIdResourceModel }}
 		Name types.String` + "`" + `tfsdk:"name"` + "`" + `
         {{- range $pName, $pParam := $.Spec.Params}}
-            {{- ParamToModelResource $pName $pParam structName -}}
+            {{- ParamToModelResource $pName $pParam resourceStructName -}}
         {{- end}}
         {{- range $pName, $pParam := $.Spec.OneOf}}
-            {{- ParamToModelResource $pName $pParam structName -}}
+            {{- ParamToModelResource $pName $pParam resourceStructName -}}
         {{- end}}
 }
 
 {{- range $pName, $pParam := $.Spec.Params}}
-	{{ ModelNestedStruct $pName $pParam structName }}
+	{{ ModelNestedStruct $pName $pParam resourceStructName }}
 {{- end}}
 {{- range $pName, $pParam := $.Spec.OneOf}}
-	{{ ModelNestedStruct $pName $pParam structName }}
+	{{ ModelNestedStruct $pName $pParam resourceStructName }}
 {{- end}}
 
-func (r *{{ structName }}) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *{{ resourceStructName }}) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "{{ metaName }}"
 }
 
-func (r *{{ structName }}) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *{{ resourceStructName }}) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = rsschema.Schema{
 		Description: "",
 		Attributes: map[string]rsschema.Attribute{
-	{{- ResourceSchemaLocationAttribute }}
+	"location": {{ structName }}LocationsSchema(),
 	"name": rsschema.StringAttribute{
 		Description: "The name of the resource.",
 		Required:    true,
@@ -201,7 +190,7 @@ func (r *{{ structName }}) Schema(ctx context.Context, req resource.SchemaReques
 	}
 }
 
-func (r *{{ structName }}) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *{{ resourceStructName }}) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -214,23 +203,23 @@ func (r *{{ structName }}) Configure(ctx context.Context, req resource.Configure
 
 {{ RenderCopyFromPangoFunctions }}
 
-func (r *{{ structName }}) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	{{ ResourceCreateFunction structName serviceName}}
+func (r *{{ resourceStructName }}) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	{{ ResourceCreateFunction resourceStructName serviceName}}
 }
 
-func (r *{{ structName }}) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	{{ ResourceReadFunction structName serviceName}}
+func (r *{{ resourceStructName }}) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	{{ ResourceReadFunction resourceStructName serviceName}}
 }
 
-func (r *{{ structName }}) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	{{ ResourceUpdateFunction structName serviceName}}
+func (r *{{ resourceStructName }}) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	{{ ResourceUpdateFunction resourceStructName serviceName}}
 }
 
-func (r *{{ structName }}) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	{{ ResourceDeleteFunction structName serviceName}}
+func (r *{{ resourceStructName }}) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	{{ ResourceDeleteFunction resourceStructName serviceName}}
 }
 
-func (r *{{ structName }}) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *{{ resourceStructName }}) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("tfid"), req, resp)
 }
 
@@ -264,35 +253,7 @@ const resourceCreateFunction = `
 	loc := {{ .structName }}Tfid{Name: state.Name.ValueString()}
 
 	// TODO: this needs to handle location structure for UUID style shared has nested structure type
-        {{- if .locations.shared }}
-	if !state.Location.Shared.IsNull() && state.Location.Shared.ValueBool() {
-		loc.Location.Shared = true
-	}
-        {{- end }}
-
-        {{- if .locations.from_panorama_shared }}
-	if !state.Location.FromPanorama.IsNull() && state.Location.FromPanorama.ValueBool() {
-		loc.Location.FromPanoramaShared = true
-	}
-        {{- end }}
-
-        {{- if .locations.vsys }}
-	if state.Location.Vsys != nil {
-		loc.Location.Vsys = &{{ .serviceName }}.VsysLocation{}
-		loc.Location.Vsys.NgfwDevice = state.Location.Vsys.NgfwDevice.ValueString()
-	}
-        {{- end }}
-
-        {{- if .locations.panorama }}
-	if state.Location.DeviceGroup != nil {
-		loc.Location = {{ .resourceSDKName }}.Location{
-                        Panorama: &{{ .resourceSDKName }}.PanoramaLocation{
-                                PanoramaDevice: state.Location.DeviceGroup.PanoramaDevice.ValueString(),
-                        },
-                }
-	}
-        {{- end }}
-
+	{{ RenderLocationsStateToPango }}
 
 	if err := loc.IsValid(); err != nil {
 		resp.Diagnostics.AddError("Invalid location", err.Error())
@@ -340,14 +301,14 @@ const resourceCreateFunction = `
 `
 
 const resourceReadFunction = `
-	var savestate, state {{ .structName }}Model
+	var savestate, state {{ .resourceStructName }}Model
 	resp.Diagnostics.Append(req.State.Get(ctx, &savestate)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Parse the location from tfid.
-	var loc {{ .structName }}Tfid
+	var loc {{ .resourceStructName }}Tfid
 	if err := DecodeLocation(savestate.Tfid.ValueString(), &loc); err != nil {
 		resp.Diagnostics.AddError("Error parsing tfid", err.Error())
 		return
@@ -355,7 +316,7 @@ const resourceReadFunction = `
 
 	// Basic logging.
 	tflog.Info(ctx, "performing resource read", map[string]any{
-		"resource_name": "panos_{{ UnderscoreName .structName }}",
+		"resource_name": "panos_{{ UnderscoreName .resourceStructName }}",
 		"function":      "Read",
 		"name":          loc.Name,
 	})
@@ -386,30 +347,7 @@ const resourceReadFunction = `
 		return
 	}
 
-	// Save location to state.
-        {{- if .locations.shared }}
-	if loc.Location.Shared {
-		state.Location.Shared = types.BoolValue(true)
-	}
-        {{- end }}
-        {{- if .locations.from_panorama_shared }}
-	if loc.Location.FromPanoramaShared {
-		state.Location.FromPanorama = types.BoolValue(true)
-	}
-        {{- end }}
-        {{- if .locations.vsys }}
-	if loc.Location.Vsys != nil {
-		state.Location.Vsys = &{{ .structName }}VsysLocation{}
-		state.Location.Vsys.NgfwDevice = types.StringValue(loc.Location.Vsys.NgfwDevice)
-	}
-        {{- end }}
-        {{- if .locations.panorama }}
-	if loc.Location.Panorama != nil {
-		state.Location.DeviceGroup = &{{ .structName }}DeviceGroupLocation{
-		        PanoramaDevice: types.StringValue(loc.Location.Panorama.PanoramaDevice),
-                }
-	}
-        {{- end }}
+	{{ RenderLocationsPangoToState }}
 
 	/*
 			// Keep the timeouts.
@@ -566,22 +504,6 @@ type {{ structName }}Model struct {
 
 type {{ structName }}Filter struct {
 //TODO: Generate Data Source filter via function
-}
-
-type {{ structName }}Location struct {
-//TODO: Generate Data Source Location via function
-}
-
-type {{ structName }}SharedLocation struct {
-//TODO: Generate Data Source Location shared via function
-}
-
-type {{ structName }}VsysLocation struct {
-//TODO: Generate Data Source Location vsys via function
-}
-
-type {{ structName }}DeviceGroupLocation struct {
-//TODO: Generate Data Source Location Device Group via function
 }
 
 type {{ structName }}Entry struct {

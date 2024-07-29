@@ -375,9 +375,310 @@ func RenderCopyFromPangoFunctions(pkgName string, terraformTypePrefix string, pr
 	return processTemplate(copyFromPangoTmpl, "copy-from-pango", data, funcMap)
 }
 
-func ResourceCreateFunction(structName string, serviceName string, paramSpec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, resourceSDKName string) (string, error) {
+const renderLocationTmpl = `
+{{- range .Locations }}
+type {{ .StructName }} struct {
+  {{- range .Fields }}
+	{{ .Name }} {{ .Type }} {{ range .Tags }}{{ . }} {{ end }}
+  {{- end }}
+}
+{{- end }}
+`
+
+func RenderLocationStructs(names *NameProvider, spec *properties.Normalization) (string, error) {
+	type fieldCtx struct {
+		Name string
+		Type string
+		Tags []string
+	}
+
+	type locationCtx struct {
+		StructName string
+		Fields     []fieldCtx
+	}
+
+	type context struct {
+		Locations []locationCtx
+	}
+
+	var locations []locationCtx
+
+	// Create the top location structure that references other locations
+	topLocation := locationCtx{
+		StructName: fmt.Sprintf("%sLocation", names.StructName),
+	}
+
+	for name, data := range spec.Locations {
+		structName := fmt.Sprintf("%s%sLocation", names.StructName, pascalCase(name))
+		tfTag := fmt.Sprintf("`tfsdk:\"%s\"`", name)
+		var structType string
+		if len(data.Vars) > 0 {
+			structType = fmt.Sprintf("*%s", structName)
+		} else {
+			structType = "types.Bool"
+		}
+
+		topLocation.Fields = append(topLocation.Fields, fieldCtx{
+			Name: pascalCase(name),
+			Type: structType,
+			Tags: []string{tfTag},
+		})
+
+		if len(data.Vars) == 0 {
+			continue
+		}
+
+		var fields []fieldCtx
+		for paramName, param := range data.Vars {
+			paramTag := fmt.Sprintf("`tfsdk:\"%s\"`", paramName)
+			fields = append(fields, fieldCtx{
+				Name: param.Name.CamelCase,
+				Type: "types.String",
+				Tags: []string{paramTag},
+			})
+		}
+
+		location := locationCtx{
+			StructName: structName,
+			Fields:     fields,
+		}
+		locations = append(locations, location)
+	}
+
+	locations = append(locations, topLocation)
+
+	data := context{
+		Locations: locations,
+	}
+	return processTemplate(renderLocationTmpl, "render-location-structs", data, commonFuncMap)
+}
+
+const locationSchemaGetterTmpl = `
+{{- define "renderLocationAttribute" }}
+"{{ .Name }}": {{ .SchemaType }}{
+	Description: "{{ .Description }}",
+  {{- if .Required }}
+	Required: true
+  {{- else }}
+	Optional: true,
+  {{- end }}
+  {{- if .Computed }}
+	Computed: true,
+  {{- end }}
+  {{- if .Default }}
+	Default: {{ .Default.Type }}({{ .Default.Value }}),
+  {{- end }}
+  {{- if .Attributes }}
+	Attributes: map[string]rsschema.Attribute{
+    {{- range .Attributes }}
+		{{- template "renderLocationAttribute" . }}
+    {{- end }}
+	},
+  {{- end }}
+	PlanModifiers: []planmodifier.{{ .ModifierType }}{
+		{{ .ModifierType | LowerCase }}planmodifier.RequiresReplace(),
+	},
+},
+{{- end }}
+
+func {{ .StructName }}LocationsSchema() rsschema.Attribute {
+  {{- with .Schema }}
+	return rsschema.SingleNestedAttribute{
+		Description: "{{ .Description }}",
+		Required: true,
+		Attributes: map[string]rsschema.Attribute{
+{{- range .Attributes }}
+{{- template "renderLocationAttribute" . }}
+{{- end }}
+		},
+	}
+}
+  {{- end }}
+`
+
+func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalization) (string, error) {
+	type defaultCtx struct {
+		Type  string
+		Value string
+	}
+
+	type attributeCtx struct {
+		Name         string
+		SchemaType   string
+		Description  string
+		Required     bool
+		Computed     bool
+		Default      *defaultCtx
+		ModifierType string
+		Attributes   []attributeCtx
+	}
+
+	var attributes []attributeCtx
+	for _, data := range spec.Locations {
+		var schemaType string
+		if len(data.Vars) == 0 {
+			schemaType = "rsschema.BoolAttribute"
+		} else {
+			schemaType = "rsschema.SingleNestedAttribute"
+		}
+
+		var variableAttrs []attributeCtx
+		for _, variable := range data.Vars {
+			attribute := attributeCtx{
+				Name:        variable.Name.Underscore,
+				Description: variable.Description,
+				SchemaType:  "rsschema.StringAttribute",
+				Required:    false,
+				Computed:    true,
+				Default: &defaultCtx{
+					Type:  "stringdefault.StaticString",
+					Value: fmt.Sprintf(`"%s"`, variable.Default),
+				},
+				ModifierType: "String",
+			}
+			variableAttrs = append(variableAttrs, attribute)
+		}
+
+		var modifierType string
+		if len(variableAttrs) > 0 {
+			modifierType = "Object"
+		} else {
+			modifierType = "Bool"
+		}
+
+		attribute := attributeCtx{
+			Name:         data.Name.Underscore,
+			SchemaType:   schemaType,
+			Description:  data.Description,
+			Required:     false,
+			Attributes:   variableAttrs,
+			ModifierType: modifierType,
+		}
+		attributes = append(attributes, attribute)
+	}
+
+	topAttribute := attributeCtx{
+		Name:         "location",
+		SchemaType:   "rsschema.SingleNestedAttribute",
+		Description:  "The location of this object.",
+		Required:     true,
+		Attributes:   attributes,
+		ModifierType: "Object",
+	}
+
+	type context struct {
+		StructName string
+		Schema     attributeCtx
+	}
+
+	data := context{
+		StructName: names.StructName,
+		Schema:     topAttribute,
+	}
+
+	return processTemplate(locationSchemaGetterTmpl, "render-location-schema-getter", data, commonFuncMap)
+}
+
+type locationFieldCtx struct {
+	Name string
+	Type string
+}
+
+type locationCtx struct {
+	Name                string
+	TerraformStructName string
+	SdkStructName       string
+	IsBool              bool
+	Fields              []locationFieldCtx
+}
+
+func renderLocationsGetContext(names *NameProvider, spec *properties.Normalization) []locationCtx {
+	var locations []locationCtx
+
+	for _, location := range spec.Locations {
+		var fields []locationFieldCtx
+		for _, variable := range location.Vars {
+			fields = append(fields, locationFieldCtx{
+				Name: variable.Name.CamelCase,
+				Type: "String",
+			})
+		}
+		locations = append(locations, locationCtx{
+			Name:                location.Name.CamelCase,
+			TerraformStructName: fmt.Sprintf("%s%sLocation", names.StructName, location.Name.CamelCase),
+			SdkStructName:       fmt.Sprintf("%s.%sLocation", names.PackageName, location.Name.CamelCase),
+			IsBool:              len(location.Vars) == 0,
+			Fields:              fields,
+		})
+	}
+
+	type context struct {
+		Locations []locationCtx
+	}
+
+	return locations
+}
+
+const locationsPangoToState = `
+{{- range .Locations }}
+  {{- if .IsBool }}
+if loc.Location.{{ .Name }} {
+	state.Location.{{ .Name }} = types.BoolValue(true)
+}
+  {{- else }}
+if loc.Location.{{ .Name }} != nil {
+	location := &{{ .TerraformStructName }}{
+    {{ $locationName := .Name }}
+    {{- range .Fields }}
+		{{ .Name }}: types.{{ .Type }}Value(loc.Location.{{ $locationName }}.{{ .Name }}),
+    {{- end }}
+	}
+	state.Location.{{ .Name }} = location
+}
+  {{- end }}
+{{- end }}
+`
+
+func RenderLocationsPangoToState(names *NameProvider, spec *properties.Normalization) (string, error) {
+	type context struct {
+		Locations []locationCtx
+	}
+	data := context{Locations: renderLocationsGetContext(names, spec)}
+	return processTemplate(locationsPangoToState, "render-locations-pango-to-state", data, commonFuncMap)
+}
+
+const locationsStateToPango = `
+{{- range .Locations }}
+  {{- if .IsBool }}
+if !state.Location.{{ .Name }}.IsNull() && state.Location.{{ .Name }}.ValueBool() {
+	loc.Location.{{ .Name }} = true
+}
+  {{- else }}
+if state.Location.{{ .Name }} != nil {
+	location := &{{ .SdkStructName }}{
+    {{ $locationName := .Name }}
+    {{- range .Fields }}
+		{{ .Name }}: state.Location.{{ $locationName }}.{{ .Name }}.ValueString(),
+    {{- end }}
+	}
+	loc.Location.{{ .Name }} = location
+}
+  {{- end }}
+{{- end }}
+`
+
+func RenderLocationsStateToPango(names *NameProvider, spec *properties.Normalization) (string, error) {
+	type context struct {
+		Locations []locationCtx
+	}
+	data := context{Locations: renderLocationsGetContext(names, spec)}
+	return processTemplate(locationsStateToPango, "render-locations-state-to-pango", data, commonFuncMap)
+}
+
+func ResourceCreateFunction(names *NameProvider, serviceName string, paramSpec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, resourceSDKName string) (string, error) {
 	funcMap := template.FuncMap{
-		"ConfigToEntry": ConfigEntry,
+		"ConfigToEntry":               ConfigEntry,
+		"RenderLocationsStateToPango": func() (string, error) { return RenderLocationsStateToPango(names, paramSpec) },
 		"ResourceParamToSchema": func(paramName string, paramParameters properties.SpecParam) (string, error) {
 			return ParamToSchemaResource(paramName, paramParameters, terraformProvider)
 		},
@@ -388,7 +689,7 @@ func ResourceCreateFunction(structName string, serviceName string, paramSpec *pr
 	}
 
 	data := map[string]interface{}{
-		"structName":      structName,
+		"structName":      names.ResourceStructName,
 		"serviceName":     naming.CamelCase("", serviceName, "", false),
 		"paramSpec":       paramSpec.Spec,
 		"resourceSDKName": resourceSDKName,
@@ -398,33 +699,42 @@ func ResourceCreateFunction(structName string, serviceName string, paramSpec *pr
 	return processTemplate(resourceCreateFunction, "resource-create-function", data, funcMap)
 }
 
-func ResourceReadFunction(structName string, serviceName string, paramSpec *properties.Normalization, resourceSDKName string) (string, error) {
+func ResourceReadFunction(names *NameProvider, serviceName string, paramSpec *properties.Normalization, resourceSDKName string) (string, error) {
 	if strings.Contains(serviceName, "group") {
 		serviceName = "group"
 	}
 
 	data := map[string]interface{}{
-		"structName":      structName,
-		"serviceName":     naming.CamelCase("", serviceName, "", false),
-		"resourceSDKName": resourceSDKName,
-		"locations":       paramSpec.Locations,
+		"structName":         names.StructName,
+		"resourceStructName": names.ResourceStructName,
+		"serviceName":        naming.CamelCase("", serviceName, "", false),
+		"resourceSDKName":    resourceSDKName,
+		"locations":          paramSpec.Locations,
 	}
 
-	return processTemplate(resourceReadFunction, "resource-read-function", data, nil)
+	funcMap := template.FuncMap{
+		"RenderLocationsPangoToState": func() (string, error) { return RenderLocationsPangoToState(names, paramSpec) },
+	}
+
+	return processTemplate(resourceReadFunction, "resource-read-function", data, funcMap)
 }
 
-func ResourceUpdateFunction(structName string, serviceName string, paramSpec interface{}, resourceSDKName string) (string, error) {
+func ResourceUpdateFunction(names *NameProvider, serviceName string, paramSpec *properties.Normalization, resourceSDKName string) (string, error) {
 	if strings.Contains(serviceName, "group") {
 		serviceName = "group"
 	}
 
 	data := map[string]interface{}{
-		"structName":      structName,
+		"structName":      names.ResourceStructName,
 		"serviceName":     naming.CamelCase("", serviceName, "", false),
 		"resourceSDKName": resourceSDKName,
 	}
 
-	return processTemplate(resourceUpdateFunction, "resource-update-function", data, nil)
+	funcMap := template.FuncMap{
+		"RenderLocationsStateToPango": func() (string, error) { return RenderLocationsStateToPango(names, paramSpec) },
+	}
+
+	return processTemplate(resourceUpdateFunction, "resource-update-function", data, funcMap)
 }
 
 func ResourceDeleteFunction(structName string, serviceName string, paramSpec interface{}, resourceSDKName string) (string, error) {
