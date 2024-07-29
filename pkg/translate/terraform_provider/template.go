@@ -88,7 +88,7 @@ func (r *{{ structName }}) Configure(ctx context.Context, req resource.Configure
 	}
 
 	r.client = req.ProviderData.(*pango.XmlApiClient)
-	
+
 	//TODO: There should be some error handling
 	//if !ok {
 	//	resp.Diagnostics.AddError(
@@ -248,8 +248,6 @@ func (d *{{ structName }}) Read(ctx context.Context, req datasource.ReadRequest,
 
 {{- /* Done */ -}}
 `
-
-const dataSourceListTemplatetStr = ``
 
 const providerFileTemplateStr = `
 {{- /* Begin */ -}}

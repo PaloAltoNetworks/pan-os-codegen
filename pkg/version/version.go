@@ -44,12 +44,12 @@ func New(version string) (Version, error) {
 
 	major, err := strconv.Atoi(parts[0])
 	if err != nil {
-		return Version{}, fmt.Errorf("major %s is not a number: %s", parts[0], err)
+		return Version{}, fmt.Errorf("major %s is not a number: %w", parts[0], err)
 	}
 
 	minor, err := strconv.Atoi(parts[1])
 	if err != nil {
-		return Version{}, fmt.Errorf("minor %s is not a number: %s", parts[0], err)
+		return Version{}, fmt.Errorf("minor %s is not a number: %w", parts[0], err)
 	}
 
 	patchWithHotfix := strings.Split(parts[2], "-")
@@ -65,7 +65,7 @@ func New(version string) (Version, error) {
 
 	patch, err := strconv.Atoi(patchWithHotfix[0])
 	if err != nil {
-		return Version{}, fmt.Errorf("patch %s is not a number: %s", parts[2], err)
+		return Version{}, fmt.Errorf("patch %s is not a number: %w", parts[2], err)
 	}
 
 	return Version{major, minor, patch, hotfix}, nil

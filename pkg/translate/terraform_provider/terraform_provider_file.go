@@ -39,7 +39,7 @@ func (g *GenerateTerraformProvider) executeTemplate(resourceTemplate *template.T
 	var renderedTemplate strings.Builder
 	if err := resourceTemplate.Execute(&renderedTemplate, spec); err != nil {
 		log.Fatalf("Error executing template: %v", err)
-		return fmt.Errorf("error executing %s template: %v", resourceType, err)
+		return fmt.Errorf("error executing %s template: %w", resourceType, err)
 	}
 	renderedTemplate.WriteString("\n")
 	return g.updateProviderFile(&renderedTemplate, terraformProvider, resourceType, names.StructName)
@@ -53,7 +53,7 @@ func (g *GenerateTerraformProvider) updateProviderFile(renderedTemplate *strings
 		terraformProvider.Code = renderedTemplate
 	default:
 		if _, err := terraformProvider.Code.WriteString(renderedTemplate.String()); err != nil {
-			return fmt.Errorf("error writing %s template: %v", resourceType, err)
+			return fmt.Errorf("error writing %s template: %w", resourceType, err)
 		}
 	}
 	return g.appendResourceType(terraformProvider, resourceType, structName)
