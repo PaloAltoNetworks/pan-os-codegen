@@ -118,6 +118,39 @@ var _ = Describe("Movement", func() {
 		})
 	})
 
+	Context("With PositionAfter used as position", func() {
+		existing := asMovable([]string{"A", "B", "C", "D", "E"})
+		Context("when direct position relative to the pivot is not required", func() {
+			It("should not generate any move actions", func() {
+				entries := asMovable([]string{"D", "E"})
+				moves, err := movement.MoveGroup(
+					movement.PositionAfter{Directly: false, Pivot: Mock{"B"}},
+					entries, existing,
+				)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(moves).To(HaveLen(0))
+			})
+			Context("and moved entries are out of order", func() {
+				FIt("should generate a single command to move B before D", func() {
+					// A B C D E -> A B C E D
+					entries := asMovable([]string{"E", "D"})
+					moves, err := movement.MoveGroup(
+						movement.PositionAfter{Directly: false, Pivot: Mock{"B"}},
+						entries, existing,
+					)
+
+					Expect(err).ToNot(HaveOccurred())
+					Expect(moves).To(HaveLen(1))
+
+					Expect(moves[0].Movable.EntryName()).To(Equal("E"))
+					Expect(moves[0].Where).To(Equal(movement.ActionWhereAfter))
+					Expect(moves[0].Destination.EntryName()).To(Equal("C"))
+				})
+			})
+		})
+
+	})
 	Context("With PositionBefore used as position", func() {
 		existing := asMovable([]string{"A", "B", "C", "D", "E"})
 
@@ -135,8 +168,8 @@ var _ = Describe("Movement", func() {
 				})
 			})
 			Context("and moved entries are out of order", func() {
-				It("should generate a single command to move B before D", func() {
-					// A B C D E -> A B C D E
+				FIt("should generate a single command to move B before D", func() {
+					// A B C D E -> A C B D E
 					entries := asMovable([]string{"C", "B"})
 					moves, err := movement.MoveGroup(
 						movement.PositionBefore{Directly: false, Pivot: Mock{"D"}},

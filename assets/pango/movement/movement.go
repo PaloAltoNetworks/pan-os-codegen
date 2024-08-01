@@ -100,6 +100,8 @@ var (
 	ErrInvalidMovementPlan  = errors.New("created movement plan is invalid")
 )
 
+// PositionBefore and PositionAfter are similar enough that we can generate expected sequences
+// for both using the same code and some conditionals based on the given movement.
 func processPivotMovement(entries []Movable, existing []Movable, pivot Movable, direct bool, movement movementType) ([]Movable, []MoveAction, error) {
 	existingIdxMap := createIdxMapFor(existing)
 
@@ -118,39 +120,41 @@ func processPivotMovement(entries []Movable, existing []Movable, pivot Movable, 
 		entriesLen := len(entries)
 	loop:
 		for i := 0; i < entriesLen; i++ {
-
+			existingEntryIdx := existingIdxMap[entries[i]]
+			slog.Debug("generate()", "i", i, "len(entries)", len(entries), "entry", entries[i], "existingEntryIdx", existingEntryIdx, "existingPivotIdx", existingPivotIdx)
 			// For any given entry in the list of entries to move check if the entry
 			// index is at or after pivot point index, which will require movement
 			// set to be generated.
-			existingEntryIdx := existingIdxMap[entries[i]]
+
+			// Then check if the entries to be moved have the same order in the existing
+			// slice, and if not require a movement set to be generated.
 			switch movement {
 			case movementBefore:
 				if existingEntryIdx >= existingPivotIdx {
 					movementRequired = true
 					break
 				}
-			case movementAfter:
-				if existingEntryIdx <= existingPivotIdx {
-					movementRequired = true
-					break
+
+				if i == 0 {
+					continue
 				}
-			}
 
-			if i == 0 {
-				continue
-			}
-
-			// Check if the entries to be moved have the same order in the existing
-			// slice, and if not require a movement set to be generated.
-			switch movement {
-			case movementBefore:
 				if existingIdxMap[entries[i-1]] >= existingEntryIdx {
 					movementRequired = true
 					break loop
 
 				}
 			case movementAfter:
-				if existingIdxMap[entries[i-1]] <= existingEntryIdx {
+				if existingEntryIdx <= existingPivotIdx {
+					movementRequired = true
+					break
+				}
+
+				if i == len(entries)-1 {
+					continue
+				}
+
+				if existingIdxMap[entries[i+1]] < existingEntryIdx {
 					movementRequired = true
 					break loop
 
@@ -195,6 +199,22 @@ func processPivotMovement(entries []Movable, existing []Movable, pivot Movable, 
 			expected[expectedIdx] = filtered[i]
 			expectedIdx++
 		}
+	case movementAfter:
+		expectedIdx := 0
+		for ; expectedIdx < len(filtered); expectedIdx++ {
+			expected[expectedIdx] = filtered[expectedIdx]
+		}
+
+		for _, elt := range entries {
+			expected[expectedIdx] = elt
+			expectedIdx++
+		}
+
+		filteredLen := len(filtered)
+		for i := filteredPivotIdx + 1; i < filteredLen-1; i++ {
+			expected[expectedIdx] = filtered[i]
+			expectedIdx++
+		}
 	}
 
 	actions, err := GenerateMovements(existing, expected, entries, movement)
@@ -228,99 +248,6 @@ type Entry struct {
 type sequencePosition struct {
 	Start int
 	End   int
-}
-
-func printLCSMatrix(S []Movable, T []Movable, L [][]int) {
-	r := len(S)
-	n := len(T)
-
-	line := "      "
-	for _, elt := range S {
-		line += fmt.Sprintf("%s  ", elt.EntryName())
-	}
-	slog.Debug("LCS", "line", line)
-
-	line = "   "
-	for _, elt := range L[0] {
-		line += fmt.Sprintf("%d  ", elt)
-	}
-	slog.Debug("LCS", "line", line)
-
-	for i := 1; i < r+1; i++ {
-		line = fmt.Sprintf("%s  ", T[i-1].EntryName())
-		for j := 0; j < n+1; j++ {
-			line += fmt.Sprintf("%d  ", L[i][j])
-		}
-	}
-
-}
-
-func LongestCommonSubstring(S []Movable, T []Movable) [][]Movable {
-	r := len(S)
-	n := len(T)
-
-	L := make([][]int, r+1)
-	for idx := range r + 1 {
-		L[idx] = make([]int, n+1)
-	}
-
-	for i := 1; i < r+1; i++ {
-		for j := 1; j < n+1; j++ {
-			if S[i-1].EntryName() == T[j-1].EntryName() {
-				if i == 1 {
-					L[j][i] = 1
-				} else if j == 1 {
-					L[j][i] = 1
-				} else {
-					L[j][i] = L[j-1][i-1] + 1
-				}
-			}
-		}
-	}
-
-	var results [][]Movable
-	var lcsList [][]Movable
-
-	var entry []Movable
-	var index int
-	for i := r; i > 0; i-- {
-		for j := n; j > 0; j-- {
-			if S[i-1].EntryName() == T[j-1].EntryName() {
-				if L[j][i] >= index {
-					if len(entry) > 0 {
-						var entries []string
-						for _, elt := range entry {
-							entries = append(entries, elt.EntryName())
-						}
-
-						lcsList = append(lcsList, entry)
-					}
-					index = L[j][i]
-					entry = []Movable{S[i-1]}
-				} else if L[j][i] < index {
-					index = L[j][i]
-					entry = append(entry, S[i-1])
-				} else {
-					entry = []Movable{}
-				}
-			}
-		}
-	}
-
-	if len(entry) > 0 {
-		lcsList = append(lcsList, entry)
-	}
-
-	lcsLen := len(lcsList)
-	for idx := range lcsList {
-		elt := lcsList[lcsLen-idx-1]
-		if len(elt) > 1 {
-			slices.Reverse(elt)
-			results = append(results, elt)
-		}
-	}
-
-	return results
 }
 
 func updateSimulatedIdxMap(idxMap *map[Movable]int, moved Movable, startingIdx int, targetIdx int) {
@@ -399,6 +326,9 @@ func GenerateMovements(existing []Movable, expected []Movable, entries []Movable
 
 	entriesIdxMap := createIdxMapFor(entries)
 
+	// LCS returns a list of longest common sequences found between existing and expected
+	// slices. We want to find the longest common sequence that doesn't intersect entries
+	// given by the user, as entries are moved in relation to the common sequence.
 	var common []Movable
 	for _, sequence := range commonSequences {
 		filtered := removeEntriesFromExisting(sequence, func(elt Movable) bool {
@@ -526,4 +456,103 @@ func (o PositionBottom) Move(entries []Movable, existing []Movable) ([]MoveActio
 
 func MoveGroup(position Position, entries []Movable, existing []Movable) ([]MoveAction, error) {
 	return position.Move(entries, existing)
+}
+
+// Debug helper to print generated LCS matrix
+func printLCSMatrix(S []Movable, T []Movable, L [][]int) {
+	r := len(S)
+	n := len(T)
+
+	line := "      "
+	for _, elt := range S {
+		line += fmt.Sprintf("%s  ", elt.EntryName())
+	}
+	slog.Debug("LCS", "line", line)
+
+	line = "   "
+	for _, elt := range L[0] {
+		line += fmt.Sprintf("%d  ", elt)
+	}
+	slog.Debug("LCS", "line", line)
+
+	for i := 1; i < r+1; i++ {
+		line = fmt.Sprintf("%s  ", T[i-1].EntryName())
+		for j := 0; j < n+1; j++ {
+			line += fmt.Sprintf("%d  ", L[i][j])
+		}
+	}
+
+}
+
+// LongestCommonSubstring implements dynamic programming variant of the algorithm
+//
+// See https://en.wikipedia.org/wiki/Longest_common_substring for the details. Our
+// implementation is not optimal, as generation of the matrix can be done at the
+// same time as finding LCSs, but it's easier to reason about for now.
+func LongestCommonSubstring(S []Movable, T []Movable) [][]Movable {
+	r := len(S)
+	n := len(T)
+
+	L := make([][]int, r+1)
+	for idx := range r + 1 {
+		L[idx] = make([]int, n+1)
+	}
+
+	for i := 1; i < r+1; i++ {
+		for j := 1; j < n+1; j++ {
+			if S[i-1].EntryName() == T[j-1].EntryName() {
+				if i == 1 {
+					L[j][i] = 1
+				} else if j == 1 {
+					L[j][i] = 1
+				} else {
+					L[j][i] = L[j-1][i-1] + 1
+				}
+			}
+		}
+	}
+
+	var results [][]Movable
+	var lcsList [][]Movable
+
+	var entry []Movable
+	var index int
+	for i := r; i > 0; i-- {
+		for j := n; j > 0; j-- {
+			if S[i-1].EntryName() == T[j-1].EntryName() {
+				if L[j][i] >= index {
+					if len(entry) > 0 {
+						var entries []string
+						for _, elt := range entry {
+							entries = append(entries, elt.EntryName())
+						}
+
+						lcsList = append(lcsList, entry)
+					}
+					index = L[j][i]
+					entry = []Movable{S[i-1]}
+				} else if L[j][i] < index {
+					index = L[j][i]
+					entry = append(entry, S[i-1])
+				} else {
+					entry = []Movable{}
+				}
+			}
+		}
+	}
+
+	if len(entry) > 0 {
+		lcsList = append(lcsList, entry)
+	}
+
+	lcsLen := len(lcsList)
+	for idx := range lcsList {
+		elt := lcsList[lcsLen-idx-1]
+		if len(elt) > 1 {
+			slices.Reverse(elt)
+			results = append(results, elt)
+		}
+	}
+
+	return results
 }
