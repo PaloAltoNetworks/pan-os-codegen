@@ -132,7 +132,7 @@ var _ = Describe("Movement", func() {
 				Expect(moves).To(HaveLen(0))
 			})
 			Context("and moved entries are out of order", func() {
-				FIt("should generate a single command to move B before D", func() {
+				It("should generate a single command to move B before D", func() {
 					// A B C D E -> A B C E D
 					entries := asMovable([]string{"E", "D"})
 					moves, err := movement.MoveGroup(
@@ -168,7 +168,7 @@ var _ = Describe("Movement", func() {
 				})
 			})
 			Context("and moved entries are out of order", func() {
-				FIt("should generate a single command to move B before D", func() {
+				It("should generate a single command to move B before D", func() {
 					// A B C D E -> A C B D E
 					entries := asMovable([]string{"C", "B"})
 					moves, err := movement.MoveGroup(

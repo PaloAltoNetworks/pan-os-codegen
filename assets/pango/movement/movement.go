@@ -251,20 +251,17 @@ type sequencePosition struct {
 }
 
 func updateSimulatedIdxMap(idxMap *map[Movable]int, moved Movable, startingIdx int, targetIdx int) {
-	slog.Debug("updateSimulatedIdxMap", "entries", idxMap)
 	for entry, idx := range *idxMap {
 		if entry == moved {
 			continue
 		}
 
-		slog.Debug("updateSimulatedIdxMap", "entry", entry, "idx", idx, "startingIdx", startingIdx, "targetIdx", targetIdx)
 		if startingIdx > targetIdx && idx >= targetIdx {
 			(*idxMap)[entry] = idx + 1
 		} else if startingIdx < targetIdx && idx >= startingIdx && idx <= targetIdx {
 			(*idxMap)[entry] = idx - 1
 		}
 	}
-	slog.Debug("updateSimulatedIdxMap", "entries", idxMap)
 }
 
 func OptimizeMovements(existing []Movable, expected []Movable, entries []Movable, actions []MoveAction, position any) []MoveAction {
@@ -277,10 +274,7 @@ func OptimizeMovements(existing []Movable, expected []Movable, entries []Movable
 	var optimized []MoveAction
 
 	switch position.(type) {
-	case PositionBefore:
-		slog.Debug("OptimizeMovements()", "position", position, "type", fmt.Sprintf("%T", position))
-	case PositionAfter:
-		slog.Debug("OptimizeMovements()", "position", position, "type", fmt.Sprintf("%T", position))
+	case PositionBefore, PositionAfter:
 	default:
 		return actions
 	}
@@ -298,13 +292,11 @@ func OptimizeMovements(existing []Movable, expected []Movable, entries []Movable
 		case ActionWhereBottom:
 			targetIdx = len(simulated) - 1
 		case ActionWhereBefore:
-			slog.Debug("OptimizeMovements()", "dest", action.Destination, "destIdx", simulatedIdxMap[action.Destination])
 			targetIdx = simulatedIdxMap[action.Destination] - 1
 		case ActionWhereAfter:
 			targetIdx = simulatedIdxMap[action.Destination] + 1
 		}
 
-		slog.Debug("OptimizeMovements()", "action", action, "currentIdx", currentIdx, "targetIdx", targetIdx)
 		if targetIdx != currentIdx {
 			optimized = append(optimized, action)
 			simulatedIdxMap[action.Movable] = targetIdx
@@ -312,8 +304,7 @@ func OptimizeMovements(existing []Movable, expected []Movable, entries []Movable
 		}
 	}
 
-	slog.Debug("OptimizeMovements()", "optimized", optimized)
-
+	slog.Debug("OptimiveMovements()", "optimized", optimized)
 	return optimized
 }
 
@@ -348,25 +339,14 @@ func GenerateMovements(existing []Movable, expected []Movable, entries []Movable
 
 	var movements []MoveAction
 
-	var commonStartIdx, commonEndIdx int
-	if commonLen > 0 {
-		commonStartIdx = expectedIdxMap[common[0]]
-		commonEndIdx = expectedIdxMap[common[commonLen-1]]
-	}
-
-	slog.Debug("GenerateMovements()", "expected", expected)
-	slog.Debug("GenerateMovements()", "existing", existing)
-	slog.Debug("GenerateMovements()", "common", common, "commonStartIdx", commonStartIdx, "commonEndIdx", commonEndIdx)
 	var previous Movable
 	for _, elt := range entries {
-		slog.Debug("GenerateMovements()", "elt", elt, "existing", existingIdxMap[elt], "expected", expectedIdxMap[elt])
 		// If existing index for the element matches the expected one, skip it over
 		if existingIdxMap[elt] == expectedIdxMap[elt] {
 			continue
 		}
 
 		if expectedIdxMap[elt] == 0 {
-			slog.Debug("HELP1")
 			movements = append(movements, MoveAction{
 				Movable:     elt,
 				Destination: nil,
@@ -374,7 +354,6 @@ func GenerateMovements(existing []Movable, expected []Movable, entries []Movable
 			})
 			previous = elt
 		} else if expectedIdxMap[elt] == len(expectedIdxMap) {
-			slog.Debug("HELP2")
 			movements = append(movements, MoveAction{
 				Movable:     elt,
 				Destination: nil,
@@ -382,8 +361,6 @@ func GenerateMovements(existing []Movable, expected []Movable, entries []Movable
 			})
 			previous = elt
 		} else if previous != nil {
-			slog.Debug("HELP3")
-
 			movements = append(movements, MoveAction{
 				Movable:     elt,
 				Destination: previous,
@@ -391,7 +368,6 @@ func GenerateMovements(existing []Movable, expected []Movable, entries []Movable
 			})
 			previous = elt
 		} else {
-			slog.Debug("HELP4")
 			var where ActionWhereType
 
 			switch movement {
