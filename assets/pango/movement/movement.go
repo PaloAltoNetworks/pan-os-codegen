@@ -1,6 +1,7 @@
 package movement
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"slices"
@@ -8,14 +9,23 @@ import (
 
 var _ = slog.LevelDebug
 
+type ActionWhereType string
+
+const (
+	ActionWhereTop    ActionWhereType = "top"
+	ActionWhereBottom ActionWhereType = "bottom"
+	ActionWhereBefore ActionWhereType = "before"
+	ActionWhereAfter  ActionWhereType = "after"
+)
+
 type Movable interface {
 	EntryName() string
 }
 
 type MoveAction struct {
-	EntryName   string
-	Where       string
-	Destination string
+	Movable     Movable
+	Where       ActionWhereType
+	Destination Movable
 }
 
 type Position interface {
@@ -34,6 +44,14 @@ type PositionBefore struct {
 type PositionAfter struct {
 	Directly bool
 	Pivot    Movable
+}
+
+func createIdxMapFor(entries []Movable) map[Movable]int {
+	entriesIdxMap := make(map[Movable]int, len(entries))
+	for idx, elt := range entries {
+		entriesIdxMap[elt] = idx
+	}
+	return entriesIdxMap
 }
 
 func removeEntriesFromExisting(entries []Movable, filterFn func(entry Movable) bool) []Movable {
@@ -68,17 +86,24 @@ const (
 	movementAfter
 )
 
-func processPivotMovement(entries []Movable, existing []Movable, pivot Movable, direct bool, movement movementType) ([]MoveAction, error) {
-	existingLen := len(existing)
-	existingIdxMap := make(map[Movable]int, existingLen)
+var (
+	ErrSlicesNotEqualLength = errors.New("existing and expected slices length mismatch")
+	ErrPivotInEntries       = errors.New("pivot element found in the entries slice")
+	ErrPivotNotInExisting   = errors.New("pivot element not foudn in the existing slice")
+	ErrInvalidMovementPlan  = errors.New("created movement plan is invalid")
+)
 
-	for idx, elt := range existing {
-		existingIdxMap[elt] = idx
+func processPivotMovement(entries []Movable, existing []Movable, pivot Movable, direct bool, movement movementType) ([]Movable, []MoveAction, error) {
+	existingIdxMap := createIdxMapFor(existing)
+
+	entriesPivotIdx := findPivotIdx(entries, pivot)
+	if entriesPivotIdx != -1 {
+		return nil, nil, ErrPivotInEntries
 	}
 
-	pivotIdx := findPivotIdx(existing, pivot)
-	if pivotIdx == -1 {
-		return nil, fmt.Errorf("pivot point not found in the list of existing items")
+	existingPivotIdx := findPivotIdx(existing, pivot)
+	if existingPivotIdx == -1 {
+		return nil, nil, ErrPivotNotInExisting
 	}
 
 	if !direct {
@@ -93,12 +118,12 @@ func processPivotMovement(entries []Movable, existing []Movable, pivot Movable, 
 			existingEntryIdx := existingIdxMap[entries[i]]
 			switch movement {
 			case movementBefore:
-				if existingEntryIdx >= pivotIdx {
+				if existingEntryIdx >= existingPivotIdx {
 					movementRequired = true
 					break
 				}
 			case movementAfter:
-				if existingEntryIdx <= pivotIdx {
+				if existingEntryIdx <= existingPivotIdx {
 					movementRequired = true
 					break
 				}
@@ -128,16 +153,13 @@ func processPivotMovement(entries []Movable, existing []Movable, pivot Movable, 
 		}
 
 		if !movementRequired {
-			return nil, nil
+			return nil, nil, nil
 		}
 	}
 
 	expected := make([]Movable, len(existing))
 
-	entriesIdxMap := make(map[Movable]int, len(entries))
-	for idx, elt := range entries {
-		entriesIdxMap[elt] = idx
-	}
+	entriesIdxMap := createIdxMapFor(entries)
 
 	filtered := removeEntriesFromExisting(existing, func(entry Movable) bool {
 		_, ok := entriesIdxMap[entry]
@@ -168,15 +190,26 @@ func processPivotMovement(entries []Movable, existing []Movable, pivot Movable, 
 		}
 	}
 
-	return GenerateMovements(existing, expected, entries)
+	actions, err := GenerateMovements(existing, expected, entries)
+	return expected, actions, err
 }
 
 func (o PositionAfter) Move(entries []Movable, existing []Movable) ([]MoveAction, error) {
-	return processPivotMovement(entries, existing, o.Pivot, o.Directly, movementAfter)
+	expected, actions, err := processPivotMovement(entries, existing, o.Pivot, o.Directly, movementBefore)
+	if err != nil {
+		return nil, err
+	}
+
+	return OptimizeMovements(existing, expected, actions, o), nil
 }
 
 func (o PositionBefore) Move(entries []Movable, existing []Movable) ([]MoveAction, error) {
-	return processPivotMovement(entries, existing, o.Pivot, o.Directly, movementBefore)
+	expected, actions, err := processPivotMovement(entries, existing, o.Pivot, o.Directly, movementBefore)
+	if err != nil {
+		return nil, err
+	}
+
+	return OptimizeMovements(existing, expected, actions, o), nil
 }
 
 type Entry struct {
@@ -190,150 +223,270 @@ type sequencePosition struct {
 	End   int
 }
 
-func longestCommonSubsequence(S []Movable, T []Movable) [][]Movable {
-
+func printLCSMatrix(S []Movable, T []Movable, L [][]int) {
 	r := len(S)
 	n := len(T)
 
-	L := make([][]int, r)
-	for idx := range len(T) {
-		L[idx] = make([]int, n)
+	line := "      "
+	for _, elt := range S {
+		line += fmt.Sprintf("%s  ", elt.EntryName())
 	}
-	z := 0
+	slog.Debug("LCS", "line", line)
 
-	var results [][]Movable
+	line = "   "
+	for _, elt := range L[0] {
+		line += fmt.Sprintf("%d  ", elt)
+	}
+	slog.Debug("LCS", "line", line)
 
-	for i := 0; i < r; i++ {
-		for j := 0; j < n; j++ {
-			if S[i].EntryName() == T[j].EntryName() {
-				if i == 0 || j == 0 {
-					L[i][j] = 1
+	for i := 1; i < r+1; i++ {
+		line = fmt.Sprintf("%s  ", T[i-1].EntryName())
+		for j := 0; j < n+1; j++ {
+			line += fmt.Sprintf("%d  ", L[i][j])
+		}
+	}
+
+}
+
+func LongestCommonSubstring(S []Movable, T []Movable) [][]Movable {
+	r := len(S)
+	n := len(T)
+
+	L := make([][]int, r+1)
+	for idx := range r + 1 {
+		L[idx] = make([]int, n+1)
+	}
+
+	for i := 1; i < r+1; i++ {
+		for j := 1; j < n+1; j++ {
+			if S[i-1].EntryName() == T[j-1].EntryName() {
+				if i == 1 {
+					L[j][i] = 1
+				} else if j == 1 {
+					L[j][i] = 1
 				} else {
-					L[i][j] = L[i-1][j-1] + 1
+					L[j][i] = L[j-1][i-1] + 1
 				}
-
-				if L[i][j] > z {
-					slog.Debug("L[i][j] > z", "L[i][j]", L[i][j], "z", z, "i-z", i-z, "i", i)
-					results = nil
-					results = append(results, S[i-z:i+1])
-					z = L[i][j]
-					slog.Debug("L[i][j] > z", "results", results)
-				} else if L[i][j] == z {
-					results = append(results, S[i-z:i+1])
-					slog.Debug("L[i][j] == z", "i-z", i, "i", i+1)
-				}
-				slog.Debug("Still", "results", results)
-			} else {
-				L[i][j] = 0
 			}
 		}
 	}
 
-	slog.Debug("commonSubsequence", "results", results)
+	var results [][]Movable
+	var lcsList [][]Movable
+
+	var entry []Movable
+	var index int
+	for i := r; i > 0; i-- {
+		for j := n; j > 0; j-- {
+			if S[i-1].EntryName() == T[j-1].EntryName() {
+				if L[j][i] >= index {
+					if len(entry) > 0 {
+						var entries []string
+						for _, elt := range entry {
+							entries = append(entries, elt.EntryName())
+						}
+
+						lcsList = append(lcsList, entry)
+					}
+					index = L[j][i]
+					entry = []Movable{S[i-1]}
+				} else if L[j][i] < index {
+					index = L[j][i]
+					entry = append(entry, S[i-1])
+				} else {
+					entry = []Movable{}
+				}
+			}
+		}
+	}
+
+	if len(entry) > 0 {
+		lcsList = append(lcsList, entry)
+	}
+
+	lcsLen := len(lcsList)
+	for idx := range lcsList {
+		elt := lcsList[lcsLen-idx-1]
+		if len(elt) > 1 {
+			slices.Reverse(elt)
+			results = append(results, elt)
+		}
+	}
 
 	return results
 }
 
+func updateSimulatedIdxMap(idxMap *map[Movable]int, moved Movable, startingIdx int, targetIdx int) {
+	slog.Debug("updateSimulatedIdxMap", "entries", idxMap)
+	for entry, idx := range *idxMap {
+		if entry == moved {
+			continue
+		}
+
+		slog.Debug("updateSimulatedIdxMap", "entry", entry, "idx", idx, "startingIdx", startingIdx, "targetIdx", targetIdx)
+		if startingIdx > targetIdx && idx >= targetIdx {
+			(*idxMap)[entry] = idx + 1
+		} else if startingIdx < targetIdx && idx >= startingIdx && idx <= targetIdx {
+			(*idxMap)[entry] = idx - 1
+		}
+	}
+	slog.Debug("updateSimulatedIdxMap", "entries", idxMap)
+}
+
+func OptimizeMovements(existing []Movable, expected []Movable, actions []MoveAction, position any) []MoveAction {
+	simulated := make([]Movable, len(existing))
+	copy(simulated, existing)
+
+	simulatedIdxMap := createIdxMapFor(simulated)
+	expectedIdxMap := createIdxMapFor(expected)
+
+	optimized := make([]MoveAction, len(actions))
+
+	switch position.(type) {
+	case PositionBefore:
+		slog.Debug("OptimizeMovements()", "position", position, "type", fmt.Sprintf("%T", position))
+		slices.Reverse(actions)
+	case PositionAfter:
+		slog.Debug("OptimizeMovements()", "position", position, "type", fmt.Sprintf("%T", position))
+	default:
+		return actions
+	}
+
+	optimizedIdx := 0
+	for _, action := range actions {
+		currentIdx := simulatedIdxMap[action.Movable]
+		if currentIdx == expectedIdxMap[action.Movable] {
+			continue
+		}
+
+		var targetIdx int
+		switch action.Where {
+		case ActionWhereTop:
+			targetIdx = 0
+		case ActionWhereBottom:
+			targetIdx = len(simulated) - 1
+		case ActionWhereBefore:
+			targetIdx = simulatedIdxMap[action.Destination] - 1
+		case ActionWhereAfter:
+			targetIdx = simulatedIdxMap[action.Destination] + 1
+		}
+
+		slog.Debug("OptimizeMovements()", "action", action, "currentIdx", currentIdx, "targetIdx", targetIdx)
+		if targetIdx != currentIdx {
+			optimized[optimizedIdx] = action
+			optimizedIdx++
+			simulatedIdxMap[action.Movable] = targetIdx
+			updateSimulatedIdxMap(&simulatedIdxMap, action.Movable, currentIdx, targetIdx)
+		}
+	}
+
+	return optimized[:optimizedIdx]
+}
+
 func GenerateMovements(existing []Movable, expected []Movable, entries []Movable) ([]MoveAction, error) {
 	if len(existing) != len(expected) {
-		return nil, fmt.Errorf("existing length != expected length: %d != %d", len(existing), len(expected))
+		return nil, ErrSlicesNotEqualLength
 	}
 
-	common := longestCommonSubsequence(existing, expected)
+	commonSequences := LongestCommonSubstring(existing, expected)
 
-	entriesIdxMap := make(map[Movable]int, len(entries))
-	for idx, elt := range entries {
-		entriesIdxMap[elt] = idx
-	}
+	entriesIdxMap := createIdxMapFor(entries)
 
-	var commonSequence []Movable
-	for _, elt := range common {
-		filtered := removeEntriesFromExisting(elt, func(elt Movable) bool {
+	var common []Movable
+	for _, sequence := range commonSequences {
+		filtered := removeEntriesFromExisting(sequence, func(elt Movable) bool {
 			_, ok := entriesIdxMap[elt]
 			return ok
 		})
 
-		if len(filtered) > len(commonSequence) {
-			commonSequence = filtered
+		if len(filtered) > len(common) {
+			common = filtered
 		}
 
 	}
+	commonLen := len(common)
 
-	existingIdxMap := make(map[Movable]int, len(existing))
-	for idx, elt := range existing {
-		existingIdxMap[elt] = idx
-	}
-
-	expectedIdxMap := make(map[Movable]int, len(expected))
-	for idx, elt := range expected {
-		expectedIdxMap[elt] = idx
-	}
-
-	commonLen := len(commonSequence)
-	commonIdxMap := make(map[Movable]int, len(commonSequence))
-	for idx, elt := range commonSequence {
-		commonIdxMap[elt] = idx
-	}
+	existingIdxMap := createIdxMapFor(existing)
+	expectedIdxMap := createIdxMapFor(expected)
 
 	var movements []MoveAction
 
+	var commonStartIdx, commonEndIdx int
+	if commonLen > 0 {
+		commonStartIdx = expectedIdxMap[common[0]]
+		commonEndIdx = expectedIdxMap[common[commonLen-1]]
+	}
+
+	slog.Debug("GenerateMovements()", "common", common, "commonStartIdx", commonStartIdx, "commonEndIdx", commonEndIdx)
 	var previous Movable
 	for _, elt := range entries {
-		slog.Debug("GenerateMovements", "elt", elt.EntryName(), "existingIdx", existingIdxMap[elt], "expectedIdx", expectedIdxMap[elt])
+		slog.Debug("GenerateMovements()", "elt", elt, "existing", existingIdxMap[elt], "expected", expectedIdxMap[elt])
+		// If existing index for the element matches the expected one, skip it over
 		if existingIdxMap[elt] == expectedIdxMap[elt] {
 			continue
 		}
 
+		// Else, if expected index is 0, generate move action to move it to the top
 		if expectedIdxMap[elt] == 0 {
 			movements = append(movements, MoveAction{
-				EntryName:   elt.EntryName(),
-				Destination: "top",
-				Where:       "top",
+				Movable:     elt,
+				Destination: nil,
+				Where:       ActionWhereTop,
 			})
 			previous = elt
-		} else if len(commonSequence) > 0 {
-			if expectedIdxMap[elt] < expectedIdxMap[commonSequence[0]] {
+		} else if len(common) == 0 {
+			// If, after filtering out all elements that cannot be moved, common sequence
+			// is empty we need to move everything element by element.
+			movements = append(movements, MoveAction{
+				Movable:     elt,
+				Destination: previous,
+				Where:       ActionWhereAfter,
+			})
+			previous = elt
+		} else {
+			// Otherwise if there is some common sequence of elements between existing and expected
+			if expectedIdxMap[elt] <= commonStartIdx {
+				slog.Debug("GenerateMovements() HELP1")
+				// And the expected index of the element is lower than start of the common sequence
 				if previous == nil {
-					previous = expected[0]
+					previous = common[0]
 				}
+
+				// Generate a movement action for the element to move it directly before the first
+				// element of the common sequence.
 				movements = append(movements, MoveAction{
-					EntryName:   elt.EntryName(),
-					Destination: previous.EntryName(),
-					Where:       "after",
+					Movable:     elt,
+					Destination: previous,
+					Where:       ActionWhereBefore,
 				})
-				previous = elt
-			} else if expectedIdxMap[elt] > expectedIdxMap[commonSequence[commonLen-1]] {
+			} else if expectedIdxMap[elt] > commonEndIdx {
+				slog.Debug("GenerateMovements() HELP2")
+				// If expected index of the element is larger than index of the last element of the common
+				// sequence
 				if previous == nil {
-					previous = commonSequence[commonLen-1]
+					previous = common[commonLen-1]
 				}
+				// Generate a move to move this element directly behind it.
 				movements = append(movements, MoveAction{
-					EntryName:   elt.EntryName(),
-					Destination: previous.EntryName(),
-					Where:       "after",
+					Movable:     elt,
+					Destination: previous,
+					Where:       ActionWhereAfter,
 				})
 				previous = elt
 
-			} else if expectedIdxMap[elt] > expectedIdxMap[commonSequence[0]] {
+			} else if expectedIdxMap[elt] > expectedIdxMap[common[0]] {
+				slog.Debug("GenerateMovements() HELP2")
 				if previous == nil {
-					previous = commonSequence[0]
+					previous = common[0]
 				}
 				movements = append(movements, MoveAction{
-					EntryName:   elt.EntryName(),
-					Destination: previous.EntryName(),
-					Where:       "after",
+					Movable:     elt,
+					Destination: previous,
+					Where:       ActionWhereAfter,
 				})
 				previous = elt
 			}
-		} else {
-			movements = append(movements, MoveAction{
-				EntryName:   elt.EntryName(),
-				Destination: previous.EntryName(),
-				Where:       "after",
-			})
-			previous = elt
 		}
-
-		slog.Debug("GenerateMovements()", "existing", existingIdxMap[elt], "expected", expectedIdxMap[elt])
 	}
 
 	_ = previous
@@ -344,10 +497,7 @@ func GenerateMovements(existing []Movable, expected []Movable, entries []Movable
 }
 
 func (o PositionTop) Move(entries []Movable, existing []Movable) ([]MoveAction, error) {
-	entriesIdxMap := make(map[Movable]int, len(entries))
-	for idx, elt := range entries {
-		entriesIdxMap[elt] = idx
-	}
+	entriesIdxMap := createIdxMapFor(entries)
 
 	filtered := removeEntriesFromExisting(existing, func(entry Movable) bool {
 		_, ok := entriesIdxMap[entry]
@@ -356,14 +506,16 @@ func (o PositionTop) Move(entries []Movable, existing []Movable) ([]MoveAction, 
 
 	expected := append(entries, filtered...)
 
-	return GenerateMovements(existing, expected, entries)
+	actions, err := GenerateMovements(existing, expected, entries)
+	if err != nil {
+		return nil, err
+	}
+
+	return OptimizeMovements(existing, expected, actions, o), nil
 }
 
 func (o PositionBottom) Move(entries []Movable, existing []Movable) ([]MoveAction, error) {
-	entriesIdxMap := make(map[Movable]int, len(entries))
-	for idx, elt := range entries {
-		entriesIdxMap[elt] = idx
-	}
+	entriesIdxMap := createIdxMapFor(entries)
 
 	filtered := removeEntriesFromExisting(existing, func(entry Movable) bool {
 		_, ok := entriesIdxMap[entry]
@@ -372,7 +524,11 @@ func (o PositionBottom) Move(entries []Movable, existing []Movable) ([]MoveActio
 
 	expected := append(filtered, entries...)
 
-	return GenerateMovements(existing, expected, entries)
+	actions, err := GenerateMovements(existing, expected, entries)
+	if err != nil {
+		return nil, err
+	}
+	return OptimizeMovements(existing, expected, actions, o), nil
 }
 
 func MoveGroup(position Position, entries []Movable, existing []Movable) ([]MoveAction, error) {

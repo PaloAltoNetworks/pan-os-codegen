@@ -1,11 +1,15 @@
 package movement_test
 
 import (
+	"fmt"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"movements/movement"
 )
+
+var _ = fmt.Printf
 
 type Mock struct {
 	Name string
@@ -25,6 +29,35 @@ func asMovable(mocks []string) []movement.Movable {
 	return movables
 }
 
+var _ = Describe("LCS", func() {
+	Context("with two common substrings", func() {
+		existing := asMovable([]string{"A", "B", "C", "D", "E"})
+		expected := asMovable([]string{"C", "A", "B", "D", "E"})
+		It("should return two sequences of two elements", func() {
+			options := movement.LongestCommonSubstring(existing, expected)
+			Expect(options).To(HaveLen(2))
+
+			Expect(options[0]).To(HaveExactElements(asMovable([]string{"A", "B"})))
+			Expect(options[1]).To(HaveExactElements(asMovable([]string{"D", "E"})))
+		})
+	})
+	// Context("with one very large common substring", func() {
+	// 	It("should return one sequence of elements in a reasonable time", Label("benchmark"), func() {
+	// 		var elts []string
+	// 		elements := 50000
+	// 		for idx := range elements {
+	// 			elts = append(elts, fmt.Sprintf("%d", idx))
+	// 		}
+	// 		existing := asMovable(elts)
+	// 		expected := existing
+
+	// 		options := movement.LongestCommonSubstring(existing, expected)
+	// 		Expect(options).To(HaveLen(1))
+	// 		Expect(options[0]).To(HaveLen(elements))
+	// 	})
+	// })
+})
+
 var _ = Describe("Movement", func() {
 	Context("With PositionTop used as position", func() {
 		Context("when existing positions matches expected", func() {
@@ -36,7 +69,7 @@ var _ = Describe("Movement", func() {
 			})
 		})
 		Context("when it has to move two elements", func() {
-			It("should generate three move actions", func() {
+			FIt("should generate three move actions", func() {
 				entries := asMovable([]string{"A", "B", "C"})
 				existing := asMovable([]string{"D", "E", "A", "B", "C"})
 
@@ -44,17 +77,17 @@ var _ = Describe("Movement", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(moves).To(HaveLen(3))
 
-				Expect(moves[0].EntryName).To(Equal("A"))
-				Expect(moves[0].Where).To(Equal("top"))
-				Expect(moves[0].Destination).To(Equal("top"))
+				Expect(moves[0].Movable.EntryName()).To(Equal("A"))
+				Expect(moves[0].Where).To(Equal(movement.ActionWhereTop))
+				Expect(moves[0].Destination).To(BeNil())
 
-				Expect(moves[1].EntryName).To(Equal("B"))
-				Expect(moves[1].Where).To(Equal("after"))
-				Expect(moves[1].Destination).To(Equal("A"))
+				Expect(moves[1].Movable.EntryName()).To(Equal("B"))
+				Expect(moves[1].Where).To(Equal(movement.ActionWhereAfter))
+				Expect(moves[1].Destination.EntryName()).To(Equal("A"))
 
-				Expect(moves[2].EntryName).To(Equal("C"))
-				Expect(moves[2].Where).To(Equal("after"))
-				Expect(moves[2].Destination).To(Equal("B"))
+				Expect(moves[2].Movable.EntryName()).To(Equal("C"))
+				Expect(moves[2].Where).To(Equal(movement.ActionWhereAfter))
+				Expect(moves[2].Destination.EntryName()).To(Equal("B"))
 			})
 		})
 		Context("when expected order is reversed", func() {
@@ -78,9 +111,9 @@ var _ = Describe("Movement", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(moves).To(HaveLen(1))
 
-				Expect(moves[0].EntryName).To(Equal("E"))
-				Expect(moves[0].Where).To(Equal("after"))
-				Expect(moves[0].Destination).To(Equal("D"))
+				Expect(moves[0].Movable.EntryName()).To(Equal("E"))
+				Expect(moves[0].Where).To(Equal(movement.ActionWhereAfter))
+				Expect(moves[0].Destination.EntryName()).To(Equal("D"))
 			})
 		})
 	})
@@ -111,14 +144,11 @@ var _ = Describe("Movement", func() {
 					)
 
 					Expect(err).ToNot(HaveOccurred())
-					Expect(moves).To(HaveLen(2))
-					Expect(moves[0].EntryName).To(Equal("C"))
-					Expect(moves[0].Where).To(Equal("after"))
-					Expect(moves[0].Destination).To(Equal("A"))
+					Expect(moves).To(HaveLen(1))
 
-					Expect(moves[1].EntryName).To(Equal("B"))
-					Expect(moves[1].Where).To(Equal("after"))
-					Expect(moves[1].Destination).To(Equal("C"))
+					Expect(moves[0].Movable.EntryName()).To(Equal("B"))
+					Expect(moves[0].Where).To(Equal(movement.ActionWhereBefore))
+					Expect(moves[0].Destination.EntryName()).To(Equal("D"))
 				})
 			})
 		})
@@ -134,13 +164,13 @@ var _ = Describe("Movement", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(moves).To(HaveLen(2))
 
-				Expect(moves[0].EntryName).To(Equal("A"))
-				Expect(moves[0].Where).To(Equal("after"))
-				Expect(moves[0].Destination).To(Equal("C"))
+				Expect(moves[0].Movable.EntryName()).To(Equal("A"))
+				Expect(moves[0].Where).To(Equal(movement.ActionWhereAfter))
+				Expect(moves[0].Destination.EntryName()).To(Equal("C"))
 
-				Expect(moves[1].EntryName).To(Equal("B"))
-				Expect(moves[1].Where).To(Equal("after"))
-				Expect(moves[1].Destination).To(Equal("A"))
+				Expect(moves[1].Movable.EntryName()).To(Equal("B"))
+				Expect(moves[1].Where).To(Equal(movement.ActionWhereAfter))
+				Expect(moves[1].Destination.EntryName()).To(Equal("A"))
 			})
 		})
 	})
