@@ -18,13 +18,6 @@ const (
 	ActionWhereAfter  ActionWhereType = "after"
 )
 
-type entryPositionType int
-
-const (
-	entryPositionBefore entryPositionType = iota
-	entryPositionAfter
-)
-
 type Movable interface {
 	EntryName() string
 }
@@ -179,6 +172,7 @@ func processPivotMovement(entries []Movable, existing []Movable, pivot Movable, 
 
 	filteredPivotIdx := findPivotIdx(filtered, pivot)
 
+	slog.Debug("pivot()", "existing", existing, "filtered", filtered, "filteredPivotIdx", filteredPivotIdx)
 	switch movement {
 	case movementBefore:
 		expectedIdx := 0
@@ -186,34 +180,61 @@ func processPivotMovement(entries []Movable, existing []Movable, pivot Movable, 
 			expected[expectedIdx] = filtered[expectedIdx]
 		}
 
+		slog.Debug("pivot()", "expected", expected)
+
 		for _, elt := range entries {
 			expected[expectedIdx] = elt
 			expectedIdx++
 		}
 
+		slog.Debug("pivot()", "expected", expected)
+
 		expected[expectedIdx] = pivot
 		expectedIdx++
+
+		slog.Debug("pivot()", "expected", expected)
 
 		filteredLen := len(filtered)
 		for i := filteredPivotIdx + 1; i < filteredLen; i++ {
 			expected[expectedIdx] = filtered[i]
 			expectedIdx++
 		}
+
+		slog.Debug("pivot()", "expected", expected)
 	case movementAfter:
+		slog.Debug("pivot()", "filtered", filtered)
 		expectedIdx := 0
-		for ; expectedIdx < len(filtered); expectedIdx++ {
+		for ; expectedIdx < filteredPivotIdx+1; expectedIdx++ {
 			expected[expectedIdx] = filtered[expectedIdx]
 		}
 
-		for _, elt := range entries {
-			expected[expectedIdx] = elt
-			expectedIdx++
-		}
+		if direct {
+			for _, elt := range entries {
+				expected[expectedIdx] = elt
+				expectedIdx++
+			}
 
-		filteredLen := len(filtered)
-		for i := filteredPivotIdx + 1; i < filteredLen-1; i++ {
-			expected[expectedIdx] = filtered[i]
-			expectedIdx++
+			slog.Debug("pivot()", "expected", expected)
+
+			filteredLen := len(filtered)
+			for i := filteredPivotIdx + 1; i < filteredLen; i++ {
+				expected[expectedIdx] = filtered[i]
+			}
+		} else {
+			filteredLen := len(filtered)
+			for i := filteredPivotIdx + 1; i < filteredLen; i++ {
+				expected[expectedIdx] = filtered[i]
+				expectedIdx++
+			}
+
+			slog.Debug("pivot()", "expected", expected)
+
+			for _, elt := range entries {
+				expected[expectedIdx] = elt
+				expectedIdx++
+			}
+
+			slog.Debug("pivot()", "expected", expected)
 		}
 	}
 
@@ -264,7 +285,7 @@ func updateSimulatedIdxMap(idxMap *map[Movable]int, moved Movable, startingIdx i
 	}
 }
 
-func OptimizeMovements(existing []Movable, expected []Movable, entries []Movable, actions []MoveAction, position any) []MoveAction {
+func OptimizeMovements(existing []Movable, expected []Movable, entries []Movable, actions []MoveAction, position Position) []MoveAction {
 	simulated := make([]Movable, len(existing))
 	copy(simulated, existing)
 
@@ -309,6 +330,7 @@ func OptimizeMovements(existing []Movable, expected []Movable, entries []Movable
 }
 
 func GenerateMovements(existing []Movable, expected []Movable, entries []Movable, movement movementType) ([]MoveAction, error) {
+	slog.Debug("GenerateMovements()", "existing", existing, "expected", expected)
 	if len(existing) != len(expected) {
 		return nil, ErrSlicesNotEqualLength
 	}

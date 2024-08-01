@@ -132,7 +132,7 @@ var _ = Describe("Movement", func() {
 				Expect(moves).To(HaveLen(0))
 			})
 			Context("and moved entries are out of order", func() {
-				It("should generate a single command to move B before D", func() {
+				FIt("should generate a single command to move B before D", func() {
 					// A B C D E -> A B C E D
 					entries := asMovable([]string{"E", "D"})
 					moves, err := movement.MoveGroup(
@@ -147,6 +147,27 @@ var _ = Describe("Movement", func() {
 					Expect(moves[0].Where).To(Equal(movement.ActionWhereAfter))
 					Expect(moves[0].Destination.EntryName()).To(Equal("C"))
 				})
+			})
+		})
+		Context("when direct position relative to the pivot is required", func() {
+			It("should generate required move actions", func() {
+				// A B C D E -> C D A B E
+				entries := asMovable([]string{"A", "B"})
+				moves, err := movement.MoveGroup(
+					movement.PositionAfter{Directly: true, Pivot: Mock{"D"}},
+					entries, existing,
+				)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(moves).To(HaveLen(2))
+
+				Expect(moves[0].Movable.EntryName()).To(Equal("A"))
+				Expect(moves[0].Where).To(Equal(movement.ActionWhereAfter))
+				Expect(moves[0].Destination.EntryName()).To(Equal("D"))
+
+				Expect(moves[1].Movable.EntryName()).To(Equal("B"))
+				Expect(moves[1].Where).To(Equal(movement.ActionWhereAfter))
+				Expect(moves[1].Destination.EntryName()).To(Equal("A"))
 			})
 		})
 
@@ -204,6 +225,8 @@ var _ = Describe("Movement", func() {
 				Expect(moves[1].Movable.EntryName()).To(Equal("B"))
 				Expect(moves[1].Where).To(Equal(movement.ActionWhereAfter))
 				Expect(moves[1].Destination.EntryName()).To(Equal("A"))
+
+				Expect(true).To(BeFalse())
 			})
 		})
 	})
