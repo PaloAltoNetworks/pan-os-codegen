@@ -332,7 +332,7 @@ const resourceCreateFunction = `
 `
 
 const resourceReadFunction = `
-	var savestate {{ .resourceStructName }}Model
+	var savestate, state {{ .resourceStructName }}Model
 	resp.Diagnostics.Append(req.State.Get(ctx, &savestate)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -382,7 +382,7 @@ const resourceReadFunction = `
 		return
 	}
 
-	state, copy_diags := (&{{ .resourceStructName }}Model{}).CopyFromPango(ctx, object)
+	copy_diags := state.CopyFromPango(ctx, object)
 	resp.Diagnostics.Append(copy_diags...)
 
 	{{ RenderLocationsPangoToState }}
@@ -433,9 +433,8 @@ const resourceUpdateFunction = `
 	// Create the service.
 	svc := {{ .resourceSDKName }}.NewService(r.client)
 
-	// Load the desired config.
-	var obj {{ .resourceSDKName }}.{{ .EntryOrConfig }}
-
+	obj, copy_diags := plan.CopyToPango(ctx)
+	resp.Diagnostics.Append(copy_diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -447,11 +446,13 @@ const resourceUpdateFunction = `
 	*/
 
 	// Perform the operation.
-	_, err := svc.Update(ctx, loc.Location, obj, loc.Name)
+	_, err := svc.Update(ctx, loc.Location, *obj, loc.Name)
 	if err != nil {
 		resp.Diagnostics.AddError("Error in update", err.Error())
 		return
 	}
+
+	
 
 	// Save the location.
 	state.Location = plan.Location
@@ -470,8 +471,8 @@ const resourceUpdateFunction = `
 	}
 	state.Tfid = types.StringValue(tfid)
 
-	// Save the state.
-
+	copy_diags = state.CopyFromPango(ctx, obj)
+	resp.Diagnostics.Append(copy_diags...)
 
 	// Done.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

@@ -225,23 +225,6 @@ const copyFromPangoTmpl = `
   {{- end }}
 {{- end }}
 
-{{- define "renderListValueEntry" }}
-var {{ .Name.LowerCamelCase }}_list types.List
-{
-	var {{ .Name.LowerCamelCase }}_tf_entries []{{ .Type }}
-	for _, innerElt := range elt.{{ .Name.CamelCase }} {
-		tf_entry, elt_diags := innerElt.CopyFromPango(ctx)
-		diags.Append(elt_diags...)
-		{{ .Name.LowerCamelCase }}_tf_entries = append({{ .Name.LowerCamelCase }}_tf_entries, tf_entry)
-	}
-}
-// 	schema := any // It needs to be ListNestedAttribute from our schema
-//	var {{ .Name.LowerCamelCase }}_diags diags.Diagnostics
-// 	{{ .Name.LowerCamelCase }}_list, {{ .Name.LowerCamelCase }}_diags = types.ListValueFrom(ctx, obj.{{ .Name.CamelCase }}, schema.GetType())
-// 	diags.Append({{ .Name.LowerCamelCase }}_diags...)
-// }
-{{- end }}
-
 {{- define "renderListValueSimple" }}
 var {{ .Name.LowerCamelCase }}_list types.List
 {
@@ -296,10 +279,10 @@ var {{ .Name.LowerCamelCase }}_list types.List
 	{
 		var {{ $tfEntries }} []{{ $terraformType }}
 		for _, elt := range obj.{{ .Name.CamelCase }} {
-			var entry *{{ $terraformType }}
-			entry, entry_diags := entry.CopyFromPango(ctx, &elt)
+			var entry {{ $terraformType }}
+			entry_diags := entry.CopyFromPango(ctx, &elt)
 			diags.Append(entry_diags...)
-			{{ $tfEntries }} = append({{ $tfEntries }}, *entry)
+			{{ $tfEntries }} = append({{ $tfEntries }}, entry)
 		}
 		// var list_diags diags.Diagnostics
 		// schemaType := ???
@@ -335,9 +318,9 @@ var {{ .Name.LowerCamelCase }}_list types.List
 
   {{- $result := .Name.LowerCamelCase }}
   {{- $diag := .Name.LowerCamelCase | printf "%s_diags" }}
-	var {{ $result }}_object *{{ $.Spec.TerraformType }}{{ .Name.CamelCase }}Object
+	var {{ $result }}_object {{ $.Spec.TerraformType }}{{ .Name.CamelCase }}Object
 	var {{ $diag }} diag.Diagnostics
-	{{ $result }}_object, {{ $diag }} = o.{{ .Name.CamelCase }}.CopyFromPango(ctx, obj.{{ .Name.CamelCase }})
+	{{ $diag }} = o.{{ .Name.CamelCase }}.CopyFromPango(ctx, obj.{{ .Name.CamelCase }})
 	diags.Append({{ $diag }}...)
   {{- end }}
 {{- end }}
@@ -381,11 +364,11 @@ var {{ .Name.LowerCamelCase }}_list types.List
 {{- define "assignFromPangoToTerraform" }}
   {{- with .Parameter }}
   {{- if eq .Type "" }}
-	{{ .Name.CamelCase }}: *{{ .Name.LowerCamelCase }}_object,
+	o.{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_object
   {{- else if eq .Type "list" }}
-	{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_list,
+	o.{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_list
   {{- else }}
-	{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_value,
+	o.{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_value
   {{- end }}
   {{- end }}
 {{- end }}
@@ -393,14 +376,14 @@ var {{ .Name.LowerCamelCase }}_list types.List
 {{- range .Specs }}
 {{- $spec := . }}
 {{ $terraformType := printf "%s%s" .TerraformType .ModelOrObject }}
-func (o *{{ $terraformType }}) CopyFromPango(ctx context.Context, obj *{{ .PangoReturnType }}) (*{{ $terraformType }}, diag.Diagnostics) {
+func (o *{{ $terraformType }}) CopyFromPango(ctx context.Context, obj *{{ .PangoReturnType }}) diag.Diagnostics {
 	var diags diag.Diagnostics
   {{- template "terraformListElementsAs" $spec }}
   {{- template "terraformCreateEntryAssignment" $spec }}
   {{- template "terraformCreateSimpleValues" $spec }}
-	return &{{ $terraformType }}{
+
 {{- if .HasEntryName }}
-	Name: types.StringValue(obj.Name),
+	o.Name = types.StringValue(obj.Name)
 {{- end }}
   {{- range .Params }}
     {{- template "assignFromPangoToTerraform" Map "Spec" $spec "Parameter" . }}
@@ -408,7 +391,8 @@ func (o *{{ $terraformType }}) CopyFromPango(ctx context.Context, obj *{{ .Pango
   {{- range .OneOf }}
     {{- template "assignFromPangoToTerraform" Map "Spec" $spec "Parameter" . }}
   {{- end }}
-	}, diags
+
+	return diags
 }
 {{- end }}
 `
