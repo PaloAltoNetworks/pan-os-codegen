@@ -184,6 +184,10 @@ func (r *{{ resourceStructName }}) Schema(ctx context.Context, req resource.Sche
 		Description: "",
 		Attributes: map[string]rsschema.Attribute{
 	"location": {{ structName }}LocationsSchema(),
+	"tfid": rsschema.StringAttribute{
+		Description: "The Terraform ID.",
+		Computed:    true,
+	},
 	"name": rsschema.StringAttribute{
 		Description: "The name of the resource.",
 		Required:    true,
