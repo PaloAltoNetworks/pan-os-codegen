@@ -307,11 +307,10 @@ var {{ .Name.LowerCamelCase }}_list types.List
 	}
     {{- else }}
 		var {{ .Name.LowerCamelCase }}_list types.List
-		if len(obj.{{ .Name.CamelCase }}) > 0 {
-			var {{ .Name.LowerCamelCase }}_diags diag.Diagnostics
-			schemaType := rsschema.{{ .Items.Type | PascalCase }}Attribute{}
-			{{ .Name.LowerCamelCase }}_list, {{ .Name.LowerCamelCase }}_diags = types.ListValueFrom(ctx, schemaType.GetType(), obj.{{ .Name.CamelCase }})
-			diags.Append({{ .Name.LowerCamelCase }}_diags...)
+		{
+			var list_diags diag.Diagnostics
+			{{ .Name.LowerCamelCase }}_list, list_diags = types.ListValueFrom(ctx, types.{{ .Items.Type | PascalCase }}Type, obj.{{ .Name.CamelCase }})
+			diags.Append(list_diags...)
 		}
     {{- end }}
   {{- end }}

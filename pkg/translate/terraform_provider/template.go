@@ -332,7 +332,7 @@ const resourceCreateFunction = `
 `
 
 const resourceReadFunction = `
-	var savestate, state {{ .resourceStructName }}Model
+	var savestate {{ .resourceStructName }}Model
 	resp.Diagnostics.Append(req.State.Get(ctx, &savestate)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -382,9 +382,10 @@ const resourceReadFunction = `
 		return
 	}
 
-	{{ RenderLocationsPangoToState }}
+	state, copy_diags := (&{{ .resourceStructName }}Model{}).CopyFromPango(ctx, object)
+	resp.Diagnostics.Append(copy_diags...)
 
-	state.CopyFromPango(ctx, object)
+	{{ RenderLocationsPangoToState }}
 
 	/*
 			// Keep the timeouts.
