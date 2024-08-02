@@ -13,6 +13,10 @@ type {{ .structName }}Object struct {
 	{{- range $pName, $pParam := $.Spec.OneOf -}}
 		{{- structItems $pName $pParam  -}}
 	{{- end}}
+
+	{{- if .HasEncryptedResources }}
+		EncryptedValues types.Map ` + "`" + `tfsdk:"encrypted_values"` + "`" + `
+	{{- end }}
 }
 `
 
@@ -158,6 +162,10 @@ type {{ resourceStructName }}Model struct {
         {{- range $pName, $pParam := $.Spec.OneOf}}
             {{- ParamToModelResource $pName $pParam resourceStructName -}}
         {{- end}}
+
+	{{- if .HasEncryptedResources }}
+		EncryptedValues types.Map ` + "`" + `tfsdk:"encrypted_values"` + "`" + `
+	{{- end }}
 }
 
 {{- range $pName, $pParam := $.Spec.Params}}
@@ -211,9 +219,16 @@ func (r *{{ resourceStructName }}) Read(ctx context.Context, req resource.ReadRe
 	{{ ResourceReadFunction resourceStructName serviceName}}
 }
 
+
+{{- if .HasEntryName }}
 func (r *{{ resourceStructName }}) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	{{ ResourceUpdateFunction resourceStructName serviceName}}
 }
+{{- else }}
+func (r *{{ resourceStructName }}) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	// TODO: NTP and DNS is missing update function
+}
+{{- end }}
 
 func (r *{{ resourceStructName }}) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	{{ ResourceDeleteFunction resourceStructName serviceName}}
@@ -237,7 +252,9 @@ const resourceCreateFunction = `
 	tflog.Info(ctx, "performing resource create", map[string]any{
 		"resource_name": "panos_{{ UnderscoreName .structName }}",
 		"function":      "Create",
+{{- if .HasEntryName }}
 		"name":          state.Name.ValueString(),
+{{- end }}
 	})
 
 	// Verify mode.
@@ -250,7 +267,12 @@ const resourceCreateFunction = `
 	svc := {{ .resourceSDKName }}.NewService(r.client)
 
 	// Determine the location.
+{{- if .HasEntryName }}
 	loc := {{ .structName }}Tfid{Name: state.Name.ValueString()}
+{{- else }}
+	loc := {{ .structName }}Tfid{}
+{{- end }}
+
 
 	// TODO: this needs to handle location structure for UUID style shared has nested structure type
 	{{ RenderLocationsStateToPango }}
@@ -261,14 +283,13 @@ const resourceCreateFunction = `
 	}
 
 	// Load the desired config.
-	var obj {{ .resourceSDKName }}.Entry
-	obj.Name = state.Name.ValueString()
-	{{- range $pName, $pParam := $.paramSpec.Params }}
-		{{- ConfigToEntry $pName $pParam }}
-	{{- end }}
-	{{- range $pName, $pParam := $.paramSpec.OneOf }}
-		{{- ConfigToEntry $pName $pParam }}
-	{{- end }}
+	var obj *{{ .resourceSDKName }}.{{ .EntryOrConfig }}
+
+	obj, diags := state.CopyToPango(ctx)
+	resp.Diagnostics.Append(diags...)
+	if diags.HasError() {
+		return
+	}
 
 	/*
 		// Timeout handling.
@@ -277,7 +298,11 @@ const resourceCreateFunction = `
 	*/
 
 	// Perform the operation.
-	create, err := svc.Create(ctx, loc.Location, obj)
+{{- if .HasEntryName }}
+	create, err := svc.Create(ctx, loc.Location, *obj)
+{{- else }}
+	_, err := svc.Create(ctx, loc.Location, *obj)
+{{- end }}
 	if err != nil {
 		resp.Diagnostics.AddError("Error in create", err.Error())
 		return
@@ -292,7 +317,9 @@ const resourceCreateFunction = `
 
 	// Save the state.
 	state.Tfid = types.StringValue(tfid)
+{{- if .HasEntryName }}
 	state.Name = types.StringValue(create.Name)
+{{- end }}
 
 	// Done.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -337,7 +364,11 @@ const resourceReadFunction = `
 	*/
 
 	// Perform the operation.
-	_, err := svc.Read(ctx, loc.Location, loc.Name, "get")
+{{- if .HasEntryName }}
+	object, err := svc.Read(ctx, loc.Location, loc.Name, "get")
+{{- else }}
+	object, err := svc.Read(ctx, loc.Location, "get")
+{{- end }}
 	if err != nil {
 		if IsObjectNotFound(err) {
 			resp.State.RemoveResource(ctx)
@@ -348,6 +379,8 @@ const resourceReadFunction = `
 	}
 
 	{{ RenderLocationsPangoToState }}
+
+	state.CopyFromPango(ctx, object)
 
 	/*
 			// Keep the timeouts.
@@ -396,7 +429,7 @@ const resourceUpdateFunction = `
 	svc := {{ .resourceSDKName }}.NewService(r.client)
 
 	// Load the desired config.
-	var obj {{ .resourceSDKName }}.Entry
+	var obj {{ .resourceSDKName }}.{{ .EntryOrConfig }}
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -476,9 +509,20 @@ const resourceDeleteFunction = `
 	*/
 
 	// Perform the operation.
+{{- if .HasEntryName }}
 	if err := svc.Delete(ctx, loc.Location, loc.Name); err != nil && !IsObjectNotFound(err) {
 		resp.Diagnostics.AddError("Error in delete", err.Error())
 	}
+{{- else }}
+	obj, diags := state.CopyToPango(ctx)
+	resp.Diagnostics.Append(diags...)
+	if diags.HasError() {
+		return
+	}
+	if err := svc.Delete(ctx, loc.Location, *obj); err != nil && !IsObjectNotFound(err) {
+		resp.Diagnostics.AddError("Error in delete", err.Error())
+	}
+{{- end }}
 `
 
 const dataSourceSingletonObj = `

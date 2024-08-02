@@ -92,7 +92,7 @@ func generateFromTerraformToPangoParameter(pkgName string, terraformPrefix strin
 
 	var pangoReturnType string
 	if parentName == "" {
-		pangoReturnType = fmt.Sprintf("%s.Entry", pkgName)
+		pangoReturnType = fmt.Sprintf("%s.%s", pkgName, prop.EntryOrConfig())
 		pangoPrefix = fmt.Sprintf("%s.", pkgName)
 	} else {
 		pangoReturnType = fmt.Sprintf("%s.%s", pkgName, parentName)
@@ -274,7 +274,7 @@ const copyFromPangoTmpl = `
   {{- $diag := .Name.LowerCamelCase | printf "%s_diags" }}
 	var {{ $result }}_object *{{ $.Spec.TerraformType }}{{ .Name.CamelCase }}Object
 	var {{ $diag }} diag.Diagnostics
-	{{ $result }}_object, {{ $diag }} = o.{{ .Name.CamelCase }}.CopyFromPango(ctx, *obj.{{ .Name.CamelCase }})
+	{{ $result }}_object, {{ $diag }} = o.{{ .Name.CamelCase }}.CopyFromPango(ctx, obj.{{ .Name.CamelCase }})
 	diags.Append({{ $diag }}...)
   {{- end }}
 {{- end }}
@@ -308,7 +308,7 @@ const copyFromPangoTmpl = `
 {{- range .Specs }}
 {{- $spec := . }}
 {{ $terraformType := printf "%s%s" .TerraformType .ModelOrObject }}
-func (o *{{ $terraformType }}) CopyFromPango(ctx context.Context, obj {{ .PangoReturnType }}) (*{{ $terraformType }}, diag.Diagnostics) {
+func (o *{{ $terraformType }}) CopyFromPango(ctx context.Context, obj *{{ .PangoReturnType }}) (*{{ $terraformType }}, diag.Diagnostics) {
 	var diags diag.Diagnostics
   {{- template "terraformListElementsAs" $spec }}
   {{- template "terraformCreateEntryAssignment" $spec }}
@@ -822,11 +822,14 @@ func ResourceCreateFunction(names *NameProvider, serviceName string, paramSpec *
 	}
 
 	data := map[string]interface{}{
-		"structName":      names.ResourceStructName,
-		"serviceName":     naming.CamelCase("", serviceName, "", false),
-		"paramSpec":       paramSpec.Spec,
-		"resourceSDKName": resourceSDKName,
-		"locations":       paramSpec.Locations,
+		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
+		"EntryOrConfig":         paramSpec.EntryOrConfig(),
+		"HasEntryName":          paramSpec.HasEntryName(),
+		"structName":            names.ResourceStructName,
+		"serviceName":           naming.CamelCase("", serviceName, "", false),
+		"paramSpec":             paramSpec.Spec,
+		"resourceSDKName":       resourceSDKName,
+		"locations":             paramSpec.Locations,
 	}
 
 	return processTemplate(resourceCreateFunction, "resource-create-function", data, funcMap)
@@ -838,11 +841,14 @@ func ResourceReadFunction(names *NameProvider, serviceName string, paramSpec *pr
 	}
 
 	data := map[string]interface{}{
-		"structName":         names.StructName,
-		"resourceStructName": names.ResourceStructName,
-		"serviceName":        naming.CamelCase("", serviceName, "", false),
-		"resourceSDKName":    resourceSDKName,
-		"locations":          paramSpec.Locations,
+		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
+		"EntryOrConfig":         paramSpec.EntryOrConfig(),
+		"HasEntryName":          paramSpec.HasEntryName(),
+		"structName":            names.StructName,
+		"resourceStructName":    names.ResourceStructName,
+		"serviceName":           naming.CamelCase("", serviceName, "", false),
+		"resourceSDKName":       resourceSDKName,
+		"locations":             paramSpec.Locations,
 	}
 
 	funcMap := template.FuncMap{
@@ -858,9 +864,12 @@ func ResourceUpdateFunction(names *NameProvider, serviceName string, paramSpec *
 	}
 
 	data := map[string]interface{}{
-		"structName":      names.ResourceStructName,
-		"serviceName":     naming.CamelCase("", serviceName, "", false),
-		"resourceSDKName": resourceSDKName,
+		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
+		"EntryOrConfig":         paramSpec.EntryOrConfig(),
+		"HasEntryName":          paramSpec.HasEntryName(),
+		"structName":            names.ResourceStructName,
+		"serviceName":           naming.CamelCase("", serviceName, "", false),
+		"resourceSDKName":       resourceSDKName,
 	}
 
 	funcMap := template.FuncMap{
@@ -870,15 +879,18 @@ func ResourceUpdateFunction(names *NameProvider, serviceName string, paramSpec *
 	return processTemplate(resourceUpdateFunction, "resource-update-function", data, funcMap)
 }
 
-func ResourceDeleteFunction(structName string, serviceName string, paramSpec interface{}, resourceSDKName string) (string, error) {
+func ResourceDeleteFunction(structName string, serviceName string, paramSpec *properties.Normalization, resourceSDKName string) (string, error) {
 	if strings.Contains(serviceName, "group") {
 		serviceName = "group"
 	}
 
 	data := map[string]interface{}{
-		"structName":      structName,
-		"serviceName":     naming.CamelCase("", serviceName, "", false),
-		"resourceSDKName": resourceSDKName,
+		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
+		"EntryOrConfig":         paramSpec.EntryOrConfig(),
+		"HasEntryName":          paramSpec.HasEntryName(),
+		"structName":            structName,
+		"serviceName":           naming.CamelCase("", serviceName, "", false),
+		"resourceSDKName":       resourceSDKName,
 	}
 
 	return processTemplate(resourceDeleteFunction, "resource-delete-function", data, nil)

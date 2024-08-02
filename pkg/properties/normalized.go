@@ -113,6 +113,7 @@ type SpecParam struct {
 	Required    bool                `json:"required" yaml:"required"`
 	Length      *SpecParamLength    `json:"length" yaml:"length,omitempty"`
 	Count       *SpecParamCount     `json:"count" yaml:"count,omitempty"`
+	Hashing     *SpecParamHashing   `json:"hashing" yaml:"hashing,omitempty"`
 	Items       *SpecParamItems     `json:"items" yaml:"items,omitempty"`
 	Regex       string              `json:"regex" yaml:"regex,omitempty"`
 	Profiles    []*SpecParamProfile `json:"profiles" yaml:"profiles"`
@@ -127,6 +128,10 @@ type SpecParamLength struct {
 type SpecParamCount struct {
 	Min *int64 `json:"min" yaml:"min"`
 	Max *int64 `json:"max" yaml:"max"`
+}
+
+type SpecParamHashing struct {
+	Type string `json:"type" yaml:"type"`
 }
 
 type SpecParamItems struct {
@@ -145,6 +150,22 @@ type SpecParamProfile struct {
 	Type        string   `json:"type" yaml:"type,omitempty"`
 	NotPresent  bool     `json:"not_present" yaml:"not_present"`
 	FromVersion string   `json:"from_version" yaml:"from_version"`
+}
+
+func (o *SpecParam) HasEncryptedResources() bool {
+	for _, elt := range o.Spec.Params {
+		if elt.Hashing != nil {
+			return true
+		}
+	}
+
+	for _, elt := range o.Spec.OneOf {
+		if elt.Hashing != nil {
+			return true
+		}
+	}
+
+	return false
 }
 
 // GetNormalizations get list of all specs (normalizations).
@@ -395,6 +416,34 @@ func (spec *Normalization) SupportedVersions() []string {
 		return versions
 	}
 	return nil
+}
+
+func (spec *Normalization) EntryOrConfig() string {
+	if spec.Entry == nil {
+		return "Config"
+	}
+
+	return "Entry"
+}
+
+func (spec *Normalization) HasEntryName() bool {
+	return spec.Entry != nil
+}
+
+func (spec *Normalization) HasEncryptedResources() bool {
+	for _, param := range spec.Spec.Params {
+		if param.Hashing != nil {
+			return true
+		}
+	}
+
+	for _, param := range spec.Spec.OneOf {
+		if param.Hashing != nil {
+			return true
+		}
+	}
+
+	return false
 }
 
 func supportedVersions(params map[string]*SpecParam, versions []string) []string {

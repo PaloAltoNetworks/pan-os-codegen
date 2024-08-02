@@ -127,7 +127,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 			return ResourceUpdateFunction(names, serviceName, spec, names.PackageName)
 		},
 		"ResourceDeleteFunction": func(structName string, serviceName string) (string, error) {
-			return ResourceDeleteFunction(structName, serviceName, spec.Spec, names.PackageName)
+			return ResourceDeleteFunction(structName, serviceName, spec, names.PackageName)
 		},
 		"ParamToModelResource": ParamToModelResource,
 		"ModelNestedStruct":    ModelNestedStruct,
@@ -200,7 +200,22 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 			}
 		} else {
 			// Generate Resource with config style
-			err := g.generateTerraformEntityTemplate(resourceType, names, spec, terraformProvider, "", funcMap)
+
+			terraformProvider.ImportManager.AddSdkImport(sdkPkgPath(spec), "")
+
+			conditionallyAddValidators(terraformProvider.ImportManager, spec)
+			conditionallyAddModifiers(terraformProvider.ImportManager, spec)
+
+			terraformProvider.ImportManager.AddStandardImport("fmt", "")
+			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
+			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/diag", "")
+			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource", "")
+			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
+			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault", "")
+			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types", "")
+			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
+
+			err := g.generateTerraformEntityTemplate(resourceType, names, spec, terraformProvider, resourceObj, funcMap)
 			if err != nil {
 				return err
 			}
