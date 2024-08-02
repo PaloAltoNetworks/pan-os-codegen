@@ -254,8 +254,6 @@ func (o PositionBefore) Move(entries []Movable, existing []Movable) ([]MoveActio
 		return nil, err
 	}
 
-	slog.Debug("PositionBefore.Move()", "existing", existing, "expected", expected, "entries", entries)
-
 	actions, err := GenerateMovements(existing, expected, entries, ActionWhereBefore, o.Pivot, o.Directly)
 	if err != nil {
 		return nil, err
@@ -292,23 +290,11 @@ func updateSimulatedIdxMap(idxMap *map[Movable]int, moved Movable, startingIdx i
 func OptimizeMovements(existing []Movable, expected []Movable, entries []Movable, actions []MoveAction, position Position) []MoveAction {
 	simulated := make([]Movable, len(existing))
 	copy(simulated, existing)
-
 	simulatedIdxMap := createIdxMapFor(simulated)
-	expectedIdxMap := createIdxMapFor(expected)
 
 	var optimized []MoveAction
-
-	switch position.(type) {
-	case PositionBefore, PositionAfter:
-	default:
-		return actions
-	}
-
 	for _, action := range actions {
 		currentIdx := simulatedIdxMap[action.Movable]
-		if currentIdx == expectedIdxMap[action.Movable] {
-			continue
-		}
 
 		var targetIdx int
 		switch action.Where {
@@ -317,10 +303,12 @@ func OptimizeMovements(existing []Movable, expected []Movable, entries []Movable
 		case ActionWhereBottom:
 			targetIdx = len(simulated) - 1
 		case ActionWhereBefore:
-			targetIdx = simulatedIdxMap[action.Destination] - 1
+			targetIdx = simulatedIdxMap[action.Destination]
 		case ActionWhereAfter:
 			targetIdx = simulatedIdxMap[action.Destination] + 1
 		}
+
+		slog.Debug("OptimizeMovements()", "action", action, "currentIdx", currentIdx, "targetIdx", targetIdx)
 
 		if targetIdx != currentIdx {
 			optimized = append(optimized, action)
@@ -346,11 +334,7 @@ func GenerateMovements(existing []Movable, expected []Movable, entries []Movable
 	var movements []MoveAction
 	var previous Movable
 	for _, elt := range entries {
-		slog.Debug("GenerateMovements()", "elt", elt, "existing", existingIdxMap[elt], "expected", expectedIdxMap[elt], "len(expected)", len(expected))
-		// If existing index for the element matches the expected one, skip it over
-		if existingIdxMap[elt] == expectedIdxMap[elt] {
-			continue
-		}
+		slog.Debug("GeneraveMovements()", "elt", elt, "existing", existingIdxMap[elt], "expected", expectedIdxMap[elt])
 
 		if previous != nil {
 			movements = append(movements, MoveAction{
@@ -392,10 +376,10 @@ func GenerateMovements(existing []Movable, expected []Movable, entries []Movable
 				eltExpectedIdx := expectedIdxMap[elt]
 				pivot = expected[eltExpectedIdx+1]
 				where = ActionWhereBefore
-				// if previous was nil (we are processing the first element in entries set)
-				// and selected pivot is part of the entries set it means the order of entries
-				// changes between existing and expected sets. If direct move has been requested,
-				// we need to find the correct pivot point for the move.
+				// If previous was nil (we are processing the first element in entries set)
+				// and selected pivot is part of the entries set, it means the order of elements
+				// changes between existing adn expected sets. In this case the actual pivot
+				// is element from expected set that follows all moved elements.
 				if _, ok := entriesIdxMap[pivot]; ok && directly {
 					// The actual pivot for the move is the element that follows all elements
 					// from the existing set.
@@ -406,6 +390,7 @@ func GenerateMovements(existing []Movable, expected []Movable, entries []Movable
 						return nil, ErrInvalidMovementPlan
 					}
 					pivot = expected[pivotIdx]
+
 				}
 			}
 
@@ -419,7 +404,7 @@ func GenerateMovements(existing []Movable, expected []Movable, entries []Movable
 
 	}
 
-	slog.Debug("GeneraveMovements()", "movements", movements)
+	slog.Debug("GenerateMovements()", "movements", movements)
 
 	return movements, nil
 }
@@ -464,7 +449,6 @@ func (o PositionBottom) GetExpected(entries []Movable, existing []Movable) ([]Mo
 }
 
 func (o PositionBottom) Move(entries []Movable, existing []Movable) ([]MoveAction, error) {
-	slog.Debug("PositionBottom.Move())", "entries", entries, "existing", existing)
 	expected, err := o.GetExpected(entries, existing)
 	if err != nil {
 		return nil, err
@@ -472,6 +456,7 @@ func (o PositionBottom) Move(entries []Movable, existing []Movable) ([]MoveActio
 
 	actions, err := GenerateMovements(existing, expected, entries, ActionWhereBottom, nil, false)
 	if err != nil {
+		slog.Debug("PositionBottom()", "err", err)
 		return nil, err
 	}
 	return OptimizeMovements(existing, expected, entries, actions, o), nil
@@ -487,7 +472,6 @@ func MoveGroups(existing []Movable, movements []Movement) ([]MoveAction, error) 
 	for idx := range len(movements) - 1 {
 		position := movements[idx].Position
 		entries := movements[idx].Entries
-		slog.Debug("MoveGroups()", "position", position, "existing", existing, "entries", entries)
 		result, err := position.GetExpected(entries, expected)
 		if err != nil {
 			if !errors.Is(err, errNoMovements) {
@@ -500,7 +484,6 @@ func MoveGroups(existing []Movable, movements []Movement) ([]MoveAction, error) 
 
 	entries := movements[len(movements)-1].Entries
 	position := movements[len(movements)-1].Position
-	slog.Debug("MoveGroups()", "position", position, "expected", expected, "entries", entries)
 	return position.Move(entries, expected)
 }
 

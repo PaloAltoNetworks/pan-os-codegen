@@ -71,6 +71,8 @@ var _ = Describe("MoveGroup()", func() {
 				moves, err := movement.MoveGroup(movement.PositionTop{}, entries, existing)
 				Expect(err).ToNot(HaveOccurred())
 
+				// '((E 'top nil)(B 'after E)(C 'after B)(D 'after C))
+				// 'A element stays in place
 				Expect(moves).To(HaveLen(4))
 			})
 		})
@@ -189,9 +191,54 @@ var _ = Describe("MoveGroup()", func() {
 			})
 		})
 	})
+
+	// '(A E B C D) -> '(A B C D E) => '(E 'bottom nil) / '(E 'after D)
+
+	// PositionSomewhereBefore PositionDirectlyBefore
+	// '(C B 'before E, directly)
+	// '(A B C D E) -> '(A D C B E) -> '(B 'before E)
+	// '(A B C D E) -> '(A C B D E) -> '(B 'after C)
+
 	Context("With PositionBefore used as position", func() {
 		existing := asMovable([]string{"A", "B", "C", "D", "E"})
+		Context("when doing a direct move with entries reordering", func() {
+			It("should put reordered entries directly before pivot point", func() {
+				// '(A B C D E) -> '(A D C B E)
+				entries := asMovable([]string{"C", "B"})
+				moves, err := movement.MoveGroup(
+					movement.PositionBefore{Directly: true, Pivot: Mock{"E"}},
+					entries, existing,
+				)
 
+				Expect(err).ToNot(HaveOccurred())
+				Expect(moves).To(HaveLen(2))
+
+				Expect(moves[0].Movable.EntryName()).To(Equal("C"))
+				Expect(moves[0].Where).To(Equal(movement.ActionWhereBefore))
+				Expect(moves[0].Destination.EntryName()).To(Equal("E"))
+
+				Expect(moves[1].Movable.EntryName()).To(Equal("B"))
+				Expect(moves[1].Where).To(Equal(movement.ActionWhereAfter))
+				Expect(moves[1].Destination.EntryName()).To(Equal("C"))
+			})
+		})
+		Context("when doing a non direct move with entries reordering", func() {
+			It("should reorder entries in-place without moving them around", func() {
+				// '(A B C D E) -> '(A C B D E)
+				entries := asMovable([]string{"C", "B"})
+				moves, err := movement.MoveGroup(
+					movement.PositionBefore{Directly: false, Pivot: Mock{"E"}},
+					entries, existing,
+				)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(moves).To(HaveLen(1))
+
+				Expect(moves[0].Movable.EntryName()).To(Equal("C"))
+				Expect(moves[0].Where).To(Equal(movement.ActionWhereBefore))
+				Expect(moves[0].Destination.EntryName()).To(Equal("B"))
+			})
+		})
 		Context("when direct position relative to the pivot is not required", func() {
 			Context("and moved entries are already before pivot point", func() {
 				It("should not generate any move actions", func() {
@@ -249,8 +296,8 @@ var _ = Describe("MoveGroup()", func() {
 					Expect(moves).To(HaveLen(1))
 
 					Expect(moves[0].Movable.EntryName()).To(Equal("C"))
-					Expect(moves[0].Where).To(Equal(movement.ActionWhereBefore))
-					Expect(moves[0].Destination.EntryName()).To(Equal("B"))
+					Expect(moves[0].Where).To(Equal(movement.ActionWhereAfter))
+					Expect(moves[0].Destination.EntryName()).To(Equal("A"))
 				})
 			})
 		})
@@ -355,6 +402,10 @@ var _ = Describe("Movement benchmarks", func() {
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(moves).To(HaveLen(6))
+
+			Expect(moves[0].Movable.EntryName()).To(Equal("90"))
+			Expect(moves[0].Where).To(Equal(movement.ActionWhereBefore))
+			Expect(moves[0].Destination.EntryName()).To(Equal("100"))
 		})
 	})
 })
