@@ -149,18 +149,9 @@ func (o *{{ resourceStructName }}Tfid) IsValid() error {
 }
 
 
-{{- RenderLocationStructs }}
-
-{{- RenderLocationSchemaGetter }}
-
 func {{ resourceStructName }}LocationSchema() rsschema.Attribute {
 	return {{ structName }}LocationSchema()
 }
-
-func {{ dataSourceStructName }}LocationSchema() rsschema.Attribute {
-	return {{ structName }}LocationSchema()
-}
-
 
 type {{ resourceStructName }}Model struct {
 		{{ CreateTfIdResourceModel }}
@@ -216,7 +207,7 @@ func (r *{{ resourceStructName }}) Create(ctx context.Context, req resource.Crea
 	{{ ResourceCreateFunction resourceStructName serviceName}}
 }
 
-func (r *{{ resourceStructName }}) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+func (o *{{ resourceStructName }}) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	{{ ResourceReadFunction resourceStructName serviceName}}
 }
 
@@ -270,7 +261,7 @@ const resourceCreateFunction = `
 
 
 	// TODO: this needs to handle location structure for UUID style shared has nested structure type
-	{{ RenderLocationsStateToPango }}
+	{{ RenderLocationsStateToPango "state" }}
 
 	if err := loc.IsValid(); err != nil {
 		resp.Diagnostics.AddError("Invalid location", err.Error())
@@ -340,11 +331,31 @@ const resourceCreateFunction = `
 `
 
 const resourceReadFunction = `
+{{- if eq .ResourceOrDS "DataSource" }}
+	var savestate, state {{ .dataSourceStructName }}Model
+	resp.Diagnostics.Append(req.Config.Get(ctx, &savestate)...)
+{{- else }}
 	var savestate, state {{ .resourceStructName }}Model
 	resp.Diagnostics.Append(req.State.Get(ctx, &savestate)...)
+{{- end }}
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+{{- if eq .ResourceOrDS "DataSource" }}
+	var loc {{ .dataSourceStructName }}Tfid
+  {{- if .HasEntryName }}
+	loc.Name = *savestate.Name.ValueStringPointer()
+  {{- end }}
+	{{ RenderLocationsStateToPango "savestate" }}
+{{- else }}
+	var loc {{ .resourceStructName }}Tfid
+	// Parse the location from tfid.
+	if err := DecodeLocation(savestate.Tfid.ValueString(), &loc); err != nil {
+		resp.Diagnostics.AddError("Error parsing tfid", err.Error())
+		return
+	}
+{{- end }}
 
 {{- if .HasEncryptedResources }}
 	ev := make(map[string]types.String, len(savestate.EncryptedValues.Elements()))
@@ -353,13 +364,6 @@ const resourceReadFunction = `
 		return
 	}
 {{- end }}
-
-	// Parse the location from tfid.
-	var loc {{ .resourceStructName }}Tfid
-	if err := DecodeLocation(savestate.Tfid.ValueString(), &loc); err != nil {
-		resp.Diagnostics.AddError("Error parsing tfid", err.Error())
-		return
-	}
 
 	// Basic logging.
 	tflog.Info(ctx, "performing resource read", map[string]any{
@@ -371,13 +375,13 @@ const resourceReadFunction = `
 	})
 
 	// Verify mode.
-	if r.client.Hostname == "" {
+	if o.client.Hostname == "" {
 		resp.Diagnostics.AddError("Invalid mode error", InspectionModeError)
 		return
 	}
 
 	// Create the service.
-	svc := {{ .resourceSDKName }}.NewService(r.client)
+	svc := {{ .resourceSDKName }}.NewService(o.client)
 
 	/*
 		// Timeout handling.
@@ -393,7 +397,11 @@ const resourceReadFunction = `
 {{- end }}
 	if err != nil {
 		if IsObjectNotFound(err) {
+{{- if eq .ResourceOrDS "DataSource" }}
+			resp.Diagnostics.AddError("Error reading data", err.Error())
+{{- else }}
 			resp.State.RemoveResource(ctx)
+{{- end }}
 		} else {
 			resp.Diagnostics.AddError("Error reading config", err.Error())
 		}
@@ -407,7 +415,7 @@ const resourceReadFunction = `
 {{- end }}
 	resp.Diagnostics.Append(copy_diags...)
 
-	{{ RenderLocationsPangoToState }}
+	{{ RenderLocationsPangoToState "state" }}
 
 	/*
 			// Keep the timeouts.
@@ -592,43 +600,68 @@ const resourceDeleteFunction = `
 {{- end }}
 `
 
+const commonTemplate = `
+{{- RenderLocationStructs }}
+
+{{- RenderLocationSchemaGetter }}
+`
+
 const dataSourceSingletonObj = `
 {{- /* Begin */ -}}
 
 // Generate Terraform Data Source object.
 var (
-    _ datasource.DataSource = &{{ structName }}{}
-    _ datasource.DataSourceWithConfigure = &{{ structName }}{}
+    _ datasource.DataSource = &{{ dataSourceStructName }}{}
+    _ datasource.DataSourceWithConfigure = &{{ dataSourceStructName }}{}
 )
 
-func New{{ structName }}() datasource.DataSource {
-    return &{{ structName }}{}
+func New{{ dataSourceStructName }}() datasource.DataSource {
+    return &{{ dataSourceStructName }}{}
 }
 
-type {{ structName }} struct {
+type {{ dataSourceStructName }} struct {
     client *pango.Client
 }
 
-type {{ structName }}Filter struct {
+type {{ dataSourceStructName }}Filter struct {
 //TODO: Generate Data Source filter via function
+}
+
+type {{ dataSourceStructName }}Tfid struct {
+	{{ CreateTfIdStruct }}
+}
+
+func (o *{{ dataSourceStructName }}Tfid) IsValid() error {
+{{- if .HasEntryName }}
+	if o.Name == "" {
+		return fmt.Errorf("name is unspecified")
+	}
+{{- end }}
+	return o.Location.IsValid()
 }
 
 {{ RenderDataSourceStructs }}
 
+{{ RenderCopyFromPangoFunctions }}
+
+{{ RenderDataSourceSchema }}
+
+func {{ dataSourceStructName }}LocationSchema() rsschema.Attribute {
+	return {{ structName }}LocationSchema()
+}
+
 // Metadata returns the data source type name.
-func (d *{{ structName }}) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+func (d *{{ dataSourceStructName }}) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
     resp.TypeName = req.ProviderTypeName + "{{ metaName }}"
 }
 
 // Schema defines the schema for this data source.
-func (d *{{ structName }}) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-    resp.Schema = dsschema.Schema{
-//TODO: generate schema via function
-    }
+func (d *{{ dataSourceStructName }}) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = {{ dataSourceStructName }}Schema()
 }
 
 // Configure prepares the struct.
-func (d *{{ structName }}) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+func (d *{{ dataSourceStructName }}) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -636,18 +669,8 @@ func (d *{{ structName }}) Configure(_ context.Context, req datasource.Configure
 	d.client = req.ProviderData.(*pango.Client)
 }
 
-func (d *{{ structName }}) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-    var data {{ structName }}Model
-
-	// Read Terraform prior state data into the model
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Save updated data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+func (o *{{ dataSourceStructName }}) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	{{ DataSourceReadFunction dataSourceStructName serviceName }}
 }
 
 {{- /* Done */ -}}

@@ -1059,6 +1059,18 @@ func RenderResourceSchema(names *NameProvider, spec *properties.Normalization) (
 	return processTemplate(renderSchemaTemplate, "render-resource-schema", data, commonFuncMap)
 }
 
+func RenderDataSourceSchema(names *NameProvider, spec *properties.Normalization) (string, error) {
+	type context struct {
+		Schemas []schemaCtx
+	}
+
+	data := context{
+		Schemas: createSchemaSpecForNormalization(schemaDataSource, spec),
+	}
+
+	return processTemplate(renderSchemaTemplate, "render-resource-schema", data, commonFuncMap)
+}
+
 type locationFieldCtx struct {
 	Name string
 	Type string
@@ -1100,10 +1112,11 @@ func renderLocationsGetContext(names *NameProvider, spec *properties.Normalizati
 }
 
 const locationsPangoToState = `
+{{ $v := .Variable }}
 {{- range .Locations }}
   {{- if .IsBool }}
 if loc.Location.{{ .Name }} {
-	state.Location.{{ .Name }} = types.BoolValue(true)
+	{{ $v }}.Location.{{ .Name }} = types.BoolValue(true)
 }
   {{- else }}
 if loc.Location.{{ .Name }} != nil {
@@ -1113,32 +1126,34 @@ if loc.Location.{{ .Name }} != nil {
 		{{ .Name }}: types.{{ .Type }}Value(loc.Location.{{ $locationName }}.{{ .Name }}),
     {{- end }}
 	}
-	state.Location.{{ .Name }} = location
+	{{ $v }}.Location.{{ .Name }} = location
 }
   {{- end }}
 {{- end }}
 `
 
-func RenderLocationsPangoToState(names *NameProvider, spec *properties.Normalization) (string, error) {
+func RenderLocationsPangoToState(names *NameProvider, spec *properties.Normalization, variable string) (string, error) {
 	type context struct {
+		Variable  string
 		Locations []locationCtx
 	}
-	data := context{Locations: renderLocationsGetContext(names, spec)}
+	data := context{Variable: variable, Locations: renderLocationsGetContext(names, spec)}
 	return processTemplate(locationsPangoToState, "render-locations-pango-to-state", data, commonFuncMap)
 }
 
 const locationsStateToPango = `
+{{ $v := .Variable }}
 {{- range .Locations }}
   {{- if .IsBool }}
-if !state.Location.{{ .Name }}.IsNull() && state.Location.{{ .Name }}.ValueBool() {
+if !{{ $v }}.Location.{{ .Name }}.IsNull() && {{ $v }}.Location.{{ .Name }}.ValueBool() {
 	loc.Location.{{ .Name }} = true
 }
   {{- else }}
-if state.Location.{{ .Name }} != nil {
+if {{ $v }}.Location.{{ .Name }} != nil {
 	location := &{{ .SdkStructName }}{
     {{ $locationName := .Name }}
     {{- range .Fields }}
-		{{ .Name }}: state.Location.{{ $locationName }}.{{ .Name }}.ValueString(),
+		{{ .Name }}: {{ $v }}.Location.{{ $locationName }}.{{ .Name }}.ValueString(),
     {{- end }}
 	}
 	loc.Location.{{ .Name }} = location
@@ -1147,11 +1162,12 @@ if state.Location.{{ .Name }} != nil {
 {{- end }}
 `
 
-func RenderLocationsStateToPango(names *NameProvider, spec *properties.Normalization) (string, error) {
+func RenderLocationsStateToPango(names *NameProvider, spec *properties.Normalization, variable string) (string, error) {
 	type context struct {
+		Variable  string
 		Locations []locationCtx
 	}
-	data := context{Locations: renderLocationsGetContext(names, spec)}
+	data := context{Locations: renderLocationsGetContext(names, spec), Variable: variable}
 	return processTemplate(locationsStateToPango, "render-locations-state-to-pango", data, commonFuncMap)
 }
 
@@ -1183,11 +1199,11 @@ func terraformTypeForProperty(structPrefix string, prop *properties.SpecParam) s
 	}
 
 	if prop.Type == "list" && prop.Items.Type == "entry" {
-		return fmt.Sprintf("[]%s%sObject", structPrefix, prop.Name.CamelCase)
+		return "types.List"
 	}
 
 	if prop.Type == "list" {
-		return fmt.Sprintf("[]types.%s", pascalCase(prop.Items.Type))
+		return "types.List"
 	}
 
 	return fmt.Sprintf("types.%s", pascalCase(prop.Type))
@@ -1254,6 +1270,26 @@ func dataSourceStructContext(spec *properties.Normalization) []datasourceStructS
 
 	var fields []datasourceStructFieldSpec
 
+	if spec.HasEntryName() {
+		fields = append(fields, datasourceStructFieldSpec{
+			Name: "Name",
+			Type: "types.String",
+			Tags: []string{"`tfsdk:\"name\"`"},
+		})
+	}
+
+	fields = append(fields, datasourceStructFieldSpec{
+		Name: "Tfid",
+		Type: "types.String",
+		Tags: []string{"`tfsdk:\"tfid\"`"},
+	})
+
+	fields = append(fields, datasourceStructFieldSpec{
+		Name: "Location",
+		Type: fmt.Sprintf("%sLocation", names.StructName),
+		Tags: []string{"`tfsdk:\"location\"`"},
+	})
+
 	for _, elt := range spec.Spec.Params {
 		fields = append(fields, structFieldSpec(elt, names.DataSourceStructName))
 		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
@@ -1266,6 +1302,14 @@ func dataSourceStructContext(spec *properties.Normalization) []datasourceStructS
 		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
 			structs = append(structs, dataSourceStructContextForParam(names.DataSourceStructName, elt)...)
 		}
+	}
+
+	if spec.HasEncryptedResources() {
+		fields = append(fields, datasourceStructFieldSpec{
+			Name: "EncryptedValues",
+			Type: "types.Map",
+			Tags: []string{"`tfsdk:\"encrypted_values\"`"},
+		})
 	}
 
 	structs = append(structs, datasourceStructSpec{
@@ -1291,7 +1335,7 @@ func RenderDataSourceStructs(names *NameProvider, spec *properties.Normalization
 func ResourceCreateFunction(names *NameProvider, serviceName string, paramSpec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, resourceSDKName string) (string, error) {
 	funcMap := template.FuncMap{
 		"ConfigToEntry":               ConfigEntry,
-		"RenderLocationsStateToPango": func() (string, error) { return RenderLocationsStateToPango(names, paramSpec) },
+		"RenderLocationsStateToPango": func(variable string) (string, error) { return RenderLocationsStateToPango(names, paramSpec, variable) },
 		"ResourceParamToSchema": func(paramName string, paramParameters properties.SpecParam) (string, error) {
 			return ParamToSchemaResource(paramName, paramParameters, terraformProvider)
 		},
@@ -1315,12 +1359,39 @@ func ResourceCreateFunction(names *NameProvider, serviceName string, paramSpec *
 	return processTemplate(resourceCreateFunction, "resource-create-function", data, funcMap)
 }
 
+func DataSourceReadFunction(names *NameProvider, serviceName string, paramSpec *properties.Normalization, resourceSDKName string) (string, error) {
+	if strings.Contains(serviceName, "group") {
+		serviceName = "group"
+	}
+
+	data := map[string]interface{}{
+		"ResourceOrDS":          "DataSource",
+		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
+		"EntryOrConfig":         paramSpec.EntryOrConfig(),
+		"HasEntryName":          paramSpec.HasEntryName(),
+		"structName":            names.StructName,
+		"resourceStructName":    names.ResourceStructName,
+		"dataSourceStructName":  names.DataSourceStructName,
+		"serviceName":           naming.CamelCase("", serviceName, "", false),
+		"resourceSDKName":       resourceSDKName,
+		"locations":             paramSpec.Locations,
+	}
+
+	funcMap := template.FuncMap{
+		"RenderLocationsPangoToState": func(variable string) (string, error) { return RenderLocationsPangoToState(names, paramSpec, variable) },
+		"RenderLocationsStateToPango": func(variable string) (string, error) { return RenderLocationsStateToPango(names, paramSpec, variable) },
+	}
+
+	return processTemplate(resourceReadFunction, "resource-read-function", data, funcMap)
+}
+
 func ResourceReadFunction(names *NameProvider, serviceName string, paramSpec *properties.Normalization, resourceSDKName string) (string, error) {
 	if strings.Contains(serviceName, "group") {
 		serviceName = "group"
 	}
 
 	data := map[string]interface{}{
+		"ResourceOrDS":          "Resource",
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
 		"EntryOrConfig":         paramSpec.EntryOrConfig(),
 		"HasEntryName":          paramSpec.HasEntryName(),
@@ -1332,7 +1403,8 @@ func ResourceReadFunction(names *NameProvider, serviceName string, paramSpec *pr
 	}
 
 	funcMap := template.FuncMap{
-		"RenderLocationsPangoToState": func() (string, error) { return RenderLocationsPangoToState(names, paramSpec) },
+		"RenderLocationsPangoToState": func(variable string) (string, error) { return RenderLocationsPangoToState(names, paramSpec, variable) },
+		"RenderLocationsStateToPango": func(variable string) (string, error) { return RenderLocationsStateToPango(names, paramSpec, variable) },
 	}
 
 	return processTemplate(resourceReadFunction, "resource-read-function", data, funcMap)
@@ -1353,7 +1425,7 @@ func ResourceUpdateFunction(names *NameProvider, serviceName string, paramSpec *
 	}
 
 	funcMap := template.FuncMap{
-		"RenderLocationsStateToPango": func() (string, error) { return RenderLocationsStateToPango(names, paramSpec) },
+		"RenderLocationsStateToPango": func(variable string) (string, error) { return RenderLocationsStateToPango(names, paramSpec, variable) },
 	}
 
 	return processTemplate(resourceUpdateFunction, "resource-update-function", data, funcMap)

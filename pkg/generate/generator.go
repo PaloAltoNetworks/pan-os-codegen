@@ -68,6 +68,10 @@ func (c *Creator) RenderTerraformProviderFile(terraformProvider *properties.Terr
 		return err
 	}
 
+	if err := tfp.GenerateCommonCode(spec, terraformProvider); err != nil {
+		return err
+	}
+
 	if err := tfp.GenerateTerraformProviderFile(spec, terraformProvider); err != nil {
 		return err
 	}
