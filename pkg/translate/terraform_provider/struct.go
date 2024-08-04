@@ -167,8 +167,12 @@ func CreateTfIdStruct(structType string, structName string) (string, error) {
     Name     string          `+"`json:\"name\"`"+`
     Location `+structName+`.Location `+"`json:\"location\"`"+`
 {{- /* Done */ -}}`, "describe-param", nil, nil)
+	} else {
+		return processTemplate(`
+{{- /* Begin */ -}}
+    Location `+structName+`.Location `+"`json:\"location\"`"+`
+{{- /* Done */ -}}`, "describe-param", nil, nil)
 	}
-	return "", nil
 }
 
 // CreateTfIdResourceModel generates a Terraform resource struct part for TFID.
@@ -179,8 +183,13 @@ func CreateTfIdResourceModel(structType string, structName string) (string, erro
     Tfid     types.String          `+"`tfsdk:\"tfid\"`"+`
     Location `+structName+`Location `+"`tfsdk:\"location\"`"+`
 {{- /* Done */ -}}`, "describe-param", nil, nil)
+	} else {
+		return processTemplate(`
+{{- /* Begin */ -}}
+    Tfid     types.String          `+"`tfsdk:\"tfid\"`"+`
+    Location `+structName+`Location `+"`tfsdk:\"location\"`"+`
+{{- /* Done */ -}}`, "describe-param", nil, nil)
 	}
-	return "", nil
 }
 
 // ParamToModelResource converts the given parameter name and properties to a model representation.
@@ -193,7 +202,7 @@ func ParamToModelResource(paramName string, paramProp *properties.SpecParam, str
 	templateText := `
 {{- /* Begin */ -}}
     {{- if eq .Type "" }}
-        {{ CamelCaseName .Name }} {{ .structName }}{{ CamelCaseName .Name }}Object ` + "`tfsdk:\"{{ UnderscoreName .Name }}\"`" + `
+        {{ CamelCaseName .Name }} *{{ .structName }}{{ CamelCaseName .Name }}Object ` + "`tfsdk:\"{{ UnderscoreName .Name }}\"`" + `
     {{- else }}
         {{ CamelCaseName .Name }} types.{{ CamelCaseType .Type }} ` + "`tfsdk:\"{{ UnderscoreName .Name }}\"`" + `
     {{- end -}}

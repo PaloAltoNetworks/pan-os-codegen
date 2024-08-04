@@ -101,16 +101,25 @@ func (g *GenerateTerraformProvider) generateTerraformEntityTemplate(resourceType
 func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile) error {
 	resourceType := "Resource"
 	names := NewNameProvider(spec)
+
+	var structType string
+	if spec.Entry != nil {
+		structType = "entry"
+	} else {
+		structType = "config"
+	}
+
 	funcMap := template.FuncMap{
 		"metaName":                   func() string { return names.MetaName },
 		"structName":                 func() string { return names.StructName },
 		"dataSourceStructName":       func() string { return names.DataSourceStructName },
 		"resourceStructName":         func() string { return names.ResourceStructName },
 		"serviceName":                func() string { return names.TfName },
-		"CreateTfIdStruct":           func() (string, error) { return CreateTfIdStruct("entry", spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
-		"CreateTfIdResourceModel":    func() (string, error) { return CreateTfIdResourceModel("entry", names.StructName) },
+		"CreateTfIdStruct":           func() (string, error) { return CreateTfIdStruct(structType, spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
+		"CreateTfIdResourceModel":    func() (string, error) { return CreateTfIdResourceModel(structType, names.StructName) },
 		"RenderLocationStructs":      func() (string, error) { return RenderLocationStructs(names, spec) },
 		"RenderLocationSchemaGetter": func() (string, error) { return RenderLocationSchemaGetter(names, spec) },
+		"RenderResourceSchema":       func() (string, error) { return RenderResourceSchema(names, spec) },
 		"RenderCopyToPangoFunctions": func() (string, error) {
 			return RenderCopyToPangoFunctions(names.PackageName, names.ResourceStructName, spec)
 		},
@@ -147,22 +156,6 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 	if !spec.TerraformProviderConfig.SkipResource {
 		terraformProvider.ImportManager.AddStandardImport("context", "")
 		terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "")
-		// TODO: Uncomment common imports once support for config and uuid style resouces is added
-		// sdkPkg := strings.Join(spec.GoSdkPath, "/")
-		// terraformProvider.ImportManager.AddSdkImport(fmt.Sprintf("github.com/PaloAltoNetworks/pango/%s", sdkPkg), "")
-
-		// terraformProvider.ImportManager.AddStandardImport("fmt", "")
-		// terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
-		// terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource", "")
-		// terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
-		// terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier", "")
-		// terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier", "")
-		// terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault", "")
-		// terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier", "")
-		// terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/schema/validator", "")
-		// terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types", "")
-		// terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator", "")
-		// terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
 
 		// entry or uuid style resource
 		if spec.Entry != nil {
@@ -179,12 +172,13 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 				}
 			} else {
 				// Generate Resource with entry style
+				terraformProvider.ImportManager.AddStandardImport("fmt", "")
+
 				terraformProvider.ImportManager.AddSdkImport(sdkPkgPath(spec), "")
 
 				conditionallyAddValidators(terraformProvider.ImportManager, spec)
 				conditionallyAddModifiers(terraformProvider.ImportManager, spec)
 
-				terraformProvider.ImportManager.AddStandardImport("fmt", "")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/diag", "")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource", "")
@@ -206,7 +200,6 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 			conditionallyAddValidators(terraformProvider.ImportManager, spec)
 			conditionallyAddModifiers(terraformProvider.ImportManager, spec)
 
-			terraformProvider.ImportManager.AddStandardImport("fmt", "")
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/diag", "")
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource", "")

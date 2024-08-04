@@ -127,9 +127,11 @@ const copyToPangoTmpl = `
   {{- $result := .Name.LowerCamelCase }}
   {{- $diag := .Name.LowerCamelCase | printf "%s_diags" }}
 	var {{ $result }}_entry *{{ $.Spec.PangoType }}{{ .Name.CamelCase }}
-	var {{ $diag }} diag.Diagnostics
-	{{ $result }}_entry, {{ $diag }} = o.{{ .Name.CamelCase }}.CopyToPango(ctx)
-	diags.Append({{ $diag }}...)
+	if o.{{ .Name.CamelCase }} != nil {
+		var {{ $diag }} diag.Diagnostics
+		{{ $result }}_entry, {{ $diag }} = o.{{ .Name.CamelCase }}.CopyToPango(ctx)
+		diags.Append({{ $diag }}...)
+	}
 
   {{- end }}
 {{- end }}
@@ -315,13 +317,16 @@ var {{ .Name.LowerCamelCase }}_list types.List
 
 {{- define "terraformCreateEntryAssignmentForParam" }}
   {{- with .Parameter }}
-
   {{- $result := .Name.LowerCamelCase }}
   {{- $diag := .Name.LowerCamelCase | printf "%s_diags" }}
-	var {{ $result }}_object {{ $.Spec.TerraformType }}{{ .Name.CamelCase }}Object
+  var {{ $result }}_object *{{ $.Spec.TerraformType }}{{ .Name.CamelCase }}Object
+  if obj.{{ .Name.CamelCase }} != nil {
+	{{ $result }}_object = new({{ $.Spec.TerraformType }}{{ .Name.CamelCase }}Object)
+  
 	var {{ $diag }} diag.Diagnostics
-	{{ $diag }} = o.{{ .Name.CamelCase }}.CopyFromPango(ctx, obj.{{ .Name.CamelCase }})
+	{{ $diag }} = {{ $result }}_object.CopyFromPango(ctx, obj.{{ .Name.CamelCase }})
 	diags.Append({{ $diag }}...)
+  }
   {{- end }}
 {{- end }}
 
@@ -481,9 +486,9 @@ func RenderLocationStructs(names *NameProvider, spec *properties.Normalization) 
 		StructName: fmt.Sprintf("%sLocation", names.StructName),
 	}
 
-	for name, data := range spec.Locations {
-		structName := fmt.Sprintf("%s%sLocation", names.StructName, pascalCase(name))
-		tfTag := fmt.Sprintf("`tfsdk:\"%s\"`", name)
+	for _, data := range spec.Locations {
+		structName := fmt.Sprintf("%s%sLocation", names.StructName, data.Name.CamelCase)
+		tfTag := fmt.Sprintf("`tfsdk:\"%s\"`", data.Name.Underscore)
 		var structType string
 		if len(data.Vars) > 0 {
 			structType = fmt.Sprintf("*%s", structName)
@@ -492,7 +497,7 @@ func RenderLocationStructs(names *NameProvider, spec *properties.Normalization) 
 		}
 
 		topLocation.Fields = append(topLocation.Fields, fieldCtx{
-			Name: pascalCase(name),
+			Name: data.Name.CamelCase,
 			Type: structType,
 			Tags: []string{tfTag},
 		})
@@ -502,8 +507,8 @@ func RenderLocationStructs(names *NameProvider, spec *properties.Normalization) 
 		}
 
 		var fields []fieldCtx
-		for paramName, param := range data.Vars {
-			paramTag := fmt.Sprintf("`tfsdk:\"%s\"`", paramName)
+		for _, param := range data.Vars {
+			paramTag := fmt.Sprintf("`tfsdk:\"%s\"`", param.Name.Underscore)
 			fields = append(fields, fieldCtx{
 				Name: param.Name.CamelCase,
 				Type: "types.String",
@@ -528,7 +533,7 @@ func RenderLocationStructs(names *NameProvider, spec *properties.Normalization) 
 
 const locationSchemaGetterTmpl = `
 {{- define "renderLocationAttribute" }}
-"{{ .Name }}": {{ .SchemaType }}{
+"{{ .Name.Underscore }}": {{ .SchemaType }}{
 	Description: "{{ .Description }}",
   {{- if .Required }}
 	Required: true
@@ -554,7 +559,7 @@ const locationSchemaGetterTmpl = `
 },
 {{- end }}
 
-func {{ .StructName }}LocationsSchema() rsschema.Attribute {
+func {{ .StructName }}LocationSchema() rsschema.Attribute {
   {{- with .Schema }}
 	return rsschema.SingleNestedAttribute{
 		Description: "{{ .Description }}",
@@ -569,23 +574,37 @@ func {{ .StructName }}LocationsSchema() rsschema.Attribute {
   {{- end }}
 `
 
+type defaultCtx struct {
+	Type  string
+	Value string
+}
+
+type attributeCtx struct {
+	Package      string
+	Name         *properties.NameVariant
+	SchemaType   string
+	ElementType  string
+	Description  string
+	Required     bool
+	Computed     bool
+	Optional     bool
+	Default      *defaultCtx
+	ModifierType string
+	Attributes   []attributeCtx
+}
+
+type schemaCtx struct {
+	StructName  string
+	ReturnType  string
+	Package     string
+	Description string
+	Required    bool
+	Computed    bool
+	Optional    bool
+	Attributes  []attributeCtx
+}
+
 func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalization) (string, error) {
-	type defaultCtx struct {
-		Type  string
-		Value string
-	}
-
-	type attributeCtx struct {
-		Name         string
-		SchemaType   string
-		Description  string
-		Required     bool
-		Computed     bool
-		Default      *defaultCtx
-		ModifierType string
-		Attributes   []attributeCtx
-	}
-
 	var attributes []attributeCtx
 	for _, data := range spec.Locations {
 		var schemaType string
@@ -598,7 +617,7 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 		var variableAttrs []attributeCtx
 		for _, variable := range data.Vars {
 			attribute := attributeCtx{
-				Name:        variable.Name.Underscore,
+				Name:        variable.Name,
 				Description: variable.Description,
 				SchemaType:  "rsschema.StringAttribute",
 				Required:    false,
@@ -620,7 +639,7 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 		}
 
 		attribute := attributeCtx{
-			Name:         data.Name.Underscore,
+			Name:         data.Name,
 			SchemaType:   schemaType,
 			Description:  data.Description,
 			Required:     false,
@@ -630,8 +649,14 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 		attributes = append(attributes, attribute)
 	}
 
+	locationName := &properties.NameVariant{
+		Underscore:     naming.Underscore("", "location", ""),
+		CamelCase:      naming.CamelCase("", "location", "", true),
+		LowerCamelCase: naming.CamelCase("", "location", "", false),
+	}
+
 	topAttribute := attributeCtx{
-		Name:         "location",
+		Name:         locationName,
 		SchemaType:   "rsschema.SingleNestedAttribute",
 		Description:  "The location of this object.",
 		Required:     true,
@@ -650,6 +675,278 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 	}
 
 	return processTemplate(locationSchemaGetterTmpl, "render-location-schema-getter", data, commonFuncMap)
+}
+
+func createSchemaSpecForParameter(structPrefix string, packageName string, param *properties.SpecParam) []schemaCtx {
+	var schemas []schemaCtx
+
+	if param.Spec == nil {
+		return nil
+	}
+
+	var returnType string
+	switch param.Type {
+	case "":
+		returnType = "SingleNestedAttribute"
+	case "list":
+		switch param.Items.Type {
+		case "entry":
+			returnType = "NestedAttributeObject"
+		}
+	}
+
+	structName := fmt.Sprintf("%s%s", structPrefix, param.Name.CamelCase)
+
+	var attributes []attributeCtx
+	for _, elt := range param.Spec.Params {
+		attributes = append(attributes, createSchemaAttributeForParameter(packageName, elt))
+	}
+
+	for _, elt := range param.Spec.OneOf {
+		attributes = append(attributes, createSchemaAttributeForParameter(packageName, elt))
+	}
+
+	schemas = append(schemas, schemaCtx{
+		Package:     packageName,
+		StructName:  structName,
+		ReturnType:  returnType,
+		Description: "",
+		Required:    param.Required,
+		Optional:    !param.Required,
+		Attributes:  attributes,
+	})
+
+	for _, elt := range param.Spec.Params {
+		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
+			schemas = append(schemas, createSchemaSpecForParameter(structName, packageName, elt)...)
+		}
+	}
+
+	for _, elt := range param.Spec.OneOf {
+		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
+			schemas = append(schemas, createSchemaSpecForParameter(structName, packageName, elt)...)
+		}
+	}
+
+	return schemas
+}
+
+func createSchemaAttributeForParameter(packageName string, param *properties.SpecParam) attributeCtx {
+	var schemaType, elementType string
+	switch param.Type {
+	case "":
+		schemaType = "SingleNestedAttribute"
+	case "list":
+		switch param.Items.Type {
+		case "entry":
+			schemaType = "ListNestedAttribute"
+		case "member":
+			schemaType = "ListAttribute"
+			elementType = "types.StringType"
+		default:
+			schemaType = "ListAttribute"
+			elementType = fmt.Sprintf("types.%sType", pascalCase(param.Items.Type))
+		}
+	default:
+		schemaType = fmt.Sprintf("%sAttribute", pascalCase(param.Type))
+	}
+
+	var defaultValue *defaultCtx
+	if param.Default != "" {
+		defaultValue = &defaultCtx{
+			Type:  fmt.Sprintf("%sdefault.%sDefault", param.Type, pascalCase(param.Type)),
+			Value: param.Default,
+		}
+	}
+
+	return attributeCtx{
+		Package:     packageName,
+		Name:        param.Name,
+		SchemaType:  schemaType,
+		ElementType: elementType,
+		Description: param.Description,
+		Required:    param.Required,
+		Optional:    !param.Required,
+		Default:     defaultValue,
+	}
+}
+
+type schemaType int
+
+const (
+	schemaDataSource schemaType = iota
+	schemaResource
+)
+
+func createSchemaSpecForNormalization(typ schemaType, spec *properties.Normalization) []schemaCtx {
+	var schemas []schemaCtx
+
+	var packageName string
+	switch typ {
+	case schemaDataSource:
+		packageName = "dsschema"
+	case schemaResource:
+		packageName = "rsschema"
+	}
+
+	if spec.Spec == nil {
+		return nil
+	}
+
+	names := NewNameProvider(spec)
+
+	var structName string
+	switch typ {
+	case schemaDataSource:
+		structName = names.DataSourceStructName
+	case schemaResource:
+		structName = names.ResourceStructName
+	}
+
+	var attributes []attributeCtx
+
+	location := &properties.NameVariant{
+		Underscore:     naming.Underscore("", "location", ""),
+		CamelCase:      naming.CamelCase("", "location", "", true),
+		LowerCamelCase: naming.CamelCase("", "location", "", false),
+	}
+
+	attributes = append(attributes, attributeCtx{
+		Package:    packageName,
+		Name:       location,
+		Required:   true,
+		SchemaType: "SingleNestedAttribute",
+	})
+
+	tfid := &properties.NameVariant{
+		Underscore:     naming.Underscore("", "tfid", ""),
+		CamelCase:      naming.CamelCase("", "tfid", "", true),
+		LowerCamelCase: naming.CamelCase("", "tfid", "", false),
+	}
+
+	attributes = append(attributes, attributeCtx{
+		Package:     packageName,
+		Name:        tfid,
+		SchemaType:  "StringAttribute",
+		Description: "The Terraform ID.",
+		Computed:    true,
+	})
+
+	if spec.HasEntryName() {
+		name := &properties.NameVariant{
+			Underscore:     naming.Underscore("", "name", ""),
+			CamelCase:      naming.CamelCase("", "name", "", true),
+			LowerCamelCase: naming.CamelCase("", "name", "", false),
+		}
+
+		attributes = append(attributes, attributeCtx{
+			Package:    packageName,
+			Name:       name,
+			SchemaType: "StringAttribute",
+			Required:   true,
+		})
+	}
+
+	for _, elt := range spec.Spec.Params {
+		attributes = append(attributes, createSchemaAttributeForParameter(packageName, elt))
+		schemas = append(schemas, createSchemaSpecForParameter(structName, packageName, elt)...)
+	}
+
+	for _, elt := range spec.Spec.OneOf {
+		attributes = append(attributes, createSchemaAttributeForParameter(packageName, elt))
+		schemas = append(schemas, createSchemaSpecForParameter(structName, packageName, elt)...)
+	}
+
+	schemas = append(schemas, schemaCtx{
+		Package:    packageName,
+		StructName: structName,
+		ReturnType: "Schema",
+		Attributes: attributes,
+	})
+
+	return schemas
+}
+
+const renderSchemaTemplate = `
+{{- define "renderSchemaListAttribute" }}
+	"{{ .Name.Underscore }}": {{ .Package }}.{{ .SchemaType }} {
+		Required: {{ .Required }},
+		Optional: {{ .Optional }},
+		Computed: {{ .Computed }},
+		ElementType: {{ .ElementType }},
+	},
+{{- end }}
+
+{{- define "renderSchemaListNestedAttribute" }}
+  {{- with .Attribute }}
+	"{{ .Name.Underscore }}": {{ .Package }}.{{ .SchemaType }} {
+		Required: {{ .Required }},
+		Optional: {{ .Optional }},
+		Computed: {{ .Computed }},
+		NestedObject: {{ $.StructName }}{{ .Name.CamelCase }}Schema(),
+	},
+  {{- end }}
+{{- end }}
+
+{{- define "renderSchemaSingleNestedAttribute" }}
+  {{- with .Attribute }}
+	"{{ .Name.Underscore }}": {{ $.StructName }}{{ .Name.CamelCase }}Schema(),
+  {{- end }}
+{{- end }}
+
+{{- define "renderSchemaSimpleAttribute" }}
+	"{{ .Name.Underscore }}": {{ .Package }}.{{ .SchemaType }} {
+		Description: "{{ .Description }}",
+		Computed: {{ .Computed }},
+		Required: {{ .Required }},
+		Optional: {{ .Optional }},
+	},
+{{- end }}
+
+{{- define "renderSchemaAttribute" }}
+  {{- with .Attribute }}
+    {{ if eq .SchemaType "ListAttribute" }}
+      {{- template "renderSchemaListAttribute" . }}
+    {{- else if eq .SchemaType "ListNestedAttribute" }}
+      {{- template "renderSchemaListNestedAttribute" Map "StructName" $.StructName "Attribute" . }}
+    {{- else if eq .SchemaType "SingleNestedAttribute" }}
+      {{- template "renderSchemaSingleNestedAttribute" Map "StructName" $.StructName "Attribute" . }}
+    {{- else }}
+      {{- template "renderSchemaSimpleAttribute" . }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- range .Schemas }}
+{{ $schema := . }}
+
+func {{ .StructName }}Schema() {{ .Package }}.{{ .ReturnType }} {
+	return {{ .Package }}.{{ .ReturnType }}{
+{{- if not (or (eq .ReturnType "Schema") (eq .ReturnType "NestedAttributeObject")) }}
+		Required: {{ .Required }},
+		Computed: {{ .Computed }},
+		Optional: {{ .Optional }},
+{{- end }}
+		Attributes: map[string]{{ .Package }}.Attribute{
+  {{- range .Attributes -}}
+	{{- template "renderSchemaAttribute" Map "StructName" $schema.StructName "Attribute" . }}
+  {{- end }}
+		},
+	}
+}
+{{- end }}
+`
+
+func RenderResourceSchema(names *NameProvider, spec *properties.Normalization) (string, error) {
+	type context struct {
+		Schemas []schemaCtx
+	}
+
+	data := context{
+		Schemas: createSchemaSpecForNormalization(schemaResource, spec),
+	}
+
+	return processTemplate(renderSchemaTemplate, "render-resource-schema", data, commonFuncMap)
 }
 
 type locationFieldCtx struct {

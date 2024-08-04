@@ -137,25 +137,40 @@ type {{ resourceStructName }} struct {
 	client *pango.Client
 }
 
+
 type {{ resourceStructName }}Tfid struct {
 	{{ CreateTfIdStruct }}
 }
 
+
 func (o *{{ resourceStructName }}Tfid) IsValid() error {
+{{- if .HasEntryName }}
 	if o.Name == "" {
 		return fmt.Errorf("name is unspecified")
 	}
-
+{{- end }}
 	return o.Location.IsValid()
 }
+
 
 {{- RenderLocationStructs }}
 
 {{- RenderLocationSchemaGetter }}
 
+func {{ resourceStructName }}LocationSchema() rsschema.Attribute {
+	return {{ structName }}LocationSchema()
+}
+
+func {{ dataSourceStructName }}LocationSchema() rsschema.Attribute {
+	return {{ structName }}LocationSchema()
+}
+
+
 type {{ resourceStructName }}Model struct {
 		{{ CreateTfIdResourceModel }}
+{{- if .HasEntryName }}
 		Name types.String` + "`" + `tfsdk:"name"` + "`" + `
+{{- end }}
         {{- range $pName, $pParam := $.Spec.Params}}
             {{- ParamToModelResource $pName $pParam resourceStructName -}}
         {{- end}}
@@ -179,28 +194,14 @@ func (r *{{ resourceStructName }}) Metadata(ctx context.Context, req resource.Me
 	resp.TypeName = req.ProviderTypeName + "{{ metaName }}"
 }
 
-func (r *{{ resourceStructName }}) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = rsschema.Schema{
-		Description: "",
-		Attributes: map[string]rsschema.Attribute{
-	"location": {{ structName }}LocationsSchema(),
-	"tfid": rsschema.StringAttribute{
-		Description: "The Terraform ID.",
-		Computed:    true,
-	},
-	"name": rsschema.StringAttribute{
-		Description: "The name of the resource.",
-		Required:    true,
-	},	
-	{{- range $pName, $pParam := $.Spec.Params -}}
-		{{ ResourceParamToSchema $pName $pParam }}
-	{{- end }}
-	{{- range $pName, $pParam := $.Spec.OneOf -}}
-		{{ ResourceParamToSchema $pName $pParam }}
-	{{- end }}
-		},
-	}
+// <ResourceSchema>
+{{ RenderResourceSchema }}
+
+func (r *{{ resourceStructName }}) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = {{ resourceStructName }}Schema()
 }
+
+// </ResourceSchema>
 
 func (r *{{ resourceStructName }}) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
@@ -224,15 +225,9 @@ func (r *{{ resourceStructName }}) Read(ctx context.Context, req resource.ReadRe
 }
 
 
-{{- if .HasEntryName }}
 func (r *{{ resourceStructName }}) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	{{ ResourceUpdateFunction resourceStructName serviceName}}
 }
-{{- else }}
-func (r *{{ resourceStructName }}) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// TODO: NTP and DNS is missing update function
-}
-{{- end }}
 
 func (r *{{ resourceStructName }}) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	{{ ResourceDeleteFunction resourceStructName serviceName}}
@@ -349,7 +344,9 @@ const resourceReadFunction = `
 	tflog.Info(ctx, "performing resource read", map[string]any{
 		"resource_name": "panos_{{ UnderscoreName .resourceStructName }}",
 		"function":      "Read",
+{{- if .HasEntryName }}
 		"name":          loc.Name,
+{{- end }}
 	})
 
 	// Verify mode.
@@ -446,7 +443,11 @@ const resourceUpdateFunction = `
 	*/
 
 	// Perform the operation.
+{{- if .HasEntryName }}
 	_, err := svc.Update(ctx, loc.Location, *obj, loc.Name)
+{{- else }}
+	_, err := svc.Update(ctx, loc.Location, *obj)
+{{- end }}
 	if err != nil {
 		resp.Diagnostics.AddError("Error in update", err.Error())
 		return
@@ -463,7 +464,9 @@ const resourceUpdateFunction = `
 	*/
 
 	// Save the tfid.
+{{- if .HasEntryName }}
 	loc.Name = obj.Name
+{{- end }}
 	tfid, err := EncodeLocation(&loc)
 	if err != nil {
 		resp.Diagnostics.AddError("error creating tfid", err.Error())
@@ -496,7 +499,9 @@ const resourceDeleteFunction = `
 	tflog.Info(ctx, "performing resource delete", map[string]any{
 		"resource_name": "panos_{{ UnderscoreName .structName }}",
 		"function":      "Delete",
+{{- if .HasEntryName }}
 		"name":          loc.Name,
+{{- end }}
 	})
 
 	// Verify mode.
