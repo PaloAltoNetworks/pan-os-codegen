@@ -20,15 +20,28 @@ type EntryData struct {
 	Entries   []Entry
 }
 
+type parameterEncryptionSpec struct {
+	EncryptedPath string
+	PlaintextPath string
+}
+
+type parameterSpec struct {
+	Name       *properties.NameVariant
+	Type       string
+	ItemsType  string
+	Encryption *parameterEncryptionSpec
+}
+
 type spec struct {
-	Name            string
-	HasEntryName    bool
-	PangoType       string
-	PangoReturnType string
-	TerraformType   string
-	ModelOrObject   string
-	Params          map[string]*properties.SpecParam
-	OneOf           map[string]*properties.SpecParam
+	Name                   string
+	HasEntryName           bool
+	HasEncryptedParameters bool
+	PangoType              string
+	PangoReturnType        string
+	TerraformType          string
+	ModelOrObject          string
+	Params                 []parameterSpec
+	OneOf                  []parameterSpec
 }
 
 func returnPangoTypeForProperty(pkgName string, parent string, prop *properties.SpecParam) string {
@@ -49,7 +62,36 @@ func returnPangoTypeForProperty(pkgName string, parent string, prop *properties.
 	}
 }
 
-func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix string, paramSpec *properties.SpecParam) []spec {
+func renderSpecsForParams(params map[string]*properties.SpecParam, parentNames []string) []parameterSpec {
+	var specs []parameterSpec
+	for _, elt := range params {
+
+		var encryptionSpec *parameterEncryptionSpec
+		if elt.Hashing != nil {
+			path := strings.Join(append(parentNames, elt.Name.Underscore), " | ")
+			encryptionSpec = &parameterEncryptionSpec{
+				EncryptedPath: fmt.Sprintf("%s | encrypted | %s", elt.Hashing.Type, path),
+				PlaintextPath: fmt.Sprintf("%s | plaintext | %s", elt.Hashing.Type, path),
+			}
+		}
+
+		var itemsType string
+		if elt.Type == "list" {
+			itemsType = elt.Items.Type
+		}
+
+		specs = append(specs, parameterSpec{
+			Name:       elt.Name,
+			Type:       elt.Type,
+			ItemsType:  itemsType,
+			Encryption: encryptionSpec,
+		})
+
+	}
+	return specs
+}
+
+func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix string, paramSpec *properties.SpecParam, parentNames []string) []spec {
 	if paramSpec.Spec == nil {
 		return nil
 	}
@@ -60,13 +102,20 @@ func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix st
 
 	pangoReturnType := fmt.Sprintf("%s%s", pangoTypePrefix, paramSpec.Name.CamelCase)
 	terraformType := fmt.Sprintf("%s%s", terraformPrefix, paramSpec.Name.CamelCase)
+
+	parentNames = append(parentNames, paramSpec.Name.Underscore)
+
+	paramSpecs := renderSpecsForParams(paramSpec.Spec.Params, parentNames)
+	oneofSpecs := renderSpecsForParams(paramSpec.Spec.OneOf, parentNames)
+
 	element := spec{
-		PangoType:       pangoType,
-		PangoReturnType: pangoReturnType,
-		TerraformType:   terraformType,
-		ModelOrObject:   "Object",
-		Params:          paramSpec.Spec.Params,
-		OneOf:           paramSpec.Spec.OneOf,
+		PangoType:              pangoType,
+		PangoReturnType:        pangoReturnType,
+		TerraformType:          terraformType,
+		ModelOrObject:          "Object",
+		HasEncryptedParameters: paramSpec.HasEncryptedResources(),
+		Params:                 paramSpecs,
+		OneOf:                  oneofSpecs,
 	}
 	specs = append(specs, element)
 	log.Printf("generateFromTerraformToPangoSpec() spec: %v", element)
@@ -78,7 +127,7 @@ func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix st
 			}
 			terraformPrefix := fmt.Sprintf("%s%s", terraformPrefix, paramSpec.Name.CamelCase)
 			log.Printf("Element: %s, pangoType: %s, terraformPrefix: %s", elt.Name.CamelCase, pangoType, terraformPrefix)
-			specs = append(specs, generateFromTerraformToPangoSpec(pangoType, terraformPrefix, elt)...)
+			specs = append(specs, generateFromTerraformToPangoSpec(pangoType, terraformPrefix, elt, parentNames)...)
 		}
 	}
 
@@ -99,22 +148,25 @@ func generateFromTerraformToPangoParameter(pkgName string, terraformPrefix strin
 		pangoReturnType = fmt.Sprintf("%s.%s", pkgName, parentName)
 	}
 
+	paramSpecs := renderSpecsForParams(prop.Spec.Params, []string{parentName})
+	oneofSpecs := renderSpecsForParams(prop.Spec.OneOf, []string{parentName})
+
 	specs = append(specs, spec{
 		HasEntryName:    prop.Entry != nil,
 		PangoType:       pangoPrefix,
 		PangoReturnType: pangoReturnType,
 		ModelOrObject:   "Model",
 		TerraformType:   terraformPrefix,
-		Params:          prop.Spec.Params,
-		OneOf:           prop.Spec.OneOf,
+		Params:          paramSpecs,
+		OneOf:           oneofSpecs,
 	})
 
 	for _, elt := range prop.Spec.Params {
-		specs = append(specs, generateFromTerraformToPangoSpec(pangoPrefix, terraformPrefix, elt)...)
+		specs = append(specs, generateFromTerraformToPangoSpec(pangoPrefix, terraformPrefix, elt, []string{})...)
 	}
 
 	for _, elt := range prop.Spec.OneOf {
-		specs = append(specs, generateFromTerraformToPangoSpec(pangoPrefix, terraformPrefix, elt)...)
+		specs = append(specs, generateFromTerraformToPangoSpec(pangoPrefix, terraformPrefix, elt, []string{})...)
 	}
 
 	return specs
@@ -129,7 +181,7 @@ const copyToPangoTmpl = `
 	var {{ $result }}_entry *{{ $.Spec.PangoType }}{{ .Name.CamelCase }}
 	if o.{{ .Name.CamelCase }} != nil {
 		var {{ $diag }} diag.Diagnostics
-		{{ $result }}_entry, {{ $diag }} = o.{{ .Name.CamelCase }}.CopyToPango(ctx)
+		{{ $result }}_entry, {{ $diag }} = o.{{ .Name.CamelCase }}.CopyToPango(ctx, encrypted)
 		diags.Append({{ $diag }}...)
 	}
 
@@ -142,20 +194,20 @@ const copyToPangoTmpl = `
     {{- $terraformType := printf "%s%s%s" $.Spec.TerraformType .Name.CamelCase $.Spec.ModelOrObject }}
     {{- $pangoEntries := printf "%s_pango_entries" .Name.LowerCamelCase }}
     {{- $tfEntries := printf "%s_tf_entries" .Name.LowerCamelCase }}
-    {{- if eq .Items.Type "entry" }}
+    {{- if eq .ItemsType "entry" }}
 		var {{ $tfEntries }} []{{ $terraformType }}
 		var {{ $pangoEntries }} []{{ $pangoType }}
 	{
 		d := o.{{ .Name.CamelCase }}.ElementsAs(ctx, &{{ $tfEntries }}, false)
 		diags.Append(d...)
 		for _, elt := range {{ $tfEntries }} {
-			entry, d := elt.CopyToPango(ctx)
+			entry, d := elt.CopyToPango(ctx, encrypted)
 			diags.Append(d...)
 			{{ $pangoEntries }} = append({{ $pangoEntries }}, *entry)
 		}
 	}
     {{- else }}
-		{{ $pangoEntries }} := make([]{{ .Items.Type }}, 0)
+		{{ $pangoEntries }} := make([]{{ .ItemsType }}, 0)
 	{
 		d := o.{{ .Name.CamelCase }}.ElementsAs(ctx, &{{ $pangoEntries }}, false)
 		diags.Append(d...)
@@ -164,9 +216,16 @@ const copyToPangoTmpl = `
   {{- end }}
 {{- end }}
 
+{{- define "renderSimpleAssignment" }}
+  {{- if .Encryption }}
+	(*encrypted)["{{ .Encryption.PlaintextPath }}"] = o.{{ .Name.CamelCase }}
+  {{- end }}
+	{{ .Name.LowerCamelCase }}_value := o.{{ .Name.CamelCase }}.Value{{ CamelCaseType .Type }}Pointer()
+{{- end }}
+
 {{- range .Specs }}
 {{- $spec := . }}
-func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Context) (*{{ .PangoReturnType }}, diag.Diagnostics) {
+func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Context, encrypted *map[string]types.String) (*{{ .PangoReturnType }}, diag.Diagnostics) {
 	var diags diag.Diagnostics
   {{- range .Params }}
     {{- $terraformType := printf "%s%s" $spec.TerraformType .Name.CamelCase }}
@@ -176,6 +235,8 @@ func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Conte
     {{- else if eq .Type "list" }}
       {{- $pangoType := printf "%s%s" $spec.PangoType .Name.CamelCase }}
 	{{- template "terraformListElementsAs" Map "Parameter" . "Spec" $spec }}
+    {{- else }}
+        {{- template "renderSimpleAssignment" . }}
     {{- end }}
   {{- end }}
 
@@ -185,6 +246,8 @@ func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Conte
 	{{- template "terraformNestedElementsAssign" Map "Parameter" . "Spec" $spec }}
     {{- else if eq .Type "list" }}
 	{{- template "terraformListElementsAs" Map "Parameter" . "Spec" $spec }}
+    {{- else }}
+        {{- template "renderSimpleAssignment" . }}
     {{- end }}
   {{- end }}
 
@@ -198,7 +261,7 @@ func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Conte
     {{- else if eq .Type "list" }}
 	{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_pango_entries,
     {{- else }}
-	{{ .Name.CamelCase }}: o.{{ .Name.CamelCase }}.Value{{ CamelCaseType .Type }}Pointer(),
+	{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_value,
     {{- end }}
   {{- end }}
 
@@ -208,7 +271,7 @@ func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Conte
     {{- else if eq .Type "list" }}
 	{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_pango_entries,
     {{- else }}
-	{{ .Name.CamelCase }}: o.{{ .Name.CamelCase }}.Value{{ CamelCaseType .Type }}Pointer(),
+	{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_value,
     {{- end }}
   {{- end }}
 	}
@@ -241,12 +304,12 @@ var {{ .Name.LowerCamelCase }}_list types.List
     {{- $terraformType := printf "%s%s" $.TerraformType (.Name.CamelCase) }}
     {{- if eq .Type "" }}
 	// TODO {{ .Name.CamelCase }} {{ .Type }}
-    {{- else if (and (eq .Type "list") (eq .Items.Type "entry")) }}
+    {{- else if (and (eq .Type "list") (eq .ItemsType "entry")) }}
 	{{- template "renderListValueEntry" Map "Name" .Name "Type" $terraformType }}
-    {{- else if (and (eq .Type "list") (eq .Items.Type "member")) }}
-	// TODO: {{ .Name.CamelCase }} {{ .Items.Type }}
+    {{- else if (and (eq .Type "list") (eq .ItemsType "member")) }}
+	// TODO: {{ .Name.CamelCase }} {{ .ItemsType }}
     {{- else if (eq .Type "list") }}
-	{{- template "renderListValueSimple" Map "Name" .Name "Type" .Items.Type }}
+	{{- template "renderListValueSimple" Map "Name" .Name "Type" .ItemsType }}
     {{- else }}
 	// TODO: {{ .Name.CamelCase }} {{ .Type }}
     {{- end }}
@@ -276,13 +339,13 @@ var {{ .Name.LowerCamelCase }}_list types.List
     {{- $terraformList := printf "%s_list" .Name.LowerCamelCase }}
     {{- $pangoEntries := printf "%s_pango_entries" .Name.LowerCamelCase }}
     {{- $tfEntries := printf "%s_tf_entries" .Name.LowerCamelCase }}
-    {{- if eq .Items.Type "entry" }}
+    {{- if eq .ItemsType "entry" }}
 	var {{ $terraformList }} types.List
 	{
 		var {{ $tfEntries }} []{{ $terraformType }}
 		for _, elt := range obj.{{ .Name.CamelCase }} {
 			var entry {{ $terraformType }}
-			entry_diags := entry.CopyFromPango(ctx, &elt)
+			entry_diags := entry.CopyFromPango(ctx, &elt, encrypted)
 			diags.Append(entry_diags...)
 			{{ $tfEntries }} = append({{ $tfEntries }}, entry)
 		}
@@ -294,7 +357,7 @@ var {{ .Name.LowerCamelCase }}_list types.List
 		var {{ .Name.LowerCamelCase }}_list types.List
 		{
 			var list_diags diag.Diagnostics
-			{{ .Name.LowerCamelCase }}_list, list_diags = types.ListValueFrom(ctx, types.{{ .Items.Type | PascalCase }}Type, obj.{{ .Name.CamelCase }})
+			{{ .Name.LowerCamelCase }}_list, list_diags = types.ListValueFrom(ctx, types.{{ .ItemsType | PascalCase }}Type, obj.{{ .Name.CamelCase }})
 			diags.Append(list_diags...)
 		}
     {{- end }}
@@ -324,7 +387,7 @@ var {{ .Name.LowerCamelCase }}_list types.List
 	{{ $result }}_object = new({{ $.Spec.TerraformType }}{{ .Name.CamelCase }}Object)
   
 	var {{ $diag }} diag.Diagnostics
-	{{ $diag }} = {{ $result }}_object.CopyFromPango(ctx, obj.{{ .Name.CamelCase }})
+	{{ $diag }} = {{ $result }}_object.CopyFromPango(ctx, obj.{{ .Name.CamelCase }}, encrypted)
 	diags.Append({{ $diag }}...)
   }
   {{- end }}
@@ -350,7 +413,16 @@ var {{ .Name.LowerCamelCase }}_list types.List
     {{- if (not (or (eq .Type "") (eq .Type "list"))) }}
 	var {{ .Name.LowerCamelCase }}_value {{ $terraformType }}
 	if obj.{{ .Name.CamelCase }} != nil {
+{{- if .Encryption }}
+		(*encrypted)["{{ .Encryption.EncryptedPath }}"] = types.StringValue(*obj.{{ .Name.CamelCase }})
+		if value, ok := (*encrypted)["{{ .Encryption.PlaintextPath }}"]; ok {
+			{{ .Name.LowerCamelCase }}_value = value		
+		} else {
+			panic("{{ .Encryption.PlaintextPath }}")
+		}
+{{- else }}
 		{{ .Name.LowerCamelCase }}_value = types.{{ .Type | PascalCase }}Value(*obj.{{ .Name.CamelCase }})
+{{- end }}
 	}
     {{- end }}
   {{- end }}
@@ -381,15 +453,16 @@ var {{ .Name.LowerCamelCase }}_list types.List
 {{- range .Specs }}
 {{- $spec := . }}
 {{ $terraformType := printf "%s%s" .TerraformType .ModelOrObject }}
-func (o *{{ $terraformType }}) CopyFromPango(ctx context.Context, obj *{{ .PangoReturnType }}) diag.Diagnostics {
+func (o *{{ $terraformType }}) CopyFromPango(ctx context.Context, obj *{{ .PangoReturnType }}, encrypted *map[string]types.String) diag.Diagnostics {
 	var diags diag.Diagnostics
+
   {{- template "terraformListElementsAs" $spec }}
   {{- template "terraformCreateEntryAssignment" $spec }}
   {{- template "terraformCreateSimpleValues" $spec }}
 
-{{- if .HasEntryName }}
+  {{- if .HasEntryName }}
 	o.Name = types.StringValue(obj.Name)
-{{- end }}
+  {{- end }}
   {{- range .Params }}
     {{- template "assignFromPangoToTerraform" Map "Spec" $spec "Parameter" . }}
   {{- end }}
@@ -588,6 +661,7 @@ type attributeCtx struct {
 	Required     bool
 	Computed     bool
 	Optional     bool
+	Sensitive    bool
 	Default      *defaultCtx
 	ModifierType string
 	Attributes   []attributeCtx
@@ -601,6 +675,7 @@ type schemaCtx struct {
 	Required    bool
 	Computed    bool
 	Optional    bool
+	Sensitive   bool
 	Attributes  []attributeCtx
 }
 
@@ -713,6 +788,7 @@ func createSchemaSpecForParameter(structPrefix string, packageName string, param
 		Description: "",
 		Required:    param.Required,
 		Optional:    !param.Required,
+		Sensitive:   param.Sensitive,
 		Attributes:  attributes,
 	})
 
@@ -767,6 +843,7 @@ func createSchemaAttributeForParameter(packageName string, param *properties.Spe
 		Description: param.Description,
 		Required:    param.Required,
 		Optional:    !param.Required,
+		Sensitive:   param.Sensitive,
 		Default:     defaultValue,
 	}
 }
@@ -832,6 +909,23 @@ func createSchemaSpecForNormalization(typ schemaType, spec *properties.Normaliza
 		Computed:    true,
 	})
 
+	if spec.HasEncryptedResources() {
+		name := &properties.NameVariant{
+			Underscore:     naming.Underscore("", "encrypted_values", ""),
+			CamelCase:      naming.CamelCase("", "encrypted_values", "", true),
+			LowerCamelCase: naming.CamelCase("", "encrypted_values", "", false),
+		}
+
+		attributes = append(attributes, attributeCtx{
+			Package:     packageName,
+			Name:        name,
+			SchemaType:  "MapAttribute",
+			ElementType: "types.StringType",
+			Computed:    true,
+			Sensitive:   true,
+		})
+	}
+
 	if spec.HasEntryName() {
 		name := &properties.NameVariant{
 			Underscore:     naming.Underscore("", "name", ""),
@@ -873,6 +967,17 @@ const renderSchemaTemplate = `
 		Required: {{ .Required }},
 		Optional: {{ .Optional }},
 		Computed: {{ .Computed }},
+		Sensitive: {{ .Sensitive }},
+		ElementType: {{ .ElementType }},
+	},
+{{- end }}
+
+{{- define "renderSchemaMapAttribute" }}
+	"{{ .Name.Underscore }}": {{ .Package }}.{{ .SchemaType }} {
+		Required: {{ .Required }},
+		Optional: {{ .Optional }},
+		Computed: {{ .Computed }},
+		Sensitive: {{ .Sensitive }},
 		ElementType: {{ .ElementType }},
 	},
 {{- end }}
@@ -883,6 +988,7 @@ const renderSchemaTemplate = `
 		Required: {{ .Required }},
 		Optional: {{ .Optional }},
 		Computed: {{ .Computed }},
+		Sensitive: {{ .Sensitive }},
 		NestedObject: {{ $.StructName }}{{ .Name.CamelCase }}Schema(),
 	},
   {{- end }}
@@ -900,6 +1006,7 @@ const renderSchemaTemplate = `
 		Computed: {{ .Computed }},
 		Required: {{ .Required }},
 		Optional: {{ .Optional }},
+		Sensitive: {{ .Sensitive }},
 	},
 {{- end }}
 
@@ -907,6 +1014,8 @@ const renderSchemaTemplate = `
   {{- with .Attribute }}
     {{ if eq .SchemaType "ListAttribute" }}
       {{- template "renderSchemaListAttribute" . }}
+    {{- else if eq .SchemaType "MapAttribute" }}
+      {{- template "renderSchemaMapAttribute" . }}
     {{- else if eq .SchemaType "ListNestedAttribute" }}
       {{- template "renderSchemaListNestedAttribute" Map "StructName" $.StructName "Attribute" . }}
     {{- else if eq .SchemaType "SingleNestedAttribute" }}
@@ -926,6 +1035,7 @@ func {{ .StructName }}Schema() {{ .Package }}.{{ .ReturnType }} {
 		Required: {{ .Required }},
 		Computed: {{ .Computed }},
 		Optional: {{ .Optional }},
+		Sensitive: {{ .Sensitive }},
 {{- end }}
 		Attributes: map[string]{{ .Package }}.Attribute{
   {{- range .Attributes -}}

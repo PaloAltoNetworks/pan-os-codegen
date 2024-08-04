@@ -111,6 +111,7 @@ type SpecParam struct {
 	Type        string              `json:"type" yaml:"type"`
 	Default     string              `json:"default" yaml:"default"`
 	Required    bool                `json:"required" yaml:"required"`
+	Sensitive   bool                `json:"sensitive" yaml:"sensitive"`
 	Length      *SpecParamLength    `json:"length" yaml:"length,omitempty"`
 	Count       *SpecParamCount     `json:"count" yaml:"count,omitempty"`
 	Hashing     *SpecParamHashing   `json:"hashing" yaml:"hashing,omitempty"`
@@ -152,15 +153,47 @@ type SpecParamProfile struct {
 	FromVersion string   `json:"from_version" yaml:"from_version"`
 }
 
+func hasChildEncryptedResources(param *SpecParam) bool {
+	if param.Hashing != nil {
+		return true
+	}
+
+	if param.Spec == nil {
+		return false
+	}
+
+	for _, elt := range param.Spec.Params {
+		if hasChildEncryptedResources(elt) {
+			return true
+		}
+	}
+
+	for _, elt := range param.Spec.OneOf {
+		if hasChildEncryptedResources(elt) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (o *SpecParam) HasEncryptedResources() bool {
+	if o.Hashing != nil {
+		return true
+	}
+
+	if o.Spec == nil {
+		return false
+	}
+
 	for _, elt := range o.Spec.Params {
-		if elt.Hashing != nil {
+		if hasChildEncryptedResources(elt) {
 			return true
 		}
 	}
 
 	for _, elt := range o.Spec.OneOf {
-		if elt.Hashing != nil {
+		if hasChildEncryptedResources(elt) {
 			return true
 		}
 	}
@@ -432,17 +465,20 @@ func (spec *Normalization) HasEntryName() bool {
 
 func (spec *Normalization) HasEncryptedResources() bool {
 	for _, param := range spec.Spec.Params {
-		if param.Hashing != nil {
+		if param.HasEncryptedResources() {
+			fmt.Printf("Normalization.HasEncryptedResources %s true\n", spec.Name)
 			return true
 		}
 	}
 
 	for _, param := range spec.Spec.OneOf {
-		if param.Hashing != nil {
+		if param.HasEncryptedResources() {
+			fmt.Printf("Normalization.HasEncryptedResources %s true\n", spec.Name)
 			return true
 		}
 	}
 
+	fmt.Printf("Normalization.HasEncryptedResources %s false\n", spec.Name)
 	return false
 }
 

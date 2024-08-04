@@ -13,10 +13,6 @@ type {{ .structName }}Object struct {
 	{{- range $pName, $pParam := $.Spec.OneOf -}}
 		{{- structItems $pName $pParam  -}}
 	{{- end}}
-
-	{{- if .HasEncryptedResources }}
-		EncryptedValues types.Map ` + "`" + `tfsdk:"encrypted_values"` + "`" + `
-	{{- end }}
 }
 `
 
@@ -284,7 +280,12 @@ const resourceCreateFunction = `
 	// Load the desired config.
 	var obj *{{ .resourceSDKName }}.{{ .EntryOrConfig }}
 
-	obj, diags := state.CopyToPango(ctx)
+{{- if .HasEncryptedResources }}
+	ev := make(map[string]types.String)
+	obj, diags := state.CopyToPango(ctx, &ev)
+{{- else }}
+	obj, diags := state.CopyToPango(ctx, nil)
+{{- end }}
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
@@ -297,11 +298,7 @@ const resourceCreateFunction = `
 	*/
 
 	// Perform the operation.
-{{- if .HasEntryName }}
 	create, err := svc.Create(ctx, loc.Location, *obj)
-{{- else }}
-	_, err := svc.Create(ctx, loc.Location, *obj)
-{{- end }}
 	if err != nil {
 		resp.Diagnostics.AddError("Error in create", err.Error())
 		return
@@ -316,6 +313,22 @@ const resourceCreateFunction = `
 
 	// Save the state.
 	state.Tfid = types.StringValue(tfid)
+
+{{- if .HasEncryptedResources }}
+	{
+		copy_diags := state.CopyFromPango(ctx, create, &ev)
+		resp.Diagnostics.Append(copy_diags...)
+	}
+	ev_map, ev_diags := types.MapValueFrom(ctx, types.StringType, ev)
+        state.EncryptedValues = ev_map
+        resp.Diagnostics.Append(ev_diags...)
+{{- else }}
+	{
+		copy_diags := state.CopyFromPango(ctx, create, nil)
+		resp.Diagnostics.Append(copy_diags...)
+	}
+{{- end }}
+
 {{- if .HasEntryName }}
 	state.Name = types.StringValue(create.Name)
 {{- end }}
@@ -332,6 +345,14 @@ const resourceReadFunction = `
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+{{- if .HasEncryptedResources }}
+	ev := make(map[string]types.String, len(savestate.EncryptedValues.Elements()))
+	resp.Diagnostics.Append(savestate.EncryptedValues.ElementsAs(ctx, &ev, false)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- end }}
 
 	// Parse the location from tfid.
 	var loc {{ .resourceStructName }}Tfid
@@ -379,7 +400,11 @@ const resourceReadFunction = `
 		return
 	}
 
-	copy_diags := state.CopyFromPango(ctx, object)
+{{- if .HasEncryptedResources }}
+	copy_diags := state.CopyFromPango(ctx, object, &ev)
+{{- else }}
+	copy_diags := state.CopyFromPango(ctx, object, nil)
+{{- end }}
 	resp.Diagnostics.Append(copy_diags...)
 
 	{{ RenderLocationsPangoToState }}
@@ -395,6 +420,12 @@ const resourceReadFunction = `
 
 	// Save the answer to state.
 
+{{- if .HasEncryptedResources }}
+	ev_map, ev_diags := types.MapValueFrom(ctx, types.StringType, ev)
+        state.EncryptedValues = ev_map
+        resp.Diagnostics.Append(ev_diags...)
+{{- end }}
+
 
 	// Done.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -407,6 +438,14 @@ const resourceUpdateFunction = `
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+{{- if .HasEncryptedResources }}
+	ev := make(map[string]types.String, len(state.EncryptedValues.Elements()))
+	resp.Diagnostics.Append(state.EncryptedValues.ElementsAs(ctx, &ev, false)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- end }}
 
 	var loc {{ .structName }}Tfid
 	if err := DecodeLocation(state.Tfid.ValueString(), &loc); err != nil {
@@ -430,7 +469,11 @@ const resourceUpdateFunction = `
 	// Create the service.
 	svc := {{ .resourceSDKName }}.NewService(r.client)
 
-	obj, copy_diags := plan.CopyToPango(ctx)
+{{- if .HasEncryptedResources }}
+	obj, copy_diags := plan.CopyToPango(ctx, &ev)
+{{- else }}
+	obj, copy_diags := plan.CopyToPango(ctx, nil)
+{{- end }}
 	resp.Diagnostics.Append(copy_diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -444,9 +487,9 @@ const resourceUpdateFunction = `
 
 	// Perform the operation.
 {{- if .HasEntryName }}
-	_, err := svc.Update(ctx, loc.Location, *obj, loc.Name)
+	updated, err := svc.Update(ctx, loc.Location, *obj, loc.Name)
 {{- else }}
-	_, err := svc.Update(ctx, loc.Location, *obj)
+	updated, err := svc.Update(ctx, loc.Location, *obj)
 {{- end }}
 	if err != nil {
 		resp.Diagnostics.AddError("Error in update", err.Error())
@@ -474,7 +517,14 @@ const resourceUpdateFunction = `
 	}
 	state.Tfid = types.StringValue(tfid)
 
-	copy_diags = state.CopyFromPango(ctx, obj)
+{{- if .HasEncryptedResources }}
+	copy_diags = state.CopyFromPango(ctx, updated, &ev)
+	ev_map, ev_diags := types.MapValueFrom(ctx, types.StringType, ev)
+        state.EncryptedValues = ev_map
+        resp.Diagnostics.Append(ev_diags...)
+{{- else }}
+	copy_diags = state.CopyFromPango(ctx, updated, nil)
+{{- end }}
 	resp.Diagnostics.Append(copy_diags...)
 
 	// Done.
@@ -525,7 +575,13 @@ const resourceDeleteFunction = `
 		resp.Diagnostics.AddError("Error in delete", err.Error())
 	}
 {{- else }}
-	obj, diags := state.CopyToPango(ctx)
+
+{{- if .HasEncryptedResources }}
+	ev := make(map[string]types.String)
+	obj, diags := state.CopyToPango(ctx, &ev)
+{{- else }}
+	obj, diags := state.CopyToPango(ctx, nil)
+{{- end }}
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return

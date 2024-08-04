@@ -122,6 +122,7 @@ spec:
                                 params:
                                   authentication_key:
                                     description: "Symmetric Key MD5 String"
+                                    sensitive: true
                                     hashing:
                                       type: solo
                                     length:
@@ -136,6 +137,7 @@ spec:
                                 params:
                                   authentication_key:
                                     description: "Symmetric Key SHA1 Hexadecimal"
+                                    sensitive: true
                                     length:
                                       min: 40
                                       max: 40
