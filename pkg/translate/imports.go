@@ -10,6 +10,12 @@ func RenderImports(templateTypes ...string) (string, error) {
 
 	for _, templateType := range templateTypes {
 		switch templateType {
+		case "config":
+			//manager.AddStandardImport("fmt", "")
+			manager.AddStandardImport("encoding/xml", "")
+			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/generic", "")
+			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "")
+			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/version", "")
 		case "entry":
 			manager.AddStandardImport("encoding/xml", "")
 			manager.AddStandardImport("fmt", "")

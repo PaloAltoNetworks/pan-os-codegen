@@ -1,11 +1,7 @@
 {{- if not .Entry}}
     package {{packageName .GoSdkPath}}
 
-    import (
-    "encoding/xml"
-    "github.com/PaloAltoNetworks/pango/generic"
-    "github.com/PaloAltoNetworks/pango/version"
-    )
+    {{renderImports "config"}}
 
     type Config{{createGoSuffixFromVersion ""}} struct {
     {{- range $_, $param := $.Spec.Params}}
@@ -158,4 +154,28 @@
         return configList, nil
         }
     {{- end}}
+
+    func SpecMatches(a, b *Config) bool {
+    if a == nil && b != nil || a != nil && b == nil {
+    return false
+    } else if a == nil && b == nil {
+    return true
+    }
+
+    // Don't compare Name.
+    {{- range $_, $param := .Spec.Params}}
+        if !{{specMatchesFunction $param}}(a.{{$param.Name.CamelCase}}, b.{{$param.Name.CamelCase}}) {
+        return false
+        }
+    {{- end}}
+    {{- range $_, $param := .Spec.OneOf}}
+        if !{{specMatchesFunction $param}}(a.{{$param.Name.CamelCase}}, b.{{$param.Name.CamelCase}}) {
+        return false
+        }
+    {{- end}}
+
+    return true
+    }
+
+    {{nestedSpecMatchesFunction $.Spec}}
 {{- end}}

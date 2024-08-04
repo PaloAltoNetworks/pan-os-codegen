@@ -391,65 +391,79 @@ return nil, fmt.Errorf("expected to %q 1 entry, got %d", action, len(list))
 return &list[0], nil
 }
 
-{{- if .Entry}}
+{{ $object := "Config" }}
+{{- if .Entry }}
+  {{ $object = "Entry" }}
+{{- end }}
+
+{{- if .Entry }}
     // Update updates the given config object, then returns the result.
-    func (s *Service) Update(ctx context.Context, loc Location, entry Entry, name string) (*Entry, error) {
-    {{- if $.Spec.Params.uuid}}
+    func (s *Service) Update(ctx context.Context, loc Location, entry {{ $object }}, name string) (*{{ $object }}, error) {
+  {{- if $.Spec.Params.uuid}}
         return s.update(ctx, loc, entry, name, true)
-    {{- else}}
+  {{- else}}
         return s.update(ctx, loc, entry, name)
-    {{- end}}
+  {{- end}}
     }
 
-    {{- if $.Spec.Params.uuid}}
+  {{- if $.Spec.Params.uuid}}
         // UpdateById updates the given config object, then returns the result.
-        func (s *Service) UpdateById(ctx context.Context, loc Location, entry Entry, uuid string) (*Entry, error) {
+        func (s *Service) UpdateById(ctx context.Context, loc Location, entry {{ $object }}, uuid string) (*{{ $object }}, error) {
         return s.update(ctx, loc, entry, uuid, false)
         }
-    {{- end}}
+  {{- end}}
 
-    {{- if $.Spec.Params.uuid}}
-        func (s *Service) update(ctx context.Context, loc Location, entry Entry, value string, byName bool) (*Entry, error) {
+  {{- if $.Spec.Params.uuid}}
+        func (s *Service) update(ctx context.Context, loc Location, entry {{ $object }}, value string, byName bool) (*{{ $object }}, error) {
+  {{- if .Entry }}
         if byName && entry.Name == "" {
         return nil, errors.NameNotSpecifiedError
         }
         if !byName && value == "" {
         return nil, errors.UuidNotSpecifiedError
         }
-    {{- else}}
-        func (s *Service) update(ctx context.Context, loc Location, entry Entry, value string) (*Entry, error) {
+  {{- end }}
+  {{- else}}
+        func (s *Service) update(ctx context.Context, loc Location, entry {{ $object }}, value string) (*{{ $object }}, error) {
+    {{- if .Entry }}
         if entry.Name == "" {
         return nil, errors.NameNotSpecifiedError
         }
-    {{- end}}
+    {{- end }}
+  {{- end}}
+{{- else }}
+func (s *Service) Update(ctx context.Context, loc Location, entry {{ $object }}) (*{{ $object }}, error) {
+{{- end }}
 
     vn := s.client.Versioning()
     updates := xmlapi.NewMultiConfig(2)
     specifier, _, err := Versioning(vn)
     if err != nil {
-    return nil, err
+        return nil, err
     }
 
-    var old *Entry
+
+  {{- if .Entry }}
+    var old *{{ $object }}
     {{- if $.Spec.Params.uuid}}
         if byName {
     {{- end}}
     if value != "" && value != entry.Name {
-    path, err := loc.XpathWithEntryName(vn, value)
-    if err != nil {
-    return nil, err
-    }
+        path, err := loc.XpathWithEntryName(vn, value)
+        if err != nil {
+            return nil, err
+        }
 
-    old, err = s.Read(ctx, loc, value, "get")
+        old, err = s.Read(ctx, loc, value, "get")
 
-    updates.Add(&xmlapi.Config{
-    Action:  "rename",
-    Xpath:   util.AsXpath(path),
-    NewName: entry.Name,
-    Target:  s.client.GetTarget(),
-    })
+        updates.Add(&xmlapi.Config{
+            Action:  "rename",
+            Xpath:   util.AsXpath(path),
+            NewName: entry.Name,
+            Target:  s.client.GetTarget(),
+        })
     } else {
-    old, err = s.Read(ctx, loc, entry.Name, "get")
+        old, err = s.Read(ctx, loc, entry.Name, "get")
     }
     {{- if $.Spec.Params.uuid}}
         } else {
@@ -457,47 +471,65 @@ return &list[0], nil
         }
     {{- end}}
     if err != nil {
-    return nil, err
+        return nil, err
     } else if old == nil {
-    return nil, fmt.Errorf("previous object doesn't exist for update")
+        return nil, fmt.Errorf("previous object doesn't exist for update")
     }
+  {{- else }}
+    var old *{{ $object }}
+    old, err = s.Read(ctx, loc, "get")
+    if err != nil {
+        return nil, err
+    } else if old == nil {
+        return nil, fmt.Errorf("previous object doesn't exist for update")
+    }
+  {{- end }}
 
+  {{- if .Entry }}
     if !SpecMatches(&entry, old) {
-    path, err := loc.XpathWithEntryName(vn, entry.Name)
-    if err != nil {
-    return nil, err
-    }
+        path, err := loc.XpathWithEntryName(vn, entry.Name)
+  {{- else }}
+    if !SpecMatches(&entry, old) {
+        path, err := loc.Xpath(vn)
+  {{- end }}
+        if err != nil {
+            return nil, err
+        }
 
-    updateSpec, err := specifier(entry)
-    if err != nil {
-    return nil, err
-    }
 
-    updates.Add(&xmlapi.Config{
-    Action:  "edit",
-    Xpath:   util.AsXpath(path),
-    Element: updateSpec,
-    Target:  s.client.GetTarget(),
-    })
+        updateSpec, err := specifier(entry)
+        if err != nil {
+            return nil, err
+        }
+
+        updates.Add(&xmlapi.Config{
+            Action:  "edit",
+            Xpath:   util.AsXpath(path),
+            Element: updateSpec,
+            Target:  s.client.GetTarget(),
+        })
     }
 
     if len(updates.Operations) != 0 {
-    if _, _, _, err = s.client.MultiConfig(ctx, updates, false, nil); err != nil {
-    return nil, err
-    }
+        if _, _, _, err = s.client.MultiConfig(ctx, updates, false, nil); err != nil {
+            return nil, err
+        }
     }
 
+  {{- if .Entry }}
     {{- if $.Spec.Params.uuid}}
         if byName {
-        return s.Read(ctx, loc, entry.Name, "get")
+            return s.Read(ctx, loc, entry.Name, "get")
         } else {
-        return s.ReadById(ctx, loc, value, "get")
+            return s.ReadById(ctx, loc, value, "get")
         }
     {{- else}}
         return s.Read(ctx, loc, entry.Name, "get")
     {{- end}}
-    }
-{{- end}}
+  {{- else }}
+        return s.Read(ctx, loc, "get")
+  {{- end }}
+}
 
 // Delete deletes the given item.
 {{- if .Entry}}
