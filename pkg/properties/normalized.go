@@ -177,6 +177,14 @@ func hasChildEncryptedResources(param *SpecParam) bool {
 	return false
 }
 
+func (o *SpecParam) HasEntryName() bool {
+	if o.Type != "list" {
+		return false
+	}
+
+	return o.Items.Type == "entry"
+}
+
 func (o *SpecParam) HasEncryptedResources() bool {
 	if o.Hashing != nil {
 		return true
@@ -466,19 +474,16 @@ func (spec *Normalization) HasEntryName() bool {
 func (spec *Normalization) HasEncryptedResources() bool {
 	for _, param := range spec.Spec.Params {
 		if param.HasEncryptedResources() {
-			fmt.Printf("Normalization.HasEncryptedResources %s true\n", spec.Name)
 			return true
 		}
 	}
 
 	for _, param := range spec.Spec.OneOf {
 		if param.HasEncryptedResources() {
-			fmt.Printf("Normalization.HasEncryptedResources %s true\n", spec.Name)
 			return true
 		}
 	}
 
-	fmt.Printf("Normalization.HasEncryptedResources %s false\n", spec.Name)
 	return false
 }
 

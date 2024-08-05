@@ -28,6 +28,7 @@ type parameterEncryptionSpec struct {
 type parameterSpec struct {
 	Name       *properties.NameVariant
 	Type       string
+	Required   bool
 	ItemsType  string
 	Encryption *parameterEncryptionSpec
 }
@@ -108,12 +109,17 @@ func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix st
 	paramSpecs := renderSpecsForParams(paramSpec.Spec.Params, parentNames)
 	oneofSpecs := renderSpecsForParams(paramSpec.Spec.OneOf, parentNames)
 
+	var hasEntryName bool
+	if paramSpec.Type == "list" && paramSpec.Items.Type == "entry" {
+		hasEntryName = true
+	}
 	element := spec{
 		PangoType:              pangoType,
 		PangoReturnType:        pangoReturnType,
 		TerraformType:          terraformType,
 		ModelOrObject:          "Object",
 		HasEncryptedParameters: paramSpec.HasEncryptedResources(),
+		HasEntryName:           hasEntryName,
 		Params:                 paramSpecs,
 		OneOf:                  oneofSpecs,
 	}
@@ -252,9 +258,9 @@ func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Conte
   {{- end }}
 
 	result := &{{ .PangoReturnType }}{
-{{- if .HasEntryName }}
-	Name: *o.Name.ValueStringPointer(),
-{{- end }}
+  {{- if .HasEntryName }}
+	Name: o.Name.ValueString(),
+  {{- end }}
   {{- range .Params }}
     {{- if eq .Type "" }}
 	{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_entry,
@@ -349,9 +355,10 @@ var {{ .Name.LowerCamelCase }}_list types.List
 			diags.Append(entry_diags...)
 			{{ $tfEntries }} = append({{ $tfEntries }}, entry)
 		}
-		// var list_diags diags.Diagnostics
-		// schemaType := ???
-		// {{ $terraformList }} list_diags = types.ListValueFrom(cts, schemaType.GetType(), obj.{{ .Name.CamelCase }})
+		var list_diags diag.Diagnostics
+		schemaType := o.getTypeFor("{{ .Name.Underscore }}")
+		{{ $terraformList }}, list_diags = types.ListValueFrom(ctx, schemaType, {{ $tfEntries }})
+		diags.Append(list_diags...)
 	}
     {{- else }}
 		var {{ .Name.LowerCamelCase }}_list types.List
@@ -668,15 +675,17 @@ type attributeCtx struct {
 }
 
 type schemaCtx struct {
-	StructName  string
-	ReturnType  string
-	Package     string
-	Description string
-	Required    bool
-	Computed    bool
-	Optional    bool
-	Sensitive   bool
-	Attributes  []attributeCtx
+	IsResource    bool
+	ObjectOrModel string
+	StructName    string
+	ReturnType    string
+	Package       string
+	Description   string
+	Required      bool
+	Computed      bool
+	Optional      bool
+	Sensitive     bool
+	Attributes    []attributeCtx
 }
 
 func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalization) (string, error) {
@@ -773,6 +782,21 @@ func createSchemaSpecForParameter(typ schemaType, structPrefix string, packageNa
 	structName := fmt.Sprintf("%s%s", structPrefix, param.Name.CamelCase)
 
 	var attributes []attributeCtx
+	if param.HasEntryName() {
+		name := &properties.NameVariant{
+			Underscore:     naming.Underscore("", "name", ""),
+			CamelCase:      naming.CamelCase("", "name", "", true),
+			LowerCamelCase: naming.CamelCase("", "name", "", false),
+		}
+
+		attributes = append(attributes, attributeCtx{
+			Package:    packageName,
+			Name:       name,
+			SchemaType: "StringAttribute",
+			Required:   true,
+		})
+	}
+
 	for _, elt := range param.Spec.Params {
 		attributes = append(attributes, createSchemaAttributeForParameter(typ, packageName, elt))
 	}
@@ -781,15 +805,21 @@ func createSchemaSpecForParameter(typ schemaType, structPrefix string, packageNa
 		attributes = append(attributes, createSchemaAttributeForParameter(typ, packageName, elt))
 	}
 
+	var isResource bool
+	if typ == schemaResource {
+		isResource = true
+	}
 	schemas = append(schemas, schemaCtx{
-		Package:     packageName,
-		StructName:  structName,
-		ReturnType:  returnType,
-		Description: "",
-		Required:    param.Required,
-		Optional:    !param.Required,
-		Sensitive:   param.Sensitive,
-		Attributes:  attributes,
+		IsResource:    isResource,
+		ObjectOrModel: "Object",
+		Package:       packageName,
+		StructName:    structName,
+		ReturnType:    returnType,
+		Description:   "",
+		Required:      param.Required,
+		Optional:      !param.Required,
+		Sensitive:     param.Sensitive,
+		Attributes:    attributes,
 	})
 
 	for _, elt := range param.Spec.Params {
@@ -959,11 +989,17 @@ func createSchemaSpecForNormalization(typ schemaType, spec *properties.Normaliza
 		schemas = append(schemas, createSchemaSpecForParameter(typ, structName, packageName, elt)...)
 	}
 
+	var isResource bool
+	if typ == schemaResource {
+		isResource = true
+	}
 	schemas = append(schemas, schemaCtx{
-		Package:    packageName,
-		StructName: structName,
-		ReturnType: "Schema",
-		Attributes: attributes,
+		Package:       packageName,
+		ObjectOrModel: "Model",
+		IsResource:    isResource,
+		StructName:    structName,
+		ReturnType:    "Schema",
+		Attributes:    attributes,
 	})
 
 	return schemas
@@ -1055,6 +1091,23 @@ func {{ .StructName }}Schema() {{ .Package }}.{{ .ReturnType }} {
 		},
 	}
 }
+
+func (o *{{ .StructName }}{{ .ObjectOrModel }}) getTypeFor(name string) attr.Type {
+	schema := {{ .StructName }}Schema()
+	if attr, ok := schema.Attributes[name]; !ok {
+		panic(fmt.Sprintf("could not resolve schema for attribute %s", name))
+	} else {
+		switch attr := attr.(type) {
+		case {{ .Package }}.ListNestedAttribute:
+			return attr.NestedObject.Type()
+		default:
+			return attr.GetType()
+		}
+	}
+
+	panic("unreachable")
+}
+
 {{- end }}
 `
 
@@ -1234,21 +1287,30 @@ func dataSourceStructContextForParam(structPrefix string, param *properties.Spec
 
 	structName := fmt.Sprintf("%s%s", structPrefix, param.Name.CamelCase)
 
-	var params []datasourceStructFieldSpec
+	var fields []datasourceStructFieldSpec
+
+	if param.HasEntryName() {
+		fields = append(fields, datasourceStructFieldSpec{
+			Name: "Name",
+			Type: "types.String",
+			Tags: []string{"`tfsdk:\"name\"`"},
+		})
+	}
+
 	if param.Spec != nil {
 		for _, elt := range param.Spec.Params {
-			params = append(params, structFieldSpec(elt, structName))
+			fields = append(fields, structFieldSpec(elt, structName))
 		}
 
 		for _, elt := range param.Spec.OneOf {
-			params = append(params, structFieldSpec(elt, structName))
+			fields = append(fields, structFieldSpec(elt, structName))
 		}
 	}
 
 	structs = append(structs, datasourceStructSpec{
 		StructName:    structName,
 		ModelOrObject: "Object",
-		Fields:        params,
+		Fields:        fields,
 	})
 
 	if param.Spec == nil {

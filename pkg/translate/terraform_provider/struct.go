@@ -241,6 +241,7 @@ func CreateNestedStruct(paramName string, paramProp *properties.SpecParam, struc
 	data := map[string]interface{}{
 		"Spec":                  paramProp.Spec,
 		"HasEncryptedResources": paramProp.HasEncryptedResources(),
+		"HasEntryName":          paramProp.HasEntryName(),
 		"structName":            nestedStructName,
 	}
 	nestedStruct, err := processTemplate(resourceModelNestedStruct, "model-nested-struct", data, nestedStructFuncMap)
