@@ -752,7 +752,7 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 	return processTemplate(locationSchemaGetterTmpl, "render-location-schema-getter", data, commonFuncMap)
 }
 
-func createSchemaSpecForParameter(structPrefix string, packageName string, param *properties.SpecParam) []schemaCtx {
+func createSchemaSpecForParameter(typ schemaType, structPrefix string, packageName string, param *properties.SpecParam) []schemaCtx {
 	var schemas []schemaCtx
 
 	if param.Spec == nil {
@@ -774,11 +774,11 @@ func createSchemaSpecForParameter(structPrefix string, packageName string, param
 
 	var attributes []attributeCtx
 	for _, elt := range param.Spec.Params {
-		attributes = append(attributes, createSchemaAttributeForParameter(packageName, elt))
+		attributes = append(attributes, createSchemaAttributeForParameter(typ, packageName, elt))
 	}
 
 	for _, elt := range param.Spec.OneOf {
-		attributes = append(attributes, createSchemaAttributeForParameter(packageName, elt))
+		attributes = append(attributes, createSchemaAttributeForParameter(typ, packageName, elt))
 	}
 
 	schemas = append(schemas, schemaCtx{
@@ -794,20 +794,20 @@ func createSchemaSpecForParameter(structPrefix string, packageName string, param
 
 	for _, elt := range param.Spec.Params {
 		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
-			schemas = append(schemas, createSchemaSpecForParameter(structName, packageName, elt)...)
+			schemas = append(schemas, createSchemaSpecForParameter(typ, structName, packageName, elt)...)
 		}
 	}
 
 	for _, elt := range param.Spec.OneOf {
 		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
-			schemas = append(schemas, createSchemaSpecForParameter(structName, packageName, elt)...)
+			schemas = append(schemas, createSchemaSpecForParameter(typ, structName, packageName, elt)...)
 		}
 	}
 
 	return schemas
 }
 
-func createSchemaAttributeForParameter(packageName string, param *properties.SpecParam) attributeCtx {
+func createSchemaAttributeForParameter(typ schemaType, packageName string, param *properties.SpecParam) attributeCtx {
 	var schemaType, elementType string
 	switch param.Type {
 	case "":
@@ -828,10 +828,17 @@ func createSchemaAttributeForParameter(packageName string, param *properties.Spe
 	}
 
 	var defaultValue *defaultCtx
-	if param.Default != "" {
+	if typ == schemaResource && param.Default != "" {
+		var value string
+		switch param.Type {
+		case "string":
+			value = fmt.Sprintf("\"%s\"", param.Default)
+		default:
+			value = param.Default
+		}
 		defaultValue = &defaultCtx{
-			Type:  fmt.Sprintf("%sdefault.%sDefault", param.Type, pascalCase(param.Type)),
-			Value: param.Default,
+			Type:  fmt.Sprintf("%sdefault.Static%s", param.Type, pascalCase(param.Type)),
+			Value: value,
 		}
 	}
 
@@ -845,6 +852,7 @@ func createSchemaAttributeForParameter(packageName string, param *properties.Spe
 		Optional:    !param.Required,
 		Sensitive:   param.Sensitive,
 		Default:     defaultValue,
+		Computed:    param.Default != "",
 	}
 }
 
@@ -942,13 +950,13 @@ func createSchemaSpecForNormalization(typ schemaType, spec *properties.Normaliza
 	}
 
 	for _, elt := range spec.Spec.Params {
-		attributes = append(attributes, createSchemaAttributeForParameter(packageName, elt))
-		schemas = append(schemas, createSchemaSpecForParameter(structName, packageName, elt)...)
+		attributes = append(attributes, createSchemaAttributeForParameter(typ, packageName, elt))
+		schemas = append(schemas, createSchemaSpecForParameter(typ, structName, packageName, elt)...)
 	}
 
 	for _, elt := range spec.Spec.OneOf {
-		attributes = append(attributes, createSchemaAttributeForParameter(packageName, elt))
-		schemas = append(schemas, createSchemaSpecForParameter(structName, packageName, elt)...)
+		attributes = append(attributes, createSchemaAttributeForParameter(typ, packageName, elt))
+		schemas = append(schemas, createSchemaSpecForParameter(typ, structName, packageName, elt)...)
 	}
 
 	schemas = append(schemas, schemaCtx{
@@ -1007,6 +1015,9 @@ const renderSchemaTemplate = `
 		Required: {{ .Required }},
 		Optional: {{ .Optional }},
 		Sensitive: {{ .Sensitive }},
+  {{- if .Default }}
+		Default: {{ .Default.Type }}({{ .Default.Value }}),
+  {{- end }}
 	},
 {{- end }}
 

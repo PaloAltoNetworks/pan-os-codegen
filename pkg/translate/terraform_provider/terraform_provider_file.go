@@ -171,6 +171,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 
 				conditionallyAddValidators(terraformProvider.ImportManager, spec)
 				conditionallyAddModifiers(terraformProvider.ImportManager, spec)
+				conditionallyAddDefaults(terraformProvider.ImportManager, spec.Spec)
 
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/diag", "")
@@ -192,6 +193,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 
 				conditionallyAddValidators(terraformProvider.ImportManager, spec)
 				conditionallyAddModifiers(terraformProvider.ImportManager, spec)
+				conditionallyAddDefaults(terraformProvider.ImportManager, spec.Spec)
 
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/diag", "")
@@ -213,6 +215,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(spec *properties.N
 
 			conditionallyAddValidators(terraformProvider.ImportManager, spec)
 			conditionallyAddModifiers(terraformProvider.ImportManager, spec)
+			conditionallyAddDefaults(terraformProvider.ImportManager, spec.Spec)
 
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/diag", "")
@@ -359,6 +362,28 @@ func conditionallyAddModifiers(manager *imports.Manager, spec *properties.Normal
 		} else {
 			manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier", "")
 			manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier", "")
+		}
+	}
+}
+
+func conditionallyAddDefaults(manager *imports.Manager, spec *properties.Spec) {
+	for _, elt := range spec.Params {
+		if elt.Type == "" {
+			conditionallyAddDefaults(manager, elt.Spec)
+		} else if elt.Default != "" {
+			packageName := fmt.Sprintf("%sdefault", elt.Type)
+			fullPackage := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework/resource/schema/%s", packageName)
+			manager.AddHashicorpImport(fullPackage, "")
+		}
+	}
+
+	for _, elt := range spec.OneOf {
+		if elt.Type == "" {
+			conditionallyAddDefaults(manager, elt.Spec)
+		} else if elt.Default != "" {
+			packageName := fmt.Sprintf("%sdefault", elt.Type)
+			fullPackage := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework/resource/schema/%s", packageName)
+			manager.AddHashicorpImport(fullPackage, "")
 		}
 	}
 }
