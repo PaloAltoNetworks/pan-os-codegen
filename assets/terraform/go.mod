@@ -1,6 +1,6 @@
 module github.com/PaloAltoNetworks/terraform-provider-panos
 
-go 1.21.4
+go 1.22
 
 require (
 	github.com/PaloAltoNetworks/pango v0.10.3-0.20240408115758-216d8509e7cf

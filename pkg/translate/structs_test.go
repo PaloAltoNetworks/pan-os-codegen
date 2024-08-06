@@ -1,9 +1,11 @@
 package translate
 
 import (
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 )
 
 const sampleSpec = `name: 'Address'

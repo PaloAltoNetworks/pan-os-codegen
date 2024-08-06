@@ -33,7 +33,7 @@ The code have run login in `cmd/codegen` directory, to run it with default optio
 go run cmd/codegen/main.go
 ```
 This command can be parametrizes using options:
-- `-t/-type` - operation type, default is to create both Terraform  
+- `-t/-type` - operation type, default is to create both Terraform
   - `mktp` - create only Terraform provider
   - `mksdk` - create only PAN-OS SDK
 - `config` - specify path for the config file, default is `cmd/codegen/config.yaml`

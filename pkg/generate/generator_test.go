@@ -7,9 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 )
 
 func TestCreateFullFilePath(t *testing.T) {

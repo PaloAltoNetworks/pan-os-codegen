@@ -3,8 +3,9 @@ package content
 import (
 	"encoding/json"
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
 func Unmarshal(v []byte, o interface{}) error {

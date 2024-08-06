@@ -1,0 +1,43 @@
+linters:
+  enable:
+    - asasalint
+    - copyloopvar
+    - decorder
+    - dogsled
+    - errname
+    - exhaustive
+    - exportloopref
+    - fatcontext
+    - forcetypeassert
+    - gci
+    - ginkgolinter
+    - gofmt
+    - grouper
+    - importas
+    - makezero
+    - nakedret
+    - nilerr
+    - nilnil
+    - predeclared
+    - sloglint
+    #- wrapcheck  # this one will be useful, but we have to fix a multitude of errors
+    #- unparam  # when fixed, probably already covered by revive/gocritic
+    #- revive  # too many errors, but useful, similar to gocritic, so probably choose one
+    #- prealloc  # enable when can
+    #- nestif  # enable once we clean up the code
+    #- gofumpt  # fix all files before we switch to gofumpt
+    #- gocritic  # too many failures for now
+    #- goconst  # once we rewrite string literals to consts
+    #- gochecknoglobals  # once we rewrite terraform codegen and drop global functions
+    #- funlen  # couple of functions over 60 lines
+    #- err113  # disabled because of too many dynamic errors that don't wrap anything
+
+linters-settings:
+  gci:
+    sections:
+      - standard
+      - default
+      - prefix(github.com/paloaltonetworks/pan-os-codegen)
+issues:
+  exclude-dirs:
+    - generated/

@@ -507,7 +507,7 @@ const resourceUpdateFunction = `
 		return
 	}
 
-	
+
 
 	// Save the location.
 	state.Location = plan.Location
