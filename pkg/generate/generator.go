@@ -104,7 +104,8 @@ func (c *Creator) processTemplate(templateName, filePath string) error {
 	}
 
 	// If no data was rendered from the template, skip creating an empty file.
-	if data.Len() > 0 {
+	dataLength := len(bytes.TrimSpace(data.Bytes()))
+	if dataLength > 0 {
 		formattedCode, err := format.Source(data.Bytes())
 		if err != nil {
 			return fmt.Errorf("error formatting code %w", err)
