@@ -6,6 +6,9 @@ import (
 	"strings"
 	"text/template"
 
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
+
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 )
@@ -43,24 +46,6 @@ type spec struct {
 	ModelOrObject          string
 	Params                 []parameterSpec
 	OneOf                  []parameterSpec
-}
-
-func returnPangoTypeForProperty(pkgName string, parent string, prop *properties.SpecParam) string {
-	if prop.Type == "" {
-		return fmt.Sprintf("%s.%s", pkgName, parent)
-	} else if prop.Type == "list" {
-		if prop.Items.Type == "entry" {
-			return fmt.Sprintf("%s.%s", pkgName, parent)
-		} else {
-			return fmt.Sprintf("%s.%s", pkgName, parent)
-		}
-	} else {
-		if prop.Required {
-			return fmt.Sprintf("%s.%s", pkgName, parent)
-		} else {
-			return fmt.Sprintf("%s.%s", pkgName, parent)
-		}
-	}
 }
 
 func renderSpecsForParams(params map[string]*properties.SpecParam, parentNames []string) []parameterSpec {
@@ -392,7 +377,7 @@ var {{ .Name.LowerCamelCase }}_list types.List
   var {{ $result }}_object *{{ $.Spec.TerraformType }}{{ .Name.CamelCase }}Object
   if obj.{{ .Name.CamelCase }} != nil {
 	{{ $result }}_object = new({{ $.Spec.TerraformType }}{{ .Name.CamelCase }}Object)
-  
+
 	var {{ $diag }} diag.Diagnostics
 	{{ $diag }} = {{ $result }}_object.CopyFromPango(ctx, obj.{{ .Name.CamelCase }}, encrypted)
 	diags.Append({{ $diag }}...)
@@ -423,7 +408,7 @@ var {{ .Name.LowerCamelCase }}_list types.List
 {{- if .Encryption }}
 		(*encrypted)["{{ .Encryption.EncryptedPath }}"] = types.StringValue(*obj.{{ .Name.CamelCase }})
 		if value, ok := (*encrypted)["{{ .Encryption.PlaintextPath }}"]; ok {
-			{{ .Name.LowerCamelCase }}_value = value		
+			{{ .Name.LowerCamelCase }}_value = value
 		} else {
 			panic("{{ .Encryption.PlaintextPath }}")
 		}
@@ -492,9 +477,11 @@ func pascalCase(value string) string {
 		parts = []string{value}
 	}
 
+	caser := cases.Title(language.English)
+
 	var result []string
 	for _, elt := range parts {
-		result = append(result, strings.Title(elt))
+		result = append(result, caser.String(elt))
 	}
 
 	return strings.Join(result, "")
@@ -1166,10 +1153,6 @@ func renderLocationsGetContext(names *NameProvider, spec *properties.Normalizati
 			IsBool:              len(location.Vars) == 0,
 			Fields:              fields,
 		})
-	}
-
-	type context struct {
-		Locations []locationCtx
 	}
 
 	return locations

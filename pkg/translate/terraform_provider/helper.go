@@ -89,32 +89,3 @@ func processTemplate(templateText, templateName string, data interface{}, funcMa
 	}
 	return builder.String(), nil
 }
-
-// mapGoTypeToTFType maps a Go type to its corresponding Terraform type.
-func mapGoTypeToTFType(structName string, t reflect.Type) string {
-	switch t.Kind() {
-	case reflect.Bool:
-		return "types.Bool"
-	case reflect.String:
-		return "types.String"
-	case reflect.Struct:
-		return "*" + structName + naming.CamelCase("", t.Name(), "", true)
-	default:
-		return "types.Unknown"
-	}
-}
-
-func mapEntryTypeToTFType(t reflect.Type) string {
-	switch t.Kind() {
-	case reflect.Bool:
-		return "ValueBoolPointer()"
-	case reflect.String:
-		return "ValueStringPointer()"
-	case reflect.Slice:
-		return "ElementsAs"
-	case reflect.Struct:
-		return "Struct"
-	default:
-		return "Unknown"
-	}
-}

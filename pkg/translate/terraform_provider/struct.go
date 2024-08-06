@@ -3,7 +3,6 @@ package terraform_provider
 import (
 	"fmt"
 	"log"
-	"reflect"
 	"strings"
 	"text/template"
 
@@ -20,53 +19,6 @@ type Field struct {
 type StructData struct {
 	StructName string
 	Fields     []Field
-}
-
-type vsysLocation struct {
-	name       string
-	ngfwDevice string
-}
-
-type deviceGroupLocation struct {
-	name           string
-	PanoramaDevice string
-}
-
-type resourceObjectLocation struct {
-	FromPanorama bool
-	Shared       bool
-	Vsys         vsysLocation
-	DeviceGroup  deviceGroupLocation
-}
-
-type ngfwLocation struct {
-	NgfwDevice string
-}
-
-type templateLocation struct {
-	NgfwDevice     string
-	PanoramaDevice string
-	Template       string
-}
-
-type templateStackLocation struct {
-	NgfwDevice     string
-	PanoramaDevice string
-	TemplateStack  string
-}
-
-type resourceNGFWConfigLocation struct {
-	Ngfw          ngfwLocation
-	Template      templateLocation
-	TemplateStack templateStackLocation
-}
-
-type panoramaLocation struct {
-	PanoramaDevice string
-}
-
-type resourcePanoramaConfigLocation struct {
-	Panorama panoramaLocation
 }
 
 // ParamToModelBasic converts the given parameter name and properties to a model representation.
@@ -120,11 +72,11 @@ func ParamToSchemaResource(paramName string, paramProp interface{}, terraformPro
     "`+strings.ReplaceAll(paramName, "-", "_")+`": rsschema.{{ CamelCaseType .Type }}Attribute{
 {{- else }}
     "`+strings.ReplaceAll(paramName, "-", "_")+`": rsschema.SingleNestedAttribute{
-{{- end }} 
+{{- end }}
         Description: "{{ .Description }}",
 		{{- if .Required }}
         Required: true,
-		{{- else }} 
+		{{- else }}
 		Optional:    true,
 		{{- end }}
 		{{- if .Items }}
@@ -281,31 +233,4 @@ func CreateNestedStruct(paramName string, paramProp *properties.SpecParam, struc
 	}
 
 	return nil
-}
-
-// CreateLocationStruct generates a corresponding Terraform location struct if the provided value is a struct, otherwise, it returns an error.
-func CreateLocationStruct(v interface{}, structName string) (string, error) {
-	val := reflect.ValueOf(v)
-	t := val.Type()
-
-	if t.Kind() != reflect.Struct {
-		return "", fmt.Errorf("provided value is not a struct")
-	}
-
-	var fields []Field
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
-		fields = append(fields, Field{
-			Name:    naming.CamelCase("", field.Name, "", true),
-			Type:    mapGoTypeToTFType(structName, field.Type),
-			TagName: naming.Underscore("", field.Name, ""),
-		})
-	}
-
-	structData := StructData{
-		StructName: structName,
-		Fields:     fields,
-	}
-
-	return processTemplate(locationStructFields, "location-struct-fields", structData, nil)
 }

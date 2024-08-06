@@ -21,7 +21,6 @@ type Command struct {
 	ctx          context.Context
 	args         []string
 	specs        []string
-	config       string
 	commandType  properties.CommandType
 	templatePath string
 }
@@ -123,11 +122,14 @@ func (c *Command) Execute() error {
 
 		terraformGenerator := generate.NewCreator(config.Output.TerraformProvider, c.templatePath, providerSpec)
 		err = terraformGenerator.RenderTerraformProvider(newProviderObject, providerSpec, config.TerraformProviderConfig)
+		if err != nil {
+			return fmt.Errorf("error generating terraform code: %w", err)
+		}
 		log.Printf("Generated Terraform resources: %s\n Generated dataSources: %s", resourceList, dataSourceList)
 	}
 
 	if err = generate.CopyAssets(config, c.commandType); err != nil {
-		return fmt.Errorf("error copying assets %s", err)
+		return fmt.Errorf("error copying assets %w", err)
 	}
 	return nil
 }

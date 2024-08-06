@@ -1,10 +1,5 @@
 package terraform_provider
 
-const locationStructFields = `
-{{- range .Fields }}
-	{{ .Name }} {{ .Type }} ` + "`tfsdk:\"{{ .TagName }}\"`" + `
-{{- end }}`
-
 const resourceModelNestedStruct = `
 type {{ .structName }}Object struct {
 {{- if .HasEntryName }}
@@ -679,8 +674,6 @@ func (o *{{ dataSourceStructName }}) Read(ctx context.Context, req datasource.Re
 {{- /* Done */ -}}
 `
 
-const dataSourceListObj = ``
-
 const providerFile = `
 {{- /* Begin */ -}}
 package provider
@@ -692,6 +685,7 @@ package provider
 
 {{- /* Done */ -}}
 `
+
 const provider = `
 {{- /* Begin */ -}}
 package provider
