@@ -151,10 +151,14 @@ func generateFromTerraformToPangoParameter(resourceTyp properties.ResourceType, 
 			Params:          paramSpecs,
 			OneOf:           oneofSpecs,
 		})
-	default:
+	case properties.ResourceEntryPlural, properties.ResourceUuid, properties.ResourceUuidPlural:
 		terraformPrefix = fmt.Sprintf("%s%s", terraformPrefix, pascalCase(prop.TerraformProviderConfig.PluralName))
+		var hasEntryName bool
+		if prop.Entry != nil && resourceTyp != properties.ResourceEntryPlural {
+			hasEntryName = true
+		}
 		specs = append(specs, spec{
-			HasEntryName:    prop.Entry != nil,
+			HasEntryName:    hasEntryName,
 			PangoType:       pangoPrefix,
 			PangoReturnType: pangoReturnType,
 			ModelOrObject:   "Object",
@@ -162,6 +166,8 @@ func generateFromTerraformToPangoParameter(resourceTyp properties.ResourceType, 
 			Params:          paramSpecs,
 			OneOf:           oneofSpecs,
 		})
+	default:
+		panic("unimplemented")
 	}
 
 	for _, elt := range prop.Spec.Params {
@@ -1809,8 +1815,13 @@ func DataSourceReadFunction(resourceTyp properties.ResourceType, names *NameProv
 		LowerCamelCase: naming.CamelCase("", listAttribute, "", false),
 	}
 
+	var resourceIsMap bool
+	if resourceTyp == properties.ResourceEntryPlural {
+		resourceIsMap = true
+	}
 	data := map[string]interface{}{
 		"ResourceOrDS":          "DataSource",
+		"ResourceIsMap":         resourceIsMap,
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
 		"ListAttribute":         listAttributeVariant,
 		"EntryOrConfig":         paramSpec.EntryOrConfig(),

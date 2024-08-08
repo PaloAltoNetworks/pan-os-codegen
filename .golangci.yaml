@@ -33,8 +33,6 @@ linters:
     #- err113  # disabled because of too many dynamic errors that don't wrap anything
 
 linters-settings:
-  exhaustive:
-    default-signifies-exhaustive: true
   gci:
     sections:
       - standard
