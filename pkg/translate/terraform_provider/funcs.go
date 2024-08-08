@@ -915,7 +915,7 @@ const (
 )
 
 // createSchemaSpecForUuidModel creates a schema for uuid-type resources, where top-level model describes a list of objects.
-func createSchemaSpecForUuidModel(schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string) []schemaCtx {
+func createSchemaSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string) []schemaCtx {
 	var schemas []schemaCtx
 	var attributes []attributeCtx
 
@@ -960,7 +960,7 @@ func createSchemaSpecForUuidModel(schemaTyp schemaType, spec *properties.Normali
 	})
 
 	structName = fmt.Sprintf("%s%s", structName, listName.CamelCase)
-	normalizationAttrs, normalizationSchemas := createSchemaSpecForNormalization(schemaTyp, spec, packageName, structName)
+	normalizationAttrs, normalizationSchemas := createSchemaSpecForNormalization(resourceTyp, schemaTyp, spec, packageName, structName)
 
 	schemas = append(schemas, schemaCtx{
 		Package:       packageName,
@@ -976,8 +976,10 @@ func createSchemaSpecForUuidModel(schemaTyp schemaType, spec *properties.Normali
 	return schemas
 }
 
-// createSchemaSpecForEntryModel creates a schema for entry-type resources, where top-level model describes normalization.
-func createSchemaSpecForEntryModel(schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string) []schemaCtx {
+// createSchemaSpecForEntrySingularModel creates a schema for entry-type singular resources.
+//
+// Entry-type singular resources are resources that manage a single object in PAN-OS, e.g. `resource_ethernet_interface`.
+func createSchemaSpecForEntrySingularModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string) []schemaCtx {
 	var schemas []schemaCtx
 	var attributes []attributeCtx
 	location := &properties.NameVariant{
@@ -1007,7 +1009,7 @@ func createSchemaSpecForEntryModel(schemaTyp schemaType, spec *properties.Normal
 		Computed:    true,
 	})
 
-	normalizationAttrs, normalizationSchemas := createSchemaSpecForNormalization(schemaTyp, spec, packageName, structName)
+	normalizationAttrs, normalizationSchemas := createSchemaSpecForNormalization(resourceTyp, schemaTyp, spec, packageName, structName)
 	attributes = append(attributes, normalizationAttrs...)
 
 	var isResource bool
@@ -1021,6 +1023,73 @@ func createSchemaSpecForEntryModel(schemaTyp schemaType, spec *properties.Normal
 		StructName:    structName,
 		ReturnType:    "Schema",
 		Attributes:    attributes,
+	})
+
+	schemas = append(schemas, normalizationSchemas...)
+
+	return schemas
+}
+
+// createSchemaSpecForEntrySingularModel creates a schema for entry-type plural resources.
+//
+// Entry-type plural resources are resources that manage multiple PAN-OS objects within
+// single terraform resource, e.g. `panos_address_objects`. For such objects, we want to
+// provide users with a simple way of indexing into specific objects based on their name,
+// so the terraform object represents lists as sets, where key is object name, and the value
+// is an terraform nested attribute describing the rest of object parameters.
+func createSchemaSpecForEntryListModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string) []schemaCtx {
+	var schemas []schemaCtx
+	var attributes []attributeCtx
+	location := &properties.NameVariant{
+		Underscore:     naming.Underscore("", "location", ""),
+		CamelCase:      naming.CamelCase("", "location", "", true),
+		LowerCamelCase: naming.CamelCase("", "location", "", false),
+	}
+
+	attributes = append(attributes, attributeCtx{
+		Package:    packageName,
+		Name:       location,
+		Required:   true,
+		SchemaType: "SingleNestedAttribute",
+	})
+
+	listNameStr := spec.TerraformProviderConfig.PluralName
+	listName := &properties.NameVariant{
+		Underscore:     naming.Underscore("", listNameStr, ""),
+		CamelCase:      naming.CamelCase("", listNameStr, "", true),
+		LowerCamelCase: naming.CamelCase("", listNameStr, "", false),
+	}
+
+	attributes = append(attributes, attributeCtx{
+		Package:    packageName,
+		Name:       listName,
+		Required:   true,
+		SchemaType: "MapNestedAttribute",
+	})
+
+	var isResource bool
+	if schemaTyp == schemaResource {
+		isResource = true
+	}
+	schemas = append(schemas, schemaCtx{
+		Package:       packageName,
+		ObjectOrModel: "Model",
+		IsResource:    isResource,
+		StructName:    structName,
+		ReturnType:    "Schema",
+		Attributes:    attributes,
+	})
+
+	structName = fmt.Sprintf("%s%s", structName, listName.CamelCase)
+	normalizationAttrs, normalizationSchemas := createSchemaSpecForNormalization(resourceTyp, schemaTyp, spec, packageName, structName)
+
+	schemas = append(schemas, schemaCtx{
+		Package:       packageName,
+		ObjectOrModel: "Object",
+		IsResource:    isResource,
+		StructName:    structName,
+		ReturnType:    "NestedAttributeObject",
+		Attributes:    normalizationAttrs,
 	})
 
 	schemas = append(schemas, normalizationSchemas...)
@@ -1056,13 +1125,17 @@ func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp sch
 
 	switch resourceTyp {
 	case properties.ResourceEntry:
-		return createSchemaSpecForEntryModel(schemaTyp, spec, packageName, structName)
+		return createSchemaSpecForEntrySingularModel(resourceTyp, schemaTyp, spec, packageName, structName)
+	case properties.ResourceEntryPlural:
+		return createSchemaSpecForEntryListModel(resourceTyp, schemaTyp, spec, packageName, structName)
+	case properties.ResourceUuid, properties.ResourceUuidPlural:
+		return createSchemaSpecForUuidModel(resourceTyp, schemaTyp, spec, packageName, structName)
 	default:
-		return createSchemaSpecForUuidModel(schemaTyp, spec, packageName, structName)
+		panic("unreachable")
 	}
 }
 
-func createSchemaSpecForNormalization(schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string) ([]attributeCtx, []schemaCtx) {
+func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string) ([]attributeCtx, []schemaCtx) {
 	var schemas []schemaCtx
 	var attributes []attributeCtx
 
@@ -1083,7 +1156,9 @@ func createSchemaSpecForNormalization(schemaTyp schemaType, spec *properties.Nor
 		})
 	}
 
-	if spec.HasEntryName() {
+	// We don't add name for resources of type ResourceEntryPlural, as those resources
+	// handle names as map keys in the top-level model.
+	if spec.HasEntryName() && resourceTyp != properties.ResourceEntryPlural {
 		name := &properties.NameVariant{
 			Underscore:     naming.Underscore("", "name", ""),
 			CamelCase:      naming.CamelCase("", "name", "", true),
@@ -1144,6 +1219,11 @@ const renderSchemaTemplate = `
   {{- end }}
 {{- end }}
 
+{{- define "renderSchemaMapNestedAttribute" }}
+  {{- template "renderSchemaListNestedAttribute" . }}
+{{- end }}
+
+
 {{- define "renderSchemaSingleNestedAttribute" }}
   {{- with .Attribute }}
 	"{{ .Name.Underscore }}": {{ $.StructName }}{{ .Name.CamelCase }}Schema(),
@@ -1171,6 +1251,8 @@ const renderSchemaTemplate = `
       {{- template "renderSchemaMapAttribute" . }}
     {{- else if eq .SchemaType "ListNestedAttribute" }}
       {{- template "renderSchemaListNestedAttribute" Map "StructName" $.StructName "Attribute" . }}
+    {{ else if eq .SchemaType "MapNestedAttribute" }}
+      {{- template "renderSchemaMapNestedAttribute" Map "StructName" $.StructName "Attribute" . }}
     {{- else if eq .SchemaType "SingleNestedAttribute" }}
       {{- template "renderSchemaSingleNestedAttribute" Map "StructName" $.StructName "Attribute" . }}
     {{- else }}
