@@ -346,13 +346,27 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 		})
 	}
 
+	var specHashing *SpecParamHashing
+	if schemaSpec.Hashing != nil {
+		specHashing = &SpecParamHashing{
+			Type: schemaSpec.Hashing.Type,
+		}
+	}
+	var terraformProviderConfig *SpecParamTerraformProviderConfig
+	if schemaSpec.CodegenOverrides != nil {
+		terraformProviderConfig = &SpecParamTerraformProviderConfig{
+			Computed: schemaSpec.CodegenOverrides.Terraform.Computed,
+		}
+	}
 	specParameter := &SpecParam{
-		Description: schemaSpec.Description,
-		Type:        specType,
-		Default:     defaultVal,
-		Required:    schemaSpec.Required,
-		Profiles:    profiles,
-		Spec:        innerSpec,
+		Description:             schemaSpec.Description,
+		Type:                    specType,
+		Default:                 defaultVal,
+		Required:                schemaSpec.Required,
+		TerraformProviderConfig: terraformProviderConfig,
+		Hashing:                 specHashing,
+		Profiles:                profiles,
+		Spec:                    innerSpec,
 	}
 
 	for _, v := range schemaSpec.Validators {

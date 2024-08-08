@@ -776,22 +776,11 @@ func createSchemaSpecForParameter(typ schemaType, structPrefix string, packageNa
 			LowerCamelCase: naming.CamelCase("", "name", "", false),
 		}
 
-		var computed, optional bool
-		if param.TerraformProviderConfig != nil {
-			computed = param.TerraformProviderConfig.Computed
-			optional = !computed
-		} else if param.Default != "" {
-			computed = true
-			optional = true
-		}
-
 		attributes = append(attributes, attributeCtx{
 			Package:    packageName,
 			Name:       name,
 			SchemaType: "StringAttribute",
 			Required:   true,
-			Computed:   computed,
-			Optional:   optional,
 		})
 	}
 
@@ -870,12 +859,10 @@ func createSchemaAttributeForParameter(typ schemaType, packageName string, param
 		}
 	}
 
-	var optional, computed bool
+	var computed bool
 	if param.TerraformProviderConfig != nil {
 		computed = param.TerraformProviderConfig.Computed
-		optional = !computed
 	} else if param.Default != "" {
-		optional = true
 		computed = true
 	}
 
@@ -886,7 +873,7 @@ func createSchemaAttributeForParameter(typ schemaType, packageName string, param
 		ElementType: elementType,
 		Description: param.Description,
 		Required:    param.Required,
-		Optional:    optional,
+		Optional:    !param.Required,
 		Sensitive:   param.Sensitive,
 		Default:     defaultValue,
 		Computed:    computed,
