@@ -1,6 +1,7 @@
 name: "Security policy rule"
 terraform_provider_config:
-  suffix: "security_policy_rule"
+  suffix: "security_policy"
+  plural_name: "rules"
 go_sdk_config:
   package:
     - "policies"

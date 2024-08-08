@@ -109,7 +109,6 @@ func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix st
 		OneOf:                  oneofSpecs,
 	}
 	specs = append(specs, element)
-	log.Printf("generateFromTerraformToPangoSpec() spec: %v", element)
 
 	renderSpecsForParams := func(params map[string]*properties.SpecParam) {
 		for _, elt := range params {
@@ -117,7 +116,6 @@ func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix st
 				continue
 			}
 			terraformPrefix := fmt.Sprintf("%s%s", terraformPrefix, paramSpec.Name.CamelCase)
-			log.Printf("Element: %s, pangoType: %s, terraformPrefix: %s", elt.Name.CamelCase, pangoType, terraformPrefix)
 			specs = append(specs, generateFromTerraformToPangoSpec(pangoType, terraformPrefix, elt, parentNames)...)
 		}
 	}
@@ -128,7 +126,7 @@ func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix st
 	return specs
 }
 
-func generateFromTerraformToPangoParameter(pkgName string, terraformPrefix string, pangoPrefix string, prop *properties.Normalization, parentName string) []spec {
+func generateFromTerraformToPangoParameter(resourceTyp properties.ResourceType, pkgName string, terraformPrefix string, pangoPrefix string, prop *properties.Normalization, parentName string) []spec {
 	var specs []spec
 
 	var pangoReturnType string
@@ -142,15 +140,29 @@ func generateFromTerraformToPangoParameter(pkgName string, terraformPrefix strin
 	paramSpecs := renderSpecsForParams(prop.Spec.Params, []string{parentName})
 	oneofSpecs := renderSpecsForParams(prop.Spec.OneOf, []string{parentName})
 
-	specs = append(specs, spec{
-		HasEntryName:    prop.Entry != nil,
-		PangoType:       pangoPrefix,
-		PangoReturnType: pangoReturnType,
-		ModelOrObject:   "Model",
-		TerraformType:   terraformPrefix,
-		Params:          paramSpecs,
-		OneOf:           oneofSpecs,
-	})
+	switch resourceTyp {
+	case properties.ResourceEntry:
+		specs = append(specs, spec{
+			HasEntryName:    prop.Entry != nil,
+			PangoType:       pangoPrefix,
+			PangoReturnType: pangoReturnType,
+			ModelOrObject:   "Model",
+			TerraformType:   terraformPrefix,
+			Params:          paramSpecs,
+			OneOf:           oneofSpecs,
+		})
+	default:
+		terraformPrefix = fmt.Sprintf("%s%s", terraformPrefix, pascalCase(prop.TerraformProviderConfig.PluralName))
+		specs = append(specs, spec{
+			HasEntryName:    prop.Entry != nil,
+			PangoType:       pangoPrefix,
+			PangoReturnType: pangoReturnType,
+			ModelOrObject:   "Object",
+			TerraformType:   terraformPrefix,
+			Params:          paramSpecs,
+			OneOf:           oneofSpecs,
+		})
+	}
 
 	for _, elt := range prop.Spec.Params {
 		specs = append(specs, generateFromTerraformToPangoSpec(pangoPrefix, terraformPrefix, elt, []string{})...)
@@ -487,8 +499,8 @@ func pascalCase(value string) string {
 	return strings.Join(result, "")
 }
 
-func RenderCopyToPangoFunctions(pkgName string, terraformTypePrefix string, property *properties.Normalization) (string, error) {
-	specs := generateFromTerraformToPangoParameter(pkgName, terraformTypePrefix, "", property, "")
+func RenderCopyToPangoFunctions(resourceTyp properties.ResourceType, pkgName string, terraformTypePrefix string, property *properties.Normalization) (string, error) {
+	specs := generateFromTerraformToPangoParameter(resourceTyp, pkgName, terraformTypePrefix, "", property, "")
 
 	type context struct {
 		Specs []spec
@@ -503,8 +515,8 @@ func RenderCopyToPangoFunctions(pkgName string, terraformTypePrefix string, prop
 	return processTemplate(copyToPangoTmpl, "copy-to-pango", data, funcMap)
 }
 
-func RenderCopyFromPangoFunctions(pkgName string, terraformTypePrefix string, property *properties.Normalization) (string, error) {
-	specs := generateFromTerraformToPangoParameter(pkgName, terraformTypePrefix, "", property, "")
+func RenderCopyFromPangoFunctions(resourceTyp properties.ResourceType, pkgName string, terraformTypePrefix string, property *properties.Normalization) (string, error) {
+	specs := generateFromTerraformToPangoParameter(resourceTyp, pkgName, terraformTypePrefix, "", property, "")
 
 	type context struct {
 		Specs []spec
@@ -530,7 +542,7 @@ type {{ .StructName }} struct {
 {{- end }}
 `
 
-func RenderLocationStructs(names *NameProvider, spec *properties.Normalization) (string, error) {
+func RenderLocationStructs(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
 	type fieldCtx struct {
 		Name string
 		Type string
@@ -748,7 +760,7 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 	return processTemplate(locationSchemaGetterTmpl, "render-location-schema-getter", data, commonFuncMap)
 }
 
-func createSchemaSpecForParameter(typ schemaType, structPrefix string, packageName string, param *properties.SpecParam) []schemaCtx {
+func createSchemaSpecForParameter(schemaTyp schemaType, structPrefix string, packageName string, param *properties.SpecParam) []schemaCtx {
 	var schemas []schemaCtx
 
 	if param.Spec == nil {
@@ -777,10 +789,10 @@ func createSchemaSpecForParameter(typ schemaType, structPrefix string, packageNa
 		}
 
 		var computed, optional bool
-		if param.TerraformProviderConfig != nil {
+		if param.Default == "" {
 			computed = param.TerraformProviderConfig.Computed
 			optional = !computed
-		} else if param.Default != "" {
+		} else {
 			computed = true
 			optional = true
 		}
@@ -796,17 +808,18 @@ func createSchemaSpecForParameter(typ schemaType, structPrefix string, packageNa
 	}
 
 	for _, elt := range param.Spec.Params {
-		attributes = append(attributes, createSchemaAttributeForParameter(typ, packageName, elt))
+		attributes = append(attributes, createSchemaAttributeForParameter(schemaTyp, packageName, elt))
 	}
 
 	for _, elt := range param.Spec.OneOf {
-		attributes = append(attributes, createSchemaAttributeForParameter(typ, packageName, elt))
+		attributes = append(attributes, createSchemaAttributeForParameter(schemaTyp, packageName, elt))
 	}
 
 	var isResource bool
-	if typ == schemaResource {
+	if schemaTyp == schemaResource {
 		isResource = true
 	}
+
 	schemas = append(schemas, schemaCtx{
 		IsResource:    isResource,
 		ObjectOrModel: "Object",
@@ -816,26 +829,27 @@ func createSchemaSpecForParameter(typ schemaType, structPrefix string, packageNa
 		Description:   "",
 		Required:      param.Required,
 		Optional:      !param.Required,
+		Computed:      param.TerraformProviderConfig.Computed,
 		Sensitive:     param.Sensitive,
 		Attributes:    attributes,
 	})
 
 	for _, elt := range param.Spec.Params {
 		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
-			schemas = append(schemas, createSchemaSpecForParameter(typ, structName, packageName, elt)...)
+			schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, structName, packageName, elt)...)
 		}
 	}
 
 	for _, elt := range param.Spec.OneOf {
 		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
-			schemas = append(schemas, createSchemaSpecForParameter(typ, structName, packageName, elt)...)
+			schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, structName, packageName, elt)...)
 		}
 	}
 
 	return schemas
 }
 
-func createSchemaAttributeForParameter(typ schemaType, packageName string, param *properties.SpecParam) attributeCtx {
+func createSchemaAttributeForParameter(schemaTyp schemaType, packageName string, param *properties.SpecParam) attributeCtx {
 	var schemaType, elementType string
 	switch param.Type {
 	case "":
@@ -856,7 +870,7 @@ func createSchemaAttributeForParameter(typ schemaType, packageName string, param
 	}
 
 	var defaultValue *defaultCtx
-	if typ == schemaResource && param.Default != "" {
+	if schemaTyp == schemaResource && param.Default != "" {
 		var value string
 		switch param.Type {
 		case "string":
@@ -871,10 +885,10 @@ func createSchemaAttributeForParameter(typ schemaType, packageName string, param
 	}
 
 	var optional, computed bool
-	if param.TerraformProviderConfig != nil {
+	if param.Default == "" {
 		computed = param.TerraformProviderConfig.Computed
 		optional = !computed
-	} else if param.Default != "" {
+	} else {
 		optional = true
 		computed = true
 	}
@@ -900,33 +914,72 @@ const (
 	schemaResource
 )
 
-func createSchemaSpecForNormalization(typ schemaType, spec *properties.Normalization) []schemaCtx {
+// createSchemaSpecForUuidModel creates a schema for uuid-type resources, where top-level model describes a list of objects.
+func createSchemaSpecForUuidModel(schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string) []schemaCtx {
 	var schemas []schemaCtx
-
-	var packageName string
-	switch typ {
-	case schemaDataSource:
-		packageName = "dsschema"
-	case schemaResource:
-		packageName = "rsschema"
-	}
-
-	if spec.Spec == nil {
-		return nil
-	}
-
-	names := NewNameProvider(spec)
-
-	var structName string
-	switch typ {
-	case schemaDataSource:
-		structName = names.DataSourceStructName
-	case schemaResource:
-		structName = names.ResourceStructName
-	}
-
 	var attributes []attributeCtx
 
+	location := &properties.NameVariant{
+		Underscore:     naming.Underscore("", "location", ""),
+		CamelCase:      naming.CamelCase("", "location", "", true),
+		LowerCamelCase: naming.CamelCase("", "location", "", false),
+	}
+
+	attributes = append(attributes, attributeCtx{
+		Package:    packageName,
+		Name:       location,
+		Required:   true,
+		SchemaType: "SingleNestedAttribute",
+	})
+
+	listNameStr := spec.TerraformProviderConfig.PluralName
+	listName := &properties.NameVariant{
+		Underscore:     naming.Underscore("", listNameStr, ""),
+		CamelCase:      naming.CamelCase("", listNameStr, "", true),
+		LowerCamelCase: naming.CamelCase("", listNameStr, "", false),
+	}
+
+	attributes = append(attributes, attributeCtx{
+		Package:    packageName,
+		Name:       listName,
+		Required:   true,
+		SchemaType: "ListNestedAttribute",
+	})
+
+	var isResource bool
+	if schemaTyp == schemaResource {
+		isResource = true
+	}
+	schemas = append(schemas, schemaCtx{
+		Package:       packageName,
+		ObjectOrModel: "Model",
+		IsResource:    isResource,
+		StructName:    structName,
+		ReturnType:    "Schema",
+		Attributes:    attributes,
+	})
+
+	structName = fmt.Sprintf("%s%s", structName, listName.CamelCase)
+	normalizationAttrs, normalizationSchemas := createSchemaSpecForNormalization(schemaTyp, spec, packageName, structName)
+
+	schemas = append(schemas, schemaCtx{
+		Package:       packageName,
+		ObjectOrModel: "Object",
+		IsResource:    isResource,
+		StructName:    structName,
+		ReturnType:    "NestedAttributeObject",
+		Attributes:    normalizationAttrs,
+	})
+
+	schemas = append(schemas, normalizationSchemas...)
+
+	return schemas
+}
+
+// createSchemaSpecForEntryModel creates a schema for entry-type resources, where top-level model describes normalization.
+func createSchemaSpecForEntryModel(schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string) []schemaCtx {
+	var schemas []schemaCtx
+	var attributes []attributeCtx
 	location := &properties.NameVariant{
 		Underscore:     naming.Underscore("", "location", ""),
 		CamelCase:      naming.CamelCase("", "location", "", true),
@@ -953,6 +1006,65 @@ func createSchemaSpecForNormalization(typ schemaType, spec *properties.Normaliza
 		Description: "The Terraform ID.",
 		Computed:    true,
 	})
+
+	normalizationAttrs, normalizationSchemas := createSchemaSpecForNormalization(schemaTyp, spec, packageName, structName)
+	attributes = append(attributes, normalizationAttrs...)
+
+	var isResource bool
+	if schemaTyp == schemaResource {
+		isResource = true
+	}
+	schemas = append(schemas, schemaCtx{
+		Package:       packageName,
+		ObjectOrModel: "Model",
+		IsResource:    isResource,
+		StructName:    structName,
+		ReturnType:    "Schema",
+		Attributes:    attributes,
+	})
+
+	schemas = append(schemas, normalizationSchemas...)
+
+	return schemas
+}
+
+// createSchemaSpecForModel generates schema spec for the top-level object based on the ResourceType.
+func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization) []schemaCtx {
+	var packageName string
+	switch schemaTyp {
+	case schemaDataSource:
+		packageName = "dsschema"
+	case schemaResource:
+		packageName = "rsschema"
+	}
+
+	if spec.Spec == nil {
+		return nil
+	}
+
+	names := NewNameProvider(spec, resourceTyp)
+
+	var structName string
+	switch schemaTyp {
+	case schemaDataSource:
+		structName = names.DataSourceStructName
+	case schemaResource:
+		structName = names.ResourceStructName
+	}
+
+	log.Printf("createSchemaSpecForModel: structName: %s", structName)
+
+	switch resourceTyp {
+	case properties.ResourceEntry:
+		return createSchemaSpecForEntryModel(schemaTyp, spec, packageName, structName)
+	default:
+		return createSchemaSpecForUuidModel(schemaTyp, spec, packageName, structName)
+	}
+}
+
+func createSchemaSpecForNormalization(schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string) ([]attributeCtx, []schemaCtx) {
+	var schemas []schemaCtx
+	var attributes []attributeCtx
 
 	if spec.HasEncryptedResources() {
 		name := &properties.NameVariant{
@@ -987,29 +1099,16 @@ func createSchemaSpecForNormalization(typ schemaType, spec *properties.Normaliza
 	}
 
 	for _, elt := range spec.Spec.Params {
-		attributes = append(attributes, createSchemaAttributeForParameter(typ, packageName, elt))
-		schemas = append(schemas, createSchemaSpecForParameter(typ, structName, packageName, elt)...)
+		attributes = append(attributes, createSchemaAttributeForParameter(schemaTyp, packageName, elt))
+		schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, structName, packageName, elt)...)
 	}
 
 	for _, elt := range spec.Spec.OneOf {
-		attributes = append(attributes, createSchemaAttributeForParameter(typ, packageName, elt))
-		schemas = append(schemas, createSchemaSpecForParameter(typ, structName, packageName, elt)...)
+		attributes = append(attributes, createSchemaAttributeForParameter(schemaTyp, packageName, elt))
+		schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, structName, packageName, elt)...)
 	}
 
-	var isResource bool
-	if typ == schemaResource {
-		isResource = true
-	}
-	schemas = append(schemas, schemaCtx{
-		Package:       packageName,
-		ObjectOrModel: "Model",
-		IsResource:    isResource,
-		StructName:    structName,
-		ReturnType:    "Schema",
-		Attributes:    attributes,
-	})
-
-	return schemas
+	return attributes, schemas
 }
 
 const renderSchemaTemplate = `
@@ -1118,25 +1217,25 @@ func (o *{{ .StructName }}{{ .ObjectOrModel }}) getTypeFor(name string) attr.Typ
 {{- end }}
 `
 
-func RenderResourceSchema(names *NameProvider, spec *properties.Normalization) (string, error) {
+func RenderResourceSchema(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
 	type context struct {
 		Schemas []schemaCtx
 	}
 
 	data := context{
-		Schemas: createSchemaSpecForNormalization(schemaResource, spec),
+		Schemas: createSchemaSpecForModel(resourceTyp, schemaResource, spec),
 	}
 
 	return processTemplate(renderSchemaTemplate, "render-resource-schema", data, commonFuncMap)
 }
 
-func RenderDataSourceSchema(names *NameProvider, spec *properties.Normalization) (string, error) {
+func RenderDataSourceSchema(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
 	type context struct {
 		Schemas []schemaCtx
 	}
 
 	data := context{
-		Schemas: createSchemaSpecForNormalization(schemaDataSource, spec),
+		Schemas: createSchemaSpecForModel(resourceTyp, schemaDataSource, spec),
 	}
 
 	return processTemplate(renderSchemaTemplate, "render-resource-schema", data, commonFuncMap)
@@ -1179,62 +1278,60 @@ func renderLocationsGetContext(names *NameProvider, spec *properties.Normalizati
 }
 
 const locationsPangoToState = `
-{{ $v := .Variable }}
 {{- range .Locations }}
   {{- if .IsBool }}
-if loc.Location.{{ .Name }} {
-	{{ $v }}.Location.{{ .Name }} = types.BoolValue(true)
+if {{ $.Source }}.{{ .Name }} {
+	{{ $.Dest }}.{{ .Name }} = types.BoolValue(true)
 }
   {{- else }}
-if loc.Location.{{ .Name }} != nil {
-	location := &{{ .TerraformStructName }}{
+if {{ $.Source }}.{{ .Name }} != nil {
+	{{ $.Dest }}.{{ .Name }} = &{{ .TerraformStructName }}{
     {{ $locationName := .Name }}
     {{- range .Fields }}
-		{{ .Name }}: types.{{ .Type }}Value(loc.Location.{{ $locationName }}.{{ .Name }}),
+		{{ .Name }}: types.{{ .Type }}Value({{ $.Source }}.{{ $locationName }}.{{ .Name }}),
     {{- end }}
 	}
-	{{ $v }}.Location.{{ .Name }} = location
 }
   {{- end }}
 {{- end }}
 `
 
-func RenderLocationsPangoToState(names *NameProvider, spec *properties.Normalization, variable string) (string, error) {
+func RenderLocationsPangoToState(names *NameProvider, spec *properties.Normalization, source string, dest string) (string, error) {
 	type context struct {
-		Variable  string
+		Source    string
+		Dest      string
 		Locations []locationCtx
 	}
-	data := context{Variable: variable, Locations: renderLocationsGetContext(names, spec)}
+	data := context{Source: source, Dest: dest, Locations: renderLocationsGetContext(names, spec)}
 	return processTemplate(locationsPangoToState, "render-locations-pango-to-state", data, commonFuncMap)
 }
 
 const locationsStateToPango = `
-{{ $v := .Variable }}
 {{- range .Locations }}
   {{- if .IsBool }}
-if !{{ $v }}.Location.{{ .Name }}.IsNull() && {{ $v }}.Location.{{ .Name }}.ValueBool() {
-	loc.Location.{{ .Name }} = true
+if !{{ $.Source }}.{{ .Name }}.IsNull() && {{ $.Source }}.{{ .Name }}.ValueBool() {
+	{{ $.Dest }}.{{ .Name }} = true
 }
   {{- else }}
-if {{ $v }}.Location.{{ .Name }} != nil {
-	location := &{{ .SdkStructName }}{
+if {{ $.Source }}.{{ .Name }} != nil {
+	{{ $.Dest }}.{{ .Name }} = &{{ .SdkStructName }}{
     {{ $locationName := .Name }}
     {{- range .Fields }}
-		{{ .Name }}: {{ $v }}.Location.{{ $locationName }}.{{ .Name }}.ValueString(),
+		{{ .Name }}: {{ $.Source }}.{{ $locationName }}.{{ .Name }}.ValueString(),
     {{- end }}
 	}
-	loc.Location.{{ .Name }} = location
 }
   {{- end }}
 {{- end }}
 `
 
-func RenderLocationsStateToPango(names *NameProvider, spec *properties.Normalization, variable string) (string, error) {
+func RenderLocationsStateToPango(names *NameProvider, spec *properties.Normalization, source string, dest string) (string, error) {
 	type context struct {
-		Variable  string
+		Source    string
+		Dest      string
 		Locations []locationCtx
 	}
-	data := context{Locations: renderLocationsGetContext(names, spec), Variable: variable}
+	data := context{Locations: renderLocationsGetContext(names, spec), Source: source, Dest: dest}
 	return processTemplate(locationsStateToPango, "render-locations-state-to-pango", data, commonFuncMap)
 }
 
@@ -1335,24 +1432,62 @@ func dataSourceStructContextForParam(structPrefix string, param *properties.Spec
 	return structs
 }
 
-func dataSourceStructContext(spec *properties.Normalization) []datasourceStructSpec {
+func createStructSpecForUuidModel(schemaTyp schemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
 	var structs []datasourceStructSpec
 
-	if spec.Spec == nil {
-		return nil
+	var fields []datasourceStructFieldSpec
+	fields = append(fields, datasourceStructFieldSpec{
+		Name: "Location",
+		Type: fmt.Sprintf("%sLocation", names.StructName),
+		Tags: []string{"`tfsdk:\"location\"`"},
+	})
+
+	var structName string
+	switch schemaTyp {
+	case schemaResource:
+		structName = names.ResourceStructName
+	default:
+		structName = names.DataSourceStructName
 	}
 
-	names := NewNameProvider(spec)
+	listNameStr := spec.TerraformProviderConfig.PluralName
+	listName := &properties.NameVariant{
+		Underscore:     naming.Underscore("", listNameStr, ""),
+		CamelCase:      naming.CamelCase("", listNameStr, "", true),
+		LowerCamelCase: naming.CamelCase("", listNameStr, "", false),
+	}
+
+	tag := fmt.Sprintf("`tfsdk:\"%s\"`", listName.Underscore)
+	fields = append(fields, datasourceStructFieldSpec{
+		Name: listName.CamelCase,
+		Type: "types.List",
+		Tags: []string{tag},
+	})
+
+	structs = append(structs, datasourceStructSpec{
+		StructName:    structName,
+		ModelOrObject: "Model",
+		Fields:        fields,
+	})
+
+	structName = fmt.Sprintf("%s%s", structName, listName.CamelCase)
+	fields, normalizationStructs := createStructSpecForNormalization(structName, spec)
+
+	structs = append(structs, datasourceStructSpec{
+		StructName:    structName,
+		ModelOrObject: "Object",
+		Fields:        fields,
+	})
+
+	structs = append(structs, normalizationStructs...)
+
+	return structs
+}
+
+func createStructSpecForEntryModel(schemaTyp schemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
+	var structs []datasourceStructSpec
 
 	var fields []datasourceStructFieldSpec
-
-	if spec.HasEntryName() {
-		fields = append(fields, datasourceStructFieldSpec{
-			Name: "Name",
-			Type: "types.String",
-			Tags: []string{"`tfsdk:\"name\"`"},
-		})
-	}
 
 	fields = append(fields, datasourceStructFieldSpec{
 		Name: "Tfid",
@@ -1366,17 +1501,64 @@ func dataSourceStructContext(spec *properties.Normalization) []datasourceStructS
 		Tags: []string{"`tfsdk:\"location\"`"},
 	})
 
+	var structName string
+	switch schemaTyp {
+	case schemaDataSource:
+		structName = names.DataSourceStructName
+	case schemaResource:
+		structName = names.ResourceStructName
+	}
+
+	normalizationFields, normalizationStructs := createStructSpecForNormalization(structName, spec)
+	fields = append(fields, normalizationFields...)
+
+	structs = append(structs, datasourceStructSpec{
+		StructName:    structName,
+		ModelOrObject: "Model",
+		Fields:        fields,
+	})
+
+	structs = append(structs, normalizationStructs...)
+
+	return structs
+}
+
+func createStructSpecForModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
+	if spec.Spec == nil {
+		return nil
+	}
+
+	switch resourceTyp {
+	case properties.ResourceEntry:
+		return createStructSpecForEntryModel(schemaTyp, spec, names)
+	default:
+		return createStructSpecForUuidModel(schemaTyp, spec, names)
+	}
+}
+
+func createStructSpecForNormalization(structName string, spec *properties.Normalization) ([]datasourceStructFieldSpec, []datasourceStructSpec) {
+	var fields []datasourceStructFieldSpec
+	var structs []datasourceStructSpec
+
+	if spec.HasEntryName() {
+		fields = append(fields, datasourceStructFieldSpec{
+			Name: "Name",
+			Type: "types.String",
+			Tags: []string{"`tfsdk:\"name\"`"},
+		})
+	}
+
 	for _, elt := range spec.Spec.Params {
-		fields = append(fields, structFieldSpec(elt, names.DataSourceStructName))
+		fields = append(fields, structFieldSpec(elt, structName))
 		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
-			structs = append(structs, dataSourceStructContextForParam(names.DataSourceStructName, elt)...)
+			structs = append(structs, dataSourceStructContextForParam(structName, elt)...)
 		}
 	}
 
 	for _, elt := range spec.Spec.OneOf {
-		fields = append(fields, structFieldSpec(elt, names.DataSourceStructName))
+		fields = append(fields, structFieldSpec(elt, structName))
 		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
-			structs = append(structs, dataSourceStructContextForParam(names.DataSourceStructName, elt)...)
+			structs = append(structs, dataSourceStructContextForParam(structName, elt)...)
 		}
 	}
 
@@ -1388,30 +1570,39 @@ func dataSourceStructContext(spec *properties.Normalization) []datasourceStructS
 		})
 	}
 
-	structs = append(structs, datasourceStructSpec{
-		StructName:    names.DataSourceStructName,
-		ModelOrObject: "Model",
-		Fields:        fields,
-	})
-	return structs
+	return fields, structs
 }
 
-func RenderDataSourceStructs(names *NameProvider, spec *properties.Normalization) (string, error) {
+func RenderResourceStructs(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
 	type context struct {
 		Structs []datasourceStructSpec
 	}
 
 	data := context{
-		Structs: dataSourceStructContext(spec),
+		Structs: createStructSpecForModel(resourceTyp, schemaResource, spec, names),
 	}
 
-	return processTemplate(dataSourceStructs, "render-locations-state-to-pango", data, commonFuncMap)
+	return processTemplate(dataSourceStructs, "render-structs", data, commonFuncMap)
 }
 
-func ResourceCreateFunction(names *NameProvider, serviceName string, paramSpec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, resourceSDKName string) (string, error) {
+func RenderDataSourceStructs(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
+	type context struct {
+		Structs []datasourceStructSpec
+	}
+
+	data := context{
+		Structs: createStructSpecForModel(resourceTyp, schemaDataSource, spec, names),
+	}
+
+	return processTemplate(dataSourceStructs, "render-structs", data, commonFuncMap)
+}
+
+func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProvider, serviceName string, paramSpec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, resourceSDKName string) (string, error) {
 	funcMap := template.FuncMap{
-		"ConfigToEntry":               ConfigEntry,
-		"RenderLocationsStateToPango": func(variable string) (string, error) { return RenderLocationsStateToPango(names, paramSpec, variable) },
+		"ConfigToEntry": ConfigEntry,
+		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
+			return RenderLocationsStateToPango(names, paramSpec, source, dest)
+		},
 		"ResourceParamToSchema": func(paramName string, paramParameters properties.SpecParam) (string, error) {
 			return ParamToSchemaResource(paramName, paramParameters, terraformProvider)
 		},
@@ -1421,8 +1612,25 @@ func ResourceCreateFunction(names *NameProvider, serviceName string, paramSpec *
 		serviceName = "group"
 	}
 
+	var tmpl string
+	var listAttribute string
+	switch resourceTyp {
+	case properties.ResourceEntry:
+		tmpl = resourceCreateFunction
+	default:
+		tmpl = resourceCreateManyFunction
+		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
+	}
+
+	listAttributeVariant := &properties.NameVariant{
+		Underscore:     naming.Underscore("", listAttribute, ""),
+		CamelCase:      naming.CamelCase("", listAttribute, "", true),
+		LowerCamelCase: naming.CamelCase("", listAttribute, "", false),
+	}
+
 	data := map[string]interface{}{
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
+		"ListAttribute":         listAttributeVariant,
 		"EntryOrConfig":         paramSpec.EntryOrConfig(),
 		"HasEntryName":          paramSpec.HasEntryName(),
 		"structName":            names.ResourceStructName,
@@ -1432,17 +1640,34 @@ func ResourceCreateFunction(names *NameProvider, serviceName string, paramSpec *
 		"locations":             paramSpec.Locations,
 	}
 
-	return processTemplate(resourceCreateFunction, "resource-create-function", data, funcMap)
+	return processTemplate(tmpl, "resource-create-function", data, funcMap)
 }
 
-func DataSourceReadFunction(names *NameProvider, serviceName string, paramSpec *properties.Normalization, resourceSDKName string) (string, error) {
+func DataSourceReadFunction(resourceTyp properties.ResourceType, names *NameProvider, serviceName string, paramSpec *properties.Normalization, resourceSDKName string) (string, error) {
 	if strings.Contains(serviceName, "group") {
 		serviceName = "group"
+	}
+
+	var tmpl string
+	var listAttribute string
+	switch resourceTyp {
+	case properties.ResourceEntry:
+		tmpl = resourceReadFunction
+	default:
+		tmpl = resourceReadManyFunction
+		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
+	}
+
+	listAttributeVariant := &properties.NameVariant{
+		Underscore:     naming.Underscore("", listAttribute, ""),
+		CamelCase:      naming.CamelCase("", listAttribute, "", true),
+		LowerCamelCase: naming.CamelCase("", listAttribute, "", false),
 	}
 
 	data := map[string]interface{}{
 		"ResourceOrDS":          "DataSource",
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
+		"ListAttribute":         listAttributeVariant,
 		"EntryOrConfig":         paramSpec.EntryOrConfig(),
 		"HasEntryName":          paramSpec.HasEntryName(),
 		"structName":            names.StructName,
@@ -1454,21 +1679,48 @@ func DataSourceReadFunction(names *NameProvider, serviceName string, paramSpec *
 	}
 
 	funcMap := template.FuncMap{
-		"RenderLocationsPangoToState": func(variable string) (string, error) { return RenderLocationsPangoToState(names, paramSpec, variable) },
-		"RenderLocationsStateToPango": func(variable string) (string, error) { return RenderLocationsStateToPango(names, paramSpec, variable) },
+		"RenderLocationsPangoToState": func(source string, dest string) (string, error) {
+			return RenderLocationsPangoToState(names, paramSpec, source, dest)
+		},
+		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
+			return RenderLocationsStateToPango(names, paramSpec, source, dest)
+		},
 	}
 
-	return processTemplate(resourceReadFunction, "resource-read-function", data, funcMap)
+	return processTemplate(tmpl, "resource-read-function", data, funcMap)
 }
 
-func ResourceReadFunction(names *NameProvider, serviceName string, paramSpec *properties.Normalization, resourceSDKName string) (string, error) {
+func ResourceReadFunction(resourceTyp properties.ResourceType, names *NameProvider, serviceName string, paramSpec *properties.Normalization, resourceSDKName string) (string, error) {
 	if strings.Contains(serviceName, "group") {
 		serviceName = "group"
+	}
+
+	var tmpl string
+	var listAttribute string
+	var exhaustive bool
+	switch resourceTyp {
+	case properties.ResourceEntry:
+		tmpl = resourceReadFunction
+	case properties.ResourceUuid:
+		tmpl = resourceReadManyFunction
+		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
+		exhaustive = true
+	case properties.ResourceUuidPlural:
+		tmpl = resourceReadManyFunction
+		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
+	}
+
+	listAttributeVariant := &properties.NameVariant{
+		Underscore:     naming.Underscore("", listAttribute, ""),
+		CamelCase:      naming.CamelCase("", listAttribute, "", true),
+		LowerCamelCase: naming.CamelCase("", listAttribute, "", false),
 	}
 
 	data := map[string]interface{}{
 		"ResourceOrDS":          "Resource",
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
+		"ListAttribute":         listAttributeVariant,
+		"Exhaustive":            exhaustive,
 		"EntryOrConfig":         paramSpec.EntryOrConfig(),
 		"HasEntryName":          paramSpec.HasEntryName(),
 		"structName":            names.StructName,
@@ -1479,20 +1731,47 @@ func ResourceReadFunction(names *NameProvider, serviceName string, paramSpec *pr
 	}
 
 	funcMap := template.FuncMap{
-		"RenderLocationsPangoToState": func(variable string) (string, error) { return RenderLocationsPangoToState(names, paramSpec, variable) },
-		"RenderLocationsStateToPango": func(variable string) (string, error) { return RenderLocationsStateToPango(names, paramSpec, variable) },
+		"RenderLocationsPangoToState": func(source string, dest string) (string, error) {
+			return RenderLocationsPangoToState(names, paramSpec, source, dest)
+		},
+		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
+			return RenderLocationsStateToPango(names, paramSpec, source, dest)
+		},
 	}
 
-	return processTemplate(resourceReadFunction, "resource-read-function", data, funcMap)
+	return processTemplate(tmpl, "resource-read-function", data, funcMap)
 }
 
-func ResourceUpdateFunction(names *NameProvider, serviceName string, paramSpec *properties.Normalization, resourceSDKName string) (string, error) {
+func ResourceUpdateFunction(resourceTyp properties.ResourceType, names *NameProvider, serviceName string, paramSpec *properties.Normalization, resourceSDKName string) (string, error) {
 	if strings.Contains(serviceName, "group") {
 		serviceName = "group"
 	}
 
+	var tmpl string
+	var listAttribute string
+	var exhaustive bool
+	switch resourceTyp {
+	case properties.ResourceEntry:
+		tmpl = resourceUpdateFunction
+	case properties.ResourceUuid:
+		tmpl = resourceUpdateManyFunction
+		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
+		exhaustive = true
+	case properties.ResourceUuidPlural:
+		tmpl = resourceUpdateManyFunction
+		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
+	}
+
+	listAttributeVariant := &properties.NameVariant{
+		Underscore:     naming.Underscore("", listAttribute, ""),
+		CamelCase:      naming.CamelCase("", listAttribute, "", true),
+		LowerCamelCase: naming.CamelCase("", listAttribute, "", false),
+	}
+
 	data := map[string]interface{}{
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
+		"ListAttribute":         listAttributeVariant,
+		"Exhaustive":            exhaustive,
 		"EntryOrConfig":         paramSpec.EntryOrConfig(),
 		"HasEntryName":          paramSpec.HasEntryName(),
 		"structName":            names.ResourceStructName,
@@ -1501,13 +1780,18 @@ func ResourceUpdateFunction(names *NameProvider, serviceName string, paramSpec *
 	}
 
 	funcMap := template.FuncMap{
-		"RenderLocationsStateToPango": func(variable string) (string, error) { return RenderLocationsStateToPango(names, paramSpec, variable) },
+		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
+			return RenderLocationsStateToPango(names, paramSpec, source, dest)
+		},
+		"RenderLocationsPangoToState": func(source string, dest string) (string, error) {
+			return RenderLocationsPangoToState(names, paramSpec, source, dest)
+		},
 	}
 
-	return processTemplate(resourceUpdateFunction, "resource-update-function", data, funcMap)
+	return processTemplate(tmpl, "resource-update-function", data, funcMap)
 }
 
-func ResourceDeleteFunction(structName string, serviceName string, paramSpec *properties.Normalization, resourceSDKName string) (string, error) {
+func ResourceDeleteFunction(resourceTyp properties.ResourceType, structName string, serviceName string, paramSpec *properties.Normalization, resourceSDKName string) (string, error) {
 	if strings.Contains(serviceName, "group") {
 		serviceName = "group"
 	}
@@ -1521,7 +1805,15 @@ func ResourceDeleteFunction(structName string, serviceName string, paramSpec *pr
 		"resourceSDKName":       resourceSDKName,
 	}
 
-	return processTemplate(resourceDeleteFunction, "resource-delete-function", data, nil)
+	var tmpl string
+	switch resourceTyp {
+	case properties.ResourceEntry:
+		tmpl = resourceDeleteFunction
+	default:
+		tmpl = resourceDeleteManyFunction
+	}
+
+	return processTemplate(tmpl, "resource-delete-function", data, nil)
 }
 
 func ConfigEntry(entryName string, param *properties.SpecParam) (string, error) {

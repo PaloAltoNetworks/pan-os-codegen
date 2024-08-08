@@ -22,7 +22,7 @@ type Parameter struct {
 	Name             string                `yaml:"name"`
 	Description      string                `yaml:"description"`
 	Type             string                `yaml:"type"`
-	CodegenOverrides *CodegenOverrides     `yaml:"codegen_overrides"`
+	CodegenOverrides CodegenOverrides      `yaml:"codegen_overrides"`
 	Required         bool                  `yaml:"required"`
 	Profiles         []profile.Profile     `yaml:"profiles"`
 	Validators       []validator.Validator `yaml:"validators"`
@@ -46,7 +46,7 @@ type CodegenOverridesTerraform struct {
 }
 
 type CodegenOverrides struct {
-	Terraform *CodegenOverridesTerraform `yaml:"terraform"`
+	Terraform CodegenOverridesTerraform `yaml:"terraform"`
 }
 
 // EnumSpec describes a parameter of type enum
