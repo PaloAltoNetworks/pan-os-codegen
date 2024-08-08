@@ -1,399 +1,509 @@
-name: 'Security policy rule'
+name: "Security policy rule"
 terraform_provider_config:
-  suffix: 'security_policy_rule'
-go_sdk_path:
-  - 'policies'
-  - 'rules'
-  - 'security'
+  suffix: "security_policy_rule"
+go_sdk_config:
+  package:
+    - "policies"
+    - "rules"
+    - "security"
 xpath_suffix:
-  - 'security'
-  - 'rules'
+  - "security"
+  - "rules"
 locations:
-  'shared':
-    description: 'Located in shared.'
-    device:
-      panorama: true
-      ngfw: true
+  - name: "shared"
+    description: "Located in shared."
+    devices:
+      - panorama
+      - ngfw
     xpath:
-      - 'config'
-      - 'shared'
-      - '{{ Object $rulebase }}'
-    vars:
-      'rulebase':
-        description: 'The rulebase.'
-        default: 'pre-rulebase'
-        validation:
-          values: ['post-rulebase', 'pre-rulebase']
-  'vsys':
-    description: 'Located in a specific vsys.'
-    device:
-      panorama: true
-      ngfw: true
+      path:
+        - "config"
+        - "shared"
+        - "$rulebase"
+      vars:
+        - name: "rulebase"
+          type: object
+          description: "The rulebase."
+          default: "pre-rulebase"
+          validators:
+            - type: values
+              spec:
+                values: ["post-rulebase", "pre-rulebase"]
+  - name: "vsys"
+    description: "Located in a specific vsys."
+    devices:
+      - panorama
+      - ngfw
     xpath:
-      - 'config'
-      - 'devices'
-      - '{{ Entry $ngfw_device }}'
-      - 'vsys'
-      - '{{ Entry $vsys }}'
-      - 'rulebase'
-    vars:
-      'ngfw_device':
-        description: 'The NGFW device.'
-        default: 'localhost.localdomain'
-      'vsys':
-        description: 'The vsys.'
-        default: 'vsys1'
-        validation:
-          not_values:
-            'shared': 'The vsys cannot be "shared". Use the "shared" path instead.'
-      'rulebase':
-        description: 'The rulebase.'
-        default: 'pre-rulebase'
-        validation:
-          values: ['post-rulebase', 'pre-rulebase']
-  'from_panorama_vsys':
-    description: 'Located in a specific vsys in the config pushed from Panorama.'
+      path:
+        - "config"
+        - "devices"
+        - "$ngfw_device"
+        - "vsys"
+        - "$vsys"
+        - "rulebase"
+      vars:
+        - name: "ngfw_device"
+          description: "The NGFW device."
+          default: "localhost.localdomain"
+        - name: "vsys"
+          description: "The vsys."
+          default: "vsys1"
+          validators:
+            - type: not-values
+              spec:
+                values:
+                  - value: "shared"
+                    error: 'The vsys cannot be "shared". Use the "shared" path instead.'
+        - name: "rulebase"
+          description: "The rulebase."
+          default: "pre-rulebase"
+          validators:
+            - type: values
+              spec:
+                values: ["post-rulebase", "pre-rulebase"]
+  - name: "from_panorama_vsys"
+    description: "Located in a specific vsys in the config pushed from Panorama."
     read_only: true
-    device:
-      ngfw: true
+    devices:
+      - ngfw
     xpath:
-      - 'config'
-      - 'panorama'
-      - 'vsys'
-      - '{{ Entry $vsys }}'
-      - 'rulebase'
-    vars:
-      'vsys':
-        description: 'The vsys.'
-        default: 'vsys1'
-        validation:
-          not_values:
-            'shared': 'The vsys cannot be "shared". Use the "shared" path instead.'
-  'device_group':
-    description: 'Located in a specific device group.'
-    device:
-      panorama: true
+      path:
+        - "config"
+        - "panorama"
+        - "vsys"
+        - "$vsys"
+        - "rulebase"
+      vars:
+        - name: "vsys"
+          description: "The vsys."
+          default: "vsys1"
+          validators:
+            - type: not-values
+              spec:
+                values:
+                  - value: "shared"
+                    error: 'The vsys cannot be "shared". Use the "shared" path instead.'
+  - name: "device_group"
+    description: "Located in a specific device group."
+    devices:
+      - panorama
     xpath:
-      - 'config'
-      - 'devices'
-      - '{{ Entry $panorama_device }}'
-      - 'device-group'
-      - '{{ Entry $device_group }}'
-      - '{{ Object $rulebase }}'
-    vars:
-      'panorama_device':
-        description: 'The panorama device.'
-        default: 'localhost.localdomain'
-      'device_group':
-        description: 'The device group.'
-        required: true
-        validation:
-          not_values:
-            'shared': 'The device group cannot be "shared". Use the "shared" path instead.'
-      'rulebase':
-        description: 'The rulebase.'
-        default: 'pre-rulebase'
-        validation:
-          values: ['post-rulebase', 'pre-rulebase']
-entry:
-  name:
-    description: 'The name of the security policy rule.'
-    length:
-      min: 1
-      max: 63
-    validation:
-      not_values:
-        'intrazone-default': 'The intrazone-default is a reserved name.'
-        'interzone-default': 'The interzone-default is a reserved name.'
-version: '10.1.0'
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+        - "device-group"
+        - "$device_group"
+        - "$rulebase"
+      vars:
+        - name: "panorama_device"
+          description: "The panorama device."
+          default: "localhost.localdomain"
+        - name: "device_group"
+          description: "The device group."
+          required: true
+          validators:
+            - type: not-values
+              spec:
+                values:
+                  - value: "shared"
+                    error: 'The device group cannot be "shared". Use the "shared" path instead.'
+        - name: "rulebase"
+          type: object
+          description: "The rulebase."
+          default: "pre-rulebase"
+          validators:
+            - type: values
+              spec:
+                values: ["post-rulebase", "pre-rulebase"]
+entries:
+  - name: name
+    description: "The name of the security policy rule."
+    validators:
+      - type: length
+        spec:
+          min: 1
+          max: 63
+      - type: not-values
+        spec:
+          values:
+            - value: "intrazone-default"
+              error: "The intrazone-default is a reserved name."
+            - value: "interzone-default"
+              error: "The interzone-default is a reserved name."
+version: "10.1.0"
 spec:
   params:
-    description:
-      description: 'The description.'
+    - name: description
+      description: "The description."
       type: string
-      length:
-        min: 0
-        max: 1023
+      validators:
+        - type: length
+          spec:
+            min: 0
+            max: 1023
       profiles:
-        -
-          xpath: ["description"]
-    uuid:
-      description: 'The UUID value.'
-      regex: '[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}'
-      length:
-        min: 3
-        max: 36
+        - xpath: ["description"]
+    - name: uuid
+      type: string
+      description: "The UUID value."
+      codegen_overrides:
+        terraform:
+          computed: true
+      validators:
+        - type: regexp
+          spec:
+            expr: "[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}"
+        - type: length
+          spec:
+            min: 3
+            max: 36
       profiles:
-        - xpath: [ "uuid" ]
-    tags:
-      description: 'The administrative tags.'
+        - xpath: ["uuid"]
+    - name: tags
+      description: "The administrative tags."
       type: list
-      count:
-        max: 64
-      items:
-        type: string
-        length:
-          max: 127
+      validators:
+        - type: count
+          spec:
+            max: 64
+      spec:
+        items:
+          type: string
+          validators:
+            - type: length
+              spec:
+                max: 127
       profiles:
-        -
-          type: member
+        - type: member
           xpath: ["tag"]
-    source_zones:
-      description: 'Source zones'
+    - name: source_zones
+      description: "Source zones"
       type: list
-      count:
-        max: 31
-      items:
-        type: string
+      validators:
+        - type: count
+          spec:
+            max: 31
+      spec:
+        items:
+          type: string
       profiles:
-        -
-          type: member
+        - type: member
           xpath: ["from"]
-    destination_zones:
-      description: 'Destination zones'
+    - name: destination_zones
+      description: "Destination zones"
       type: list
-      count:
-        max: 31
-      items:
-        type: string
+      validators:
+        - type: count
+          spec:
+            max: 31
+      spec:
+        items:
+          type: string
       profiles:
-        -
-          type: member
+        - type: member
           xpath: ["to"]
-    source_addresses:
-      description: 'Source addresses'
+    - name: source_addresses
+      description: "Source addresses"
       type: list
-      count:
-        max: 63
-      items:
-        type: string
+      validators:
+        - type: count
+          spec:
+            max: 63
+      spec:
+        items:
+          type: string
       profiles:
-        -
-          type: member
+        - type: member
           xpath: ["source"]
-    destination_addresses:
-      description: 'Destination addresses'
+    - name: destination_addresses
+      description: "Destination addresses"
       type: list
-      count:
-        max: 63
-      items:
-        type: string
+      validators:
+        - type: count
+          spec:
+            max: 63
+      spec:
+        items:
+          type: string
       profiles:
-        -
-          type: member
+        - type: member
           xpath: ["destination"]
-    source_users:
-      description: 'Source users'
+    - name: source_users
+      description: "Source users"
       type: list
-      count:
-        max: 1023
-      items:
-        type: string
+      validators:
+        - type: count
+          spec:
+            max: 1023
+      spec:
+        items:
+          type: string
       profiles:
-        -
-          type: member
+        - type: member
           xpath: ["source-user"]
-    services:
-      description: 'Services'
+    - name: services
+      description: "Services"
       type: list
-      count:
-        max: 63
-      items:
-        type: string
+      validators:
+        - type: count
+          spec:
+            max: 1023
+      spec:
+        items:
+          type: string
       profiles:
-        -
-          type: member
+        - type: member
           xpath: ["service"]
-    categories:
-      description: 'Categories'
+    - name: categories
+      description: "Categories"
       type: list
-      count:
-        max: 63
-      items:
-        type: string
+      validators:
+        - type: count
+          spec:
+            max: 63
+      spec:
+        items:
+          type: string
       profiles:
-        -
-          type: member
+        - type: member
           xpath: ["category"]
-    applications:
-      description: 'Applications'
+    - name: applications
+      description: "Applications"
       type: list
-      count:
-        max: 63
-      items:
-        type: string
+      validators:
+        - type: count
+          spec:
+            max: 63
+      spec:
+        items:
+          type: string
       profiles:
-        -
-          type: member
+        - type: member
           xpath: ["application"]
-    source_hips:
-      description: 'Source HIPs'
+    - name: source_hips
+      description: "Source HIPs"
       type: list
-      count:
-        max: 63
-      items:
-        type: string
+      validators:
+        - type: count
+          spec:
+            max: 63
+      spec:
+        items:
+          type: string
       profiles:
-        -
-          type: member
+        - type: member
           xpath: ["source-hip"]
-    destination_hips:
-      description: 'Destination HIPs'
+    - name: destination_hips
+      description: "Destination HIPs"
       type: list
-      count:
-        max: 63
-      items:
-        type: string
+      validators:
+        - type: count
+          spec:
+            max: 63
+      spec:
+        items:
+          type: string
       profiles:
-        -
-          type: member
+        - type: member
           xpath: ["destination-hip"]
-    negate_source:
-      description: 'Negate source address'
+    - name: negate_source
+      description: "Negate source address"
       type: bool
       profiles:
-        -
-          xpath: ["negate-source"]
-    negate_destination:
-      description: 'Negate destination address'
+        - xpath: ["negate-source"]
+    - name: negate_destination
+      description: "Negate destination address"
       type: bool
       profiles:
-        -
-          xpath: ["negate-destination"]
-    disabled:
-      description: 'Disable the rule'
+        - xpath: ["negate-destination"]
+    - name: disabled
+      description: "Disable the rule"
       type: bool
       profiles:
-        -
-          xpath: ["disabled"]
-    action:
-      description: 'Action'
+        - xpath: ["disabled"]
+    - name: action
+      description: "Action"
+      type: enum
+      validators:
+        - type: values
+          spec:
+            values:
+              [
+                "deny",
+                "allow",
+                "drop",
+                "reset-client",
+                "reset-server",
+                "reset-both",
+              ]
+      spec:
+        default: "allow"
+        values:
+          [
+            { value: deny },
+            { value: allow },
+            { value: drop },
+            { value: reset-client },
+            { value: reset-server },
+            { value: "reset-both" },
+          ]
+      profiles:
+        - xpath: ["action"]
+    - name: rule_type
+      description: "Rule type"
+      type: enum
+      validators:
+        - type: values
+          spec:
+            values: ["universal", "intrazone", "interzone"]
+      spec:
+        default: "intrazone"
+        values:
+          [
+            { value: "universal" },
+            { value: "intrazone" },
+            { value: "interzone" },
+          ]
+      profiles:
+        - xpath: ["rule-type"]
+    - name: log_setting
+      description: "Log forwarding"
       type: string
-      default: 'allow'
-      values: ['deny', 'allow', 'drop', 'reset-client', 'reset-server', 'reset-both']
+      validators:
+        - type: length
+          spec:
+            min: 0
+            max: 63
       profiles:
-        -
-          xpath: ["action"]
-    rule_type:
-      description: 'Rule type'
-      type: string
-      default: 'allow'
-      values: ['universal', 'intrazone', 'interzone']
-      profiles:
-        -
-          xpath: ["rule-type"]
-    log_setting:
-      description: 'Log forwarding'
-      type: string
-      length:
-        min: 0
-        max: 63
-      profiles:
-        -
-          xpath: ["log-setting"]
-    log_start:
-      description: 'Log at session start'
+        - xpath: ["log-setting"]
+    - name: log_start
+      description: "Log at session start"
       type: bool
       profiles:
-        -
-          xpath: ["log-start"]
-    log_end:
-      description: 'Log at session end'
+        - xpath: ["log-start"]
+    - name: log_end
+      description: "Log at session end"
       type: bool
-      default: true
+      spec:
+        default: true
       profiles:
-        -
-          xpath: ["log-end"]
-    icmp_unreachable:
-      description: 'Send ICMP unreachable'
+        - xpath: ["log-end"]
+    - name: icmp_unreachable
+      description: "Send ICMP unreachable"
       type: bool
       profiles:
         - xpath: ["icmp-unreachable"]
-    disable_server_response_inspection:
-      description: 'Disable Server Response Inspection'
+    - name: disable_server_response_inspection
+      description: "Disable Server Response Inspection"
       type: bool
       profiles:
-        - xpath: [ "option", "disable-server-response-inspection" ]
-    profile_setting:
+        - xpath: ["option", "disable-server-response-inspection"]
+    - name: profile_setting
+      type: object
       profiles:
-        - xpath: [ "profile-setting" ]
+        - xpath: ["profile-setting"]
       spec:
-        one_of:
-          group:
+        variants:
+          - name: group
+            type: nil
             profiles:
-              - xpath: [ "group" ]
-          profiles:
+              - xpath: ["group"]
+          - name: profiles
+            type: object
             profiles:
-              - xpath: [ "profiles" ]
+              - xpath: ["profiles"]
             spec:
               params:
-                virus:
-                  description: 'Antivirus profile'
+                - name: virus
+                  description: "Antivirus profile"
                   type: list
-                  count:
-                    max: 1
-                  items:
-                    type: string
+                  validators:
+                    - type: count
+                      spec:
+                        max: 1
+                  spec:
+                    items:
+                      type: string
                   profiles:
                     - type: member
-                      xpath: [ "virus" ]
-                spyware:
-                  description: 'Anti-Spyware profile'
+                      xpath: ["virus"]
+                - name: spyware
+                  description: "Anti-Spyware profile"
                   type: list
-                  count:
-                    max: 1
-                  items:
-                    type: string
+                  validators:
+                    - type: count
+                      spec:
+                        max: 1
+                  spec:
+                    items:
+                      type: string
                   profiles:
                     - type: member
-                      xpath: [ "spyware" ]
-                vulnerability:
-                  description: 'Vulnerability Protection profile'
+                      xpath: ["spyware"]
+                - name: vulnerability
+                  description: "Vulnerability Protection profile"
                   type: list
-                  count:
-                    max: 1
-                  items:
-                    type: string
+                  validators:
+                    - type: count
+                      spec:
+                        max: 1
+                  spec:
+                    items:
+                      type: string
                   profiles:
                     - type: member
-                      xpath: [ "vulnerability" ]
-                url_filtering:
-                  description: 'URL filtering profile'
+                      xpath: ["vulnerability"]
+                - name: url_filtering
+                  description: "URL filtering profile"
                   type: list
-                  count:
-                    max: 1
-                  items:
-                    type: string
+                  validators:
+                    - type: count
+                      spec:
+                        max: 1
+                  spec:
+                    items:
+                      type: string
                   profiles:
                     - type: member
-                      xpath: [ "url-filtering" ]
-                file_blocking:
-                  description: 'File blocking profile'
+                      xpath: ["url-filtering"]
+                - name: file_blocking
+                  description: "File blocking profile"
                   type: list
-                  count:
-                    max: 1
-                  items:
-                    type: string
+                  validators:
+                    - type: count
+                      spec:
+                        max: 1
+                  spec:
+                    items:
+                      type: string
                   profiles:
                     - type: member
-                      xpath: [ "file-blocking" ]
-                wildfire_analysis:
-                  description: 'WildFire analysis profile'
+                      xpath: ["file-blocking"]
+                - name: wildfire_analysis
+                  description: "WildFire analysis profile"
                   type: list
-                  count:
-                    max: 1
-                  items:
-                    type: string
+                  validators:
+                    - type: count
+                      spec:
+                        max: 1
+                  spec:
+                    items:
+                      type: string
                   profiles:
                     - type: member
-                      xpath: [ "wildfire-analysis" ]
-                data_filtering:
-                  description: 'Data filtering profile'
+                      xpath: ["wildfire-analysis"]
+                - name: data_filtering
+                  description: "Data filtering profile"
                   type: list
-                  count:
-                    max: 1
-                  items:
-                    type: string
+                  validators:
+                    - type: count
+                      spec:
+                        max: 1
+                  spec:
+                    items:
+                      type: string
                   profiles:
                     - type: member
-                      xpath: [ "data-filtering" ]
+                      xpath: ["data-filtering"]

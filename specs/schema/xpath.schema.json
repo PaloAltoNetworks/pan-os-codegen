@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "xpath.schema.json",
+  "title": "Codegen Xpath schema",
+  "description": "Xpath schema describes Xpath used to define path of a given object",
+  "type": "object",
+  "required": ["path"],
+  "additionalProperties": false,
+  "properties": {
+    "path": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "vars": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/xpath-variable"
+      }
+    }
+  },
+  "$defs": {
+    "xpath-variable": {
+      "type": "object",
+      "required": ["name", "description"],
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "default": { "type": "string" },
+        "required": { "type": "boolean" },
+        "validators": {
+          "type": "array",
+          "items": {
+            "$ref": "validator.schema.json"
+          }
+        }
+      }
+    }
+  }
+}

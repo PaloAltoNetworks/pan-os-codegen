@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "id": "https://paloaltonetworks/codegen/object.schema.json",
+  "title": "Codegen object",
+  "description": "Top-level object describing XML API for Panorama and PAN-OS devices",
+  "type": "object",
+  "required": [
+    "name",
+    "terraform_provider_config",
+    "go_sdk_config",
+    "xpath_suffix",
+    "locations",
+    "entries",
+    "version",
+    "spec"
+  ],
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "terraform_provider_config": {
+      "type": "object",
+      "required": ["suffix"],
+      "properties": {
+        "suffix": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

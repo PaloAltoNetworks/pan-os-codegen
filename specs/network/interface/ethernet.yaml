@@ -1,246 +1,291 @@
 name: "Ethernet interface"
 terraform_provider_config:
   suffix: "ethernet_interface"
-go_sdk_path:
-  - "network"
-  - "interface"
-  - "ethernet"
+go_sdk_config:
+  package:
+    - "network"
+    - "interface"
+    - "ethernet"
 xpath_suffix:
   - "network"
   - "interface"
   - "ethernet"
 locations:
-  "ngfw":
+  - name: "ngfw"
     description: "Located in a specific NGFW."
-    device:
-      panorama: false
-      ngfw: true
+    devices:
+      - panorama
+      - ngfw
     xpath:
-      - "config"
-      - "devices"
-      - "{{ Entry $ngfw_device }}"
-    vars:
-      "ngfw_device":
-        description: "The NGFW device."
-        default: "localhost.localdomain"
-  "template":
+      path:
+        - "config"
+        - "devices"
+        - "$ngfw_device"
+      vars:
+        - name: "ngfw_device"
+          description: "The NGFW device."
+          default: "localhost.localdomain"
+  - name: "template"
     description: "Located in a specific template."
-    device:
-      panorama: true
+    devices:
+      - panorama
     xpath:
-      - "config"
-      - "devices"
-      - "{{ Entry $panorama_device }}"
-      - "template"
-      - "{{ Entry $template }}"
-      - "config"
-      - "devices"
-      - "{{ Entry $ngfw_device }}"
-    vars:
-      "panorama_device":
-        description: "The panorama device."
-        default: "localhost.localdomain"
-      "template":
-        description: "The template."
-        required: true
-      "ngfw_device":
-        description: "The NGFW device."
-        default: "localhost.localdomain"
-  "template-stack":
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+        - "template"
+        - "$template"
+        - "config"
+        - "devices"
+        - "$ngfw_device"
+      vars:
+        - name: "panorama_device"
+          description: "The panorama device."
+          default: "localhost.localdomain"
+        - name: "template"
+          description: "The template."
+          required: true
+        - name: "ngfw_device"
+          description: "The NGFW device."
+          default: "localhost.localdomain"
+  - name: "template-stack"
     description: "Located in a specific template stack."
-    device:
-      panorama: true
+    devices:
+      - panorama
     xpath:
-      - "config"
-      - "devices"
-      - "{{ Entry $panorama_device }}"
-      - "template-stack"
-      - "{{ Entry $template_stack }}"
-      - "config"
-      - "devices"
-      - "{{ Entry $ngfw_device }}"
-    vars:
-      "panorama_device":
-        description: "The panorama device."
-        default: "localhost.localdomain"
-      "template_stack":
-        description: "The template stack."
-        required: true
-      "ngfw_device":
-        description: "The NGFW device."
-        default: "localhost.localdomain"
-entry:
-  name:
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+        - "template-stack"
+        - "$template_stack"
+        - "config"
+        - "devices"
+        - "$ngfw_device"
+      vars:
+        - name: "panorama_device"
+          description: "The panorama device."
+          default: "localhost.localdomain"
+        - name: "template_stack"
+          description: "The template stack."
+          required: true
+        - name: "ngfw_device"
+          description: "The NGFW device."
+          default: "localhost.localdomain"
+entries:
+  - name: name
     description: "The name of the ethernet interface."
+    validators:
+      - type: length
+        spec:
+          min: 10
+          max: 20
 imports:
-  "template":
+  - name: template
     xpath:
-      - "config"
-      - "devices"
-      - "{{ Entry $ngfw_device }}"
-      - "vsys"
-      - "{{ Entry $vsys }}"
-      - "import"
-      - "network"
-      - "interfaces"
-    vars:
-      "ngfw_device":
-        description: "The NGFW device."
-        default: "localhost.localdomain"
-      "vsys":
-        description: "The vsys."
-        default: "vsys1"
+      path:
+        - "config"
+        - "devices"
+        - "$ngfw_device"
+        - "vsys"
+        - "$vsys"
+        - "import"
+        - "network"
+        - "interfaces"
+      vars:
+        - name: "ngfw_device"
+          description: "The NGFW device."
+          default: "localhost.localdomain"
+        - name: "vsys"
+          description: "The vsys."
+          default: "vsys1"
     only_for_params:
       - layer3
 version: "10.1.0"
 spec:
   params:
-    comment:
+    - name: comment
       type: string
-      length:
-        min: 0
-        max: 1023
+      validators:
+        - type: length
+          spec:
+            min: 0
+            max: 1023
       profiles:
         - xpath: ["comment"]
-    link-state:
-      type: string
-      default: "auto"
-      values: ["auto", "up", "down"]
+    - name: link-state
+      type: enum
       profiles:
         - xpath: ["link-state"]
-  one_of:
-    tap:
+      validators:
+        - type: values
+          spec:
+            values:
+              - "auto"
+              - "up"
+              - "down"
+      spec:
+        values:
+          - value: "auto"
+          - value: "up"
+          - value: "down"
+        default: "auto"
+  variants:
+    - name: tap
+      type: object
       description: "Tap mode interface"
       profiles:
         - xpath: ["tap"]
       spec:
         params:
-          netflow-profile:
+          - name: netflow-profile
             type: string
             profiles:
               - xpath: ["netflow-profile"]
-    ha:
+    - name: ha
+      type: object
       description: "HA mode interface"
       profiles:
         - xpath: ["ha"]
       spec:
-        params:
-    layer3:
+        params: []
+    - name: layer3
+      type: object
       description: "Layer 3 interface"
       profiles:
         - xpath: ["layer3"]
       spec:
         params:
-          ndp-proxy:
+          - name: ndp-proxy
             type: bool
             profiles:
               - xpath: ["ndp-proxy", "enabled"]
-          lldp:
+          - name: lldp
             type: bool
             profiles:
               - xpath: ["lldp", "enable"]
-          mtu:
+          - name: mtu
             type: int64
             description: "Maximum Transfer Unit, up to 9216 in Jumbo-Frame mode, up to 1500 otherwise"
-            value:
-              min: 576
-              max: 9216
+            validators:
+              - type: range
+                spec:
+                  min: 576
+                  max: 9216
             profiles:
               - xpath: ["mtu"]
-          ips:
+          - name: ips
             type: list
             description: "IP addresses or address objects names"
-            items:
-              type: string
             profiles:
               - type: entry
                 xpath: ["ip"]
-          ipv6:
+            spec:
+              items:
+                type: string
+          - name: ipv6
+            type: object
             profiles:
               - xpath: ["ipv6"]
             spec:
               params:
-                enabled:
-                  type: bool
-                  profiles:
-                    - xpath: ["enabled"]
-                addresses:
+                - name: addresses
                   type: list
-                  items:
-                    type: entry
                   profiles:
                     - type: entry
                       xpath: ["address", "entry"]
                   spec:
-                    params:
-                      enable-on-interface:
-                        type: bool
-                        profiles:
-                          - xpath: ["enable-on-interface"]
-          dhcp-client:
+                    items:
+                      type: object
+                      spec:
+                        params:
+                          - name: name
+                            type: string
+                            profiles:
+                              - xpath: []
+                            spec:
+                              required: true
+                          - name: enable-on-interface
+                            type: bool
+                            profiles:
+                              - xpath: ["enable-on-interface"]
+          - name: dhcp-client
+            type: object
             profiles:
               - xpath: ["dhcp-client"]
             spec:
               params:
-                enable:
+                - name: enable
                   type: bool
-                  default: true
                   profiles:
                     - xpath: ["enable"]
-                create-default-route:
+                  spec:
+                    default: true
+                - name: create-default-route
                   type: bool
-                  default: true
+                  spec:
+                    default: true
                   profiles:
                     - xpath: ["create-default-route"]
-                default-route-metric:
+                - name: default-route-metric
                   type: int64
-                  default: 10
-                  value:
-                    min: 1
-                    max: 65535
+                  spec:
+                    default: 10
+                  validators:
+                    - type: range
+                      spec:
+                        min: 1
+                        max: 65535
                   profiles:
                     - xpath: ["default-route-metric"]
-                send-hostname:
+                - name: send-hostname
+                  type: object
                   profiles:
                     - xpath: ["send-hostname"]
                   spec:
                     params:
-                      enable:
+                      - name: enable
                         type: bool
                         profiles:
                           - xpath: ["enable"]
-                      hostname:
+                      - name: hostname
                         type: string
                         profiles:
                           - xpath: ["hostname"]
-          interface-management-profile:
+          - name: interface-management-profile
             type: string
             profiles:
               - xpath: ["interface-management-profile"]
-          netflow-profile:
+          - name: netflow-profile
             type: string
             profiles:
               - xpath: ["netflow-profile"]
-          adjust-tcp-mss:
+          - name: adjust-tcp-mss
+            type: object
             profiles:
               - xpath: ["adjust-tcp-mss"]
             spec:
               params:
-                enable:
+                - name: enable
                   type: bool
                   profiles:
                     - xpath: ["enable"]
-                ipv4-mss-adjustment:
+                - name: ipv4-mss-adjustment
                   type: int64
-                  values:
-                    min: 40
-                    max: 300
+                  validators:
+                    - type: range
+                      spec:
+                        min: 40
+                        max: 300
                   profiles:
                     - xpath: ["ipv4-mss-adjustment"]
-                ipv6-mss-adjustment:
+                - name: ipv6-mss-adjustment
                   type: int64
-                  values:
-                    min: 40
-                    max: 300
+                  validators:
+                    - type: range
+                      spec:
+                        min: 40
+                        max: 300
                   profiles:
                     - xpath: ["ipv6-mss-adjustment"]

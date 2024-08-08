@@ -182,7 +182,7 @@ func ParamSupportedInVersion(param *properties.SpecParam, deviceVersionStr strin
 	if deviceVersionStr == "" {
 		supported = listOfProfileSupportForNotDefinedDeviceVersion(param, supported)
 	} else {
-		deviceVersion, err := version.New(deviceVersionStr)
+		deviceVersion, err := version.NewVersionFromString(deviceVersionStr)
 		if err != nil {
 			return false
 		}
@@ -209,12 +209,12 @@ func listOfProfileSupportForNotDefinedDeviceVersion(param *properties.SpecParam,
 func listOfProfileSupportForDefinedDeviceVersion(param *properties.SpecParam, supported []bool, deviceVersion version.Version) ([]bool, error) {
 	for _, profile := range param.Profiles {
 		if profile.FromVersion != "" {
-			paramProfileVersion, err := version.New(profile.FromVersion)
+			paramProfileVersion, err := version.NewVersionFromString(profile.FromVersion)
 			if err != nil {
 				return nil, err
 			}
 
-			if deviceVersion.Gte(paramProfileVersion) {
+			if deviceVersion.GreaterThanOrEqualTo(paramProfileVersion) {
 				supported = append(supported, !profile.NotPresent)
 			} else {
 				supported = append(supported, profile.NotPresent)

@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "params": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/item" }
+    },
+    "variants": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/item" }
+    }
+  },
+  "$defs": {
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type"],
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "codegen_overrides": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "terraform": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "codegen": { "type": "boolean" },
+                "sensitive": { "type": "boolean" }
+              }
+            }
+          }
+        },
+        "hashing": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": { "type": "string" }
+          }
+        },
+        "type": { "$ref": "#/$defs/type" },
+        "profiles": {
+          "type": "array",
+          "items": { "$ref": "profile.schema.json" }
+        },
+        "validators": {
+          "type": "array",
+          "items": { "$ref": "validator.schema.json" }
+        },
+        "spec": {
+          "oneOf": [
+            { "$ref": "#/$defs/simple" },
+            { "$ref": "#/$defs/enum" },
+            { "$ref": "#/$defs/list" },
+            { "$ref": "#" }
+          ]
+        }
+      }
+    },
+    "simple": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "default": true,
+        "validators": {
+          "type": "array",
+          "items": { "$ref": "validator.schema.json" }
+        },
+        "required": { "type": "boolean" }
+      }
+    },
+    "enum": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["values"],
+      "properties": {
+        "default": true,
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["value"],
+            "properties": {
+              "value": { "type": "string" },
+              "const": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "list": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["items"],
+      "properties": {
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": { "$ref": "#/$defs/type" },
+            "spec": { "$ref": "#" },
+            "validators": {
+              "type": "array",
+              "items": { "$ref": "validator.schema.json" }
+            }
+          }
+        }
+      }
+    },
+    "type": {
+      "type": "string",
+      "oneOf": [
+        { "enum": ["string", "bool", "int64", "object", "list", "enum", "nil"] }
+      ]
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "location.schema.json",
+  "title": "Codegen location schema",
+  "description": "Location schema describes PAN-OS location parameters",
+  "required": ["name", "description", "devices", "xpath"],
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "read_only": {
+      "type": "boolean"
+    },
+    "devices": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "oneOf": [{ "enum": ["panorama", "ngfw"] }]
+      }
+    },
+    "xpath": {
+      "$ref": "xpath.schema.json"
+    }
+  },
+  "additionalProperties": false
+}

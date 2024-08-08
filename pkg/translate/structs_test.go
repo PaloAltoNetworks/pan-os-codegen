@@ -1,6 +1,7 @@
 package translate
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -8,56 +9,14 @@ import (
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 )
 
-const sampleSpec = `name: 'Address'
-terraform_provider_config:
-    skip_resource: false
-    skip_datasource: false
-    skip_datasource_listing: false
-    suffix: address
-go_sdk_path:
-  - 'objects'
-  - 'address'
-xpath_suffix:
-  - 'address'
-locations:
-  'shared':
-    description: 'Located in shared.'
-    device:
-      panorama: true
-      ngfw: true
-    xpath: ['config', 'shared']
-  'device_group':
-    description: 'Located in a specific device group.'
-    device:
-      panorama: true
-    xpath:
-      - 'config'
-      - 'devices'
-      - '{{ Entry $panorama_device }}'
-      - 'device-group'
-      - '{{ Entry $device_group }}'
-    vars:
-      'panorama_device':
-        description: 'The panorama device.'
-        default: 'localhost.localdomain'
-      'device_group':
-        description: 'The device group.'
-        required: true
-        validation:
-          not_values:
-            'shared': 'The device group cannot be "shared". Use the "shared" path instead.'
-entry:
-  name:
-    description: 'The name of the address object.'
-    length:
-      min: 1
-      max: 63
-version: '10.1.0'
-`
+const addressSpecPath = "../../specs/objects/address.yaml"
 
 func TestLocationType(t *testing.T) {
+	sampleSpec, err := os.ReadFile(addressSpecPath)
+	assert.Nil(t, err, "failed to read address spec")
 	// given
 	yamlParsedData, _ := properties.ParseSpec([]byte(sampleSpec))
+
 	locationKeys := []string{"device_group", "shared"}
 	locations := yamlParsedData.Locations
 	var locationTypes []string
@@ -102,6 +61,9 @@ func TestSpecParamType(t *testing.T) {
 }
 
 func TestOmitEmpty(t *testing.T) {
+	sampleSpec, err := os.ReadFile(addressSpecPath)
+	assert.Nil(t, err, "failed to read address spec")
+
 	// given
 	yamlParsedData, _ := properties.ParseSpec([]byte(sampleSpec))
 	locationKeys := []string{"device_group", "shared"}

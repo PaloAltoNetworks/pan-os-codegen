@@ -1,128 +1,133 @@
-name: 'Interface management profile'
+name: "Interface management profile"
 terraform_provider_config:
-  suffix: 'interface_management_profile'
-go_sdk_path:
-  - 'network'
-  - 'profiles'
-  - 'interface_management'
+  suffix: "interface_management_profile"
+go_sdk_config:
+  package:
+    - "network"
+    - "profiles"
+    - "interface_management"
 xpath_suffix:
-  - 'network'
-  - 'profiles'
-  - 'interface-management-profile'
+  - "network"
+  - "profiles"
+  - "interface-management-profile"
 locations:
-  'ngfw':
-    description: 'Located in a specific NGFW.'
-    device:
-      panorama: false
-      ngfw: true
+  - name: "ngfw"
+    description: "Located in a specific NGFW."
+    devices:
+      - panorama
+      - ngfw
     xpath:
-      - 'config'
-      - 'devices'
-      - '{{ Entry $ngfw_device }}'
-    vars:
-      'ngfw_device':
-        description: 'The NGFW device.'
-        default: 'localhost.localdomain'
-  'template':
-    description: 'Located in a specific template.'
-    device:
-      panorama: true
+      path:
+        - "config"
+        - "devices"
+        - "$ngfw_device"
+      vars:
+        - name: ngfw_device
+          description: "The NGFW device."
+          default: "localhost.localdomain"
+  - name: "template"
+    description: "Located in a specific template."
+    devices:
+      - panorama
     xpath:
-      - 'config'
-      - 'devices'
-      - '{{ Entry $panorama_device }}'
-      - 'template'
-      - '{{ Entry $template }}'
-      - 'config'
-      - 'devices'
-      - '{{ Entry $ngfw_device }}'
-    vars:
-      'panorama_device':
-        description: 'The panorama device.'
-        default: 'localhost.localdomain'
-      'template':
-        description: 'The template.'
-        required: true
-      'ngfw_device':
-        description: 'The NGFW device.'
-        default: 'localhost.localdomain'
-  'template-stack':
-    description: 'Located in a specific template stack.'
-    device:
-      panorama: true
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+        - "template"
+        - "$template"
+        - "config"
+        - "devices"
+        - "$ngfw_device"
+      vars:
+        - name: "panorama_device"
+          description: "The panorama device."
+          default: "localhost.localdomain"
+        - name: "template"
+          description: "The template."
+          required: true
+        - name: "ngfw_device"
+          description: "The NGFW device."
+          default: "localhost.localdomain"
+  - name: "template-stack"
+    description: "Located in a specific template stack."
+    devices:
+      - panorama
     xpath:
-      - 'config'
-      - 'devices'
-      - '{{ Entry $panorama_device }}'
-      - 'template-stack'
-      - '{{ Entry $template_stack }}'
-      - 'config'
-      - 'devices'
-      - '{{ Entry $ngfw_device }}'
-    vars:
-      'panorama_device':
-        description: 'The panorama device.'
-        default: 'localhost.localdomain'
-      'template_stack':
-        description: 'The template stack.'
-        required: true
-      'ngfw_device':
-        description: 'The NGFW device.'
-        default: 'localhost.localdomain'
-entry:
-  name:
-    description: 'The name of the interface management profile.'
-version: '10.1.0'
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+        - "template-stack"
+        - "$template_stack"
+        - "config"
+        - "devices"
+        - "$ngfw_device"
+      vars:
+        - name: "panorama_device"
+          description: "The panorama device."
+          default: "localhost.localdomain"
+        - name: "template_stack"
+          description: "The template stack."
+          required: true
+        - name: "ngfw_device"
+          description: "The NGFW device."
+          default: "localhost.localdomain"
+entries:
+  - name: name
+    description: "The name of the interface management profile."
+version: "10.1.0"
 spec:
   params:
-    http:
+    - name: http
       type: bool
       profiles:
-        - xpath: [ "http" ]
-    https:
+        - xpath: ["http"]
+    - name: https
       type: bool
       profiles:
-        - xpath: [ "https" ]
-    ping:
+        - xpath: ["https"]
+    - name: ping
       type: bool
       profiles:
-        - xpath: [ "ping" ]
-    response-pages:
+        - xpath: ["ping"]
+    - name: response-pages
       type: bool
       profiles:
-        - xpath: [ "response-pages" ]
-    userid-service:
+        - xpath: ["response-pages"]
+    - name: userid-service
       type: bool
       profiles:
-        - xpath: [ "userid-service" ]
-    userid-syslog-listener-ssl:
+        - xpath: ["userid-service"]
+    - name: userid-syslog-listener-ssl
       type: bool
       profiles:
-        - xpath: [ "userid-syslog-listener-ssl" ]
-    userid-syslog-listener-udp:
+        - xpath: ["userid-syslog-listener-ssl"]
+    - name: userid-syslog-listener-udp
       type: bool
       profiles:
-        - xpath: [ "userid-syslog-listener-udp" ]
-    ssh:
+        - xpath: ["userid-syslog-listener-udp"]
+    - name: ssh
       type: bool
       profiles:
-        - xpath: [ "ssh" ]
-    telnet:
+        - xpath: ["ssh"]
+    - name: telnet
       type: bool
       profiles:
-        - xpath: [ "telnet" ]
-    snmp:
+        - xpath: ["telnet"]
+    - name: snmp
       type: bool
       profiles:
-        - xpath: [ "snmp" ]
-    http-ocsp:
+        - xpath: ["snmp"]
+    - name: http-ocsp
       type: bool
       profiles:
-        - xpath: [ "http-ocsp" ]
-    permitted-ips:
+        - xpath: ["http-ocsp"]
+    - name: permitted-ips
       type: list
-      items:
-        type: string
+      spec:
+        items:
+          type: string
       profiles:
         - type: entry
-          xpath: [ "permitted-ip" ]
+          xpath: ["permitted-ip"]
