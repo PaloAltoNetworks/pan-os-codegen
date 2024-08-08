@@ -9,6 +9,10 @@ import (
 
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/content"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/object"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/parameter"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/validator"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/xpath"
 )
 
 type Normalization struct {
@@ -238,11 +242,369 @@ func GetNormalizations() ([]string, error) {
 	return files, nil
 }
 
+func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam, error) {
+	var specType string
+	if schemaSpec.Type == "object" {
+		specType = ""
+	} else if schemaSpec.Type == "enum" {
+		specType = "string"
+	} else {
+		specType = schemaSpec.Type
+	}
+
+	var defaultVal string
+
+	var innerSpec *Spec
+	var itemsSpec SpecParamItems
+
+	generateInnerSpec := func(spec *parameter.StructSpec) (*Spec, error) {
+		params := make(map[string]*SpecParam)
+		oneofs := make(map[string]*SpecParam)
+
+		for _, elt := range spec.Parameters {
+			param, err := schemaParameterToSpecParameter(elt)
+			if err != nil {
+				return nil, err
+			}
+			params[elt.Name] = param
+		}
+
+		for _, elt := range spec.Variants {
+			param, err := schemaParameterToSpecParameter(elt)
+			if err != nil {
+				return nil, err
+			}
+			oneofs[elt.Name] = param
+		}
+
+		return &Spec{
+			Params: params,
+			OneOf:  oneofs,
+		}, nil
+	}
+
+	switch spec := schemaSpec.Spec.(type) {
+	case *parameter.StructSpec:
+		var err error
+		innerSpec, err = generateInnerSpec(spec)
+		if err != nil {
+			return nil, err
+		}
+
+	case *parameter.ListSpec:
+		if spec.Items.Type == "object" {
+			itemsSpec.Type = "entry"
+			var err error
+			innerSpec, err = generateInnerSpec(&spec.Items.Spec)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			itemsSpec.Type = spec.Items.Type
+		}
+		for _, v := range schemaSpec.Validators {
+			switch spec := v.Spec.(type) {
+			case *validator.CountSpec:
+				min := int64(spec.Min)
+				max := int64(spec.Max)
+				itemsSpec.Length = &SpecParamItemsLength{
+					Min: &min,
+					Max: &max,
+				}
+			}
+		}
+	case *parameter.EnumSpec:
+		defaultVal = spec.Default
+	case *parameter.NilSpec:
+		specType = "string"
+	case *parameter.SimpleSpec:
+		if typed, ok := spec.Default.(string); ok {
+			defaultVal = typed
+		}
+	}
+
+	var profiles []*SpecParamProfile
+	for _, profile := range schemaSpec.Profiles {
+		var notPresent bool
+		var version string
+		if profile.MaximumVersion != nil {
+			notPresent = true
+			version = profile.MaximumVersion.String()
+		} else if profile.MinimumVersion != nil {
+			version = profile.MinimumVersion.String()
+		}
+		profiles = append(profiles, &SpecParamProfile{
+			Xpath:       profile.Xpath,
+			Type:        profile.Type,
+			NotPresent:  notPresent,
+			FromVersion: version,
+		})
+	}
+
+	specParameter := &SpecParam{
+		Description: schemaSpec.Description,
+		Type:        specType,
+		Default:     defaultVal,
+		Required:    schemaSpec.Required,
+		Profiles:    profiles,
+		Spec:        innerSpec,
+	}
+
+	for _, v := range schemaSpec.Validators {
+		switch spec := v.Spec.(type) {
+		case *validator.RegexpSpec:
+			specParameter.Regex = spec.Expr
+		case *validator.StringLengthSpec:
+			min := int64(spec.Min)
+			max := int64(spec.Max)
+			specParameter.Length = &SpecParamLength{
+				Min: &min,
+				Max: &max,
+			}
+		case *validator.CountSpec:
+			min := int64(spec.Min)
+			max := int64(spec.Max)
+			specParameter.Count = &SpecParamCount{
+				Min: &min,
+				Max: &max,
+			}
+		}
+	}
+
+	if schemaSpec.Type == "list" {
+		specParameter.Items = &itemsSpec
+	}
+
+	return specParameter, nil
+}
+
+func generateXpathVariables(variables []xpathschema.Variable) map[string]*LocationVar {
+	xpathVars := make(map[string]*LocationVar)
+	for _, variable := range variables {
+		entry := &LocationVar{
+			Description: variable.Description,
+			Default:     variable.Default,
+			Required:    variable.Required,
+			Validation:  nil,
+		}
+
+		for _, v := range variable.Validators {
+			switch spec := v.Spec.(type) {
+			case *validator.NotValuesSpec:
+				notValues := make(map[string]string)
+				for _, value := range spec.Values {
+					notValues[value.Value] = value.Error
+
+				}
+				entry.Validation = &LocationVarValidation{
+					NotValues: notValues,
+				}
+
+			}
+		}
+
+		xpathVars[variable.Name] = entry
+	}
+
+	return xpathVars
+}
+
+func generateImportVariables(variables []xpathschema.Variable) map[string]*ImportVar {
+	importVars := make(map[string]*ImportVar)
+	for _, variable := range variables {
+		entry := &ImportVar{
+			Description: variable.Description,
+			Default:     variable.Default,
+		}
+		importVars[variable.Name] = entry
+	}
+
+	return importVars
+}
+
+func schemaToSpec(object object.Object) (*Normalization, error) {
+	spec := &Normalization{
+		Name: object.DisplayName,
+		TerraformProviderConfig: TerraformProviderConfig{
+			SkipResource:          object.TerraformConfig.SkipResource,
+			SkipDatasource:        object.TerraformConfig.SkipDatasource,
+			SkipDatasourceListing: object.TerraformConfig.SkipdatasourceListing,
+			Suffix:                object.TerraformConfig.Suffix,
+		},
+		Locations:   make(map[string]*Location),
+		Imports:     make(map[string]*Import),
+		GoSdkPath:   object.GoSdkConfig.Package,
+		XpathSuffix: object.XpathSuffix,
+		Version:     object.Version,
+		Spec: &Spec{
+			Params: make(map[string]*SpecParam),
+			OneOf:  make(map[string]*SpecParam),
+		},
+	}
+
+	for _, location := range object.Locations {
+		var xpath []string
+
+		schemaXpathVars := make(map[string]xpathschema.Variable)
+		for _, elt := range location.Xpath.Variables {
+			schemaXpathVars[elt.Name] = elt
+		}
+		for _, elt := range location.Xpath.Elements {
+			var eltEntry string
+			if xpathVar, ok := schemaXpathVars[elt[1:]]; ok {
+				if xpathVar.Type == "entry" {
+					eltEntry = fmt.Sprintf("{{ Entry %s }}", elt)
+				} else if xpathVar.Type == "object" {
+					eltEntry = fmt.Sprintf("{{ Object %s }}", elt)
+				}
+			} else {
+				if strings.HasPrefix(elt, "$") {
+					panic(fmt.Sprintf("elt: %s", elt))
+				}
+				eltEntry = elt
+			}
+			xpath = append(xpath, eltEntry)
+		}
+
+		locationDevice := &LocationDevice{}
+
+		for _, device := range location.Devices {
+			if device == "panorama" {
+				locationDevice.Panorama = true
+			} else if device == "ngfw" {
+				locationDevice.Ngfw = true
+			}
+		}
+
+		xpathVars := generateXpathVariables(location.Xpath.Variables)
+		if len(xpathVars) == 0 {
+			xpathVars = nil
+		}
+
+		entry := &Location{
+			Description: location.Description,
+			Device:      locationDevice,
+			Xpath:       xpath,
+			Vars:        xpathVars,
+		}
+		spec.Locations[location.Name] = entry
+	}
+
+	for _, entry := range object.Entries {
+		if entry.Name == "name" {
+			specEntry := &Entry{
+				Name: &EntryName{
+					Description: entry.Description,
+				},
+			}
+
+			for _, v := range entry.Validators {
+				switch spec := v.Spec.(type) {
+				case *validator.StringLengthSpec:
+					min := int64(spec.Min)
+					max := int64(spec.Max)
+					specEntry.Name.Length = &EntryNameLength{
+						Min: &min,
+						Max: &max,
+					}
+				}
+			}
+			spec.Entry = specEntry
+		}
+
+	}
+
+	imports := make(map[string]*Import, len(object.Imports))
+	for _, elt := range object.Imports {
+		var xpath []string
+
+		schemaXpathVars := make(map[string]xpathschema.Variable)
+		for _, xpathVariable := range elt.Xpath.Variables {
+			schemaXpathVars[xpathVariable.Name] = xpathVariable
+		}
+
+		for _, element := range elt.Xpath.Elements {
+			var eltEntry string
+			if xpathVar, ok := schemaXpathVars[element[1:]]; ok {
+				if xpathVar.Type == "entry" {
+					eltEntry = fmt.Sprintf("{{ Entry %s }}", elt.Name)
+				} else if xpathVar.Type == "object" {
+					eltEntry = fmt.Sprintf("{{ Object %s }}", elt.Name)
+				}
+			} else {
+				eltEntry = element
+			}
+			xpath = append(xpath, eltEntry)
+		}
+
+		importVariables := generateImportVariables(elt.Xpath.Variables)
+		if len(importVariables) == 0 {
+			importVariables = nil
+		}
+
+		imports[elt.Name] = &Import{
+			Xpath:         xpath,
+			Vars:          importVariables,
+			OnlyForParams: elt.OnlyForParams,
+		}
+	}
+
+	if len(imports) > 0 {
+		spec.Imports = imports
+	}
+
+	consts := make(map[string]*Const)
+	for _, param := range object.Spec.Parameters {
+		specParam, err := schemaParameterToSpecParameter(param)
+		if err != nil {
+			return nil, err
+		}
+
+		switch spec := param.Spec.(type) {
+		case *parameter.EnumSpec:
+			constValues := make(map[string]*ConstValue)
+			for _, elt := range spec.Values {
+				if elt.Const == "" {
+					continue
+				}
+				constValues[elt.Const] = &ConstValue{
+					Value: elt.Value,
+				}
+			}
+			if len(constValues) > 0 {
+				consts[param.Name] = &Const{
+					Values: constValues,
+				}
+			}
+
+		}
+		spec.Spec.Params[param.Name] = specParam
+	}
+
+	if len(consts) > 0 {
+		spec.Const = consts
+	}
+
+	for _, param := range object.Spec.Variants {
+		specParam, err := schemaParameterToSpecParameter(param)
+		if err != nil {
+			return nil, err
+		}
+		spec.Spec.OneOf[param.Name] = specParam
+	}
+
+	return spec, nil
+}
+
 // ParseSpec parse single spec (unmarshal file), add name variants for locations and params, add default types for params.
 func ParseSpec(input []byte) (*Normalization, error) {
-	var spec Normalization
+	var object object.Object
+	err := content.Unmarshal(input, &object)
+	if err != nil {
+		return nil, err
+	}
 
-	err := content.Unmarshal(input, &spec)
+	spec, err := schemaToSpec(object)
 	if err != nil {
 		return nil, err
 	}
@@ -272,7 +634,7 @@ func ParseSpec(input []byte) (*Normalization, error) {
 		return nil, err
 	}
 
-	return &spec, err
+	return spec, err
 }
 
 // AddNameVariantsForLocation add name variants for location (under_score and CamelCase).

@@ -14,50 +14,60 @@ terraform_provider_config:
     skip_datasource: false
     skip_datasource_listing: false
     suffix: address
-go_sdk_path:
-  - 'objects'
-  - 'address'
+go_sdk_config:
+  package:
+    - 'objects'
+    - 'address'
 xpath_suffix:
   - 'address'
 locations:
-  'shared':
+  - name: 'shared'
     description: 'Located in shared.'
-    device:
-      panorama: true
-      ngfw: true
-    xpath: ['config', 'shared']
-  'device_group':
-    description: 'Located in a specific device group.'
-    device:
-      panorama: true
+    devices:
+      - panorama
+      - ngfw
     xpath:
-      - 'config'
-      - 'devices'
-      - '{{ Entry $panorama_device }}'
-      - 'device-group'
-      - '{{ Entry $device_group }}'
-    vars:
-      'panorama_device':
+      path: ['config', 'shared']
+  - name: 'device_group'
+    description: 'Located in a specific device group.'
+    devices:
+      - panorama
+    xpath:
+      path:
+        - 'config'
+        - 'devices'
+        - '{{ Entry $panorama_device }}'
+        - 'device-group'
+        - '{{ Entry $device_group }}'
+      vars:
+      - name: 'panorama_device'
         description: 'The panorama device.'
         default: 'localhost.localdomain'
-      'device_group':
+      - name: 'device_group'
         description: 'The device group.'
         required: true
-        validation:
-          not_values:
-            'shared': 'The device group cannot be "shared". Use the "shared" path instead.'
+        validators:
+          - type: not-values
+            spec:
+              values:
+              - value: 'shared'
+                error: 'The device group cannot be "shared". Use the "shared" path instead.'
 entry:
   name:
     description: 'The name of the address object.'
-    length:
-      min: 1
-      max: 63
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 63
+spec: {}
 version: '10.1.0'
 `
 
 func TestLocationType(t *testing.T) {
 	// given
-	yamlParsedData, _ := properties.ParseSpec([]byte(sampleSpec))
+	yamlParsedData, err := properties.ParseSpec([]byte(sampleSpec))
+	assert.Nil(t, err)
 	locationKeys := []string{"device_group", "shared"}
 	locations := yamlParsedData.Locations
 	var locationTypes []string
