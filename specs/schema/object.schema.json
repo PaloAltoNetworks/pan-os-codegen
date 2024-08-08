@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "id": "https://paloaltonetworks/codegen/object.schema.json",
+  "title": "Codegen object",
+  "description": "Top-level object describing XML API for Panorama and PAN-OS devices",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "terraform_provider_config",
+    "go_sdk_config",
+    "locations",
+    "version",
+    "spec"
+  ],
+  "properties": {
+    "name": { "type": "string" },
+    "terraform_provider_config": {
+      "type": "object",
+      "required": ["suffix"],
+      "properties": {
+        "suffix": {
+          "type": "string"
+        }
+      }
+    },
+    "go_sdk_config": {
+      "type": "object",
+      "required": ["package"],
+      "properties": {
+        "package": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "xpath_suffix": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "locations": {
+      "type": "array",
+      "items": {
+        "$ref": "location.schema.json"
+      }
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/entry"
+      }
+    },
+    "imports": {
+      "type": "array",
+      "items": { "$ref": "import.schema.json" }
+    },
+    "version": { "type": "string" },
+    "spec": { "$ref": "spec.schema.json" }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "required": ["name", "description"],
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "validators": {
+          "type": "array",
+          "items": {
+            "$ref": "validator.schema.json"
+          }
+        }
+      }
+    }
+  }
+}

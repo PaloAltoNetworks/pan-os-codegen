@@ -1,72 +1,77 @@
-name: 'Template stack'
+name: "Template stack"
 terraform_provider_config:
-  suffix: 'template_stack'
-go_sdk_path:
-  - 'panorama'
-  - 'template_stack'
+  suffix: "template_stack"
+go_sdk_config:
+  package:
+    - "panorama"
+    - "template_stack"
 xpath_suffix:
-  - 'template-stack'
+  - "template-stack"
 locations:
-  'panorama':
-    description: 'Located in a specific Panorama.'
-    device:
-      panorama: true
+  - name: "panorama"
+    description: "Located in a specific Panorama."
+    devices:
+      - panorama
     xpath:
-      - 'config'
-      - 'devices'
-      - '{{ Entry $panorama_device }}'
-    vars:
-      'panorama_device':
-        description: 'The Panorama device.'
-        default: 'localhost.localdomain'
-entry:
-  name:
-    description: 'The name of the template stack.'
-    length:
-      min: 1
-      max: 63
-version: '10.1.0'
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+      vars:
+        - name: "panorama_device"
+          description: "The Panorama device."
+          default: "localhost.localdomain"
+entries:
+  - name: name
+    description: "The name of the service."
+    validators:
+      - type: length
+        spec:
+          min: 1
+          max: 63
+version: "10.1.0"
 spec:
   params:
-    description:
-      description: 'The description.'
+    - name: description
+      description: "The description."
       type: string
-      length:
-        min: 0
-        max: 255
+      validators:
+        - type: length
+          spec:
+            min: 0
+            max: 255
       profiles:
-        -
-          xpath: ["description"]
-    templates:
-      description: 'List of templates'
+        - xpath: ["description"]
+    - name: templates
+      description: "List of templates"
       type: list
-      items:
-        type: string
+      spec:
+        items:
+          type: string
       profiles:
-        -
-          type: member
+        - type: member
           xpath: ["templates"]
-    devices:
-      description: 'List of devices'
+    - name: devices
+      description: "List of devices"
       type: list
-      items:
-        type: string
+      spec:
+        items:
+          type: string
       profiles:
-        -
-          type: entry
+        - type: entry
           xpath: ["devices"]
-    default-vsys:
-      description: 'Default virtual system'
+    - name: default-vsys
+      description: "Default virtual system"
       type: string
       profiles:
-        -
-          xpath: ["settings", "default-vsys"]
-    user-group-source:
+        - xpath: ["settings", "default-vsys"]
+    - name: user-group-source
+      type: object
       profiles:
         - xpath: ["user-group-source"]
       spec:
         params:
-          master-device:
+          - name: master-device
             type: string
             profiles:
               - xpath: ["master-device"]

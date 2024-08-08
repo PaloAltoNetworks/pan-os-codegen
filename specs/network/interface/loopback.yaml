@@ -1,154 +1,176 @@
-name: 'Loopback interface'
+name: "Loopback interface"
 terraform_provider_config:
-  suffix: 'loopback_interface'
-go_sdk_path:
-  - 'network'
-  - 'interface'
-  - 'loopback'
+  suffix: "loopback_interface"
+go_sdk_config:
+  package:
+    - "network"
+    - "interface"
+    - "loopback"
 xpath_suffix:
-  - 'network'
-  - 'interface'
-  - 'loopback'
-  - 'units'
+  - "network"
+  - "interface"
+  - "loopback"
+  - "units"
 locations:
-  'ngfw':
-    description: 'Located in a specific NGFW.'
-    device:
-      panorama: false
-      ngfw: true
+  - name: "ngfw"
+    description: "Located in a specific NGFW."
+    devices:
+      - panorama
+      - ngfw
     xpath:
-      - 'config'
-      - 'devices'
-      - '{{ Entry $ngfw_device }}'
-    vars:
-      'ngfw_device':
-        description: 'The NGFW device.'
-        default: 'localhost.localdomain'
-  'template':
-    description: 'Located in a specific template.'
-    device:
-      panorama: true
+      path:
+        - "config"
+        - "devices"
+        - "$ngfw_device"
+      vars:
+        - name: "ngfw_device"
+          description: "The NGFW device."
+          default: "localhost.localdomain"
+  - name: "template"
+    description: "Located in a specific template."
+    devices:
+      - panorama
     xpath:
-      - 'config'
-      - 'devices'
-      - '{{ Entry $panorama_device }}'
-      - 'template'
-      - '{{ Entry $template }}'
-      - 'config'
-      - 'devices'
-      - '{{ Entry $ngfw_device }}'
-    vars:
-      'panorama_device':
-        description: 'The panorama device.'
-        default: 'localhost.localdomain'
-      'template':
-        description: 'The template.'
-        required: true
-      'ngfw_device':
-        description: 'The NGFW device.'
-        default: 'localhost.localdomain'
-  'template-stack':
-    description: 'Located in a specific template stack.'
-    device:
-      panorama: true
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+        - "template"
+        - "$template"
+        - "config"
+        - "devices"
+        - "$ngfw_device"
+      vars:
+        - name: "panorama_device"
+          description: "The panorama device."
+          default: "localhost.localdomain"
+        - name: "template"
+          description: "The template."
+          required: true
+        - name: "ngfw_device"
+          description: "The NGFW device."
+          default: "localhost.localdomain"
+  - name: "template-stack"
+    description: "Located in a specific template stack."
+    devices:
+      - panorama
     xpath:
-      - 'config'
-      - 'devices'
-      - '{{ Entry $panorama_device }}'
-      - 'template-stack'
-      - '{{ Entry $template_stack }}'
-      - 'config'
-      - 'devices'
-      - '{{ Entry $ngfw_device }}'
-    vars:
-      'panorama_device':
-        description: 'The panorama device.'
-        default: 'localhost.localdomain'
-      'template_stack':
-        description: 'The template stack.'
-        required: true
-      'ngfw_device':
-        description: 'The NGFW device.'
-        default: 'localhost.localdomain'
-entry:
-  name:
-    description: 'The name of the loopback interface.'
-version: '10.1.0'
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+        - "template-stack"
+        - "$template_stack"
+        - "config"
+        - "devices"
+        - "$ngfw_device"
+      vars:
+        - name: "panorama_device"
+          description: "The panorama device."
+          default: "localhost.localdomain"
+        - name: "template_stack"
+          description: "The template stack."
+          required: true
+        - name: "ngfw_device"
+          description: "The NGFW device."
+          default: "localhost.localdomain"
+entries:
+  - name: name
+    description: "The name of the loopback interface."
+version: "10.1.0"
 spec:
   params:
-    comment:
+    - name: comment
       type: string
-      length:
-        min: 0
-        max: 1023
+      validators:
+        - type: length
+          spec:
+            min: 0
+            max: 1023
       profiles:
-        - xpath: [ "comment" ]
-    mtu:
+        - xpath: ["comment"]
+    - name: mtu
       type: int64
       description: "Maximum Transfer Unit, up to 9216 in Jumbo-Frame mode, up to 1500 otherwise"
-      value:
-        min: 576
-        max: 9216
+      validators:
+        - type: range
+          spec:
+            min: 576
+            max: 9216
       profiles:
-        - xpath: [ "mtu" ]
-    ips:
+        - xpath: ["mtu"]
+    - name: ips
       type: list
       description: "IP addresses or address objects names(netmask is not allowed for loopback)"
-      items:
-        type: string
+      spec:
+        items:
+          type: string
       profiles:
         - type: entry
-          xpath: [ "ip" ]
-    ipv6:
+          xpath: ["ip"]
+    - name: ipv6
+      type: object
       profiles:
-        - xpath: [ "ipv6" ]
+        - xpath: ["ipv6"]
       spec:
         params:
-          enabled:
+          - name: enabled
             type: bool
             profiles:
-              - xpath: [ "enabled" ]
-          addresses:
+              - xpath: ["enabled"]
+          - name: addresses
             type: list
-            items:
-              type: entry
             profiles:
               - type: entry
-                xpath: [ "address", "entry" ]
+                xpath: ["address", "entry"]
             spec:
-              params:
-                enable-on-interface:
-                  type: bool
-                  profiles:
-                    - xpath: [ "enable-on-interface" ]
-    interface-management-profile:
+              items:
+                type: object
+                spec:
+                  params:
+                    - name: name
+                      type: string
+                      profiles:
+                        - xpath: []
+                      spec:
+                        required: true
+                    - name: enable-on-interface
+                      type: bool
+                      profiles:
+                        - xpath: ["enable-on-interface"]
+    - name: interface-management-profile
       type: string
       profiles:
-        - xpath: [ "interface-management-profile" ]
-    netflow-profile:
+        - xpath: ["interface-management-profile"]
+    - name: netflow-profile
       type: string
       profiles:
-        - xpath: [ "netflow-profile" ]
-    adjust-tcp-mss:
+        - xpath: ["netflow-profile"]
+    - name: adjust-tcp-mss
+      type: object
       profiles:
-        - xpath: [ "adjust-tcp-mss" ]
+        - xpath: ["adjust-tcp-mss"]
       spec:
         params:
-          enable:
+          - name: enable
             type: bool
             profiles:
-              - xpath: [ "enable" ]
-          ipv4-mss-adjustment:
+              - xpath: ["enable"]
+          - name: ipv4-mss-adjustment
             type: int64
-            values:
-              min: 40
-              max: 300
+            validators:
+              - type: range
+                spec:
+                  min: 40
+                  max: 300
             profiles:
-              - xpath: [ "ipv4-mss-adjustment" ]
-          ipv6-mss-adjustment:
+              - xpath: ["ipv4-mss-adjustment"]
+          - name: ipv6-mss-adjustment
             type: int64
-            values:
-              min: 40
-              max: 300
+            validators:
+              - type: range
+                spec:
+                  min: 40
+                  max: 300
             profiles:
-              - xpath: [ "ipv6-mss-adjustment" ]
+              - xpath: ["ipv6-mss-adjustment"]

@@ -1,191 +1,220 @@
-name: 'Tag'
+name: "Tag"
 terraform_provider_config:
-  suffix: 'administrative_tag'
-go_sdk_path:
-  - 'objects'
-  - 'tag'
+  suffix: "administrative_tag"
+go_sdk_config:
+  package:
+    - "objects"
+    - "tag"
 xpath_suffix:
-  - 'tag'
+  - "tag"
 locations:
-  'shared':
-    description: 'Located in shared.'
-    device:
-      panorama: true
-      ngfw: true
-    xpath: ['config', 'shared']
-  'vsys':
-    description: 'Located in a specific vsys.'
-    device:
-      panorama: true
-      ngfw: true
+  - name: "shared"
+    description: "Located in shared."
+    devices:
+      - panorama
+      - ngfw
     xpath:
-      - 'config'
-      - 'devices'
-      - '{{ Entry $ngfw_device }}'
-      - 'vsys'
-      - '{{ Entry $vsys }}'
-    vars:
-      'ngfw_device':
-        description: 'The NGFW device.'
-        default: 'localhost.localdomain'
-      'vsys':
-        description: 'The vsys.'
-        default: 'vsys1'
-        validation:
-          not_values:
-            'shared': 'The vsys cannot be "shared". Use the "shared" path instead.'
-  'from_panorama_shared':
-    description: 'Located in shared in the config pushed from Panorama.'
+      path: ["config", "shared"]
+  - name: "vsys"
+    description: "Located in a specific vsys."
+    devices:
+      - panorama
+      - ngfw
+    xpath:
+      path:
+        - "config"
+        - "devices"
+        - "$ngfw_device"
+        - "vsys"
+        - "$vsys"
+      vars:
+        - name: "ngfw_device"
+          description: "The NGFW device."
+          default: "localhost.localdomain"
+        - name: "vsys"
+          description: "The vsys."
+          default: "vsys1"
+          validators:
+            - type: not-values
+              spec:
+                values:
+                  - value: "shared"
+                    error: 'The vsys cannot be "shared". Use the "shared" path instead.'
+  - name: "from_panorama_shared"
+    description: "Located in shared in the config pushed from Panorama."
     read_only: true
-    device:
-      ngfw: true
+    devices:
+      - ngfw
     xpath:
-      - 'config'
-      - 'panorama'
-      - 'shared'
-  'from_panorama_vsys':
-    description: 'Located in a specific vsys in the config pushed from Panorama.'
+      path:
+        - "config"
+        - "panorama"
+        - "shared"
+  - name: "from_panorama_vsys"
+    description: "Located in a specific vsys in the config pushed from Panorama."
     read_only: true
-    device:
-      ngfw: true
+    devices:
+      - ngfw
     xpath:
-      - 'config'
-      - 'panorama'
-      - 'vsys'
-      - '{{ Entry $vsys }}'
-    vars:
-      'vsys':
-        description: 'The vsys.'
-        default: 'vsys1'
-        validation:
-          not_values:
-            'shared': 'The vsys cannot be "shared". Use the "shared" path instead.'
-  'device_group':
-    description: 'Located in a specific device group.'
-    device:
-      panorama: true
+      path:
+        - "config"
+        - "panorama"
+        - "vsys"
+        - "$vsys"
+      vars:
+        - name: "vsys"
+          description: "The vsys."
+          default: "vsys1"
+          validators:
+            - type: not-values
+              spec:
+                values:
+                  - value: "shared"
+                    error: 'The vsys cannot be "shared". Use the "shared" path instead.'
+  - name: "device_group"
+    description: "Located in a specific device group."
+    devices:
+      - panorama
     xpath:
-      - 'config'
-      - 'devices'
-      - '{{ Entry $panorama_device }}'
-      - 'device-group'
-      - '{{ Entry $device_group }}'
-    vars:
-      'panorama_device':
-        description: 'The panorama device.'
-        default: 'localhost.localdomain'
-      'device_group':
-        description: 'The device group.'
-        required: true
-        validation:
-          not_values:
-            'shared': 'The device group cannot be "shared". Use the "shared" path instead.'
-entry:
-  name:
-    description: 'The name of the tag.'
-    length:
-      min: 1
-      max: 127
-version: '10.1.0'
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+        - "device-group"
+        - "$device_group"
+      vars:
+        - name: "panorama_device"
+          description: "The panorama device."
+          default: "localhost.localdomain"
+        - name: "device_group"
+          description: "The device group."
+          required: true
+          validators:
+            - type: not-values
+              spec:
+                values:
+                  - value: "shared"
+                    error: 'The device group cannot be "shared". Use the "shared" path instead.'
+entries:
+  - name: name
+    description: "The name of the tag."
+    validators:
+      - type: length
+        spec:
+          min: 1
+          max: 127
+version: "10.1.0"
 spec:
   params:
-    color:
-      description: 'The color.'
-      type: string
+    - name: color
+      description: "The color."
+      type: enum
+      validators:
+        - type: values
+          spec:
+            values: ["color1", "color2", "color24"]
+      spec:
+        values:
+          - value: color1
+            const: red
+          - value: color2
+            const: green
+          - value: color24
+            const: azure blue
       profiles:
-        -
-          xpath: ["color"]
-    comments:
-      description: 'Comments.'
+        - xpath: ["color"]
+    - name: comments
+      description: "Comments."
       type: string
-      length:
-        min: 0
-        max: 1023
+      validators:
+        - type: length
+          spec:
+            min: 0
+            max: 1023
       profiles:
-        -
-          xpath: ["comments"]
-const:
-  color:
-    values:
-      red:
-        value: color1
-      green:
-        value: color2
-      blue:
-        value: color3
-      yellow:
-        value: color4
-      copper:
-        value: color5
-      orange:
-        value: color6
-      purple:
-        value: color7
-      gray:
-        value: color8
-      light green:
-        value: color9
-      cyan:
-        value: color10
-      light gray:
-        value: color11
-      blue gray:
-        value: color12
-      lime:
-        value: color13
-      black:
-        value: color14
-      gold:
-        value: color15
-      brown:
-        value: color16
-      olive:
-        value: color17
-      maroon:
-        value: color19
-      red-orange:
-        value: color20
-      yellow-orange:
-        value: color21
-      forest green:
-        value: color22
-      turquoise blue:
-        value: color23
-      azure blue:
-        value: color24
-      cerulean blue:
-        value: color25
-      midnight blue:
-        value: color26
-      medium blue:
-        value: color27
-      cobalt blue:
-        value: color28
-      violet blue:
-        value: color29
-      blue violet:
-        value: color30
-      medium violet:
-        value: color31
-      medium rose:
-        value: color32
-      lavender:
-        value: color33
-      orchid:
-        value: color34
-      thistle:
-        value: color35
-      peach:
-        value: color36
-      salmon:
-        value: color37
-      magenta:
-        value: color38
-      red violet:
-        value: color39
-      mahogany:
-        value: color40
-      burnt sienna:
-        value: color41
-      chestnut:
-        value: color42
+        - xpath: ["comments"]
+# const:
+#   color:
+#     values:
+#       red:
+#         color1
+#       green:
+#         value: color2
+#       blue:
+#         value: color3
+#       yellow:
+#         value: color4
+#       copper:
+#         value: color5
+#       orange:
+#         value: color6
+#       purple:
+#         value: color7
+#       gray:
+#         value: color8
+#       light green:
+#         value: color9
+#       cyan:
+#         value: color10
+#       light gray:
+#         value: color11
+#       blue gray:
+#         value: color12
+#       lime:
+#         value: color13
+#       black:
+#         value: color14
+#       gold:
+#         value: color15
+#       brown:
+#         value: color16
+#       olive:
+#         value: color17
+#       maroon:
+#         value: color19
+#       red-orange:
+#         value: color20
+#       yellow-orange:
+#         value: color21
+#       forest green:
+#         value: color22
+#       turquoise blue:
+#         value: color23
+#       azure blue:
+#         value: color24
+#       cerulean blue:
+#         value: color25
+#       midnight blue:
+#         value: color26
+#       medium blue:
+#         value: color27
+#       cobalt blue:
+#         value: color28
+#       violet blue:
+#         value: color29
+#       blue violet:
+#         value: color30
+#       medium violet:
+#         value: color31
+#       medium rose:
+#         value: color32
+#       lavender:
+#         value: color33
+#       orchid:
+#         value: color34
+#       thistle:
+#         value: color35
+#       peach:
+#         value: color36
+#       salmon:
+#         value: color37
+#       magenta:
+#         value: color38
+#       red violet:
+#         value: color39
+#       mahogany:
+#         value: color40
+#       burnt sienna:
+#         value: color41
+#       chestnut:
+#         value: color42

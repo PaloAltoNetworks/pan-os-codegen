@@ -1,61 +1,67 @@
-name: 'Device group'
+name: "Device group"
 terraform_provider_config:
-  suffix: 'device_group'
-go_sdk_path:
-  - 'panorama'
-  - 'device_group'
+  suffix: "device_group"
+go_sdk_config:
+  package:
+    - "panorama"
+    - "device_group"
 xpath_suffix:
-  - 'device-group'
+  - "device-group"
 locations:
-  'panorama':
-    description: 'Located in a specific Panorama.'
-    device:
-      panorama: true
+  - name: "panorama"
+    description: "Located in a specific Panorama."
+    devices:
+      - panorama
     xpath:
-      - 'config'
-      - 'devices'
-      - '{{ Entry $panorama_device }}'
-    vars:
-      'panorama_device':
-        description: 'The Panorama device.'
-        default: 'localhost.localdomain'
-entry:
-  name:
-    description: 'The name of the device group.'
-    length:
-      min: 1
-      max: 31
-version: '10.1.0'
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+      vars:
+        - name: "panorama_device"
+          description: "The Panorama device."
+          default: "localhost.localdomain"
+entries:
+  - name: name
+    description: "The name of the service."
+    validators:
+      - type: length
+        spec:
+          min: 1
+          max: 63
+version: "10.1.0"
 spec:
   params:
-    description:
-      description: 'The description.'
+    - name: description
+      description: "The description."
       type: string
-      length:
-        min: 0
-        max: 255
+      validators:
+        - type: length
+          spec:
+            min: 0
+            max: 255
       profiles:
-        -
-          xpath: ["description"]
-    templates:
-      description: 'List of reference templates'
+        - xpath: ["description"]
+    - name: templates
+      description: "List of reference templates"
       type: list
-      items:
-        type: string
+      spec:
+        items:
+          type: string
       profiles:
-        -
-          type: member
+        - type: member
           xpath: ["reference-templates"]
-    devices:
-      description: 'List of devices'
+    - name: devices
+      description: "List of devices"
       type: list
-      items:
-        type: string
+      spec:
+        items:
+          type: string
       profiles:
         - type: member
           xpath: ["devices"]
-    authorization_code:
-      description: 'Authorization code'
+    - name: authorization_code
+      type: string
+      description: "Authorization code"
       profiles:
-        -
-          xpath: ["authorization-code"]
+        - xpath: ["authorization-code"]

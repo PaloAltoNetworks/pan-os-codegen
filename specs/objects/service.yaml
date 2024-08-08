@@ -1,206 +1,240 @@
-name: 'Service'
+name: "Service"
 terraform_provider_config:
-  suffix: 'service_object'
-go_sdk_path:
-  - 'objects'
-  - 'service'
+  suffix: "service_object"
+go_sdk_config:
+  package:
+    - "objects"
+    - "service"
 xpath_suffix:
-  - 'service'
+  - "service"
 locations:
-  'shared':
-    description: 'Located in shared.'
-    device:
-      panorama: true
-      ngfw: true
-    xpath: ['config', 'shared']
-  'vsys':
-    description: 'Located in a specific vsys.'
-    device:
-      panorama: true
-      ngfw: true
+  - name: "shared"
+    description: "Located in shared."
+    devices:
+      - panorama
+      - ngfw
     xpath:
-      - 'config'
-      - 'devices'
-      - '{{ Entry $ngfw_device }}'
-      - 'vsys'
-      - '{{ Entry $vsys }}'
-    vars:
-      'ngfw_device':
-        description: 'The NGFW device.'
-        default: 'localhost.localdomain'
-      'vsys':
-        description: 'The vsys.'
-        default: 'vsys1'
-        validation:
-          not_values:
-            'shared': 'The vsys cannot be "shared". Use the "shared" path instead.'
-  'from_panorama_shared':
-    description: 'Located in shared in the config pushed from Panorama.'
+      path: ["config", "shared"]
+  - name: "vsys"
+    description: "Located in a specific vsys."
+    devices:
+      - panorama
+      - ngfw
+    xpath:
+      path:
+        - "config"
+        - "devices"
+        - "$ngfw_device"
+        - "vsys"
+        - "$vsys"
+      vars:
+        - name: "ngfw_device"
+          description: "The NGFW device."
+          default: "localhost.localdomain"
+        - name: "vsys"
+          description: "The vsys."
+          default: "vsys1"
+          validators:
+            - type: not-values
+              spec:
+                values:
+                  - value: "shared"
+                    error: 'The vsys cannot be "shared". Use the "shared" path instead.'
+  - name: "from_panorama_shared"
+    description: "Located in shared in the config pushed from Panorama."
     read_only: true
-    device:
-      ngfw: true
+    devices:
+      - ngfw
     xpath:
-      - 'config'
-      - 'panorama'
-      - 'shared'
-  'from_panorama_vsys':
-    description: 'Located in a specific vsys in the config pushed from Panorama.'
+      path:
+        - "config"
+        - "panorama"
+        - "shared"
+  - name: "from_panorama_vsys"
+    description: "Located in a specific vsys in the config pushed from Panorama."
     read_only: true
-    device:
-      ngfw: true
+    devices:
+      - ngfw
     xpath:
-      - 'config'
-      - 'panorama'
-      - 'vsys'
-      - '{{ Entry $vsys }}'
-    vars:
-      'vsys':
-        description: 'The vsys.'
-        default: 'vsys1'
-        validation:
-          not_values:
-            'shared': 'The vsys cannot be "shared". Use the "shared" path instead.'
-  'device_group':
-    description: 'Located in a specific device group.'
-    device:
-      panorama: true
+      path:
+        - "config"
+        - "panorama"
+        - "vsys"
+        - "$vsys"
+      vars:
+        - name: "vsys"
+          description: "The vsys."
+          default: "vsys1"
+          validators:
+            - type: not-values
+              spec:
+                values:
+                  - value: "shared"
+                    error: 'The vsys cannot be "shared". Use the "shared" path instead.'
+  - name: "device_group"
+    description: "Located in a specific device group."
+    devices:
+      - panorama
     xpath:
-      - 'config'
-      - 'devices'
-      - '{{ Entry $panorama_device }}'
-      - 'device-group'
-      - '{{ Entry $device_group }}'
-    vars:
-      'panorama_device':
-        description: 'The panorama device.'
-        default: 'localhost.localdomain'
-      'device_group':
-        description: 'The device group.'
-        required: true
-        validation:
-          not_values:
-            'shared': 'The device group cannot be "shared". Use the "shared" path instead.'
-entry:
-  name:
-    description: 'The name of the service.'
-    length:
-      min: 1
-      max: 63
-version: '10.1.0'
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+        - "device-group"
+        - "$device_group"
+      vars:
+        - name: "panorama_device"
+          description: "The panorama device."
+          default: "localhost.localdomain"
+        - name: "device_group"
+          description: "The device group."
+          required: true
+          validators:
+            - type: not-values
+              spec:
+                values:
+                  - value: "shared"
+                    error: 'The device group cannot be "shared". Use the "shared" path instead.'
+entries:
+  - name: name
+    description: "The name of the service."
+    validators:
+      - type: length
+        spec:
+          min: 1
+          max: 63
+version: "10.1.0"
 spec:
   params:
-    description:
-      description: 'The description.'
+    - name: description
+      description: "The description."
       type: string
-      length:
-        min: 0
-        max: 1023
+      validators:
+        - type: length
+          spec:
+            min: 0
+            max: 1023
       profiles:
-        -
-          xpath: ["description"]
-    tags:
-      description: 'The administrative tags.'
+        - xpath: ["description"]
+    - name: tags
+      description: "The administrative tags."
       type: list
-      count:
-        max: 64
-      items:
-        type: string
-        length:
-          max: 127
       profiles:
-        -
-          type: member
+        - type: member
           xpath: ["tag"]
-    protocol:
-      description: 'The protocol (TCP or UDP).'
-      profiles:
-        -
-          xpath: ["protocol"]
+      validators:
+        - type: count
+          spec:
+            max: 64
       spec:
-        one_of:
-          tcp:
-            description: 'TCP protocol'
+        items:
+          type: string
+          validators:
+            - type: length
+              spec:
+                max: 127
+    - name: protocol
+      type: object
+      description: "The protocol (TCP or UDP)."
+      profiles:
+        - xpath: ["protocol"]
+      spec:
+        variants:
+          - name: tcp
+            type: object
+            description: "TCP protocol"
             profiles:
-              -
-                xpath: ["tcp"]
+              - xpath: ["tcp"]
             spec:
               params:
-                destination-port:
-                  description: 'The destination port.'
+                - name: destination-port
+                  description: "The destination port."
                   type: int64
-                  value:
-                    min: 0
-                    max: 1023
+                  validators:
+                    - type: range
+                      spec:
+                        min: 0
+                        max: 1023
                   profiles:
-                    - xpath: [ "port" ]
-                source-port:
-                  description: 'The source port.'
+                    - xpath: ["port"]
+                - name: source-port
+                  description: "The source port."
                   type: int64
-                  value:
-                    min: 0
-                    max: 1023
+                  validators:
+                    - type: range
+                      spec:
+                        min: 0
+                        max: 1023
                   profiles:
-                    - xpath: [ "source-port" ]
-                override:
-                  description: 'Override session timeout.'
+                    - xpath: ["source-port"]
+                - name: override
+                  type: object
+                  description: "Override session timeout."
                   profiles:
-                    - xpath: [ "override", "yes" ]
+                    - xpath: ["override", "yes"]
                   spec:
                     params:
-                      'timeout':
-                        description: 'TCP session timeout value (in second)'
+                      - name: "timeout"
+                        description: "TCP session timeout value (in second)"
                         type: int64
                         profiles:
-                          - xpath: [ "timeout" ]
-                      'halfclose-timeout':
-                        description: 'TCP session half-close timeout value (in second)'
+                          - xpath: ["timeout"]
+                      - name: "halfclose-timeout"
+                        description: "TCP session half-close timeout value (in second)"
                         type: int64
                         profiles:
-                          - xpath: [ "halfclose-timeout" ]
-                      'timewait-timeout':
-                        description: 'TCP session time-wait timeout value (in second)'
+                          - xpath: ["halfclose-timeout"]
+                      - name: "timewait-timeout"
+                        description: "TCP session time-wait timeout value (in second)"
                         type: int64
                         profiles:
-                          - xpath: [ "timewait-timeout" ]
-          udp:
-            description: 'UDP protocol'
+                          - xpath: ["timewait-timeout"]
+          - name: udp
+            type: object
+            description: "UDP protocol"
             profiles:
-              -
-                xpath: ["udp"]
+              - xpath: ["udp"]
             spec:
               params:
-                destination-port:
-                  description: 'The destination port.'
+                - name: destination-port
+                  description: "The destination port."
                   type: int64
-                  value:
-                    min: 0
-                    max: 1023
+                  validators:
+                    - type: range
+                      spec:
+                        min: 0
+                        max: 1023
                   profiles:
-                    - xpath: [ "port" ]
-                source-port:
-                  description: 'The source port.'
+                    - xpath: ["port"]
+                - name: source-port
+                  description: "The source port."
                   type: int64
-                  value:
-                    min: 0
-                    max: 1023
+                  validators:
+                    - type: range
+                      spec:
+                        min: 0
+                        max: 1023
                   profiles:
-                    - xpath: [ "source-port" ]
-                override:
-                  description: 'Override session timeout.'
+                    - xpath: ["source-port"]
+                - name: override
+                  type: object
+                  description: "Override session timeout."
                   profiles:
-                    - xpath: [ "override" ]
+                    - xpath: ["override"]
                   spec:
-                    one_of:
-                      yes:
+                    variants:
+                      - name: yes
+                        type: object
                         profiles:
-                          -
-                            xpath: [ "yes"]
+                          - xpath: ["yes"]
                         spec:
                           params:
-                            'timeout':
-                              description: 'UDP session timeout value (in second)'
+                            - name: "timeout"
+                              type: int64
+                              description: "UDP session timeout value (in second)"
                               profiles:
-                                - xpath: [ "timeout" ]
-                      no:
+                                - xpath: ["timeout"]
+                      - name: no
+                        type: nil
                         profiles:
-                          - xpath: [ "no" ]
+                          - xpath: ["no"]

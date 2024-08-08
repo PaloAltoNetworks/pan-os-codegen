@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "import.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "xpath"],
+  "properties": {
+    "name": { "type": "string" },
+    "xpath": { "$ref": "xpath.schema.json" },
+    "only_for_params": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

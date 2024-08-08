@@ -19,13 +19,14 @@ import (
 // Spec type is any, as its unmarshalling is done in a custom
 // UnmarshalYAML function.
 type Parameter struct {
-	Name        string                `yaml:"name"`
-	Description string                `yaml:"description"`
-	Type        string                `yaml:"type"`
-	Required    bool                  `yaml:"required"`
-	Profiles    []profile.Profile     `yaml:"profiles"`
-	Validators  []validator.Validator `yaml:"validators"`
-	Spec        any                   `yaml:"-"`
+	Name             string                `yaml:"name"`
+	Description      string                `yaml:"description"`
+	Type             string                `yaml:"type"`
+	CodegenOverrides *CodegenOverrides     `yaml:"codegen_overrides"`
+	Required         bool                  `yaml:"required"`
+	Profiles         []profile.Profile     `yaml:"profiles"`
+	Validators       []validator.Validator `yaml:"validators"`
+	Spec             any                   `yaml:"-"`
 }
 
 // SimpleSpec describes a parameter of a simple type.
@@ -38,6 +39,14 @@ type SimpleSpec struct {
 type EnumSpecValue struct {
 	Value string `yaml:"value"`
 	Const string `yaml:"const"`
+}
+
+type CodegenOverridesTerraform struct {
+	Computed bool `yaml:"computed"`
+}
+
+type CodegenOverrides struct {
+	Terraform *CodegenOverridesTerraform `yaml:"terraform"`
 }
 
 // EnumSpec describes a parameter of type enum

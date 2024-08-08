@@ -1,395 +1,453 @@
-name: 'Virtual router'
+name: "Virtual router"
 terraform_provider_config:
-  suffix: 'virtual_router'
-go_sdk_path:
-  - 'network'
-  - 'virtual_router'
+  suffix: "virtual_router"
+go_sdk_config:
+  package:
+    - "network"
+    - "virtual_router"
 xpath_suffix:
-  - 'network'
-  - 'virtual-router'
+  - "network"
+  - "virtual-router"
 locations:
-  'ngfw':
-    description: 'Located in a specific NGFW.'
-    device:
-      panorama: false
-      ngfw: true
+  - name: "ngfw"
+    description: "Located in a specific NGFW."
+    devices:
+      - panorama
+      - ngfw
     xpath:
-      - 'config'
-      - 'devices'
-      - '{{ Entry $ngfw_device }}'
-    vars:
-      'ngfw_device':
-        description: 'The NGFW device.'
-        default: 'localhost.localdomain'
-  'template':
-    description: 'Located in a specific template.'
-    device:
-      panorama: true
+      path:
+        - "config"
+        - "devices"
+        - "$ngfw_device"
+      vars:
+        - name: "ngfw_device"
+          description: "The NGFW device."
+          default: "localhost.localdomain"
+  - name: "template"
+    description: "Located in a specific template."
+    devices:
+      - panorama
     xpath:
-      - 'config'
-      - 'devices'
-      - '{{ Entry $panorama_device }}'
-      - 'template'
-      - '{{ Entry $template }}'
-      - 'config'
-      - 'devices'
-      - '{{ Entry $ngfw_device }}'
-    vars:
-      'panorama_device':
-        description: 'The panorama device.'
-        default: 'localhost.localdomain'
-      'template':
-        description: 'The template.'
-        required: true
-      'ngfw_device':
-        description: 'The NGFW device.'
-        default: 'localhost.localdomain'
-  'template-stack':
-    description: 'Located in a specific template stack.'
-    device:
-      panorama: true
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+        - "template"
+        - "$template"
+        - "config"
+        - "devices"
+        - "$ngfw_device"
+      vars:
+        - name: "panorama_device"
+          description: "The panorama device."
+          default: "localhost.localdomain"
+        - name: "template"
+          description: "The template."
+          required: true
+        - name: "ngfw_device"
+          description: "The NGFW device."
+          default: "localhost.localdomain"
+  - name: "template-stack"
+    description: "Located in a specific template stack."
+    devices:
+      - panorama
     xpath:
-      - 'config'
-      - 'devices'
-      - '{{ Entry $panorama_device }}'
-      - 'template-stack'
-      - '{{ Entry $template_stack }}'
-      - 'config'
-      - 'devices'
-      - '{{ Entry $ngfw_device }}'
-    vars:
-      'panorama_device':
-        description: 'The panorama device.'
-        default: 'localhost.localdomain'
-      'template_stack':
-        description: 'The template stack.'
-        required: true
-      'ngfw_device':
-        description: 'The NGFW device.'
-        default: 'localhost.localdomain'
-entry:
-  name:
-    description: 'The name of the virtual router.'
-version: '10.1.0'
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+        - "template-stack"
+        - "$template_stack"
+        - "config"
+        - "devices"
+        - "$ngfw_device"
+      vars:
+        - name: "panorama_device"
+          description: "The panorama device."
+          default: "localhost.localdomain"
+        - name: "template_stack"
+          description: "The template stack."
+          required: true
+        - name: "ngfw_device"
+          description: "The NGFW device."
+          default: "localhost.localdomain"
+entries:
+  - name: name
+    description: "The name of the virtual router."
+version: "10.1.0"
 spec:
   params:
-    interfaces:
+    - name: interfaces
       type: list
-      items:
-        type: string
+      spec:
+        items:
+          type: string
       profiles:
-        - xpath: [ "interface" ]
+        - xpath: ["interface"]
           type: member
-    routing-table:
+    - name: routing-table
+      type: object
       profiles:
-        - xpath: [ "routing-table" ]
+        - xpath: ["routing-table"]
       spec:
         params:
-          ip:
+          - name: ip
+            type: object
             profiles:
-              - xpath: [ "ip" ]
+              - xpath: ["ip"]
             spec:
               params:
-                static-routes:
+                - name: static-routes
                   type: list
-                  items:
-                    type: entry
                   profiles:
-                    - xpath: [ "static-route", "entry" ]
+                    - xpath: ["static-route", "entry"]
                       type: entry
                   spec:
-                    params:
-                      destination:
-                        type: string
-                        profiles:
-                          - xpath: [ "destination" ]
-                      interface:
-                        type: string
-                        profiles:
-                          - xpath: [ "interface" ]
-                      next-hop:
-                        profiles:
-                          - xpath: [ "nexthop" ]
-                        spec:
-                          params:
-                            ip-address:
-                              type: string
-                              profiles:
-                                - xpath: [ "ip-address" ]
-                            fqdn:
-                              type: string
-                              profiles:
-                                - xpath: [ "fqdn" ]
-                            next-vr:
-                              type: string
-                              profiles:
-                                - xpath: [ "next-vr" ]
-                            tunnel:
-                              type: string
-                              profiles:
-                                - xpath: [ "tunnel" ]
-                      admin-dist:
-                        type: int64
-                        profiles:
-                          - xpath: [ "admin-dist" ]
-                      metric:
-                        type: int64
-                        profiles:
-                          - xpath: [ "metric" ]
-                      route-table:
-                        type: string
-                        profiles:
-                          - xpath: [ "route-table" ]
-          ipv6:
+                    items:
+                      type: object
+                      spec:
+                        params:
+                          - name: destination
+                            type: string
+                            profiles:
+                              - xpath: ["destination"]
+                          - name: interface
+                            type: string
+                            profiles:
+                              - xpath: ["interface"]
+                          - name: next-hop
+                            type: object
+                            profiles:
+                              - xpath: ["nexthop"]
+                            spec:
+                              params:
+                                - name: ip-address
+                                  type: string
+                                  profiles:
+                                    - xpath: ["ip-address"]
+                                - name: fqdn
+                                  type: string
+                                  profiles:
+                                    - xpath: ["fqdn"]
+                                - name: next-vr
+                                  type: string
+                                  profiles:
+                                    - xpath: ["next-vr"]
+                                - name: tunnel
+                                  type: string
+                                  profiles:
+                                    - xpath: ["tunnel"]
+                          - name: admin-dist
+                            type: int64
+                            profiles:
+                              - xpath: ["admin-dist"]
+                          - name: metric
+                            type: int64
+                            profiles:
+                              - xpath: ["metric"]
+                          - name: route-table
+                            type: string
+                            profiles:
+                              - xpath: ["route-table"]
+          - name: ipv6
+            type: object
             profiles:
-              - xpath: [ "ipv6" ]
+              - xpath: ["ipv6"]
             spec:
               params:
-                static-routes:
+                - name: static-routes
                   type: list
-                  items:
-                    type: entry
                   profiles:
-                    - xpath: [ "static-route", "entry" ]
+                    - xpath: ["static-route", "entry"]
                       type: entry
                   spec:
-                    params:
-                      destination:
-                        type: string
-                        profiles:
-                          - xpath: [ "destination" ]
-                      interface:
-                        type: string
-                        profiles:
-                          - xpath: [ "interface" ]
-                      next-hop:
-                        profiles:
-                          - xpath: [ "nexthop" ]
-                        spec:
-                          params:
-                            ipv6-address:
-                              type: string
-                              profiles:
-                                - xpath: [ "ipv6-address" ]
-                            fqdn:
-                              type: string
-                              profiles:
-                                - xpath: [ "fqdn" ]
-                            next-vr:
-                              type: string
-                              profiles:
-                                - xpath: [ "next-vr" ]
-                            tunnel:
-                              type: string
-                              profiles:
-                                - xpath: [ "tunnel" ]
-                      admin-dist:
-                        type: int64
-                        profiles:
-                          - xpath: [ "admin-dist" ]
-                      metric:
-                        type: int64
-                        profiles:
-                          - xpath: [ "metric" ]
-                      route-table:
-                        type: string
-                        profiles:
-                          - xpath: [ "route-table" ]
-    protocol:
+                    items:
+                      type: object
+                      spec:
+                        params:
+                          - name: destination
+                            type: string
+                            profiles:
+                              - xpath: ["destination"]
+                          - name: interface
+                            type: string
+                            profiles:
+                              - xpath: ["interface"]
+                          - name: next-hop
+                            type: object
+                            profiles:
+                              - xpath: ["nexthop"]
+                            spec:
+                              params:
+                                - name: ipv6-address
+                                  type: string
+                                  profiles:
+                                    - xpath: ["ipv6-address"]
+                                - name: fqdn
+                                  type: string
+                                  profiles:
+                                    - xpath: ["fqdn"]
+                                - name: next-vr
+                                  type: string
+                                  profiles:
+                                    - xpath: ["next-vr"]
+                                - name: tunnel
+                                  type: string
+                                  profiles:
+                                    - xpath: ["tunnel"]
+                          - name: admin-dist
+                            type: int64
+                            profiles:
+                              - xpath: ["admin-dist"]
+                          - name: metric
+                            type: int64
+                            profiles:
+                              - xpath: ["metric"]
+                          - name: route-table
+                            type: string
+                            profiles:
+                              - xpath: ["route-table"]
+    - name: protocol
+      type: object
       profiles:
-        - xpath: [ "protocol" ]
+        - xpath: ["protocol"]
       spec:
         params:
-          bgp:
+          - name: bgp
+            type: object
             profiles:
-              - xpath: [ "bgp" ]
+              - xpath: ["bgp"]
             spec:
               params:
-                enable:
+                - name: enable
                   type: bool
                   profiles:
-                    - xpath: [ "enable" ]
-          rip:
+                    - xpath: ["enable"]
+          - name: rip
+            type: object
             profiles:
-              - xpath: [ "rip" ]
+              - xpath: ["rip"]
             spec:
               params:
-                enable:
+                - name: enable
                   type: bool
                   profiles:
-                    - xpath: [ "enable" ]
-          ospf:
+                    - xpath: ["enable"]
+          - name: ospf
+            type: object
             profiles:
-              - xpath: [ "ospf" ]
+              - xpath: ["ospf"]
             spec:
               params:
-                enable:
+                - name: enable
                   type: bool
                   profiles:
-                    - xpath: [ "enable" ]
-          ospfv3:
+                    - xpath: ["enable"]
+          - name: ospfv3
+            type: object
             profiles:
-              - xpath: [ "ospfv3" ]
+              - xpath: ["ospfv3"]
             spec:
               params:
-                enable:
+                - name: enable
                   type: bool
                   profiles:
-                    - xpath: [ "enable" ]
-    ecmp:
+                    - xpath: ["enable"]
+    - name: ecmp
+      type: object
       profiles:
-        - xpath: [ "ecmp" ]
+        - xpath: ["ecmp"]
       spec:
         params:
-          enable:
+          - name: enable
             type: bool
             profiles:
-              - xpath: [ "enable" ]
-          symmetric-return:
+              - xpath: ["enable"]
+          - name: symmetric-return
             type: bool
             profiles:
-              - xpath: [ "symmetric-return" ]
-          strict-source-path:
+              - xpath: ["symmetric-return"]
+          - name: strict-source-path
             type: bool
             profiles:
-              - xpath: [ "strict-source-path" ]
-          max-paths:
+              - xpath: ["strict-source-path"]
+          - name: max-paths
             type: int64
-            value:
-              min: 2
-              max: 4
+            validators:
+              - type: range
+                spec:
+                  min: 2
+                  max: 4
             profiles:
-              - xpath: [ "max-path" ]
-          algorithm:
+              - xpath: ["max-path"]
+          - name: algorithm
+            type: object
             profiles:
-              - xpath: [ "algorithm" ]
+              - xpath: ["algorithm"]
             spec:
               params:
-                ip-modulo:
+                - name: ip-modulo
+                  type: object
                   profiles:
-                    - xpath: [ "ip-modulo" ]
+                    - xpath: ["ip-modulo"]
+                  spec:
+                    params: []
+                - name: ip-hash
+                  type: object
+                  profiles:
+                    - xpath: ["ip-hash"]
                   spec:
                     params:
-                ip-hash:
-                  profiles:
-                    - xpath: [ "ip-hash" ]
-                  spec:
-                    params:
-                      src-only:
+                      - name: src-only
                         type: bool
                         profiles:
-                          - xpath: [ "src-only" ]
-                      use-port:
+                          - xpath: ["src-only"]
+                      - name: use-port
                         type: bool
                         profiles:
-                          - xpath: [ "use-port" ]
-                      hash-seed:
+                          - xpath: ["use-port"]
+                      - name: hash-seed
                         type: int64
-                        value:
-                          min: 0
-                          max: 4294967295
+                        validators:
+                          - type: range
+                            spec:
+                              min: 0
+                              max: 4294967295
                         profiles:
-                          - xpath: [ "hash-seed" ]
-                weighted-round-robin:
+                          - xpath: ["hash-seed"]
+                - name: weighted-round-robin
+                  type: object
                   profiles:
-                    - xpath: [ "weighted-round-robin" ]
+                    - xpath: ["weighted-round-robin"]
                   spec:
                     params:
-                      interfaces:
+                      - name: interfaces
                         type: list
-                        items:
-                          type: entry
                         profiles:
-                          - xpath: [ "interface", "entry" ]
+                          - xpath: ["interface", "entry"]
                             type: entry
                         spec:
-                          params:
-                            weight:
-                              type: int64
-                              value:
-                                min: 1
-                                max: 255
-                              profiles:
-                                - xpath: [ "weight" ]
-                balanced-round-robin:
+                          items:
+                            type: object
+                            spec:
+                              params:
+                                - name: weight
+                                  type: int64
+                                  validators:
+                                    - type: range
+                                      spec:
+                                        min: 1
+                                        max: 255
+                                      profiles:
+                                        - xpath: ["weight"]
+                - name: balanced-round-robin
+                  type: object
                   profiles:
-                    - xpath: [ "balanced-round-robin" ]
+                    - xpath: ["balanced-round-robin"]
                   spec:
-                    params:
-    administrative-distances:
+                    params: []
+    - name: administrative-distances
+      type: object
       profiles:
-        - xpath: [ "admin-dists" ]
+        - xpath: ["admin-dists"]
       spec:
         params:
-          static:
+          - name: static
             type: int64
-            default: 10
-            value:
-              min: 10
-              max: 240
+            spec:
+              default: 10
+            validators:
+              - type: range
+                spec:
+                  min: 10
+                  max: 240
             profiles:
-              - xpath: [ "static" ]
-          static-ipv6:
+              - xpath: ["static"]
+          - name: static-ipv6
             type: int64
-            default: 10
-            value:
-              min: 10
-              max: 240
+            spec:
+              default: 10
+            validators:
+              - type: range
+                spec:
+                  min: 10
+                  max: 240
             profiles:
-              - xpath: [ "static-ipv6" ]
-          ospf-int:
+              - xpath: ["static-ipv6"]
+          - name: ospf-int
             type: int64
-            default: 30
-            value:
-              min: 10
-              max: 240
+            spec:
+              default: 30
+            validators:
+              - type: range
+                spec:
+                  min: 10
+                  max: 240
             profiles:
-              - xpath: [ "ospf-int" ]
-          ospf-ext:
+              - xpath: ["ospf-int"]
+          - name: ospf-ext
             type: int64
-            default: 110
-            value:
-              min: 10
-              max: 240
+            spec:
+              default: 110
+            validators:
+              - type: range
+                spec:
+                  min: 10
+                  max: 240
             profiles:
-              - xpath: [ "ospf-ext" ]
-          ospfv3-int:
+              - xpath: ["ospf-ext"]
+          - name: ospfv3-int
             type: int64
-            default: 30
-            value:
-              min: 10
-              max: 240
+            spec:
+              default: 30
+            validators:
+              - type: range
+                spec:
+                  min: 10
+                  max: 240
             profiles:
-              - xpath: [ "ospfv3-int" ]
-          ospfv3-ext:
+              - xpath: ["ospfv3-int"]
+          - name: ospfv3-ext
             type: int64
-            default: 110
-            value:
-              min: 10
-              max: 240
+            spec:
+              default: 110
+            validators:
+              - type: range
+                spec:
+                  min: 10
+                  max: 240
             profiles:
-              - xpath: [ "ospfv3-ext" ]
-          ibgp:
+              - xpath: ["ospfv3-ext"]
+          - name: ibgp
             type: int64
-            default: 200
-            value:
-              min: 10
-              max: 240
+            spec:
+              default: 200
+            validators:
+              - type: range
+                spec:
+                  min: 10
+                  max: 240
             profiles:
-              - xpath: [ "ibgp" ]
-          ebgp:
+              - xpath: ["ibgp"]
+          - name: ebgp
             type: int64
-            default: 20
-            value:
-              min: 10
-              max: 240
+            spec:
+              default: 20
+            validators:
+              - type: range
+                spec:
+                  min: 10
+                  max: 240
             profiles:
-              - xpath: [ "ebgp" ]
-          rip:
+              - xpath: ["ebgp"]
+          - name: rip
             type: int64
-            default: 120
-            value:
-              min: 10
-              max: 240
+            spec:
+              default: 120
+            validators:
+              - type: range
+                spec:
+                  min: 10
+                  max: 240
             profiles:
-              - xpath: [ "rip" ]
+              - xpath: ["rip"]

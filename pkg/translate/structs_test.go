@@ -1,6 +1,7 @@
 package translate
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -8,66 +9,14 @@ import (
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 )
 
-const sampleSpec = `name: 'Address'
-terraform_provider_config:
-    skip_resource: false
-    skip_datasource: false
-    skip_datasource_listing: false
-    suffix: address
-go_sdk_config:
-  package:
-    - 'objects'
-    - 'address'
-xpath_suffix:
-  - 'address'
-locations:
-  - name: 'shared'
-    description: 'Located in shared.'
-    devices:
-      - panorama
-      - ngfw
-    xpath:
-      path: ['config', 'shared']
-  - name: 'device_group'
-    description: 'Located in a specific device group.'
-    devices:
-      - panorama
-    xpath:
-      path:
-        - 'config'
-        - 'devices'
-        - '{{ Entry $panorama_device }}'
-        - 'device-group'
-        - '{{ Entry $device_group }}'
-      vars:
-      - name: 'panorama_device'
-        description: 'The panorama device.'
-        default: 'localhost.localdomain'
-      - name: 'device_group'
-        description: 'The device group.'
-        required: true
-        validators:
-          - type: not-values
-            spec:
-              values:
-              - value: 'shared'
-                error: 'The device group cannot be "shared". Use the "shared" path instead.'
-entry:
-  name:
-    description: 'The name of the address object.'
-    validators:
-    - type: length
-      spec:
-        min: 1
-        max: 63
-spec: {}
-version: '10.1.0'
-`
+const addressSpecPath = "../../specs/objects/address.yaml"
 
 func TestLocationType(t *testing.T) {
+	sampleSpec, err := os.ReadFile(addressSpecPath)
+	assert.Nil(t, err, "failed to read address spec")
 	// given
-	yamlParsedData, err := properties.ParseSpec([]byte(sampleSpec))
-	assert.Nil(t, err)
+	yamlParsedData, _ := properties.ParseSpec([]byte(sampleSpec))
+
 	locationKeys := []string{"device_group", "shared"}
 	locations := yamlParsedData.Locations
 	var locationTypes []string
@@ -112,6 +61,9 @@ func TestSpecParamType(t *testing.T) {
 }
 
 func TestOmitEmpty(t *testing.T) {
+	sampleSpec, err := os.ReadFile(addressSpecPath)
+	assert.Nil(t, err, "failed to read address spec")
+
 	// given
 	yamlParsedData, _ := properties.ParseSpec([]byte(sampleSpec))
 	locationKeys := []string{"device_group", "shared"}
