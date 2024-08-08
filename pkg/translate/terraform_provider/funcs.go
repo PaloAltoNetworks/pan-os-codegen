@@ -1514,7 +1514,7 @@ func dataSourceStructContextForParam(structPrefix string, param *properties.Spec
 	return structs
 }
 
-func createStructSpecForUuidModel(schemaTyp schemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
+func createStructSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
 	var structs []datasourceStructSpec
 
 	var fields []datasourceStructFieldSpec
@@ -1553,7 +1553,7 @@ func createStructSpecForUuidModel(schemaTyp schemaType, spec *properties.Normali
 	})
 
 	structName = fmt.Sprintf("%s%s", structName, listName.CamelCase)
-	fields, normalizationStructs := createStructSpecForNormalization(structName, spec)
+	fields, normalizationStructs := createStructSpecForNormalization(resourceTyp, structName, spec)
 
 	structs = append(structs, datasourceStructSpec{
 		StructName:    structName,
@@ -1566,7 +1566,59 @@ func createStructSpecForUuidModel(schemaTyp schemaType, spec *properties.Normali
 	return structs
 }
 
-func createStructSpecForEntryModel(schemaTyp schemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
+func createStructSpecForEntryListModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
+	var structs []datasourceStructSpec
+
+	var fields []datasourceStructFieldSpec
+	fields = append(fields, datasourceStructFieldSpec{
+		Name: "Location",
+		Type: fmt.Sprintf("%sLocation", names.StructName),
+		Tags: []string{"`tfsdk:\"location\"`"},
+	})
+
+	var structName string
+	switch schemaTyp {
+	case schemaResource:
+		structName = names.ResourceStructName
+	default:
+		structName = names.DataSourceStructName
+	}
+
+	listNameStr := spec.TerraformProviderConfig.PluralName
+	listName := &properties.NameVariant{
+		Underscore:     naming.Underscore("", listNameStr, ""),
+		CamelCase:      naming.CamelCase("", listNameStr, "", true),
+		LowerCamelCase: naming.CamelCase("", listNameStr, "", false),
+	}
+
+	tag := fmt.Sprintf("`tfsdk:\"%s\"`", listName.Underscore)
+	fields = append(fields, datasourceStructFieldSpec{
+		Name: listName.CamelCase,
+		Type: "types.Map",
+		Tags: []string{tag},
+	})
+
+	structs = append(structs, datasourceStructSpec{
+		StructName:    structName,
+		ModelOrObject: "Model",
+		Fields:        fields,
+	})
+
+	structName = fmt.Sprintf("%s%s", structName, listName.CamelCase)
+	fields, normalizationStructs := createStructSpecForNormalization(resourceTyp, structName, spec)
+
+	structs = append(structs, datasourceStructSpec{
+		StructName:    structName,
+		ModelOrObject: "Object",
+		Fields:        fields,
+	})
+
+	structs = append(structs, normalizationStructs...)
+
+	return structs
+}
+
+func createStructSpecForEntryModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
 	var structs []datasourceStructSpec
 
 	var fields []datasourceStructFieldSpec
@@ -1591,7 +1643,7 @@ func createStructSpecForEntryModel(schemaTyp schemaType, spec *properties.Normal
 		structName = names.ResourceStructName
 	}
 
-	normalizationFields, normalizationStructs := createStructSpecForNormalization(structName, spec)
+	normalizationFields, normalizationStructs := createStructSpecForNormalization(resourceTyp, structName, spec)
 	fields = append(fields, normalizationFields...)
 
 	structs = append(structs, datasourceStructSpec{
@@ -1612,17 +1664,21 @@ func createStructSpecForModel(resourceTyp properties.ResourceType, schemaTyp sch
 
 	switch resourceTyp {
 	case properties.ResourceEntry:
-		return createStructSpecForEntryModel(schemaTyp, spec, names)
+		return createStructSpecForEntryModel(resourceTyp, schemaTyp, spec, names)
+	case properties.ResourceEntryPlural:
+		return createStructSpecForEntryListModel(resourceTyp, schemaTyp, spec, names)
+	case properties.ResourceUuid, properties.ResourceUuidPlural:
+		return createStructSpecForUuidModel(resourceTyp, schemaTyp, spec, names)
 	default:
-		return createStructSpecForUuidModel(schemaTyp, spec, names)
+		panic("unreachable")
 	}
 }
 
-func createStructSpecForNormalization(structName string, spec *properties.Normalization) ([]datasourceStructFieldSpec, []datasourceStructSpec) {
+func createStructSpecForNormalization(resourceTyp properties.ResourceType, structName string, spec *properties.Normalization) ([]datasourceStructFieldSpec, []datasourceStructSpec) {
 	var fields []datasourceStructFieldSpec
 	var structs []datasourceStructSpec
 
-	if spec.HasEntryName() {
+	if spec.HasEntryName() && resourceTyp != properties.ResourceEntryPlural {
 		fields = append(fields, datasourceStructFieldSpec{
 			Name: "Name",
 			Type: "types.String",
