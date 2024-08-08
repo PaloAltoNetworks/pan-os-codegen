@@ -200,12 +200,6 @@ spec:
                       type: object
                       spec:
                         params:
-                          - name: name
-                            type: string
-                            profiles:
-                              - xpath: []
-                            spec:
-                              required: true
                           - name: enable-on-interface
                             type: bool
                             profiles:
