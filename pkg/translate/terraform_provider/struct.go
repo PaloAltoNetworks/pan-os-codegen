@@ -10,74 +10,36 @@ import (
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 )
 
-// Package-level function map to avoid repetition in each function
-var centralFuncMap = template.FuncMap{
-	"CamelCaseName":  func(paramName string) string { return naming.CamelCase("", paramName, "", true) },
-	"UnderscoreName": func(paramName string) string { return naming.Underscore("", paramName, "") },
-	"CamelCaseType":  func(paramType string) string { return naming.CamelCase("", paramType, "", true) },
+type Field struct {
+	Name    string
+	Type    string
+	TagName string
 }
 
-// mergeFuncMaps merges two template.FuncMap instances.
-// In case of a key conflict, the second map's value will override the first one.
-func mergeFuncMaps(map1, map2 template.FuncMap) template.FuncMap {
-	mergedMap := make(template.FuncMap)
-
-	for key, value := range map1 {
-		mergedMap[key] = value
-	}
-
-	for key, value := range map2 {
-		mergedMap[key] = value
-	}
-
-	return mergedMap
+type StructData struct {
+	StructName string
+	Fields     []Field
 }
 
-// centralTemplateExec handles the creation and execution of templates
-func centralTemplateExec(templateText, templateName string, data interface{}, funcMap template.FuncMap) (string, error) {
-	if len(funcMap) == 0 {
-		funcMap = centralFuncMap
-	} else {
-		funcMap = mergeFuncMaps(funcMap, centralFuncMap)
+// ParamToModelBasic converts the given parameter name and properties to a model representation.
+func ParamToModelBasic(paramName string, paramProp interface{}) (string, error) {
+	data := map[string]interface{}{
+		"paramName": paramName,
+	}
+	paramPropMap := structToMap(paramProp)
+	for k, v := range paramPropMap {
+		data[k] = v
 	}
 
-	tmpl, err := template.New(templateName).Funcs(funcMap).Parse(templateText)
-	if err != nil {
-		return "", err
-	}
-	var builder strings.Builder
-	if err := tmpl.Execute(&builder, data); err != nil {
-		return "", err
-	}
-	return builder.String(), nil
-}
-
-// ParamToModel converts the given parameter name and properties to a model representation.
-func ParamToModel(paramName string, paramProp properties.TerraformProviderParams) (string, error) {
-	funcMap := template.FuncMap{
-		"CamelCaseName":  func() string { return naming.CamelCase("", paramName, "", true) },
-		"UnderscoreName": func() string { return naming.Underscore("", paramName, "") },
-		"CamelCaseType":  func() string { return naming.CamelCase("", paramProp.Type, "", true) },
-	}
-	modelTemplate := template.Must(
-		template.New(
-			"param-to-model",
-		).Funcs(
-			funcMap,
-		).Parse(`
+	return processTemplate(`
 {{- /* Begin */ -}}
-{{ "    " }}{{ CamelCaseName }} types.{{ CamelCaseType }} ` + "`" + `tfsdk:"{{ UnderscoreName }}"` + "`" + `
-{{- /* Done */ -}}`,
-		),
-	)
-	var builder strings.Builder
-	err := modelTemplate.Execute(&builder, paramProp)
-	return builder.String(), err
+{{ "    " }}{{ CamelCaseName .paramName }} types.{{ CamelCaseType .Type }} `+"`"+`tfsdk:"{{ UnderscoreName .paramName }}"`+"`"+`
+{{- /* Done */ -}}`, "param-to-model", data, nil)
 }
 
-// ParamToSchema converts the given parameter name and properties to a schema representation.
-func ParamToSchema(paramName string, paramProp properties.TerraformProviderParams) (string, error) {
-	return centralTemplateExec(`
+// ParamToSchemaProvider converts the given parameter name and properties to a schema representation.
+func ParamToSchemaProvider(paramName string, paramProp interface{}) (string, error) {
+	return processTemplate(`
 {{- /* Begin */ -}}
     "`+paramName+`": schema.{{ CamelCaseType .Type }}Attribute{
         Description: ProviderParamDescription(
@@ -90,32 +52,96 @@ func ParamToSchema(paramName string, paramProp properties.TerraformProviderParam
 {{- if .Sensitive }}
         Sensitive: true,
 {{- end }}
+{{- if .Items }}
+		ElementType: types.{{CamelCaseType .Items.Type}}Type,
+{{- end }}
     },
 {{- /* Done */ -}}`, "describe-param", paramProp, nil)
+}
+
+func ParamToSchemaResource(paramName string, paramProp interface{}, terraformProvider *properties.TerraformProviderFile) (string, error) {
+	switch v := paramProp.(type) {
+	case *properties.SpecParam:
+		if v.Type == "bool" && v.Default != "" {
+			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault", "")
+		}
+
+		return processTemplate(`
+{{- /* Begin */ -}}
+{{- if .Type }}
+    "`+strings.ReplaceAll(paramName, "-", "_")+`": rsschema.{{ CamelCaseType .Type }}Attribute{
+{{- else }}
+    "`+strings.ReplaceAll(paramName, "-", "_")+`": rsschema.SingleNestedAttribute{
+{{- end }}
+        Description: "{{ .Description }}",
+		{{- if .Required }}
+        Required: true,
+		{{- else }}
+		Optional:    true,
+		{{- end }}
+		{{- if .Items }}
+		ElementType: types.{{CamelCaseType .Items.Type}}Type,
+		{{- end }}
+		{{- if .Default }}
+		Default: {{.Type}}default.Static{{ CamelCaseType .Type }}({{- if eq .Type "string" }}{{ printf "%q" .Default }}{{ else if eq .Type "bool" }}{{ .Default }}{{ else }}{{ .Default }}{{ end }}),
+		Computed: true ,
+		{{- end }}
+    },
+{{- /* Done */ -}}`, "describe-param", v, nil)
+
+	case *properties.Location:
+		return processTemplate(`
+{{- /* Begin */ -}}
+{{- if .Vars }}
+     "`+strings.ReplaceAll(paramName, "-", "_")+`": rsschema.SingleNestedAttribute{
+{{- else }}
+    "`+strings.ReplaceAll(paramName, "-", "_")+`": rsschema.StringAttribute{
+{{- end }}
+        Description: "{{ .Description }}",
+		Required: true,
+    },
+{{- /* Done */ -}}`, "describe-location", v, nil)
+
+	default:
+		return "", fmt.Errorf("unsupported type: %T", paramProp)
+	}
+}
+
+func CreateResourceSchemaLocationAttribute() (string, error) {
+	return processTemplate(resourceSchemaLocationAttribute, "resource-schema-location", nil, nil)
 }
 
 // CreateTfIdStruct generates a template for a struct based on the provided structType and structName.
 func CreateTfIdStruct(structType string, structName string) (string, error) {
 	if structType == "entry" {
-		return centralTemplateExec(`
+		return processTemplate(`
 {{- /* Begin */ -}}
     Name     string          `+"`json:\"name\"`"+`
     Location `+structName+`.Location `+"`json:\"location\"`"+`
 {{- /* Done */ -}}`, "describe-param", nil, nil)
+	} else {
+		return processTemplate(`
+{{- /* Begin */ -}}
+    Location `+structName+`.Location `+"`json:\"location\"`"+`
+{{- /* Done */ -}}`, "describe-param", nil, nil)
 	}
-	return "", nil
 }
 
 // CreateTfIdResourceModel generates a Terraform resource struct part for TFID.
 func CreateTfIdResourceModel(structType string, structName string) (string, error) {
 	if structType == "entry" {
-		return centralTemplateExec(`
+		return processTemplate(`
+{{- /* Begin */ -}}
+    Tfid     types.String          `+"`tfsdk:\"tfid\"`"+`
+    Location `+structName+`Location `+"`tfsdk:\"location\"`"+`
+{{- /* Done */ -}}`, "describe-param", nil, nil)
+	} else {
+		return processTemplate(`
 {{- /* Begin */ -}}
     Tfid     types.String          `+"`tfsdk:\"tfid\"`"+`
     Location `+structName+`Location `+"`tfsdk:\"location\"`"+`
 {{- /* Done */ -}}`, "describe-param", nil, nil)
 	}
-	return "", nil
 }
 
 // ParamToModelResource converts the given parameter name and properties to a model representation.
@@ -128,12 +154,12 @@ func ParamToModelResource(paramName string, paramProp *properties.SpecParam, str
 	templateText := `
 {{- /* Begin */ -}}
     {{- if eq .Type "" }}
-        {{ CamelCaseName .Name }} {{ .structName }}{{ CamelCaseName .Name }}Object ` + "`tfsdk:\"{{ UnderscoreName .Name }}\"`" + `
+        {{ CamelCaseName .Name }} *{{ .structName }}{{ CamelCaseName .Name }}Object ` + "`tfsdk:\"{{ UnderscoreName .Name }}\"`" + `
     {{- else }}
         {{ CamelCaseName .Name }} types.{{ CamelCaseType .Type }} ` + "`tfsdk:\"{{ UnderscoreName .Name }}\"`" + `
     {{- end -}}
 {{- /* Done */ -}}`
-	return centralTemplateExec(templateText, "param-to-model", data, nil)
+	return processTemplate(templateText, "param-to-model", data, nil)
 }
 
 // ModelNestedStruct manages nested structure definitions.
@@ -141,21 +167,21 @@ func ModelNestedStruct(paramName string, paramProp *properties.SpecParam, struct
 	if paramProp.Type == "" && paramProp.Spec != nil {
 		nestedStructsString := strings.Builder{}
 		createdStructs := make(map[string]bool)
-		nestedStruct, err := CreateNestedStruct(paramName, paramProp, structName, &nestedStructsString, createdStructs)
+		err := CreateNestedStruct(paramName, paramProp, structName, &nestedStructsString, createdStructs)
 		if err != nil {
 			return "", err
 		}
-		return nestedStruct, nil
+		return nestedStructsString.String(), nil
 	}
 
 	return "", nil
 }
 
 // CreateNestedStruct recursively creates nested struct definitions.
-func CreateNestedStruct(paramName string, paramProp *properties.SpecParam, structName string, nestedStructString *strings.Builder, createdStructs map[string]bool) (string, error) {
+func CreateNestedStruct(paramName string, paramProp *properties.SpecParam, structName string, nestedStructString *strings.Builder, createdStructs map[string]bool) error {
 	nestedStructName := fmt.Sprintf("%s%s", structName, naming.CamelCase("", paramName, "", true))
 	if _, exists := createdStructs[nestedStructName]; exists {
-		return "", nil // Avoid recreating existing structs to prevent infinite loops
+		return nil // Avoid recreating existing structs to prevent infinite loops
 	}
 	createdStructs[nestedStructName] = true
 
@@ -165,36 +191,46 @@ func CreateNestedStruct(paramName string, paramProp *properties.SpecParam, struc
 		}}
 
 	data := map[string]interface{}{
-		"Spec":       paramProp.Spec,
-		"structName": nestedStructName,
+		"Spec":                  paramProp.Spec,
+		"HasEncryptedResources": paramProp.HasEncryptedResources(),
+		"HasEntryName":          paramProp.HasEntryName(),
+		"structName":            nestedStructName,
 	}
-	nestedStruct, err := centralTemplateExec(resourceModelNestedStructTemplate, "nested-struct", data, nestedStructFuncMap)
+	nestedStruct, err := processTemplate(resourceModelNestedStruct, "model-nested-struct", data, nestedStructFuncMap)
 	if err != nil {
 		log.Printf("[ ERROR ] Executing nested struct template failed: %v", err)
-		return "", err
+		return err
 	}
 
 	nestedStructString.WriteString(nestedStruct)
 
 	for nestedIndex, nestedParam := range paramProp.Spec.Params {
 		if nestedParam.Type == "" && nestedParam.Spec != nil {
-			_, err := CreateNestedStruct(nestedIndex, nestedParam, nestedStructName, nestedStructString, createdStructs)
+			err := CreateNestedStruct(nestedIndex, nestedParam, nestedStructName, nestedStructString, createdStructs)
 			if err != nil {
 				log.Printf("[ ERROR ] Error creating further nested structures: %v", err)
-				return "", err
+				return err
+			}
+		}
+
+		if nestedParam.Type == "list" && nestedParam.Items.Type == "entry" && nestedParam.Spec != nil {
+			err := CreateNestedStruct(nestedIndex, nestedParam, nestedStructName, nestedStructString, createdStructs)
+			if err != nil {
+				log.Printf("[ ERROR ] Error creating further nested structures: %v", err)
+				return err
 			}
 		}
 	}
 
 	for nestedIndex, nestedParam := range paramProp.Spec.OneOf {
 		if nestedParam.Type == "" && nestedParam.Spec != nil {
-			_, err := CreateNestedStruct(nestedIndex, nestedParam, nestedStructName, nestedStructString, createdStructs)
+			err := CreateNestedStruct(nestedIndex, nestedParam, nestedStructName, nestedStructString, createdStructs)
 			if err != nil {
 				log.Printf("[ ERROR ] Error creating further nested structures: %v", err)
-				return "", err
+				return err
 			}
 		}
 	}
 
-	return nestedStructString.String(), nil
+	return nil
 }

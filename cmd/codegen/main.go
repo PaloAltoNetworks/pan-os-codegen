@@ -71,4 +71,6 @@ func main() {
 		// Execute Terraform
 		runCommand(ctx, properties.CommandTypeTerraform, cfg.ConfigFile)
 	}
+
+	log.Println("Generation complete.")
 }

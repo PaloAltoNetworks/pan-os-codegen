@@ -342,6 +342,7 @@ spec:
             type: string
             default: ""
             required: false
+            sensitive: false
             length:
                 min: 0
                 max: 1023
@@ -360,6 +361,7 @@ spec:
             type: list
             default: ""
             required: false
+            sensitive: false
             count:
                 min: null
                 max: 64
@@ -386,6 +388,7 @@ spec:
             type: string
             default: ""
             required: false
+            sensitive: false
             length:
                 min: 1
                 max: 255
@@ -405,6 +408,7 @@ spec:
             type: string
             default: ""
             required: false
+            sensitive: false
             profiles:
                 - xpath:
                     - ip-netmask
@@ -420,6 +424,7 @@ spec:
             type: string
             default: ""
             required: false
+            sensitive: false
             profiles:
                 - xpath:
                     - ip-range
@@ -435,6 +440,7 @@ spec:
             type: string
             default: ""
             required: false
+            sensitive: false
             profiles:
                 - xpath:
                     - ip-wildcard

@@ -35,7 +35,7 @@ func TestExecuteTemplate(t *testing.T) {
 	tmpl, _ := template.New("test").Parse("Name: {{.Name}}")
 	spec := &properties.Normalization{Name: "testResource"}
 	terraformProvider := &properties.TerraformProviderFile{Code: new(strings.Builder)}
-	names := &NameProvider{TfName: "testResource", MetaName: "_testResource", StructName: "TestResource"}
+	names := &NameProvider{TfName: "testResource", MetaName: "_testResource", ResourceStructName: "TestResource"}
 
 	// When
 	err := g.executeTemplate(tmpl, spec, terraformProvider, "Resource", names)
@@ -48,7 +48,7 @@ func TestExecuteTemplate(t *testing.T) {
 func TestGenerateTerraformEntityTemplate(t *testing.T) {
 	// Given
 	g := &GenerateTerraformProvider{}
-	names := &NameProvider{TfName: "testResource", MetaName: "_testResource", StructName: "TestResource"}
+	names := &NameProvider{TfName: "testResource", MetaName: "_testResource", ResourceStructName: "TestResource"}
 	spec := &properties.Normalization{Name: "testResource"}
 	terraformProvider := &properties.TerraformProviderFile{Code: new(strings.Builder)}
 	templateStr := "Name: {{.Name}}"
