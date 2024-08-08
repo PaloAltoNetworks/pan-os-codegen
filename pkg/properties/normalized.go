@@ -110,19 +110,20 @@ type ConstValue struct {
 }
 
 type SpecParam struct {
-	Name        *NameVariant
-	Description string              `json:"description" yaml:"description"`
-	Type        string              `json:"type" yaml:"type"`
-	Default     string              `json:"default" yaml:"default"`
-	Required    bool                `json:"required" yaml:"required"`
-	Sensitive   bool                `json:"sensitive" yaml:"sensitive"`
-	Length      *SpecParamLength    `json:"length" yaml:"length,omitempty"`
-	Count       *SpecParamCount     `json:"count" yaml:"count,omitempty"`
-	Hashing     *SpecParamHashing   `json:"hashing" yaml:"hashing,omitempty"`
-	Items       *SpecParamItems     `json:"items" yaml:"items,omitempty"`
-	Regex       string              `json:"regex" yaml:"regex,omitempty"`
-	Profiles    []*SpecParamProfile `json:"profiles" yaml:"profiles"`
-	Spec        *Spec               `json:"spec" yaml:"spec"`
+	Name                    *NameVariant
+	Description             string                            `json:"description" yaml:"description"`
+	TerraformProviderConfig *SpecParamTerraformProviderConfig `json:"terraform_provider_config" yaml:"terraform_provider_config"`
+	Type                    string                            `json:"type" yaml:"type"`
+	Default                 string                            `json:"default" yaml:"default"`
+	Required                bool                              `json:"required" yaml:"required"`
+	Sensitive               bool                              `json:"sensitive" yaml:"sensitive"`
+	Length                  *SpecParamLength                  `json:"length" yaml:"length,omitempty"`
+	Count                   *SpecParamCount                   `json:"count" yaml:"count,omitempty"`
+	Hashing                 *SpecParamHashing                 `json:"hashing" yaml:"hashing,omitempty"`
+	Items                   *SpecParamItems                   `json:"items" yaml:"items,omitempty"`
+	Regex                   string                            `json:"regex" yaml:"regex,omitempty"`
+	Profiles                []*SpecParamProfile               `json:"profiles" yaml:"profiles"`
+	Spec                    *Spec                             `json:"spec" yaml:"spec"`
 }
 
 type SpecParamLength struct {
@@ -137,6 +138,10 @@ type SpecParamCount struct {
 
 type SpecParamHashing struct {
 	Type string `json:"type" yaml:"type"`
+}
+
+type SpecParamTerraformProviderConfig struct {
+	Computed bool `json:"computed" yaml:"computed"`
 }
 
 type SpecParamItems struct {
