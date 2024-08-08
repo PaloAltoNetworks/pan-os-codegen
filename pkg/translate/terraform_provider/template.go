@@ -203,6 +203,9 @@ func (r *{{ resourceStructName }}) ImportState(ctx context.Context, req resource
 {{- /* Done */ -}}`
 
 const resourceCreateManyFunction = `
+{{ $resourceSDKStructName := printf "%s.%s" .resourceSDKName .EntryOrConfig }}
+{{ $resourceTFStructName := printf "%s%sObject" .structName .ListAttribute.CamelCase }}
+
 var state, createdState {{ .structName }}Model
 resp.Diagnostics.Append(req.Plan.Get(ctx, &state)...)
 if resp.Diagnostics.HasError() {
@@ -215,35 +218,186 @@ tflog.Info(ctx, "performing resource create", map[string]any{
 	"function":      "Create",
 })
 
-svc := {{ .resourceSDKName }}.NewService(r.client)
-
 var location {{ .resourceSDKName }}.Location
 {{ RenderLocationsStateToPango "state.Location" "location" }}
 
-var elements []{{ .structName }}{{ .ListAttribute.CamelCase }}Object
+var elements []{{ $resourceTFStructName }}
 state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
-entries := make([]*{{ .resourceSDKName }}.{{ .EntryOrConfig }}, len(elements))
+
+type entryWithState struct {
+	Entry    *{{ $resourceSDKStructName }}
+	StateIdx int
+}
+
+planEntriesByName := make(map[string]*entryWithState, len(elements))
 for idx, elt := range elements {
 	var list_diags diag.Diagnostics
-	var entry *{{ .resourceSDKName }}.{{ .EntryOrConfig }}
+	var entry *{{ $resourceSDKStructName }}
 	entry, list_diags = elt.CopyToPango(ctx, nil)
 	resp.Diagnostics.Append(list_diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	entries[idx] = entry
+
+	planEntriesByName[elt.Name.ValueString()] = &entryWithState{
+		Entry: entry,
+		StateIdx: idx,
+	}
 }
 
-objects := make([]{{ .structName }}{{ .ListAttribute.CamelCase }}Object, len(entries))
-for idx, elt := range entries {
-	created, err := svc.Create(ctx, location, *elt)
-	if err != nil {
-		resp.Diagnostics.AddError("SDK error during create", err.Error())
+svc := {{ .resourceSDKName }}.NewService(r.client)
+
+// First, check if none of the entries from the plan already exist on the server
+existing, err := svc.List(ctx, location, "get", "", "")
+if err != nil && err.Error() != "Object not found" {
+	resp.Diagnostics.AddError("sdk error while listing resources", err.Error())
+	return
+}
+
+for _, elt := range existing {
+	_, foundInPlan := planEntriesByName[elt.Name]
+
+	if foundInPlan {
+		errorMsg := fmt.Sprintf("%s created outside of terraform", elt.Name)
+		resp.Diagnostics.AddError("Conflict between plan and server data", errorMsg)
 		return
 	}
-	var object {{ .structName }}{{ .ListAttribute.CamelCase }}Object
-	object.CopyFromPango(ctx, created, nil)
+}
+
+specifier, _, err := {{ .resourceSDKName }}.Versioning(r.client.Versioning())
+if err != nil {
+	resp.Diagnostics.AddError("error while creating specifier", err.Error())
+	return
+}
+
+updates := xmlapi.NewMultiConfig(len(planEntriesByName))
+
+entries := make([]*{{ $resourceSDKStructName }}, len(planEntriesByName))
+for _, elt := range planEntriesByName {
+	entries[elt.StateIdx] = elt.Entry
+}
+
+for _, elt := range entries {
+	path, err := location.XpathWithEntryName(r.client.Versioning(), elt.Name)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to create xpath for existing entry", err.Error())
+		return
+	}
+
+	xmlEntry, err := specifier(*elt)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to transform Entry into XML document", err.Error())
+		return
+	}
+
+	updates.Add(&xmlapi.Config{
+		Action:  "edit",
+		Xpath:   util.AsXpath(path),
+		Element: xmlEntry,
+		Target:  r.client.GetTarget(),
+	})
+}
+
+if len(updates.Operations) > 0 {
+	if _, _, _, err := r.client.MultiConfig(ctx, updates, false, nil); err != nil {
+		resp.Diagnostics.AddError("error updating entries", err.Error())
+		return
+	}
+}
+
+existing, err = svc.List(ctx, location, "get", "", "")
+if err != nil && err.Error() != "Object not found" {
+	resp.Diagnostics.AddError("sdk error while listing resources", err.Error())
+	return
+}
+
+var movementRequired bool
+{{- if .Exhaustive }}
+// We manage the entire list of PAN-OS objects, so the order of entries
+// from the plan is compared against all existing PAN-OS objects.
+for idx, elt := range existing {
+	if planEntriesByName[elt.Name].StateIdx != idx {
+		movementRequired = true
+	}
+	planEntriesByName[elt.Name].Entry.Uuid = elt.Uuid
+}
+{{- else }}
+// We only manage a subset of PAN-OS object on the given list, so care
+// has to be taken to calculate the order of those managed elements on the
+// PAN-OS side.
+
+// We filter all existing entries to end up with a list of entries that
+// are in the plan. For every element of that list, we store its PAN-OS
+// list index as StateIdx. Finally, the managedEntries index will serve
+// as a way to check if managed entries are in order relative to each
+// other.
+managedEntries := make([]*entryWithState, len(entries))
+for idx, elt := range existing {
+	if _, found := planEntriesByName[elt.Name]; found {
+		managedEntries = append(managedEntries, &entryWithState{
+			Entry: &elt,
+			StateIdx: idx,
+		})
+	}
+}
+
+var previousManagedEntry, previousPlannedEntry *entryWithState
+for idx, elt := range managedEntries {
+	// plannedEntriesByName is a map of entries from the plan indexed by their
+	// name. If idx doesn't match StateIdx of the entry from the plan, the PAN-OS
+	// object is out of order.
+	plannedEntry := planEntriesByName[elt.Entry.Name]
+	if plannedEntry.StateIdx != idx {
+		movementRequired = true
+		break
+	}
+	// If this is the first element we are comparing, store it for future reference
+	// and continue. We will use it to calculate distance between two elements in
+	// PAN-OS list.
+	if previousManagedEntry == nil {
+		previousManagedEntry = elt
+		previousPlannedEntry = plannedEntry
+		continue
+	}
+
+	serverDistance := elt.StateIdx - previousManagedEntry.StateIdx
+	planDistance := plannedEntry.StateIdx - previousPlannedEntry.StateIdx
+
+	// If the distance between previous and current object differs between
+	// PAN-OS and the plan, we need to move objects around.
+	if serverDistance != planDistance {
+		movementRequired = true
+		break
+	}
+
+	previousManagedEntry = elt
+	previousPlannedEntry = plannedEntry
+}
+{{- end }}
+
+if movementRequired {
+	entries := make([]{{ $resourceSDKStructName }}, len(planEntriesByName))
+	for _, elt := range planEntriesByName {
+		entries[elt.StateIdx] = *elt.Entry
+	}
+	trueValue := true
+	err = svc.MoveGroup(ctx, location, rule.Position{First: &trueValue}, entries)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to reorder entries", err.Error())
+		return
+	}
+}
+
+objects := make([]{{ $resourceTFStructName }}, len(planEntriesByName))
+for idx, elt := range existing {
+	var object {{ $resourceTFStructName }}
+	copy_diags := object.CopyFromPango(ctx, &elt, nil)
+	resp.Diagnostics.Append(copy_diags...)
 	objects[idx] = object
+}
+
+if resp.Diagnostics.HasError() {
+	return
 }
 
 var list_diags diag.Diagnostics
@@ -363,6 +517,17 @@ const resourceCreateFunction = `
 `
 
 const resourceReadManyFunction = `
+{{- $structName := "" }}
+{{- if eq .ResourceOrDS "DataSource" }}
+  {{ $structName = .dataSourceStructName }}
+{{- else }}
+  {{ $structName = .resourceStructName }}
+{{- end }}
+{{- $resourceSDKStructName := printf "%s.%s" .resourceSDKName .EntryOrConfig }}
+{{- $resourceTFStructName := printf "%s%sObject" $structName .ListAttribute.CamelCase }}
+// {{ $resourceSDKStructName }}
+// {{ $resourceTFStructName }}
+
 {{- $stateName := "" }}
 {{- if eq .ResourceOrDS "DataSource" }}
   {{- $stateName = "Config" }}
@@ -393,19 +558,35 @@ if err != nil {
 	return
 }
 
-{{- if not .Exhaustive }}
-// FIXME: For non-exhaustive variants (security_policy_rules etc.) we only want
-// to check if all entries are in place, and in the correct position.
-{{- end }}
-
-
+{{- if .Exhaustive }}
+// For resources that take sole ownership of a given list, Read()
+// will return all existing entries from the server.
 objects := make([]{{ .structName }}{{ .ResourceOrDS }}{{ .ListAttribute.CamelCase }}Object, len(existing))
 for idx, elt := range existing {
-	fmt.Printf("Read() entry: %v %v", elt.Name, *elt.Uuid)
 	var object {{ .structName }}{{ .ResourceOrDS }}{{ .ListAttribute.CamelCase }}Object
 	object.CopyFromPango(ctx, &elt, nil)
 	objects[idx] = object
 }
+{{- else }}
+// For resources that only manage their own items in the list, Read()
+// must only objects that are already part of the state.
+var elements []{{ $resourceTFStructName }}
+state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
+stateObjectsByName := make(map[string]*{{ $resourceTFStructName }}, len(elements))
+for _, elt := range elements {
+	stateObjectsByName[elt.Name.ValueString()] = &elt
+}
+
+objects := make([]{{ .structName }}{{ .ResourceOrDS }}{{ .ListAttribute.CamelCase }}Object, len(state.{{ .ListAttribute.CamelCase }}.Elements()))
+for idx, elt := range existing {
+	if _, found := stateObjectsByName[elt.Name]; !found {
+		continue
+	}
+	var object {{ .structName }}{{ .ResourceOrDS }}{{ .ListAttribute.CamelCase }}Object
+	object.CopyFromPango(ctx, &elt, nil)
+	objects[idx] = object
+}
+{{- end }}
 
 
 var list_diags diag.Diagnostics
@@ -598,6 +779,14 @@ for idx, elt := range stateEntries {
 	}
 }
 
+planEntriesByName := make(map[string]*entryWithState, len(planEntries))
+for idx, elt := range planEntries {
+	planEntriesByName[elt.Name] = &entryWithState{
+		Entry:    elt,
+		StateIdx: idx,
+	}
+}
+
 findMatchingStateEntry := func(entry *{{ $resourceSDKStructName }}) (*{{ $resourceSDKStructName }}, bool) {
 	var found *{{ $resourceSDKStructName }}
 
@@ -696,6 +885,16 @@ for _, existingElt := range existing {
 		resp.Diagnostics.AddError("Failed to create xpath for existing entry", err.Error())
 	}
 
+	_, foundInState := stateEntriesByName[existingElt.Name]
+        _, foundInRenamed := planEntriesByName[existingElt.Name]
+	_, foundInPlan := planEntriesByName[existingElt.Name]
+
+	if !foundInState && (foundInRenamed || foundInPlan) {
+		errorMsg := fmt.Sprintf("%s created outside of terraform", existingElt.Name)
+		resp.Diagnostics.AddError("Conflict between plan and PAN-OS data", errorMsg)
+		return
+	}
+
 	// If the existing entry name matches new name for the renamed entry,
 	// we delete it before adding Renamed commands.
 	if _, found := renamedEntries[existingElt.Name]; found {
@@ -708,6 +907,7 @@ for _, existingElt := range existing {
 	}
 
 	processedElt, found := processedStateEntries[existingElt.Name]
+{{- if .Exhaustive }}
 	if !found {
 		// If existing entry is not found in the processedEntries map, it's not
 		// entry we are managing and it should be deleted.
@@ -716,7 +916,10 @@ for _, existingElt := range existing {
 			Xpath:  util.AsXpath(path),
 			Target: r.client.GetTarget(),
 		})
-	} else if processedElt.Entry.Uuid != nil && *processedElt.Entry.Uuid == *existingElt.Uuid {
+		continue
+	}
+{{- end }}
+	if found && processedElt.Entry.Uuid != nil && *processedElt.Entry.Uuid == *existingElt.Uuid {
 		// XXX: If entry from the plan is in process of being renamed, and its content
 		// differs from what exists on the server we should switch its state to entryOutdated
 		// instead.

@@ -1614,10 +1614,16 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 
 	var tmpl string
 	var listAttribute string
+	var exhaustive bool
 	switch resourceTyp {
 	case properties.ResourceEntry:
 		tmpl = resourceCreateFunction
-	default:
+	case properties.ResourceUuid:
+		exhaustive = true
+		tmpl = resourceCreateManyFunction
+		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
+	case properties.ResourceUuidPlural:
+		exhaustive = false
 		tmpl = resourceCreateManyFunction
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 	}
@@ -1630,6 +1636,7 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 
 	data := map[string]interface{}{
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
+		"Exhaustive":            exhaustive,
 		"ListAttribute":         listAttributeVariant,
 		"EntryOrConfig":         paramSpec.EntryOrConfig(),
 		"HasEntryName":          paramSpec.HasEntryName(),
@@ -1724,6 +1731,7 @@ func ResourceReadFunction(resourceTyp properties.ResourceType, names *NameProvid
 		"EntryOrConfig":         paramSpec.EntryOrConfig(),
 		"HasEntryName":          paramSpec.HasEntryName(),
 		"structName":            names.StructName,
+		"datasourceStructName":  names.DataSourceStructName,
 		"resourceStructName":    names.ResourceStructName,
 		"serviceName":           naming.CamelCase("", serviceName, "", false),
 		"resourceSDKName":       resourceSDKName,
