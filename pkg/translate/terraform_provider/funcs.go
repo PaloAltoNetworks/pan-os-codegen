@@ -813,6 +813,11 @@ func createSchemaSpecForParameter(schemaTyp schemaType, structPrefix string, pac
 		isResource = true
 	}
 
+	var computed bool
+	if param.TerraformProviderConfig != nil {
+		computed = param.TerraformProviderConfig.Computed
+	}
+
 	schemas = append(schemas, schemaCtx{
 		IsResource:    isResource,
 		ObjectOrModel: "Object",
@@ -822,7 +827,7 @@ func createSchemaSpecForParameter(schemaTyp schemaType, structPrefix string, pac
 		Description:   "",
 		Required:      param.Required,
 		Optional:      !param.Required,
-		Computed:      param.TerraformProviderConfig.Computed,
+		Computed:      computed,
 		Sensitive:     param.Sensitive,
 		Attributes:    attributes,
 	})
