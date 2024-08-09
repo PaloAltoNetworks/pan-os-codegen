@@ -369,24 +369,26 @@ for idx, elt := range existing {
 // as a way to check if managed entries are in order relative to each
 // other.
 var movementRequired bool
-managedEntries := make([]*entryWithState, len(entries))
+managedEntriesByName := make(map[string]*entryWithState, len(entries))
 for idx, elt := range existing {
 	if planEntry, found := planEntriesByName[elt.Name]; found {
 		planEntry.Entry.Uuid = elt.Uuid
-		managedEntries = append(managedEntries, &entryWithState{
+		managedEntriesByName[elt.Name] = &entryWithState{
 			Entry: &elt,
 			StateIdx: idx,
-		})
+		}
 	}
 }
 
+// First, we check if managedEntries order matches planEntriesByName to check
+// if all entries from the plan are properly ordered on the server.
 var previousManagedEntry, previousPlannedEntry *entryWithState
-for idx, elt := range managedEntries {
+for _, elt := range managedEntriesByName {
 	// plannedEntriesByName is a map of entries from the plan indexed by their
 	// name. If idx doesn't match StateIdx of the entry from the plan, the PAN-OS
 	// object is out of order.
 	plannedEntry := planEntriesByName[elt.Entry.Name]
-	if plannedEntry.StateIdx != idx {
+	if plannedEntry.StateIdx != elt.StateIdx {
 		movementRequired = true
 		break
 	}
@@ -413,6 +415,62 @@ for idx, elt := range managedEntries {
 	previousPlannedEntry = plannedEntry
 }
 
+// If all entries are ordered properly, we check if their position matches what's
+// requested.
+if !movementRequired {
+	existingEntriesByName := make(map[string]*entryWithState, len(existing))
+	for idx, elt := range existing {
+		existingEntriesByName[elt.Name] = &entryWithState{
+			Entry: &elt,
+			StateIdx: idx,
+		}
+	}
+
+	positionWhere := state.Position.Where.ValueString()
+	switch positionWhere {
+	case "first":
+		if existing[len(entries)-1].Name != entries[len(entries)-1].Name {
+			movementRequired = true
+
+		}
+	case "last":
+		if existing[len(entries)-1].Name != entries[len(entries)-1].Name {
+			movementRequired = true
+		}
+	case "before":
+		pivot := state.Position.Pivot.ValueString()
+		directly := state.Position.Directly.ValueBool()
+		if existingPivot, found := existingEntriesByName[pivot]; !found {
+			resp.Diagnostics.AddError("failed to create move actions", fmt.Sprintf("pivot point '%s' missing from the server", pivot))
+		} else if directly {
+			if existingPivot.StateIdx == 0 {
+				movementRequired = true
+			} else if existing[existingPivot.StateIdx-1].Name != entries[len(entries)-1].Name {
+				movementRequired = true
+			}
+		} else {
+			if existingPivot.StateIdx == 0 {
+				movementRequired = true
+			}
+		}
+	case "after":
+		pivot := state.Position.Pivot.ValueString()
+		directly := state.Position.Directly.ValueBool()
+		if existingPivot, found := existingEntriesByName[pivot]; !found {
+			resp.Diagnostics.AddError("failed to create move actions", fmt.Sprintf("pivot point '%s' missing from the server", pivot))
+		} else if directly {
+			if existingPivot.StateIdx == len(existing)-1 {
+				movementRequired = true
+			} else if existing[existingPivot.StateIdx+1].Name != entries[0].Name {
+				movementRequired = true
+			}
+		} else {
+			if existingPivot.StateIdx == len(existing)-1 {
+				movementRequired = true
+			}
+		}
+	}
+}
 {{- end }}
 
 {{- if and .Exhaustive (not .ResourceIsMap) }}
@@ -430,8 +488,8 @@ if movementRequired {
 }
 {{- else if and (not .Exhaustive) (not .ResourceIsMap) }}
 if movementRequired {
-	entries := make([]{{ $resourceSDKStructName }}, len(managedEntries))
-	for _, elt := range managedEntries {
+	entries := make([]{{ $resourceSDKStructName }}, len(managedEntriesByName))
+	for _, elt := range managedEntriesByName {
 		entries[elt.StateIdx] = *elt.Entry
 	}
 	trueValue := true
@@ -611,8 +669,6 @@ const resourceReadManyFunction = `
 {{- end }}
 {{- $resourceSDKStructName := printf "%s.%s" .resourceSDKName .EntryOrConfig }}
 {{- $resourceTFStructName := printf "%s%sObject" $structName .ListAttribute.CamelCase }}
-// {{ $resourceSDKStructName }}
-// {{ $resourceTFStructName }}
 
 {{- $stateName := "" }}
 {{- if eq .ResourceOrDS "DataSource" }}
@@ -1451,12 +1507,19 @@ if err != nil && err.Error() != "Object not found" {
 }
 
 var movementRequired bool
+{{- if .Exhaustive }}
+trueValue := true
+position := rule.Position{First: &trueValue}
 for idx, elt := range existing {
 	if processedStateEntries[elt.Name].StateIdx != idx {
 		movementRequired = true
 	}
 	processedStateEntries[elt.Name].Entry.Uuid = elt.Uuid
 }
+{{- else }}
+position := state.Position.CopyToPango()
+movementRequired = true
+{{- end }}
 
 if movementRequired {
 	entries := make([]{{ $resourceSDKStructName }}, len(processedStateEntries))
@@ -1469,8 +1532,7 @@ if movementRequired {
 		finalOrder = append(finalOrder, elt.Name)
 	}
 
-	trueValue := true
-	err = svc.MoveGroup(ctx, location, rule.Position{First: &trueValue}, entries)
+	err = svc.MoveGroup(ctx, location, position, entries)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to reorder entries", err.Error())
 		return

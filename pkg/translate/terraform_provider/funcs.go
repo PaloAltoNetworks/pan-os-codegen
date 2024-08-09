@@ -666,6 +666,7 @@ type attributeCtx struct {
 	Package      string
 	Name         *properties.NameVariant
 	SchemaType   string
+	ExternalType string
 	ElementType  string
 	Description  string
 	Required     bool
@@ -926,6 +927,20 @@ func createSchemaSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 		Name:       location,
 		Required:   true,
 		SchemaType: "SingleNestedAttribute",
+	})
+
+	position := &properties.NameVariant{
+		Underscore:     naming.Underscore("", "position", ""),
+		CamelCase:      naming.CamelCase("", "position", "", true),
+		LowerCamelCase: naming.CamelCase("", "position", "", false),
+	}
+
+	attributes = append(attributes, attributeCtx{
+		Package:      packageName,
+		Name:         position,
+		Required:     true,
+		SchemaType:   "ExternalAttribute",
+		ExternalType: "TerraformPositionObject",
 	})
 
 	listNameStr := spec.TerraformProviderConfig.PluralName
@@ -1226,6 +1241,12 @@ const renderSchemaTemplate = `
   {{- end }}
 {{- end }}
 
+{{- define "renderSchemaExternalAttribute" }}
+  {{- with .Attribute }}
+	"{{ .Name.Underscore }}": {{ .ExternalType }}Schema(),
+  {{- end }}
+{{- end }}
+
 {{- define "renderSchemaSimpleAttribute" }}
 	"{{ .Name.Underscore }}": {{ .Package }}.{{ .SchemaType }} {
 		Description: "{{ .Description }}",
@@ -1251,6 +1272,8 @@ const renderSchemaTemplate = `
       {{- template "renderSchemaMapNestedAttribute" Map "StructName" $.StructName "Attribute" . }}
     {{- else if eq .SchemaType "SingleNestedAttribute" }}
       {{- template "renderSchemaSingleNestedAttribute" Map "StructName" $.StructName "Attribute" . }}
+    {{- else if eq .SchemaType "ExternalAttribute" }}
+      {{- template "renderSchemaExternalAttribute" Map "Attribute" . }}
     {{- else }}
       {{- template "renderSchemaSimpleAttribute" . }}
     {{- end }}
@@ -1520,6 +1543,18 @@ func createStructSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 		Name: "Location",
 		Type: fmt.Sprintf("%sLocation", names.StructName),
 		Tags: []string{"`tfsdk:\"location\"`"},
+	})
+
+	position := &properties.NameVariant{
+		Underscore:     naming.Underscore("", "position", ""),
+		CamelCase:      naming.CamelCase("", "position", "", true),
+		LowerCamelCase: naming.CamelCase("", "position", "", false),
+	}
+
+	fields = append(fields, datasourceStructFieldSpec{
+		Name: position.CamelCase,
+		Type: "TerraformPositionObject",
+		Tags: []string{"`tfsdk:\"position\"`"},
 	})
 
 	var structName string
