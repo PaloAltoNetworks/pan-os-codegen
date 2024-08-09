@@ -1294,6 +1294,8 @@ func (o *{{ .StructName }}{{ .ObjectOrModel }}) getTypeFor(name string) attr.Typ
 		switch attr := attr.(type) {
 		case {{ .Package }}.ListNestedAttribute:
 			return attr.NestedObject.Type()
+		case {{ .Package }}.MapNestedAttribute:
+			return attr.NestedObject.Type()
 		default:
 			return attr.GetType()
 		}
@@ -1761,6 +1763,7 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 	var exhaustive bool
 	switch resourceTyp {
 	case properties.ResourceEntry:
+		exhaustive = true
 		tmpl = resourceCreateFunction
 	case properties.ResourceUuid:
 		exhaustive = true
@@ -1778,9 +1781,14 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 		LowerCamelCase: naming.CamelCase("", listAttribute, "", false),
 	}
 
+	var resourceIsMap bool
+	if resourceTyp == properties.ResourceEntryPlural {
+		resourceIsMap = true
+	}
 	data := map[string]interface{}{
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
 		"Exhaustive":            exhaustive,
+		"ResourceIsMap":         resourceIsMap,
 		"ListAttribute":         listAttributeVariant,
 		"EntryOrConfig":         paramSpec.EntryOrConfig(),
 		"HasEntryName":          paramSpec.HasEntryName(),
@@ -1857,6 +1865,9 @@ func ResourceReadFunction(resourceTyp properties.ResourceType, names *NameProvid
 	switch resourceTyp {
 	case properties.ResourceEntry:
 		tmpl = resourceReadFunction
+	case properties.ResourceEntryPlural:
+		tmpl = resourceReadManyFunction
+		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 	case properties.ResourceUuid:
 		tmpl = resourceReadManyFunction
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
@@ -1872,8 +1883,13 @@ func ResourceReadFunction(resourceTyp properties.ResourceType, names *NameProvid
 		LowerCamelCase: naming.CamelCase("", listAttribute, "", false),
 	}
 
+	var resourceIsMap bool
+	if resourceTyp == properties.ResourceEntryPlural {
+		resourceIsMap = true
+	}
 	data := map[string]interface{}{
 		"ResourceOrDS":          "Resource",
+		"ResourceIsMap":         resourceIsMap,
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
 		"ListAttribute":         listAttributeVariant,
 		"Exhaustive":            exhaustive,
@@ -1910,6 +1926,9 @@ func ResourceUpdateFunction(resourceTyp properties.ResourceType, names *NameProv
 	switch resourceTyp {
 	case properties.ResourceEntry:
 		tmpl = resourceUpdateFunction
+	case properties.ResourceEntryPlural:
+		tmpl = resourceUpdateEntryListFunction
+		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 	case properties.ResourceUuid:
 		tmpl = resourceUpdateManyFunction
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
@@ -1925,8 +1944,14 @@ func ResourceUpdateFunction(resourceTyp properties.ResourceType, names *NameProv
 		LowerCamelCase: naming.CamelCase("", listAttribute, "", false),
 	}
 
+	var resourceIsMap bool
+	if resourceTyp == properties.ResourceEntryPlural {
+		resourceIsMap = true
+	}
+
 	data := map[string]interface{}{
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
+		"ResourceIsMap":         resourceIsMap,
 		"ListAttribute":         listAttributeVariant,
 		"Exhaustive":            exhaustive,
 		"EntryOrConfig":         paramSpec.EntryOrConfig(),

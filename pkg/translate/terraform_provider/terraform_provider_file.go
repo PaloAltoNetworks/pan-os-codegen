@@ -168,6 +168,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/xmlapi", "")
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "")
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/rule", "")
+			case properties.ResourceEntryPlural:
+				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/xmlapi", "")
+				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "")
 			default:
 			}
 
