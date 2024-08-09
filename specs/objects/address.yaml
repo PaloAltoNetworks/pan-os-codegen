@@ -6,7 +6,7 @@ terraform_provider_config:
     - plural
   suffix: "address_object"
   plural_suffix: "address_objects"
-  plural_name: "address_objects"
+  plural_name: "addresses"
 go_sdk_config:
   package:
     - "objects"
