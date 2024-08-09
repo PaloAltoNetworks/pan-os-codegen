@@ -1755,6 +1755,10 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 	case properties.ResourceEntry:
 		exhaustive = true
 		tmpl = resourceCreateFunction
+	case properties.ResourceEntryPlural:
+		exhaustive = false
+		tmpl = resourceCreateManyFunction
+		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 	case properties.ResourceUuid:
 		exhaustive = true
 		tmpl = resourceCreateManyFunction
