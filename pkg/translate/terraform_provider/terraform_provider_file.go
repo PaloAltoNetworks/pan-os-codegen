@@ -117,7 +117,16 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 		structType = "config"
 	}
 
+	var hasPosition bool
+	switch resourceTyp {
+	case properties.ResourceUuidPlural:
+		hasPosition = true
+	case properties.ResourceEntry, properties.ResourceEntryPlural, properties.ResourceUuid:
+		hasPosition = false
+	}
+
 	funcMap := template.FuncMap{
+		"HasPosition":             func() bool { return hasPosition },
 		"metaName":                func() string { return names.MetaName },
 		"structName":              func() string { return names.StructName },
 		"dataSourceStructName":    func() string { return names.DataSourceStructName },

@@ -929,19 +929,21 @@ func createSchemaSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 		SchemaType: "SingleNestedAttribute",
 	})
 
-	position := &properties.NameVariant{
-		Underscore:     naming.Underscore("", "position", ""),
-		CamelCase:      naming.CamelCase("", "position", "", true),
-		LowerCamelCase: naming.CamelCase("", "position", "", false),
-	}
+	if resourceTyp == properties.ResourceUuidPlural {
+		position := &properties.NameVariant{
+			Underscore:     naming.Underscore("", "position", ""),
+			CamelCase:      naming.CamelCase("", "position", "", true),
+			LowerCamelCase: naming.CamelCase("", "position", "", false),
+		}
 
-	attributes = append(attributes, attributeCtx{
-		Package:      packageName,
-		Name:         position,
-		Required:     true,
-		SchemaType:   "ExternalAttribute",
-		ExternalType: "TerraformPositionObject",
-	})
+		attributes = append(attributes, attributeCtx{
+			Package:      packageName,
+			Name:         position,
+			Required:     true,
+			SchemaType:   "ExternalAttribute",
+			ExternalType: "TerraformPositionObject",
+		})
+	}
 
 	listNameStr := spec.TerraformProviderConfig.PluralName
 	listName := &properties.NameVariant{
@@ -1545,17 +1547,20 @@ func createStructSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 		Tags: []string{"`tfsdk:\"location\"`"},
 	})
 
-	position := &properties.NameVariant{
-		Underscore:     naming.Underscore("", "position", ""),
-		CamelCase:      naming.CamelCase("", "position", "", true),
-		LowerCamelCase: naming.CamelCase("", "position", "", false),
-	}
+	if resourceTyp == properties.ResourceUuidPlural {
 
-	fields = append(fields, datasourceStructFieldSpec{
-		Name: position.CamelCase,
-		Type: "TerraformPositionObject",
-		Tags: []string{"`tfsdk:\"position\"`"},
-	})
+		position := &properties.NameVariant{
+			Underscore:     naming.Underscore("", "position", ""),
+			CamelCase:      naming.CamelCase("", "position", "", true),
+			LowerCamelCase: naming.CamelCase("", "position", "", false),
+		}
+
+		fields = append(fields, datasourceStructFieldSpec{
+			Name: position.CamelCase,
+			Type: "TerraformPositionObject",
+			Tags: []string{"`tfsdk:\"position\"`"},
+		})
+	}
 
 	var structName string
 	switch schemaTyp {
@@ -1711,6 +1716,8 @@ func createStructSpecForNormalization(resourceTyp properties.ResourceType, struc
 	var fields []datasourceStructFieldSpec
 	var structs []datasourceStructSpec
 
+	// We don't add name field for entry-style list resources, as they
+	// represent lists as maps with name being a key.
 	if spec.HasEntryName() && resourceTyp != properties.ResourceEntryPlural {
 		fields = append(fields, datasourceStructFieldSpec{
 			Name: "Name",
@@ -1792,7 +1799,7 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 		tmpl = resourceCreateFunction
 	case properties.ResourceEntryPlural:
 		exhaustive = false
-		tmpl = resourceCreateManyFunction
+		tmpl = resourceCreateEntryListFunction
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 	case properties.ResourceUuid:
 		exhaustive = true
@@ -1841,6 +1848,9 @@ func DataSourceReadFunction(resourceTyp properties.ResourceType, names *NameProv
 	switch resourceTyp {
 	case properties.ResourceEntry:
 		tmpl = resourceReadFunction
+	case properties.ResourceEntryPlural:
+		tmpl = resourceReadEntryListFunction
+		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 	case properties.ResourceUuid, properties.ResourceUuidPlural:
 		tmpl = resourceReadManyFunction
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
@@ -1895,7 +1905,7 @@ func ResourceReadFunction(resourceTyp properties.ResourceType, names *NameProvid
 	case properties.ResourceEntry:
 		tmpl = resourceReadFunction
 	case properties.ResourceEntryPlural:
-		tmpl = resourceReadManyFunction
+		tmpl = resourceReadEntryListFunction
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 	case properties.ResourceUuid:
 		tmpl = resourceReadManyFunction
