@@ -59,9 +59,12 @@ func (c *Creator) RenderTemplate() error {
 // RenderTerraformProviderFile generates a Go file for a Terraform provider based on the provided TerraformProviderFile and Normalization arguments.
 func (c *Creator) RenderTerraformProviderFile(spec *properties.Normalization, typ properties.ResourceType) ([]string, []string, error) {
 	var name string
-	if typ == properties.ResourceUuidPlural {
+	switch typ {
+	case properties.ResourceUuidPlural:
 		name = fmt.Sprintf("%s_%s", spec.TerraformProviderConfig.Suffix, spec.TerraformProviderConfig.PluralName)
-	} else {
+	case properties.ResourceEntryPlural:
+		name = spec.TerraformProviderConfig.PluralSuffix
+	default:
 		name = spec.Name
 	}
 
@@ -85,10 +88,14 @@ func (c *Creator) RenderTerraformProviderFile(spec *properties.Normalization, ty
 	}
 
 	var filePath string
-	if typ == properties.ResourceUuidPlural {
+	switch typ {
+	case properties.ResourceUuidPlural:
 		name = fmt.Sprintf("%s_%s", spec.TerraformProviderConfig.Suffix, spec.TerraformProviderConfig.PluralName)
 		filePath = c.createTerraformProviderFilePath(name)
-	} else {
+	case properties.ResourceEntryPlural:
+		name = spec.TerraformProviderConfig.PluralSuffix
+		filePath = c.createTerraformProviderFilePath(name)
+	default:
 		filePath = c.createTerraformProviderFilePath(spec.TerraformProviderConfig.Suffix)
 	}
 
