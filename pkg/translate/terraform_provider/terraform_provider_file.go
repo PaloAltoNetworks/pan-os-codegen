@@ -143,7 +143,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 			return ResourceUpdateFunction(resourceTyp, names, serviceName, spec, names.PackageName)
 		},
 		"ResourceDeleteFunction": func(structName string, serviceName string) (string, error) {
-			return ResourceDeleteFunction(resourceTyp, structName, serviceName, spec, names.PackageName)
+			return ResourceDeleteFunction(resourceTyp, names, serviceName, spec, names.PackageName)
 		},
 		"ParamToModelResource": ParamToModelResource,
 		"ModelNestedStruct":    ModelNestedStruct,

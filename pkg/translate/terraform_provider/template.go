@@ -1250,6 +1250,13 @@ findMatchingStateEntry := func(entry *{{ $resourceSDKStructName }}) (*{{ $resour
 	if found == nil {
 		return nil, false
 	}
+
+	// If matched entry already exists in the plan, this is not a rename
+	// but adding a missing entry.
+	if _, ok := planEntriesByName[found.Name]; ok {
+		return nil, false
+	}
+
 	return found, true
 }
 
@@ -1592,7 +1599,84 @@ const resourceUpdateFunction = `
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 `
 
-const resourceDeleteManyFunction = ``
+const resourceDeleteManyFunction = `
+{{ $resourceSDKStructName := printf "%s.%s" .resourceSDKName .EntryOrConfig }}
+{{ $resourceTFStructName := printf "%s%sObject" .structName .ListAttribute.CamelCase }}
+
+var state {{ .structName }}Model
+resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+// Basic logging.
+tflog.Info(ctx, "performing resource delete", map[string]any{
+	"resource_name": "panos_{{ UnderscoreName .structName }}",
+	"function":      "Delete",
+})
+
+{{- if .ResourceIsMap }}
+elements := make(map[string]{{ $resourceTFStructName }}, len(state.{{ .ListAttribute.CamelCase }}.Elements()))
+state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
+{{- else }}
+var elements []{{ $resourceTFStructName }}
+state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
+{{- end }}
+
+var location {{ .resourceSDKName }}.Location
+{{ RenderLocationsStateToPango "state.Location" "location" }}
+
+updates := xmlapi.NewMultiConfig(len(elements))
+
+{{- if .Exhausitive }}
+existing, err := svc.List(ctx, location, "get", "", "")
+if err != nil {
+	resp.Diagnostics.AddError("sdk error while listing entries", err.Error())
+}
+for _, elt := range existing {
+	path, err := location.XpathWithEntryName(r.client.Versioning(), elt.Name)
+	if err != nil {
+		resp.Diagnostics.AddError("sdk error while creating xpath", err.Error())
+	}
+	updates.Add(&xmlapi.Config{
+		Action: "delete",
+		Xpath:  util.AsXpath(path),
+		Target: r.client.GetTarget(),
+	})
+}
+{{- else if .ResourceIsMap }}
+for name, _ := range elements {
+	path, err := location.XpathWithEntryName(r.client.Versioning(), name)
+	if err != nil {
+		resp.Diagnostics.AddError("sdk error while creating xpath", err.Error())
+	}
+	updates.Add(&xmlapi.Config{
+		Action: "delete",
+		Xpath:  util.AsXpath(path),
+		Target: r.client.GetTarget(),
+	})
+}
+{{- else }}
+for _, elt := range elements {
+	path, err := location.XpathWithEntryName(r.client.Versioning(), elt.Name.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("sdk error while creating xpath", err.Error())
+	}
+	updates.Add(&xmlapi.Config{
+		Action: "delete",
+		Xpath:  util.AsXpath(path),
+		Target: r.client.GetTarget(),
+	})
+}
+{{- end }}
+
+if len(updates.Operations) > 0 {
+	if _, _, _, err := r.client.MultiConfig(ctx, updates, false, nil); err != nil {
+		resp.Diagnostics.AddError("error updating entries", err.Error())
+		return
+	}
+}
+`
 
 const resourceDeleteFunction = `
 	var state {{ .structName }}Model

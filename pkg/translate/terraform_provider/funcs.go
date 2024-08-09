@@ -1967,29 +1967,59 @@ func ResourceUpdateFunction(resourceTyp properties.ResourceType, names *NameProv
 	return processTemplate(tmpl, "resource-update-function", data, funcMap)
 }
 
-func ResourceDeleteFunction(resourceTyp properties.ResourceType, structName string, serviceName string, paramSpec *properties.Normalization, resourceSDKName string) (string, error) {
+func ResourceDeleteFunction(resourceTyp properties.ResourceType, names *NameProvider, serviceName string, paramSpec *properties.Normalization, resourceSDKName string) (string, error) {
 	if strings.Contains(serviceName, "group") {
 		serviceName = "group"
 	}
 
+	var tmpl string
+	var listAttribute string
+	var exhaustive bool
+	switch resourceTyp {
+	case properties.ResourceEntry:
+		tmpl = resourceDeleteFunction
+	case properties.ResourceEntryPlural:
+		tmpl = resourceDeleteManyFunction
+		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
+	case properties.ResourceUuid:
+		tmpl = resourceDeleteManyFunction
+		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
+		exhaustive = true
+	case properties.ResourceUuidPlural:
+		tmpl = resourceDeleteManyFunction
+		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
+	}
+
+	listAttributeVariant := &properties.NameVariant{
+		Underscore:     naming.Underscore("", listAttribute, ""),
+		CamelCase:      naming.CamelCase("", listAttribute, "", true),
+		LowerCamelCase: naming.CamelCase("", listAttribute, "", false),
+	}
+
+	var resourceIsMap bool
+	if resourceTyp == properties.ResourceEntryPlural {
+		resourceIsMap = true
+	}
+
 	data := map[string]interface{}{
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
+		"ResourceIsMap":         resourceIsMap,
 		"EntryOrConfig":         paramSpec.EntryOrConfig(),
+		"ListAttribute":         listAttributeVariant,
+		"Exhaustive":            exhaustive,
 		"HasEntryName":          paramSpec.HasEntryName(),
-		"structName":            structName,
+		"structName":            names.ResourceStructName,
 		"serviceName":           naming.CamelCase("", serviceName, "", false),
 		"resourceSDKName":       resourceSDKName,
 	}
 
-	var tmpl string
-	switch resourceTyp {
-	case properties.ResourceEntry:
-		tmpl = resourceDeleteFunction
-	case properties.ResourceUuid, properties.ResourceUuidPlural:
-		tmpl = resourceDeleteManyFunction
+	funcMap := template.FuncMap{
+		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
+			return RenderLocationsStateToPango(names, paramSpec, source, dest)
+		},
 	}
 
-	return processTemplate(tmpl, "resource-delete-function", data, nil)
+	return processTemplate(tmpl, "resource-delete-function", data, funcMap)
 }
 
 func ConfigEntry(entryName string, param *properties.SpecParam) (string, error) {
