@@ -93,15 +93,35 @@ func (c *Command) Execute() error {
 
 		if c.commandType == properties.CommandTypeTerraform {
 
-			newProviderObject := properties.NewTerraformProviderFile(spec.Name)
-			terraformGenerator := generate.NewCreator(config.Output.TerraformProvider, c.templatePath, spec)
-			err = terraformGenerator.RenderTerraformProviderFile(newProviderObject, spec)
-			if err != nil {
-				return fmt.Errorf("error rendering Terraform provider file for %s - %s", specPath, err)
-			}
+			_, uuid := spec.Spec.Params["uuid"]
+			if !uuid {
+				terraformGenerator := generate.NewCreator(config.Output.TerraformProvider, c.templatePath, spec)
+				dataSources, resources, err := terraformGenerator.RenderTerraformProviderFile(spec, properties.ResourceEntry)
+				if err != nil {
+					return fmt.Errorf("error rendering Terraform provider file for %s - %s", specPath, err)
+				}
 
-			resourceList = append(resourceList, newProviderObject.Resources...)
-			dataSourceList = append(dataSourceList, newProviderObject.DataSources...)
+				resourceList = append(resourceList, resources...)
+				dataSourceList = append(dataSourceList, dataSources...)
+			} else {
+				terraformGenerator := generate.NewCreator(config.Output.TerraformProvider, c.templatePath, spec)
+				dataSources, resources, err := terraformGenerator.RenderTerraformProviderFile(spec, properties.ResourceUuid)
+				if err != nil {
+					return fmt.Errorf("error rendering Terraform provider file for %s - %s", specPath, err)
+				}
+
+				resourceList = append(resourceList, resources...)
+				dataSourceList = append(dataSourceList, dataSources...)
+
+				terraformGenerator = generate.NewCreator(config.Output.TerraformProvider, c.templatePath, spec)
+				dataSources, resources, err = terraformGenerator.RenderTerraformProviderFile(spec, properties.ResourceUuidPlural)
+				if err != nil {
+					return fmt.Errorf("error rendering Terraform provider file for %s - %s", specPath, err)
+				}
+
+				resourceList = append(resourceList, resources...)
+				dataSourceList = append(dataSourceList, dataSources...)
+			}
 
 		} else if c.commandType == properties.CommandTypeSDK {
 			generator := generate.NewCreator(config.Output.GoSdk, c.templatePath, spec)

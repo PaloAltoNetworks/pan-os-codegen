@@ -33,6 +33,7 @@ type TerraformProviderConfig struct {
 	SkipDatasource        bool   `json:"skip_datasource" yaml:"skip_datasource"`
 	SkipDatasourceListing bool   `json:"skip_datasource_listing" yaml:"skip_datasource_listing"`
 	Suffix                string `json:"suffix" yaml:"suffix"`
+	PluralName            string `json:"plural_name" yaml:"plural_name"`
 }
 
 type NameVariant struct {
@@ -126,6 +127,10 @@ type SpecParam struct {
 	Spec                    *Spec                             `json:"spec" yaml:"spec"`
 }
 
+type SpecParamTerraformProviderConfig struct {
+	Computed bool `json:"computed" yaml:"computed"`
+}
+
 type SpecParamLength struct {
 	Min *int64 `json:"min" yaml:"min"`
 	Max *int64 `json:"max" yaml:"max"`
@@ -138,10 +143,6 @@ type SpecParamCount struct {
 
 type SpecParamHashing struct {
 	Type string `json:"type" yaml:"type"`
-}
-
-type SpecParamTerraformProviderConfig struct {
-	Computed bool `json:"computed" yaml:"computed"`
 }
 
 type SpecParamItems struct {
@@ -449,6 +450,7 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 			SkipDatasource:        object.TerraformConfig.SkipDatasource,
 			SkipDatasourceListing: object.TerraformConfig.SkipdatasourceListing,
 			Suffix:                object.TerraformConfig.Suffix,
+			PluralName:            object.TerraformConfig.PluralName,
 		},
 		Locations:   make(map[string]*Location),
 		Imports:     make(map[string]*Import),

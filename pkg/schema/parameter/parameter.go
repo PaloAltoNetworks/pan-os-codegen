@@ -47,7 +47,7 @@ type CodegenOverridesTerraform struct {
 }
 
 type CodegenOverrides struct {
-	Terraform *CodegenOverridesTerraform `yaml:"terraform"`
+	Terraform CodegenOverridesTerraform `yaml:"terraform"`
 }
 
 type HashingSpec struct {

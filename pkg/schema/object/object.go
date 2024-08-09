@@ -14,6 +14,7 @@ type TerraformConfig struct {
 	SkipDatasource        bool   `yaml:"skip_datasource"`
 	SkipdatasourceListing bool   `yaml:"skip_datasource_listing"`
 	Suffix                string `yaml:"suffix"`
+	PluralName            string `yaml:"plural_name"`
 }
 
 type GoSdkConfig struct {
