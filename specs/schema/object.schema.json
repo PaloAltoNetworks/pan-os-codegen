@@ -17,11 +17,25 @@
     "name": { "type": "string" },
     "terraform_provider_config": {
       "type": "object",
+      "additionalProperties": false,
       "required": ["suffix"],
       "properties": {
+        "resource_type": {
+          "type": "string",
+          "enum": ["entry", "config", "uuid"]
+        },
+        "resource_variants": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["singular", "plural"]
+          }
+        },
         "suffix": {
           "type": "string"
-        }
+        },
+        "plural_suffix": { "type": "string" },
+        "plural_name": { "type": "string" }
       }
     },
     "go_sdk_config": {

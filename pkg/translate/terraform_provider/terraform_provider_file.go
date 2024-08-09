@@ -27,6 +27,8 @@ func NewNameProvider(spec *properties.Normalization, resourceTyp properties.Reso
 	switch resourceTyp {
 	case properties.ResourceEntry:
 		tfName = spec.Name
+	case properties.ResourceEntryPlural:
+		tfName = spec.TerraformProviderConfig.PluralSuffix
 	case properties.ResourceUuid:
 		tfName = spec.TerraformProviderConfig.Suffix
 	case properties.ResourceUuidPlural:
@@ -166,6 +168,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/xmlapi", "")
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "")
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/rule", "")
+			case properties.ResourceEntryPlural:
+				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/xmlapi", "")
+				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "")
 			case properties.ResourceEntry:
 			}
 

@@ -151,10 +151,14 @@ func generateFromTerraformToPangoParameter(resourceTyp properties.ResourceType, 
 			Params:          paramSpecs,
 			OneOf:           oneofSpecs,
 		})
-	case properties.ResourceUuid, properties.ResourceUuidPlural:
+	case properties.ResourceEntryPlural, properties.ResourceUuid, properties.ResourceUuidPlural:
 		terraformPrefix = fmt.Sprintf("%s%s", terraformPrefix, pascalCase(prop.TerraformProviderConfig.PluralName))
+		var hasEntryName bool
+		if prop.Entry != nil && resourceTyp != properties.ResourceEntryPlural {
+			hasEntryName = true
+		}
 		specs = append(specs, spec{
-			HasEntryName:    prop.Entry != nil,
+			HasEntryName:    hasEntryName,
 			PangoType:       pangoPrefix,
 			PangoReturnType: pangoReturnType,
 			ModelOrObject:   "Object",
@@ -902,7 +906,7 @@ const (
 )
 
 // createSchemaSpecForUuidModel creates a schema for uuid-type resources, where top-level model describes a list of objects.
-func createSchemaSpecForUuidModel(schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string) []schemaCtx {
+func createSchemaSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string) []schemaCtx {
 	var schemas []schemaCtx
 	var attributes []attributeCtx
 
@@ -947,7 +951,7 @@ func createSchemaSpecForUuidModel(schemaTyp schemaType, spec *properties.Normali
 	})
 
 	structName = fmt.Sprintf("%s%s", structName, listName.CamelCase)
-	normalizationAttrs, normalizationSchemas := createSchemaSpecForNormalization(schemaTyp, spec, packageName, structName)
+	normalizationAttrs, normalizationSchemas := createSchemaSpecForNormalization(resourceTyp, schemaTyp, spec, packageName, structName)
 
 	schemas = append(schemas, schemaCtx{
 		Package:       packageName,
@@ -963,8 +967,10 @@ func createSchemaSpecForUuidModel(schemaTyp schemaType, spec *properties.Normali
 	return schemas
 }
 
-// createSchemaSpecForEntryModel creates a schema for entry-type resources, where top-level model describes normalization.
-func createSchemaSpecForEntryModel(schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string) []schemaCtx {
+// createSchemaSpecForEntrySingularModel creates a schema for entry-type singular resources.
+//
+// Entry-type singular resources are resources that manage a single object in PAN-OS, e.g. `resource_ethernet_interface`.
+func createSchemaSpecForEntrySingularModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string) []schemaCtx {
 	var schemas []schemaCtx
 	var attributes []attributeCtx
 	location := &properties.NameVariant{
@@ -994,7 +1000,7 @@ func createSchemaSpecForEntryModel(schemaTyp schemaType, spec *properties.Normal
 		Computed:    true,
 	})
 
-	normalizationAttrs, normalizationSchemas := createSchemaSpecForNormalization(schemaTyp, spec, packageName, structName)
+	normalizationAttrs, normalizationSchemas := createSchemaSpecForNormalization(resourceTyp, schemaTyp, spec, packageName, structName)
 	attributes = append(attributes, normalizationAttrs...)
 
 	var isResource bool
@@ -1008,6 +1014,73 @@ func createSchemaSpecForEntryModel(schemaTyp schemaType, spec *properties.Normal
 		StructName:    structName,
 		ReturnType:    "Schema",
 		Attributes:    attributes,
+	})
+
+	schemas = append(schemas, normalizationSchemas...)
+
+	return schemas
+}
+
+// createSchemaSpecForEntrySingularModel creates a schema for entry-type plural resources.
+//
+// Entry-type plural resources are resources that manage multiple PAN-OS objects within
+// single terraform resource, e.g. `panos_address_objects`. For such objects, we want to
+// provide users with a simple way of indexing into specific objects based on their name,
+// so the terraform object represents lists as sets, where key is object name, and the value
+// is an terraform nested attribute describing the rest of object parameters.
+func createSchemaSpecForEntryListModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string) []schemaCtx {
+	var schemas []schemaCtx
+	var attributes []attributeCtx
+	location := &properties.NameVariant{
+		Underscore:     naming.Underscore("", "location", ""),
+		CamelCase:      naming.CamelCase("", "location", "", true),
+		LowerCamelCase: naming.CamelCase("", "location", "", false),
+	}
+
+	attributes = append(attributes, attributeCtx{
+		Package:    packageName,
+		Name:       location,
+		Required:   true,
+		SchemaType: "SingleNestedAttribute",
+	})
+
+	listNameStr := spec.TerraformProviderConfig.PluralName
+	listName := &properties.NameVariant{
+		Underscore:     naming.Underscore("", listNameStr, ""),
+		CamelCase:      naming.CamelCase("", listNameStr, "", true),
+		LowerCamelCase: naming.CamelCase("", listNameStr, "", false),
+	}
+
+	attributes = append(attributes, attributeCtx{
+		Package:    packageName,
+		Name:       listName,
+		Required:   true,
+		SchemaType: "MapNestedAttribute",
+	})
+
+	var isResource bool
+	if schemaTyp == schemaResource {
+		isResource = true
+	}
+	schemas = append(schemas, schemaCtx{
+		Package:       packageName,
+		ObjectOrModel: "Model",
+		IsResource:    isResource,
+		StructName:    structName,
+		ReturnType:    "Schema",
+		Attributes:    attributes,
+	})
+
+	structName = fmt.Sprintf("%s%s", structName, listName.CamelCase)
+	normalizationAttrs, normalizationSchemas := createSchemaSpecForNormalization(resourceTyp, schemaTyp, spec, packageName, structName)
+
+	schemas = append(schemas, schemaCtx{
+		Package:       packageName,
+		ObjectOrModel: "Object",
+		IsResource:    isResource,
+		StructName:    structName,
+		ReturnType:    "NestedAttributeObject",
+		Attributes:    normalizationAttrs,
 	})
 
 	schemas = append(schemas, normalizationSchemas...)
@@ -1043,15 +1116,17 @@ func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp sch
 
 	switch resourceTyp {
 	case properties.ResourceEntry:
-		return createSchemaSpecForEntryModel(schemaTyp, spec, packageName, structName)
+		return createSchemaSpecForEntrySingularModel(resourceTyp, schemaTyp, spec, packageName, structName)
+	case properties.ResourceEntryPlural:
+		return createSchemaSpecForEntryListModel(resourceTyp, schemaTyp, spec, packageName, structName)
 	case properties.ResourceUuid, properties.ResourceUuidPlural:
-		return createSchemaSpecForUuidModel(schemaTyp, spec, packageName, structName)
+		return createSchemaSpecForUuidModel(resourceTyp, schemaTyp, spec, packageName, structName)
 	default:
 		panic("unreachable")
 	}
 }
 
-func createSchemaSpecForNormalization(schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string) ([]attributeCtx, []schemaCtx) {
+func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string) ([]attributeCtx, []schemaCtx) {
 	var schemas []schemaCtx
 	var attributes []attributeCtx
 
@@ -1072,7 +1147,9 @@ func createSchemaSpecForNormalization(schemaTyp schemaType, spec *properties.Nor
 		})
 	}
 
-	if spec.HasEntryName() {
+	// We don't add name for resources of type ResourceEntryPlural, as those resources
+	// handle names as map keys in the top-level model.
+	if spec.HasEntryName() && resourceTyp != properties.ResourceEntryPlural {
 		name := &properties.NameVariant{
 			Underscore:     naming.Underscore("", "name", ""),
 			CamelCase:      naming.CamelCase("", "name", "", true),
@@ -1133,6 +1210,11 @@ const renderSchemaTemplate = `
   {{- end }}
 {{- end }}
 
+{{- define "renderSchemaMapNestedAttribute" }}
+  {{- template "renderSchemaListNestedAttribute" . }}
+{{- end }}
+
+
 {{- define "renderSchemaSingleNestedAttribute" }}
   {{- with .Attribute }}
 	"{{ .Name.Underscore }}": {{ $.StructName }}{{ .Name.CamelCase }}Schema(),
@@ -1160,6 +1242,8 @@ const renderSchemaTemplate = `
       {{- template "renderSchemaMapAttribute" . }}
     {{- else if eq .SchemaType "ListNestedAttribute" }}
       {{- template "renderSchemaListNestedAttribute" Map "StructName" $.StructName "Attribute" . }}
+    {{ else if eq .SchemaType "MapNestedAttribute" }}
+      {{- template "renderSchemaMapNestedAttribute" Map "StructName" $.StructName "Attribute" . }}
     {{- else if eq .SchemaType "SingleNestedAttribute" }}
       {{- template "renderSchemaSingleNestedAttribute" Map "StructName" $.StructName "Attribute" . }}
     {{- else }}
@@ -1194,6 +1278,8 @@ func (o *{{ .StructName }}{{ .ObjectOrModel }}) getTypeFor(name string) attr.Typ
 	} else {
 		switch attr := attr.(type) {
 		case {{ .Package }}.ListNestedAttribute:
+			return attr.NestedObject.Type()
+		case {{ .Package }}.MapNestedAttribute:
 			return attr.NestedObject.Type()
 		default:
 			return attr.GetType()
@@ -1421,7 +1507,7 @@ func dataSourceStructContextForParam(structPrefix string, param *properties.Spec
 	return structs
 }
 
-func createStructSpecForUuidModel(schemaTyp schemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
+func createStructSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
 	var structs []datasourceStructSpec
 
 	var fields []datasourceStructFieldSpec
@@ -1460,7 +1546,7 @@ func createStructSpecForUuidModel(schemaTyp schemaType, spec *properties.Normali
 	})
 
 	structName = fmt.Sprintf("%s%s", structName, listName.CamelCase)
-	fields, normalizationStructs := createStructSpecForNormalization(structName, spec)
+	fields, normalizationStructs := createStructSpecForNormalization(resourceTyp, structName, spec)
 
 	structs = append(structs, datasourceStructSpec{
 		StructName:    structName,
@@ -1473,7 +1559,59 @@ func createStructSpecForUuidModel(schemaTyp schemaType, spec *properties.Normali
 	return structs
 }
 
-func createStructSpecForEntryModel(schemaTyp schemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
+func createStructSpecForEntryListModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
+	var structs []datasourceStructSpec
+
+	var fields []datasourceStructFieldSpec
+	fields = append(fields, datasourceStructFieldSpec{
+		Name: "Location",
+		Type: fmt.Sprintf("%sLocation", names.StructName),
+		Tags: []string{"`tfsdk:\"location\"`"},
+	})
+
+	var structName string
+	switch schemaTyp {
+	case schemaResource:
+		structName = names.ResourceStructName
+	case schemaDataSource:
+		structName = names.DataSourceStructName
+	}
+
+	listNameStr := spec.TerraformProviderConfig.PluralName
+	listName := &properties.NameVariant{
+		Underscore:     naming.Underscore("", listNameStr, ""),
+		CamelCase:      naming.CamelCase("", listNameStr, "", true),
+		LowerCamelCase: naming.CamelCase("", listNameStr, "", false),
+	}
+
+	tag := fmt.Sprintf("`tfsdk:\"%s\"`", listName.Underscore)
+	fields = append(fields, datasourceStructFieldSpec{
+		Name: listName.CamelCase,
+		Type: "types.Map",
+		Tags: []string{tag},
+	})
+
+	structs = append(structs, datasourceStructSpec{
+		StructName:    structName,
+		ModelOrObject: "Model",
+		Fields:        fields,
+	})
+
+	structName = fmt.Sprintf("%s%s", structName, listName.CamelCase)
+	fields, normalizationStructs := createStructSpecForNormalization(resourceTyp, structName, spec)
+
+	structs = append(structs, datasourceStructSpec{
+		StructName:    structName,
+		ModelOrObject: "Object",
+		Fields:        fields,
+	})
+
+	structs = append(structs, normalizationStructs...)
+
+	return structs
+}
+
+func createStructSpecForEntryModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
 	var structs []datasourceStructSpec
 
 	var fields []datasourceStructFieldSpec
@@ -1498,7 +1636,7 @@ func createStructSpecForEntryModel(schemaTyp schemaType, spec *properties.Normal
 		structName = names.ResourceStructName
 	}
 
-	normalizationFields, normalizationStructs := createStructSpecForNormalization(structName, spec)
+	normalizationFields, normalizationStructs := createStructSpecForNormalization(resourceTyp, structName, spec)
 	fields = append(fields, normalizationFields...)
 
 	structs = append(structs, datasourceStructSpec{
@@ -1519,19 +1657,21 @@ func createStructSpecForModel(resourceTyp properties.ResourceType, schemaTyp sch
 
 	switch resourceTyp {
 	case properties.ResourceEntry:
-		return createStructSpecForEntryModel(schemaTyp, spec, names)
+		return createStructSpecForEntryModel(resourceTyp, schemaTyp, spec, names)
+	case properties.ResourceEntryPlural:
+		return createStructSpecForEntryListModel(resourceTyp, schemaTyp, spec, names)
 	case properties.ResourceUuid, properties.ResourceUuidPlural:
-		return createStructSpecForUuidModel(schemaTyp, spec, names)
+		return createStructSpecForUuidModel(resourceTyp, schemaTyp, spec, names)
 	default:
 		panic("unreachable")
 	}
 }
 
-func createStructSpecForNormalization(structName string, spec *properties.Normalization) ([]datasourceStructFieldSpec, []datasourceStructSpec) {
+func createStructSpecForNormalization(resourceTyp properties.ResourceType, structName string, spec *properties.Normalization) ([]datasourceStructFieldSpec, []datasourceStructSpec) {
 	var fields []datasourceStructFieldSpec
 	var structs []datasourceStructSpec
 
-	if spec.HasEntryName() {
+	if spec.HasEntryName() && resourceTyp != properties.ResourceEntryPlural {
 		fields = append(fields, datasourceStructFieldSpec{
 			Name: "Name",
 			Type: "types.String",
@@ -1608,6 +1748,7 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 	var exhaustive bool
 	switch resourceTyp {
 	case properties.ResourceEntry:
+		exhaustive = true
 		tmpl = resourceCreateFunction
 	case properties.ResourceUuid:
 		exhaustive = true
@@ -1625,9 +1766,14 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 		LowerCamelCase: naming.CamelCase("", listAttribute, "", false),
 	}
 
+	var resourceIsMap bool
+	if resourceTyp == properties.ResourceEntryPlural {
+		resourceIsMap = true
+	}
 	data := map[string]interface{}{
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
 		"Exhaustive":            exhaustive,
+		"ResourceIsMap":         resourceIsMap,
 		"ListAttribute":         listAttributeVariant,
 		"EntryOrConfig":         paramSpec.EntryOrConfig(),
 		"HasEntryName":          paramSpec.HasEntryName(),
@@ -1662,8 +1808,13 @@ func DataSourceReadFunction(resourceTyp properties.ResourceType, names *NameProv
 		LowerCamelCase: naming.CamelCase("", listAttribute, "", false),
 	}
 
+	var resourceIsMap bool
+	if resourceTyp == properties.ResourceEntryPlural {
+		resourceIsMap = true
+	}
 	data := map[string]interface{}{
 		"ResourceOrDS":          "DataSource",
+		"ResourceIsMap":         resourceIsMap,
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
 		"ListAttribute":         listAttributeVariant,
 		"EntryOrConfig":         paramSpec.EntryOrConfig(),
@@ -1699,6 +1850,9 @@ func ResourceReadFunction(resourceTyp properties.ResourceType, names *NameProvid
 	switch resourceTyp {
 	case properties.ResourceEntry:
 		tmpl = resourceReadFunction
+	case properties.ResourceEntryPlural:
+		tmpl = resourceReadManyFunction
+		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 	case properties.ResourceUuid:
 		tmpl = resourceReadManyFunction
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
@@ -1714,8 +1868,13 @@ func ResourceReadFunction(resourceTyp properties.ResourceType, names *NameProvid
 		LowerCamelCase: naming.CamelCase("", listAttribute, "", false),
 	}
 
+	var resourceIsMap bool
+	if resourceTyp == properties.ResourceEntryPlural {
+		resourceIsMap = true
+	}
 	data := map[string]interface{}{
 		"ResourceOrDS":          "Resource",
+		"ResourceIsMap":         resourceIsMap,
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
 		"ListAttribute":         listAttributeVariant,
 		"Exhaustive":            exhaustive,
@@ -1752,6 +1911,9 @@ func ResourceUpdateFunction(resourceTyp properties.ResourceType, names *NameProv
 	switch resourceTyp {
 	case properties.ResourceEntry:
 		tmpl = resourceUpdateFunction
+	case properties.ResourceEntryPlural:
+		tmpl = resourceUpdateEntryListFunction
+		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 	case properties.ResourceUuid:
 		tmpl = resourceUpdateManyFunction
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
@@ -1767,8 +1929,14 @@ func ResourceUpdateFunction(resourceTyp properties.ResourceType, names *NameProv
 		LowerCamelCase: naming.CamelCase("", listAttribute, "", false),
 	}
 
+	var resourceIsMap bool
+	if resourceTyp == properties.ResourceEntryPlural {
+		resourceIsMap = true
+	}
+
 	data := map[string]interface{}{
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
+		"ResourceIsMap":         resourceIsMap,
 		"ListAttribute":         listAttributeVariant,
 		"Exhaustive":            exhaustive,
 		"EntryOrConfig":         paramSpec.EntryOrConfig(),

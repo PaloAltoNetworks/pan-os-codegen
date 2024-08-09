@@ -1,6 +1,11 @@
 name: "Address"
 terraform_provider_config:
+  resource_type: entry
+  resource_variants:
+    - plural
   suffix: "address_object"
+  plural_suffix: "address_objects"
+  plural_name: "addresses"
 go_sdk_config:
   package:
     - "objects"
