@@ -1463,11 +1463,14 @@ for idx, elt := range elements {
 }
 
 type entryState string
-const entryUnknown entryState = "unknown"
-const entryMissing entryState = "missing"
-const entryOutdated entryState = "outdated"
-const entryRenamed entryState = "renamed"
-const entryOk entryState = "ok"
+const (
+	entryUnknown  entryState = "unknown"
+	entryMissing  entryState = "missing"
+	entryOutdated entryState = "outdated"
+	entryRenamed  entryState = "renamed"
+	entryDeleted  entryState = "deleted"
+	entryOk       entryState = "ok"
+)
 
 type entryWithState struct {
 	Entry    *{{ $resourceSDKStructName }}
@@ -1646,6 +1649,15 @@ for _, existingElt := range existing {
 	}
 }
 
+// Check if any state entries were not in the plan, and if so mark them for
+// deletion.
+for _, elt := range stateEntriesByName {
+	if _, processedEltFound := processedStateEntries[elt.Entry.Name]; !processedEltFound {
+		elt.State = entryDeleted
+		processedStateEntries[elt.Entry.Name] = elt
+	}
+}
+
 specifier, _, err := {{ .resourceSDKName }}.Versioning(r.client.Versioning())
 if err != nil {
 	resp.Diagnostics.AddError("error while creating specifier", err.Error())
@@ -1688,6 +1700,13 @@ for _, elt := range processedStateEntries {
 		delete(processedStateEntries, elt.Entry.Name)
 		elt.Entry.Name = elt.NewName
 		processedStateEntries[elt.NewName] = elt
+	case entryDeleted:
+		updates.Add(&xmlapi.Config{
+			Action: "delete",
+			Xpath:  util.AsXpath(path),
+			Target: r.client.GetTarget(),
+		})
+		delete(processedStateEntries, elt.Entry.Name)
 	case entryOk:
 		// Nothing to do for entries that have no changes
 	}
