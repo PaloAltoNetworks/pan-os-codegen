@@ -495,15 +495,18 @@ for idx, elt := range existing {
 // as a way to check if managed entries are in order relative to each
 // other.
 var movementRequired bool
-managedEntriesByName := make(map[string]*entryWithState, len(entries))
-for idx, elt := range existing {
+managedEntriesByName := make(map[string]*entryWithState, len(planEntriesByName))
+idx := 0
+for existingIdx, elt := range existing {
 	if planEntry, found := planEntriesByName[elt.Name]; found {
-		planEntry.Entry.Uuid = elt.Uuid
 		managedEntriesByName[elt.Name] = &entryWithState{
-			Entry: &existing[idx],
+			Entry: &existing[existingIdx],
 			StateIdx: idx,
 		}
+		planEntry.Entry.Uuid = elt.Uuid
+		planEntriesByName[elt.Name] = planEntry
 	}
+	idx++
 }
 
 // First, we check if managedEntries order matches planEntriesByName to check
@@ -1568,7 +1571,6 @@ for idx, elt := range planEntries {
 		} else {
 			processedEntry.State = entryOutdated
 		}
-		elt.Uuid = nil
 
 		processedStateEntries[elt.Name] = processedEntry
 	}
