@@ -977,9 +977,26 @@ for _, elt := range existing {
 	processedElementsByName[elt.Name] = processedElement
 }
 
-objects := make([]{{ $resourceTFStructName }}, len(processedElementsByName))
+
+// To keep indices correct, processed entries were stored in a map, with element
+// index being part of the entryWithState structure. Now it has to be converted
+// into a list that can be set in the plan.
+// First, create a list with a length matching number of elements in the
+// stateElementsByName and fill it out with elements from processedElementsByName
+// map.
+unfiltered := make([]elementWithState, len(stateElementsByName))
 for _, elt := range processedElementsByName {
-	objects[elt.StateIdx] = *elt.Element
+	unfiltered[elt.StateIdx] = elt
+}
+
+// If some elements were removed in the plan, unfiltered array is now going to have
+// empty spaces. We need to process it and remove them before we pass it back
+// to terraform.
+var objects []{{ $resourceTFStructName }}
+for _, elt := range unfiltered {
+	if elt.Element != nil {
+		objects = append(objects, *elt.Element)
+	}
 }
 {{- end }}
 
@@ -1164,11 +1181,14 @@ for name, elt := range elements {
 }
 
 type entryState string
-const entryUnknown entryState = "unknown"
-const entryMissing entryState = "missing"
-const entryOutdated entryState = "outdated"
-const entryRenamed entryState = "renamed"
-const entryOk entryState = "ok"
+const (
+	entryUnknown  entryState = "unknown"
+	entryMissing  entryState = "missing"
+	entryOutdated entryState = "outdated"
+	entryRenamed  entryState = "renamed"
+	entryDeleted  entryState = "deleted"
+	entryOk       entryState = "ok"
+)
 
 type entryWithState struct {
 	Entry    *{{ $resourceSDKStructName }}
