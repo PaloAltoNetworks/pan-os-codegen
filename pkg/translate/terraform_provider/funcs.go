@@ -662,20 +662,26 @@ type defaultCtx struct {
 	Value string
 }
 
+type modifierCtx struct {
+	SchemaType string
+	Modifiers  []string
+}
+
 type attributeCtx struct {
-	Package      string
-	Name         *properties.NameVariant
-	SchemaType   string
-	ExternalType string
-	ElementType  string
-	Description  string
-	Required     bool
-	Computed     bool
-	Optional     bool
-	Sensitive    bool
-	Default      *defaultCtx
-	ModifierType string
-	Attributes   []attributeCtx
+	Package       string
+	Name          *properties.NameVariant
+	SchemaType    string
+	ExternalType  string
+	ElementType   string
+	Description   string
+	Required      bool
+	Computed      bool
+	Optional      bool
+	Sensitive     bool
+	Default       *defaultCtx
+	ModifierType  string
+	Attributes    []attributeCtx
+	PlanModifiers *modifierCtx
 }
 
 type schemaCtx struct {
@@ -890,17 +896,29 @@ func createSchemaAttributeForParameter(schemaTyp schemaType, packageName string,
 		computed = true
 	}
 
+	// TODO(kklimonda): This is pretty one-off implementation to
+	// support uuid-style resources, but could be expanded to be more
+	// generic if needed.
+	var modifiers *modifierCtx
+	if schemaTyp == schemaResource && computed && param.Default == "" {
+		modifiers = &modifierCtx{
+			SchemaType: fmt.Sprintf("planmodifier.%s", pascalCase(param.Type)),
+			Modifiers:  []string{fmt.Sprintf("%splanmodifier.UseStateForUnknown()", param.Type)},
+		}
+	}
+
 	return attributeCtx{
-		Package:     packageName,
-		Name:        param.Name,
-		SchemaType:  schemaType,
-		ElementType: elementType,
-		Description: param.Description,
-		Required:    param.Required,
-		Optional:    !param.Required,
-		Sensitive:   param.Sensitive,
-		Default:     defaultValue,
-		Computed:    computed,
+		Package:       packageName,
+		Name:          param.Name,
+		SchemaType:    schemaType,
+		ElementType:   elementType,
+		Description:   param.Description,
+		Required:      param.Required,
+		Optional:      !param.Required,
+		Sensitive:     param.Sensitive,
+		Default:       defaultValue,
+		Computed:      computed,
+		PlanModifiers: modifiers,
 	}
 }
 
@@ -1258,6 +1276,13 @@ const renderSchemaTemplate = `
 		Sensitive: {{ .Sensitive }},
   {{- if .Default }}
 		Default: {{ .Default.Type }}({{ .Default.Value }}),
+  {{- end }}
+  {{- if .PlanModifiers }}
+		PlanModifiers: []{{ .PlanModifiers.SchemaType }}{
+    {{- range .PlanModifiers.Modifiers }}
+			{{ . }},
+    {{- end }}
+		},
   {{- end }}
 	},
 {{- end }}
