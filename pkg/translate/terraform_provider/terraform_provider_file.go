@@ -173,10 +173,13 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 			}
 
 			switch resourceTyp {
-			case properties.ResourceUuid, properties.ResourceUuidPlural:
+			case properties.ResourceUuid:
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/xmlapi", "")
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "")
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/rule", "")
+			case properties.ResourceUuidPlural:
+				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/xmlapi", "")
+				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "")
 			case properties.ResourceEntryPlural:
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/xmlapi", "")
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "")

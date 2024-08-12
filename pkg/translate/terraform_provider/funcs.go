@@ -1440,6 +1440,15 @@ func RenderLocationsStateToPango(names *NameProvider, spec *properties.Normaliza
 	return processTemplate(locationsStateToPango, "render-locations-state-to-pango", data, commonFuncMap)
 }
 
+func RendeCreateUpdateMovementRequired(state string, entries string) (string, error) {
+	type context struct {
+		State   string
+		Entries string
+	}
+	data := context{State: state, Entries: entries}
+	return processTemplate(resourceCreateUpdateMovementRequiredTmpl, "render-create-update-movement-required", data, nil)
+}
+
 const dataSourceStructs = `
 {{- range .Structs }}
 type {{ .StructName }}{{ .ModelOrObject }} struct {
@@ -1778,6 +1787,9 @@ func RenderDataSourceStructs(resourceTyp properties.ResourceType, names *NamePro
 func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProvider, serviceName string, paramSpec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, resourceSDKName string) (string, error) {
 	funcMap := template.FuncMap{
 		"ConfigToEntry": ConfigEntry,
+		"RenderCreateUpdateMovementRequired": func(state string, entries string) (string, error) {
+			return RendeCreateUpdateMovementRequired(state, entries)
+		},
 		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
 			return RenderLocationsStateToPango(names, paramSpec, source, dest)
 		},
@@ -2001,6 +2013,9 @@ func ResourceUpdateFunction(resourceTyp properties.ResourceType, names *NameProv
 	}
 
 	funcMap := template.FuncMap{
+		"RenderCreateUpdateMovementRequired": func(state string, entries string) (string, error) {
+			return RendeCreateUpdateMovementRequired(state, entries)
+		},
 		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
 			return RenderLocationsStateToPango(names, paramSpec, source, dest)
 		},

@@ -113,6 +113,124 @@ const resourceSchemaLocationAttribute = `
 			},
 `
 
+const resourceCreateUpdateMovementRequiredTmpl = `
+// We only manage a subset of PAN-OS object on the given list, so care
+// has to be taken to calculate the order of those managed elements on the
+// PAN-OS side.
+
+// We filter all existing entries to end up with a list of entries that
+// are in the plan. For every element of that list, we store its PAN-OS
+// list index as StateIdx. Finally, the managedEntries index will serve
+// as a way to check if managed entries are in order relative to each
+// other.
+var movementRequired bool
+managedEntriesByName := make(map[string]*entryWithState, len(planEntriesByName))
+idx := 0
+for existingIdx, elt := range existing {
+	if planEntry, found := planEntriesByName[elt.Name]; found {
+		managedEntriesByName[elt.Name] = &entryWithState{
+			Entry: &existing[existingIdx],
+			StateIdx: idx,
+		}
+		planEntry.Entry.Uuid = elt.Uuid
+		planEntriesByName[elt.Name] = planEntry
+	}
+	idx++
+}
+
+// First, we check if managedEntries order matches planEntriesByName to check
+// if all entries from the plan are properly ordered on the server.
+var previousManagedEntry, previousPlannedEntry *entryWithState
+for _, elt := range managedEntriesByName {
+	// plannedEntriesByName is a map of entries from the plan indexed by their
+	// name. If idx doesn't match StateIdx of the entry from the plan, the PAN-OS
+	// object is out of order.
+	plannedEntry := planEntriesByName[elt.Entry.Name]
+	if plannedEntry.StateIdx != elt.StateIdx {
+		movementRequired = true
+		break
+	}
+	// If this is the first element we are comparing, store it for future reference
+	// and continue. We will use it to calculate distance between two elements in
+	// PAN-OS list.
+	if previousManagedEntry == nil {
+		previousManagedEntry = elt
+		previousPlannedEntry = plannedEntry
+		continue
+	}
+
+	serverDistance := elt.StateIdx - previousManagedEntry.StateIdx
+	planDistance := plannedEntry.StateIdx - previousPlannedEntry.StateIdx
+
+	// If the distance between previous and current object differs between
+	// PAN-OS and the plan, we need to move objects around.
+	if serverDistance != planDistance {
+		movementRequired = true
+		break
+	}
+
+	previousManagedEntry = elt
+	previousPlannedEntry = plannedEntry
+}
+
+// If all entries are ordered properly, we check if their position matches what's
+// requested.
+if !movementRequired {
+	existingEntriesByName := make(map[string]*entryWithState, len(existing))
+	for idx, elt := range existing {
+		existingEntriesByName[elt.Name] = &entryWithState{
+			Entry: &existing[idx],
+			StateIdx: idx,
+		}
+	}
+
+	positionWhere := {{ .State }}.Position.Where.ValueString()
+	switch positionWhere {
+	case "first":
+		if existing[len({{ .Entries }})-1].Name != {{ .Entries }}[len({{ .Entries }})-1].Name {
+			movementRequired = true
+
+		}
+	case "last":
+		if existing[len({{ .Entries }})-1].Name != {{ .Entries }}[len({{ .Entries }})-1].Name {
+			movementRequired = true
+		}
+	case "before":
+		pivot := {{ .State }}.Position.Pivot.ValueString()
+		directly := {{ .State }}.Position.Directly.ValueBool()
+		if existingPivot, found := existingEntriesByName[pivot]; !found {
+			resp.Diagnostics.AddError("failed to create move actions", fmt.Sprintf("pivot point '%s' missing from the server", pivot))
+		} else if directly {
+			if existingPivot.StateIdx == 0 {
+				movementRequired = true
+			} else if existing[existingPivot.StateIdx-1].Name != {{ .Entries }}[len({{ .Entries }})-1].Name {
+				movementRequired = true
+			}
+		} else {
+			if existingPivot.StateIdx == 0 {
+				movementRequired = true
+			}
+		}
+	case "after":
+		pivot := {{ .State }}.Position.Pivot.ValueString()
+		directly := {{ .State }}.Position.Directly.ValueBool()
+		if existingPivot, found := existingEntriesByName[pivot]; !found {
+			resp.Diagnostics.AddError("failed to create move actions", fmt.Sprintf("pivot point '%s' missing from the server", pivot))
+		} else if directly {
+			if existingPivot.StateIdx == len(existing)-1 {
+				movementRequired = true
+			} else if existing[existingPivot.StateIdx+1].Name != {{ .Entries }}[0].Name {
+				movementRequired = true
+			}
+		} else {
+			if existingPivot.StateIdx == len(existing)-1 {
+				movementRequired = true
+			}
+		}
+	}
+}
+`
+
 const resourceObj = `
 {{- /* Begin */ -}}
 
@@ -477,6 +595,8 @@ if err != nil && err.Error() != "Object not found" {
 {{- if .Exhaustive }}
 // We manage the entire list of PAN-OS objects, so the order of entries
 // from the plan is compared against all existing PAN-OS objects.
+trueValue := true
+position := rule.Position{First: &trueValue}
 var movementRequired bool
 for idx, elt := range existing {
 	if planEntriesByName[elt.Name].StateIdx != idx {
@@ -485,121 +605,8 @@ for idx, elt := range existing {
 	planEntriesByName[elt.Name].Entry.Uuid = elt.Uuid
 }
 {{- else }}
-// We only manage a subset of PAN-OS object on the given list, so care
-// has to be taken to calculate the order of those managed elements on the
-// PAN-OS side.
-
-// We filter all existing entries to end up with a list of entries that
-// are in the plan. For every element of that list, we store its PAN-OS
-// list index as StateIdx. Finally, the managedEntries index will serve
-// as a way to check if managed entries are in order relative to each
-// other.
-var movementRequired bool
-managedEntriesByName := make(map[string]*entryWithState, len(planEntriesByName))
-idx := 0
-for existingIdx, elt := range existing {
-	if planEntry, found := planEntriesByName[elt.Name]; found {
-		managedEntriesByName[elt.Name] = &entryWithState{
-			Entry: &existing[existingIdx],
-			StateIdx: idx,
-		}
-		planEntry.Entry.Uuid = elt.Uuid
-		planEntriesByName[elt.Name] = planEntry
-	}
-	idx++
-}
-
-// First, we check if managedEntries order matches planEntriesByName to check
-// if all entries from the plan are properly ordered on the server.
-var previousManagedEntry, previousPlannedEntry *entryWithState
-for _, elt := range managedEntriesByName {
-	// plannedEntriesByName is a map of entries from the plan indexed by their
-	// name. If idx doesn't match StateIdx of the entry from the plan, the PAN-OS
-	// object is out of order.
-	plannedEntry := planEntriesByName[elt.Entry.Name]
-	if plannedEntry.StateIdx != elt.StateIdx {
-		movementRequired = true
-		break
-	}
-	// If this is the first element we are comparing, store it for future reference
-	// and continue. We will use it to calculate distance between two elements in
-	// PAN-OS list.
-	if previousManagedEntry == nil {
-		previousManagedEntry = elt
-		previousPlannedEntry = plannedEntry
-		continue
-	}
-
-	serverDistance := elt.StateIdx - previousManagedEntry.StateIdx
-	planDistance := plannedEntry.StateIdx - previousPlannedEntry.StateIdx
-
-	// If the distance between previous and current object differs between
-	// PAN-OS and the plan, we need to move objects around.
-	if serverDistance != planDistance {
-		movementRequired = true
-		break
-	}
-
-	previousManagedEntry = elt
-	previousPlannedEntry = plannedEntry
-}
-
-// If all entries are ordered properly, we check if their position matches what's
-// requested.
-if !movementRequired {
-	existingEntriesByName := make(map[string]*entryWithState, len(existing))
-	for idx, elt := range existing {
-		existingEntriesByName[elt.Name] = &entryWithState{
-			Entry: &existing[idx],
-			StateIdx: idx,
-		}
-	}
-
-	positionWhere := state.Position.Where.ValueString()
-	switch positionWhere {
-	case "first":
-		if existing[len(entries)-1].Name != entries[len(entries)-1].Name {
-			movementRequired = true
-
-		}
-	case "last":
-		if existing[len(entries)-1].Name != entries[len(entries)-1].Name {
-			movementRequired = true
-		}
-	case "before":
-		pivot := state.Position.Pivot.ValueString()
-		directly := state.Position.Directly.ValueBool()
-		if existingPivot, found := existingEntriesByName[pivot]; !found {
-			resp.Diagnostics.AddError("failed to create move actions", fmt.Sprintf("pivot point '%s' missing from the server", pivot))
-		} else if directly {
-			if existingPivot.StateIdx == 0 {
-				movementRequired = true
-			} else if existing[existingPivot.StateIdx-1].Name != entries[len(entries)-1].Name {
-				movementRequired = true
-			}
-		} else {
-			if existingPivot.StateIdx == 0 {
-				movementRequired = true
-			}
-		}
-	case "after":
-		pivot := state.Position.Pivot.ValueString()
-		directly := state.Position.Directly.ValueBool()
-		if existingPivot, found := existingEntriesByName[pivot]; !found {
-			resp.Diagnostics.AddError("failed to create move actions", fmt.Sprintf("pivot point '%s' missing from the server", pivot))
-		} else if directly {
-			if existingPivot.StateIdx == len(existing)-1 {
-				movementRequired = true
-			} else if existing[existingPivot.StateIdx+1].Name != entries[0].Name {
-				movementRequired = true
-			}
-		} else {
-			if existingPivot.StateIdx == len(existing)-1 {
-				movementRequired = true
-			}
-		}
-	}
-}
+position := state.Position.CopyToPango()
+  {{ RenderCreateUpdateMovementRequired "state" "entries" }}
 {{- end }}
 
 {{- if .Exhaustive }}
@@ -608,8 +615,8 @@ if movementRequired {
 	for _, elt := range planEntriesByName {
 		entries[elt.StateIdx] = *elt.Entry
 	}
-	trueValue := true
-	err = svc.MoveGroup(ctx, location, rule.Position{First: &trueValue}, entries)
+
+	err = svc.MoveGroup(ctx, location, position, entries)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to reorder entries", err.Error())
 		return
@@ -617,12 +624,12 @@ if movementRequired {
 }
 {{- else }}
 if movementRequired {
-	entries := make([]{{ $resourceSDKStructName }}, len(managedEntriesByName))
-	for _, elt := range managedEntriesByName {
+	entries := make([]{{ $resourceSDKStructName }}, len(planEntriesByName))
+	for _, elt := range planEntriesByName {
 		entries[elt.StateIdx] = *elt.Entry
 	}
-	trueValue := true
-	err = svc.MoveGroup(ctx, location, rule.Position{First: &trueValue}, entries)
+
+	err = svc.MoveGroup(ctx, location, position, entries)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to reorder entries", err.Error())
 		return
@@ -631,8 +638,8 @@ if movementRequired {
 {{- end }}
 
 {{- if not .Exhaustive }}
-objects := make([]{{ $resourceTFStructName }}, len(managedEntriesByName))
-for _, elt := range managedEntriesByName {
+objects := make([]{{ $resourceTFStructName }}, len(planEntriesByName))
+for _, elt := range planEntriesByName {
 	var object {{ $resourceTFStructName }}
 	copy_diags := object.CopyFromPango(ctx, elt.Entry, {{ $ev }})
 	resp.Diagnostics.Append(copy_diags...)
@@ -678,10 +685,6 @@ if resp.Diagnostics.HasError() {
 	ev_map, ev_diags := types.MapValueFrom(ctx, types.StringType, ev)
         state.EncryptedValues = ev_map
         resp.Diagnostics.Append(ev_diags...)
-{{- end }}
-
-{{- if not .Exhaustive }}
-state.Position.Status = types.StringValue("uptodate")
 {{- end }}
 
 resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -1703,8 +1706,8 @@ if err != nil && err.Error() != "Object not found" {
 	return
 }
 
-var movementRequired bool
 {{- if .Exhaustive }}
+var movementRequired bool
 trueValue := true
 position := rule.Position{First: &trueValue}
 for idx, elt := range existing {
@@ -1715,7 +1718,7 @@ for idx, elt := range existing {
 }
 {{- else }}
 position := state.Position.CopyToPango()
-movementRequired = true
+  {{ RenderCreateUpdateMovementRequired "plan" "planEntries" }}
 {{- end }}
 
 if movementRequired {
@@ -1754,10 +1757,6 @@ resp.Diagnostics.Append(list_diags...)
 if resp.Diagnostics.HasError() {
 	return
 }
-
-{{- if not .Exhaustive }}
-plan.Position.Status = types.StringValue("uptodate")
-{{- end }}
 
 resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 `

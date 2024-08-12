@@ -12,7 +12,6 @@ import (
 )
 
 type TerraformPositionObject struct {
-	Status   types.String `tfsdk:"status"`
 	Where    types.String `tfsdk:"where"`
 	Pivot    types.String `tfsdk:"pivot"`
 	Directly types.Bool   `tfsdk:"directly"`
@@ -22,9 +21,6 @@ func TerraformPositionObjectSchema() rsschema.SingleNestedAttribute {
 	return rsschema.SingleNestedAttribute{
 		Required: true,
 		Attributes: map[string]rsschema.Attribute{
-			"status": rsschema.StringAttribute{
-				Computed: true,
-			},
 			"where": rsschema.StringAttribute{
 				Required: true,
 			},
