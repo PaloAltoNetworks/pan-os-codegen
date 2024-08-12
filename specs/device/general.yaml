@@ -1,0 +1,114 @@
+name: "General"
+terraform_provider_config:
+  suffix: "general_settings"
+go_sdk_config:
+  package:
+    - "device"
+    - "services"
+    - "general"
+locations:
+  - name: "system"
+    description: "Located in a system settings."
+    devices:
+      - panorama
+      - ngfw
+    xpath:
+      path:
+        - "config"
+        - "devices"
+        - "$ngfw_device"
+        - "deviceconfig"
+        - "system"
+      vars:
+        - name: "ngfw_device"
+          description: "The NGFW device."
+          default: "localhost.localdomain"
+  - name: "template"
+    description: "Located in a specific template."
+    devices:
+      - panorama
+    xpath:
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+        - "template"
+        - "$template"
+        - "config"
+        - "devices"
+        - "$ngfw_device"
+        - "deviceconfig"
+        - "system"
+      vars:
+        - name: "panorama_device"
+          description: "The panorama device."
+          default: "localhost.localdomain"
+        - name: "template"
+          description: "The template."
+          required: true
+        - name: "ngfw_device"
+          description: "The NGFW device."
+          default: "localhost.localdomain"
+  - name: "template-stack"
+    description: "Located in a specific template stack."
+    devices:
+      - panorama
+    xpath:
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+        - "template-stack"
+        - "$template_stack"
+        - "config"
+        - "devices"
+        - "$ngfw_device"
+        - "deviceconfig"
+        - "system"
+      vars:
+        - name: "panorama_device"
+          description: "The panorama device."
+          default: "localhost.localdomain"
+        - name: "template_stack"
+          description: "The template stack."
+          required: true
+        - name: "ngfw_device"
+          description: "The NGFW device."
+          default: "localhost.localdomain"
+version: "10.1.0"
+spec:
+  params:
+    - name: hostname
+      type: string
+      description: "Server hostname"
+      profiles:
+        - xpath: ["hostname"]
+    - name: domain
+      type: string
+      description: "Server hostname"
+      profiles:
+        - xpath: ["domain"]
+    - name: login-banner
+      type: string
+      description: "Server hostname"
+      profiles:
+        - xpath: ["login-banner"]
+    - name: ack-login-banner
+      type: bool
+      description: Force Admins to Acknowledge Login Banner
+      profiles:
+        - xpath: ["ack-login-banner"]
+    - name: geo-location
+      type: object
+      profiles:
+        - xpath: ["geo-location"]
+      spec:
+        params:
+          - name: latitude
+            type: string
+            profiles:
+              - xpath: ["latitude"]
+          - name: longitude
+            type: string
+            profiles:
+              - xpath: ["longitude"]
