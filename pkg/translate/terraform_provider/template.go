@@ -500,7 +500,7 @@ for idx, elt := range existing {
 	if planEntry, found := planEntriesByName[elt.Name]; found {
 		planEntry.Entry.Uuid = elt.Uuid
 		managedEntriesByName[elt.Name] = &entryWithState{
-			Entry: &elt,
+			Entry: &existing[idx],
 			StateIdx: idx,
 		}
 	}
@@ -547,7 +547,7 @@ if !movementRequired {
 	existingEntriesByName := make(map[string]*entryWithState, len(existing))
 	for idx, elt := range existing {
 		existingEntriesByName[elt.Name] = &entryWithState{
-			Entry: &elt,
+			Entry: &existing[idx],
 			StateIdx: idx,
 		}
 	}
