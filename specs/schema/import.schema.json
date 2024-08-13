@@ -3,13 +3,21 @@
   "$id": "import.schema.json",
   "type": "object",
   "additionalProperties": false,
-  "required": ["name", "xpath"],
+  "required": ["variant", "type", "locations"],
   "properties": {
-    "name": { "type": "string" },
-    "xpath": { "$ref": "xpath.schema.json" },
-    "only_for_params": {
+    "variant": { "type": "string" },
+    "type": { "type": "string" },
+    "locations": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "required": ["name", "xpath"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "required": { "type": "boolean", "default": false },
+          "xpath": { "$ref": "xpath.schema.json" }
+        }
+      }
     }
   }
 }
