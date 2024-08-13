@@ -2,9 +2,9 @@ package {{packageName .GoSdkPath}}
 {{- if .Entry}}
     {{- if $.Imports}}
         {{- if $.Spec.Params.uuid}}
-            {{renderImports "service" "filtering" "template" "audit" "rule" "version"}}
+            {{renderImports "service" "filtering" "audit" "rule" "version"}}
         {{- else}}
-            {{renderImports "service" "filtering" "template"}}
+            {{renderImports "service" "filtering"}}
         {{- end}}
     {{- else}}
         {{- if $.Spec.Params.uuid}}
@@ -33,9 +33,11 @@ client: client,
 }
 
 // Create adds new item, then returns the result.
-{{- if .Entry}}
+{{- if and (.Entry) (.Imports)}}
+    func (s *Service) Create(ctx context.Context, loc Location, importLocations []ImportLocation, entry Entry) (*Entry, error) {
+{{- else if (.Entry) }}
     func (s *Service) Create(ctx context.Context, loc Location, entry Entry) (*Entry, error) {
-{{- else}}
+{{- else }}
     func (s *Service) Create(ctx context.Context, loc Location, config Config) (*Config, error) {
 {{- end}}
 
@@ -81,11 +83,12 @@ if _, _, err = s.client.Communicate(ctx, cmd, false, nil); err != nil {
 return nil, err
 }
 
-{{- if $.Imports}}
-if err := s.AddToImport(ctx, loc, entry); err != nil {
-return nil, err
+{{- if .Imports }}
+err = s.importToLocations(ctx, loc, importLocations, entry.Name)
+if err != nil {
+	return nil, err
 }
-{{- end}}
+{{- end }}
 
 {{- if .Entry}}
     return s.Read(ctx, loc, entry.Name, "get")
@@ -94,187 +97,107 @@ return nil, err
 {{- end}}
 }
 
-{{- if $.Imports}}
-// AddToImport adds the given config object to import
-func (s *Service) AddToImport(ctx context.Context, loc Location, entry Entry) error {
-    {{- range $_, $import := $.Imports}}
-    if loc.{{$import.Name.CamelCase}} != nil  {{- range $_, $param := $import.OnlyForParams}} && entry.{{ camelCase "" $param "" true }} != nil {{- end}} {
-		templateLocation, templateApi, templateEntry, importedNames, err := s.getImportedNamesFor{{$import.Name.CamelCase}}(ctx, loc, entry)
-        if err != nil {
-		    return err
-	    }
+{{- if .Imports }}
 
-		alreadyImported := false
-		for _, item := range importedNames {
-			if item == entry.Name {
-				alreadyImported = true
+func (s *Service) importToLocations(ctx context.Context, loc Location, importLocations []ImportLocation, entryName string) error {
+	vn := s.client.Versioning()
+        for _, elt := range importLocations {
+		xpath, err := elt.XpathForLocation(vn, loc)
+
+                cmd := &xmlapi.Config{
+	                Action:  "get",
+	                Xpath:   util.AsXpath(xpath),
+		}
+
+                bytes, _, err := s.client.Communicate(ctx, cmd, false, nil)
+		if err != nil {
+			return err
+		}
+
+		existing, err := elt.UnmarshalPangoXML(bytes)
+                if err != nil {
+                	return err
+		}
+
+		for _, elt := range existing {
+                	if elt == entryName {
+                        	return nil
 			}
 		}
-		if !alreadyImported {
-			importedNames = append(importedNames, entry.Name)
+
+		existing = append(existing, entryName)
+
+		element, err := elt.MarshalPangoXML(existing)
+                if err != nil {
+                	return err
 		}
 
-        err = s.setImportedNamesFor{{$import.Name.CamelCase}}(ctx, loc, entry, templateLocation, templateApi, templateEntry, importedNames)
-        if err != nil {
-		    return err
-	    }
-	}
-    {{- end}}
+		cmd = &xmlapi.Config{
+                	Action: "set",
+                        Xpath: util.AsXpath(xpath[:len(xpath)-1]),
+                        Element: element,
+		}
+
+                _, _, err = s.client.Communicate(ctx, cmd, false, nil)
+		if err != nil {
+			return err
+		}
+        }
+
 	return nil
 }
 
-{{- range $_, $import := $.Imports}}
-func (s *Service) getImportedNamesFor{{$import.Name.CamelCase}}(ctx context.Context, loc Location, entry Entry) (template.Location, *template.Service, *template.Entry, []string, error) {
-    if entry.Import == nil {
-        entry.Import = DefaultImport{{$import.Name.CamelCase}}()
-    }
+func (s *Service) unimportFromLocations(ctx context.Context, updates *xmlapi.MultiConfig, loc Location, importLocations []ImportLocation, values []string) error {
+	vn := s.client.Versioning()
+	valuesByName := make(map[string]bool)
+	for _, elt := range values {
+		valuesByName[elt] = true
+	}
+        for _, elt := range importLocations {
+		xpath, err := elt.XpathForLocation(vn, loc)
 
-    {{$import.Name.LowerCamelCase}}Location := {{$import.Name.LowerCamelCase}}.Location{
-        Panorama: &{{$import.Name.LowerCamelCase}}.PanoramaLocation{
-            PanoramaDevice: "localhost.localdomain",
-        },
-    }
+                cmd := &xmlapi.Config{
+	                Action:  "get",
+	                Xpath:   util.AsXpath(xpath),
+		}
 
-    {{$import.Name.LowerCamelCase}}Api := {{$import.Name.LowerCamelCase}}.NewService(s.client)
+                bytes, _, err := s.client.Communicate(ctx, cmd, false, nil)
+		if err != nil {
+			return err
+		}
 
-    {{$import.Name.LowerCamelCase}}Entry, err := {{$import.Name.LowerCamelCase}}Api.Read(ctx, {{$import.Name.LowerCamelCase}}Location, loc.{{$import.Name.CamelCase}}.{{$import.Name.CamelCase}}, "get")
-    if err != nil {
-        return {{$import.Name.LowerCamelCase}}Location, nil, nil, nil, err
-    }
+		existing, err := elt.UnmarshalPangoXML(bytes)
+                if err != nil {
+                	return err
+		}
 
-    importedNames := []string{}
-    {{- $prefixXpath := "" }}
-    {{- $lastXpath := "" }}
-    {{- $lastEntry := print $import.Name.LowerCamelCase "Entry" }}
-    {{- $checkName := false}}
-    {{- $indexVar := 0}}
-    {{- range $_, $xpath := $import.Xpath}}
-        {{- if not (contains $xpath "Entry")}}
-            {{- $prefixXpath = print $prefixXpath "." (camelCase "" $xpath "" true)}}
-            {{- $lastXpath = $xpath }}
-            {{- if $checkName}}
-                {{- $index := 0}}
-                {{- range $_, $var := $import.Vars}}
-                    {{- if eq $indexVar $index}}
-                        if {{$lastEntry}}.Name == entry.Import.{{$var.Name.CamelCase}} && {{$lastEntry}}{{$prefixXpath}} != nil {
-                    {{- end}}
-                    {{- $index = add $index 1}}
-                {{- end}}
-                {{- $indexVar = add $indexVar 1}}
-                {{- $checkName = false}}
-            {{- else}}
-                if {{$lastEntry}}{{$prefixXpath}} != nil {
-            {{- end}}
-        {{- else}}
-            for _, {{$lastXpath}} := range {{$lastEntry}}{{$prefixXpath}} {
-            {{- $prefixXpath = "" }}
-            {{- $lastEntry = $lastXpath }}
-            {{- $lastXpath = "" }}
-            {{- $checkName = true}}
-        {{- end}}
-    {{- end}}
-    importedNames = {{$lastEntry}}{{$prefixXpath}}
-    {{- range $_, $xpath := $import.Xpath}}
+		var filtered []string
+		for _, elt := range existing {
+			if _, found := valuesByName[elt]; !found {
+                        	filtered = append(filtered, elt)
+			}
+		}
+
+		element, err := elt.MarshalPangoXML(filtered)
+                if err != nil {
+                	return err
+		}
+
+		cmd = &xmlapi.Config{
+                	Action: "edit",
+                        Xpath: util.AsXpath(xpath),
+			Element: element,
+		}
+
+                _, _, err = s.client.Communicate(ctx, cmd, false, nil)
+		if err != nil {
+			return err
+		}
         }
-    {{- end}}
 
-    return {{$import.Name.LowerCamelCase}}Location, {{$import.Name.LowerCamelCase}}Api, {{$import.Name.LowerCamelCase}}Entry, importedNames, nil
+	return nil
 }
-
-func (s *Service) setImportedNamesFor{{$import.Name.CamelCase}}(ctx context.Context, loc Location, entry Entry, templateLocation template.Location, templateApi *template.Service, templateEntry *template.Entry, importedNames []string) error {
-    if entry.Import == nil {
-        entry.Import = DefaultImport{{$import.Name.CamelCase}}()
-    }
-
-    {{- $prefixXpath := "" }}
-    {{- $lastXpath := "" }}
-    {{- $entryPath := "Entry" }}
-    {{- $typeName := ""}}
-    {{- $lastEntry := print $import.Name.LowerCamelCase "Entry" }}
-    {{- $checkName := false}}
-    {{- $indexVar := 0}}
-    {{- $importInXpath := false}}
-    {{- range $_, $xpath := $import.Xpath}}
-        {{- if not $importInXpath}}
-            {{- $typeName = print $typeName (camelCase "" $xpath "" true)}}
-            {{- if not (contains $xpath "Entry")}}
-                {{- $prefixXpath = print $prefixXpath "." (camelCase "" $xpath "" true)}}
-                {{- $lastXpath = $xpath }}
-                {{- if $checkName}}
-                    {{- $index := 0}}
-                    {{- range $_, $var := $import.Vars}}
-                        {{- if eq $indexVar $index}}
-                            if {{$lastEntry}}.Name == entry.Import.{{$var.Name.CamelCase}} {
-                        {{- end}}
-                        {{- $index = add $index 1}}
-                    {{- end}}
-                    {{- $indexVar = add $indexVar 1}}
-                    {{- $checkName = false}}
-                {{- else}}
-                    if {{$lastEntry}}{{$prefixXpath}} != nil {
-                {{- end}}
-                {{- $entryPath = print $entryPath "." (camelCase "" $xpath "" true)}}
-            {{- else}}
-                for {{$lastXpath}}Index, {{$lastXpath}} := range {{$lastEntry}}{{$prefixXpath}} {
-                {{- $entryPath = print $entryPath (camelCase "" $xpath "" true) "[" $lastXpath "Index]"}}
-                {{- $prefixXpath = "" }}
-                {{- $lastEntry = $lastXpath }}
-                {{- $lastXpath = "" }}
-                {{- $checkName = true}}
-            {{- end}}
-        {{- end}}
-        {{- if eq $xpath "import"}}
-            {{- $importInXpath = true}}
-        {{- end}}
-    {{- end}}
-    {{$import.Name.LowerCamelCase}}{{$entryPath}} = &{{$import.Name.LowerCamelCase}}.{{$typeName}}{
-        {{- $importInXpath = false}}
-        {{- range $index, $xpath := $import.Xpath}}
-            {{- if $importInXpath}}
-            {{ camelCase "" $xpath "" true }}:
-                {{- if eq $index (subtract (len $import.Xpath) 1)}}
-                importedNames,
-                {{- else}}
-                &{{$import.Name.LowerCamelCase}}.{{$typeName}}{{ camelCase "" $xpath "" true }}{
-                {{- end}}
-            {{- end}}
-            {{- if eq $xpath "import"}}
-                {{- $importInXpath = true}}
-            {{- end}}
-        {{- end}}
-        {{- $importInXpath = false}}
-        {{- range $index, $xpath := $import.Xpath}}
-            {{- if $importInXpath}}
-                {{- if eq $index (subtract (len $import.Xpath) 1)}}
-                {{- else}}
-                },
-                {{- end}}
-            {{- end}}
-            {{- if eq $xpath "import"}}
-                {{- $importInXpath = true}}
-            {{- end}}
-        {{- end}}
-    }
-    {{- $importInXpath = false}}
-    {{- range $_, $xpath := $import.Xpath}}
-        {{- if not $importInXpath}}
-            }
-        {{- end}}
-        {{- if eq $xpath "import"}}
-            {{- $importInXpath = true}}
-        {{- end}}
-    {{- end}}
-
-    _, err := {{$import.Name.LowerCamelCase}}Api.Update(ctx, {{$import.Name.LowerCamelCase}}Location, *{{$import.Name.LowerCamelCase}}Entry, loc.{{$import.Name.CamelCase}}.{{$import.Name.CamelCase}})
-    if err != nil {
-        return err
-    }
-
-    return nil
-}
-
-{{- end}}
-{{- end}}
+{{- end }}
 
 // Read returns the given config object, using the specified action ("get" or "show").
 {{- if .Entry}}
@@ -532,7 +455,21 @@ func (s *Service) Update(ctx context.Context, loc Location, entry {{ $object }})
 }
 
 // Delete deletes the given item.
-{{- if .Entry}}
+{{- if and .Entry .Imports}}
+    func (s *Service) Delete(ctx context.Context, loc Location, importLocations []ImportLocation, name ...string) error {
+    {{- if $.Spec.Params.uuid}}
+        return s.delete(ctx, loc, importLocations, name, true)
+    {{- else}}
+        return s.delete(ctx, loc, importLocations, name)
+    {{- end}}
+    }
+    {{- if $.Spec.Params.uuid}}
+        // DeleteById deletes the given item with specified ID.
+        func (s *Service) DeleteById(ctx context.Context, loc Location, importLocations []ImportLocation, uuid ...string) error {
+        return s.delete(ctx, loc, importLocations, uuid, false)
+        }
+    {{- end}}
+{{- else if .Entry }}
     func (s *Service) Delete(ctx context.Context, loc Location, name ...string) error {
     {{- if $.Spec.Params.uuid}}
         return s.delete(ctx, loc, name, true)
@@ -546,13 +483,19 @@ func (s *Service) Update(ctx context.Context, loc Location, entry {{ $object }})
         return s.delete(ctx, loc, uuid, false)
         }
     {{- end}}
-{{- else}}
+{{- else }}
     func (s *Service) Delete(ctx context.Context, loc Location, config Config) error {
     return s.delete(ctx, loc, config)
     }
 {{- end}}
 
-{{if .Entry}}
+{{- if and .Entry .Imports }}
+    {{- if $.Spec.Params.uuid}}
+        func (s *Service) delete(ctx context.Context, loc Location, importLocations []ImportLocation, values []string, byName bool) error {
+    {{- else}}
+        func (s *Service) delete(ctx context.Context, loc Location, importLocations []ImportLocation, values []string) error {
+    {{- end}}
+{{- else if .Entry}}
     {{- if $.Spec.Params.uuid}}
         func (s *Service) delete(ctx context.Context, loc Location, values []string, byName bool) error {
     {{- else}}
@@ -585,6 +528,12 @@ vn := s.client.Versioning()
 {{- if .Entry}}
     var err error
     deletes := xmlapi.NewMultiConfig(len(values))
+  {{- if .Imports }}
+    err = s.unimportFromLocations(ctx, deletes, loc, importLocations, values)
+    if err != nil {
+        return err
+    }
+  {{- end }}
     for _, value := range values {
     var path []string
     {{- if $.Spec.Params.uuid}}
@@ -609,16 +558,6 @@ return err
     Xpath:  util.AsXpath(path),
     Target: s.client.GetTarget(),
     })
-
-    {{- if $.Imports}}
-        entry, err := s.Read(ctx, loc, value, "get")
-		if err != nil {
-			return err
-		}
-		if err = s.RemoveFromImport(ctx, loc, *entry); err != nil {
-			return err
-		}
-    {{- end}}
     }
 
     _, _, _, err = s.client.MultiConfig(ctx, deletes, false, nil)
@@ -641,7 +580,7 @@ return err
             {{- if ne $version ""}}
                 {{- if eq $index 1}}
                     if vn.Gte(version{{createGoSuffixFromVersion $version}}) {
-                {{- else}}
+                                    {{- else}}
                     } else if vn.Gte(version{{createGoSuffixFromVersion $version}}) {
                 {{- end}}
                 {{- range $_, $param := $.Spec.Params}}
@@ -703,7 +642,7 @@ return err
 {{- end}}
 }
 
-{{- if $.Imports}}
+{{- if false }}
 // RemoveFromImport removes the given config object from import
 func (s *Service) RemoveFromImport(ctx context.Context, loc Location, entry Entry) error {
     {{- range $_, $import := $.Imports}}

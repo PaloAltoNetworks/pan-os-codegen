@@ -47,6 +47,8 @@ func RenderImports(templateTypes ...string) (string, error) {
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/version", "")
 		case "template":
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/panorama/template", "")
+		case "imports":
+			manager.AddStandardImport("encoding/xml", "")
 		}
 	}
 

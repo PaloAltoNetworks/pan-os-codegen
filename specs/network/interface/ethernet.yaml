@@ -88,62 +88,49 @@ imports:
       - name: virtual-router
         xpath:
           path:
-            - config
-            - devices
-            - $ngfw_device
+            - network
             - virtual-router
             - $router
             - interface
           vars:
-            - name: "ngfw_device"
-              description: "The NGFW device."
-              default: "localhost.localdomain"
             - name: "vsys"
               description: "The vsys."
               default: "vsys1"
+            - name: router
+              description: Virtual Router
       - name: logical-router
         xpath:
           path:
-            - config
-            - devices
-            - $ngfw_device
+            - network
             - logical-router
             - $router
             - vrf
             - $vrf
             - interface
           vars:
-            - name: "ngfw_device"
-              description: "The NGFW device."
-              default: "localhost.localdomain"
             - name: "vsys"
               description: "The vsys."
               default: "vsys1"
+            - name: router
+              description: Logical Router Name
+            - name: vrf
+              description: Logical Router VRF
       - name: vsys
         required: true
         xpath:
           path:
-            - config
-            - devices
-            - $ngfw_device
             - vsys
             - $vsys
             - import
             - network
             - interface
           vars:
-            - name: "ngfw_device"
-              description: "The NGFW device."
-              default: "localhost.localdomain"
             - name: "vsys"
               description: "The vsys."
               default: "vsys1"
       - name: zone
         xpath:
           path:
-            - config
-            - devices
-            - $ngfw_device
             - vsys
             - $vsys
             - zone
@@ -151,14 +138,13 @@ imports:
             - network
             - layer3
           vars:
-            - name: "ngfw_device"
-              description: "The NGFW device."
-              default: "localhost.localdomain"
             - name: "vsys"
               description: "The vsys."
               default: "vsys1"
             - name: "vsys"
               description: "Security Zone"
+            - name: zone
+              description: Security Zone Identifier
 version: "10.1.0"
 spec:
   params:
