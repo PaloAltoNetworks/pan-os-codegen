@@ -243,6 +243,7 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 	templatePath := filepath.Join(c.TemplatesDir, templateName)
 	funcMap := template.FuncMap{
 		"renderImports":             translate.RenderImports,
+		"RenderEntryImportStructs":  func() (string, error) { return translate.RenderEntryImportStructs(c.Spec) },
 		"packageName":               translate.PackageName,
 		"locationType":              translate.LocationType,
 		"specParamType":             translate.SpecParamType,

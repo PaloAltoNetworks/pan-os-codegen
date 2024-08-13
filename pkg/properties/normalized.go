@@ -22,10 +22,28 @@ type Normalization struct {
 	XpathSuffix             []string                `json:"xpath_suffix" yaml:"xpath_suffix"`
 	Locations               map[string]*Location    `json:"locations" yaml:"locations"`
 	Entry                   *Entry                  `json:"entry" yaml:"entry"`
-	Imports                 map[string]*Import      `json:"imports" yaml:"imports"`
+	Imports                 []Import                `json:"imports" yaml:"imports"`
 	Version                 string                  `json:"version" yaml:"version"`
 	Spec                    *Spec                   `json:"spec" yaml:"spec"`
 	Const                   map[string]*Const       `json:"const" yaml:"const"`
+}
+
+type Import struct {
+	Variant   *NameVariant
+	Type      *NameVariant
+	Locations map[string]ImportLocation
+}
+
+type ImportLocation struct {
+	Name           *NameVariant
+	XpathElements  []string
+	XpathVariables map[string]ImportXpathVariable
+}
+
+type ImportXpathVariable struct {
+	Name        *NameVariant
+	Description string
+	Default     string
 }
 
 type TerraformResourceType string
@@ -88,19 +106,6 @@ type LocationVarValidation struct {
 
 type Entry struct {
 	Name *EntryName `json:"name" yaml:"name"`
-}
-
-type Import struct {
-	Name          *NameVariant
-	Xpath         []string              `json:"xpath" yaml:"xpath"`
-	Vars          map[string]*ImportVar `json:"vars" yaml:"vars"`
-	OnlyForParams []string              `json:"only_for_params" yaml:"only_for_params"`
-}
-
-type ImportVar struct {
-	Name        *NameVariant
-	Description string `json:"description" yaml:"description"`
-	Default     string `json:"default" yaml:"default"`
 }
 
 type EntryName struct {
@@ -447,19 +452,6 @@ func generateXpathVariables(variables []xpathschema.Variable) map[string]*Locati
 	return xpathVars
 }
 
-func generateImportVariables(variables []xpathschema.Variable) map[string]*ImportVar {
-	importVars := make(map[string]*ImportVar)
-	for _, variable := range variables {
-		entry := &ImportVar{
-			Description: variable.Description,
-			Default:     variable.Default,
-		}
-		importVars[variable.Name] = entry
-	}
-
-	return importVars
-}
-
 func schemaToSpec(object object.Object) (*Normalization, error) {
 	var resourceVariants []TerraformResourceVariant
 	for _, elt := range object.TerraformConfig.ResourceVariants {
@@ -478,7 +470,6 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 			PluralName:            object.TerraformConfig.PluralName,
 		},
 		Locations:   make(map[string]*Location),
-		Imports:     make(map[string]*Import),
 		GoSdkPath:   object.GoSdkConfig.Package,
 		XpathSuffix: object.XpathSuffix,
 		Version:     object.Version,
@@ -560,39 +551,52 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 
 	}
 
-	imports := make(map[string]*Import, len(object.Imports))
+	var imports []Import
 	for _, elt := range object.Imports {
-		var xpath []string
-
-		schemaXpathVars := make(map[string]xpathschema.Variable)
-		for _, xpathVariable := range elt.Xpath.Variables {
-			schemaXpathVars[xpathVariable.Name] = xpathVariable
-		}
-
-		for _, element := range elt.Xpath.Elements {
-			var eltEntry string
-			if xpathVar, ok := schemaXpathVars[element[1:]]; ok {
-				if xpathVar.Type == "entry" {
-					eltEntry = fmt.Sprintf("{{ Entry %s }}", elt.Name)
-				} else if xpathVar.Type == "object" {
-					eltEntry = fmt.Sprintf("{{ Object %s }}", elt.Name)
+		locations := make(map[string]ImportLocation, len(elt.Locations))
+		for _, location := range elt.Locations {
+			schemaXpathVars := make(map[string]xpathschema.Variable, len(location.Xpath.Variables))
+			xpathVars := make(map[string]ImportXpathVariable, len(location.Xpath.Variables))
+			for _, xpathVariable := range location.Xpath.Variables {
+				schemaXpathVars[xpathVariable.Name] = xpathVariable
+				xpathVars[xpathVariable.Name] = ImportXpathVariable{
+					Name: &NameVariant{
+						Underscore:     naming.Underscore("", xpathVariable.Name, ""),
+						CamelCase:      naming.CamelCase("", xpathVariable.Name, "", true),
+						LowerCamelCase: naming.CamelCase("", xpathVariable.Name, "", false),
+					},
+					Description: xpathVariable.Description,
+					Default:     xpathVariable.Default,
 				}
-			} else {
-				eltEntry = element
 			}
-			xpath = append(xpath, eltEntry)
+
+			var xpath []string
+			xpath = append(xpath, location.Xpath.Elements...)
+
+			locations[location.Name] = ImportLocation{
+				Name: &NameVariant{
+					Underscore:     naming.Underscore("", location.Name, ""),
+					CamelCase:      naming.CamelCase("", location.Name, "", true),
+					LowerCamelCase: naming.CamelCase("", location.Name, "", false),
+				},
+				XpathVariables: xpathVars,
+				XpathElements:  xpath,
+			}
 		}
 
-		importVariables := generateImportVariables(elt.Xpath.Variables)
-		if len(importVariables) == 0 {
-			importVariables = nil
-		}
-
-		imports[elt.Name] = &Import{
-			Xpath:         xpath,
-			Vars:          importVariables,
-			OnlyForParams: elt.OnlyForParams,
-		}
+		imports = append(imports, Import{
+			Type: &NameVariant{
+				Underscore:     naming.Underscore("", elt.Type, ""),
+				CamelCase:      naming.CamelCase("", elt.Type, "", true),
+				LowerCamelCase: naming.CamelCase("", elt.Type, "", false),
+			},
+			Variant: &NameVariant{
+				Underscore:     naming.Underscore("", elt.Variant, ""),
+				CamelCase:      naming.CamelCase("", elt.Variant, "", true),
+				LowerCamelCase: naming.CamelCase("", elt.Variant, "", false),
+			},
+			Locations: locations,
+		})
 	}
 
 	if len(imports) > 0 {
@@ -660,11 +664,6 @@ func ParseSpec(input []byte) (*Normalization, error) {
 		return nil, err
 	}
 
-	err = spec.AddNameVariantsForImports()
-	if err != nil {
-		return nil, err
-	}
-
 	err = spec.AddNameVariantsForParams()
 	if err != nil {
 		return nil, err
@@ -693,27 +692,6 @@ func (spec *Normalization) AddNameVariantsForLocation() error {
 		}
 
 		for subkey, variable := range location.Vars {
-			variable.Name = &NameVariant{
-				Underscore:     naming.Underscore("", subkey, ""),
-				CamelCase:      naming.CamelCase("", subkey, "", true),
-				LowerCamelCase: naming.CamelCase("", subkey, "", false),
-			}
-		}
-	}
-
-	return nil
-}
-
-// AddNameVariantsForImports add name variants for imports (under_score and CamelCase).
-func (spec *Normalization) AddNameVariantsForImports() error {
-	for key, imp := range spec.Imports {
-		imp.Name = &NameVariant{
-			Underscore:     naming.Underscore("", key, ""),
-			CamelCase:      naming.CamelCase("", key, "", true),
-			LowerCamelCase: naming.CamelCase("", key, "", false),
-		}
-
-		for subkey, variable := range imp.Vars {
 			variable.Name = &NameVariant{
 				Underscore:     naming.Underscore("", subkey, ""),
 				CamelCase:      naming.CamelCase("", subkey, "", true),

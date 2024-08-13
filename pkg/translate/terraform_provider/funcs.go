@@ -1860,6 +1860,7 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 	}
 	data := map[string]interface{}{
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
+		"HasImports":            len(paramSpec.Imports) > 0,
 		"Exhaustive":            exhaustive,
 		"ResourceIsMap":         resourceIsMap,
 		"ListAttribute":         listAttributeVariant,

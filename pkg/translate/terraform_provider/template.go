@@ -754,7 +754,11 @@ const resourceCreateFunction = `
 	*/
 
 	// Perform the operation.
+{{- if .HasImports }}
+	create, err := svc.Create(ctx, loc.Location, nil, *obj)
+{{- else }}
 	create, err := svc.Create(ctx, loc.Location, *obj)
+{{- end }}
 	if err != nil {
 		resp.Diagnostics.AddError("Error in create", err.Error())
 		return
