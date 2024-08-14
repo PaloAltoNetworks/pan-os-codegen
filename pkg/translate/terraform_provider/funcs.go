@@ -590,10 +590,32 @@ func RenderLocationStructs(resourceTyp properties.ResourceType, names *NameProvi
 		}
 
 		var fields []fieldCtx
+
+		for _, i := range spec.Imports {
+			if i.Type.CamelCase != data.Name.CamelCase {
+				continue
+			}
+
+			for _, elt := range i.Locations {
+				if elt.Required {
+					fields = append(fields, fieldCtx{
+						Name: elt.Name.CamelCase,
+						Type: "types.String",
+						Tags: []string{fmt.Sprintf("`tfsdk:\"%s\"`", elt.Name.Underscore)},
+					})
+				}
+			}
+		}
+
 		for _, param := range data.Vars {
 			paramTag := fmt.Sprintf("`tfsdk:\"%s\"`", param.Name.Underscore)
+			name := param.Name.CamelCase
+			if name == data.Name.CamelCase {
+				name = "Name"
+				paramTag = "`tfsdk:\"name\"`"
+			}
 			fields = append(fields, fieldCtx{
-				Name: param.Name.CamelCase,
+				Name: name,
 				Type: "types.String",
 				Tags: []string{paramTag},
 			})
@@ -619,7 +641,7 @@ const locationSchemaGetterTmpl = `
 "{{ .Name.Underscore }}": {{ .SchemaType }}{
 	Description: "{{ .Description }}",
   {{- if .Required }}
-	Required: true
+	Required: true,
   {{- else }}
 	Optional: true,
   {{- end }}
@@ -709,9 +731,31 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 		}
 
 		var variableAttrs []attributeCtx
+
+		for _, i := range spec.Imports {
+			if i.Type.CamelCase != data.Name.CamelCase {
+				continue
+			}
+
+			for _, elt := range i.Locations {
+				if elt.Required {
+					variableAttrs = append(variableAttrs, attributeCtx{
+						Name:         elt.Name,
+						SchemaType:   "rsschema.StringAttribute",
+						Required:     true,
+						ModifierType: "String",
+					})
+				}
+			}
+		}
+
 		for _, variable := range data.Vars {
+			name := variable.Name
+			if name.CamelCase == data.Name.CamelCase {
+				name = properties.NewNameVariant("name")
+			}
 			attribute := attributeCtx{
-				Name:        variable.Name,
+				Name:        name,
 				Description: variable.Description,
 				SchemaType:  "rsschema.StringAttribute",
 				Required:    false,
@@ -1371,9 +1415,124 @@ func RenderDataSourceSchema(resourceTyp properties.ResourceType, names *NameProv
 	return processTemplate(renderSchemaTemplate, "render-resource-schema", data, commonFuncMap)
 }
 
+const importLocationAssignmentTmpl = `
+var location {{ $.PackageName }}.ImportLocation
+{{- range .Specs }}
+{{ $type := . }}
+if {{ $.LocationVar }}.{{ .Name.CamelCase }} != nil {
+  {{- range .Locations }}
+    {{- $pangoStruct := GetPangoStructForLocation $.Variants $type.Name .Name }}
+	// {{ .Name.CamelCase }}
+	location = {{ $.PackageName }}.New{{ $pangoStruct }}({{ $.PackageName }}.{{ $pangoStruct }}Spec{
+    {{- range .Fields }}
+		{{ . }}: {{ $.LocationVar }}.{{ $type.Name.CamelCase }}.{{ . }}.ValueString(),
+    {{- end }}
+	})
+  {{- end }}
+}
+{{- end }}
+`
+
+func RenderImportLocationAssignment(names *NameProvider, spec *properties.Normalization, locationVar string) (string, error) {
+	if len(spec.Imports) == 0 {
+		return "", nil
+	}
+
+	type importVariantSpec struct {
+		PangoStructNames *map[string]string
+	}
+
+	type importLocationSpec struct {
+		Name   *properties.NameVariant
+		Fields []string
+	}
+
+	type importSpec struct {
+		Name      *properties.NameVariant
+		Locations []importLocationSpec
+	}
+
+	var importSpecs []importSpec
+	variantsByName := make(map[string]importVariantSpec)
+	for _, elt := range spec.Imports {
+		existing, found := variantsByName[elt.Type.CamelCase]
+		if !found {
+			pangoStructNames := make(map[string]string)
+			existing = importVariantSpec{
+				PangoStructNames: &pangoStructNames,
+			}
+		}
+
+		var locations []importLocationSpec
+		for _, loc := range elt.Locations {
+			if !loc.Required {
+				continue
+			}
+
+			var fields []string
+			for _, elt := range loc.XpathVariables {
+				fields = append(fields, elt.Name.CamelCase)
+			}
+
+			pangoStructName := fmt.Sprintf("%s%s%sImportLocation", elt.Variant.CamelCase, elt.Type.CamelCase, loc.Name.CamelCase)
+			(*existing.PangoStructNames)[loc.Name.CamelCase] = pangoStructName
+			locations = append(locations, importLocationSpec{
+				Name:   loc.Name,
+				Fields: fields,
+			})
+		}
+		variantsByName[elt.Type.CamelCase] = existing
+
+		importSpecs = append(importSpecs, importSpec{
+			Name:      elt.Type,
+			Locations: locations,
+		})
+	}
+
+	type context struct {
+		PackageName string
+		LocationVar string
+		Variants    map[string]importVariantSpec
+		Specs       []importSpec
+	}
+
+	data := context{
+		PackageName: names.PackageName,
+		LocationVar: locationVar,
+		Variants:    variantsByName,
+		Specs:       importSpecs,
+	}
+
+	funcMap := template.FuncMap{
+		"GetPangoStructForLocation": func(variants map[string]importVariantSpec, typ *properties.NameVariant, location *properties.NameVariant) (string, error) {
+			log.Printf("len(variants): %d", len(variants))
+			for name, elt := range variants {
+				log.Printf("Type: %s", name)
+				for name, structName := range *elt.PangoStructNames {
+					log.Printf("   Name: %s, StructName: %s", name, structName)
+				}
+			}
+			variantSpec, found := variants[typ.CamelCase]
+			if !found {
+				return "", fmt.Errorf("failed to find variant for type '%s'", typ.CamelCase)
+			}
+
+			structName, found := (*variantSpec.PangoStructNames)[location.CamelCase]
+			if !found {
+				return "", fmt.Errorf("failed to find variant for type '%s', location '%s'", typ.CamelCase, location.CamelCase)
+			}
+
+			return structName, nil
+		},
+	}
+
+	return processTemplate(importLocationAssignmentTmpl, "render-locations-pango-to-state", data, funcMap)
+}
+
 type locationFieldCtx struct {
-	Name string
-	Type string
+	PangoName     string
+	TerraformName string
+	Type          string
 }
 
 type locationCtx struct {
@@ -1390,9 +1549,15 @@ func renderLocationsGetContext(names *NameProvider, spec *properties.Normalizati
 	for _, location := range spec.Locations {
 		var fields []locationFieldCtx
 		for _, variable := range location.Vars {
+			name := variable.Name.CamelCase
+			if variable.Name.CamelCase == location.Name.CamelCase {
+				name = "Name"
+			}
+
 			fields = append(fields, locationFieldCtx{
-				Name: variable.Name.CamelCase,
-				Type: "String",
+				PangoName:     variable.Name.CamelCase,
+				TerraformName: name,
+				Type:          "String",
 			})
 		}
 		locations = append(locations, locationCtx{
@@ -1418,7 +1583,7 @@ if {{ $.Source }}.{{ .Name }} != nil {
 	{{ $.Dest }}.{{ .Name }} = &{{ .TerraformStructName }}{
     {{ $locationName := .Name }}
     {{- range .Fields }}
-		{{ .Name }}: types.{{ .Type }}Value({{ $.Source }}.{{ $locationName }}.{{ .Name }}),
+		{{ .TerraformName }}: types.{{ .Type }}Value({{ $.Source }}.{{ $locationName }}.{{ .PangoName }}),
     {{- end }}
 	}
 }
@@ -1447,7 +1612,7 @@ if {{ $.Source }}.{{ .Name }} != nil {
 	{{ $.Dest }}.{{ .Name }} = &{{ .SdkStructName }}{
     {{ $locationName := .Name }}
     {{- range .Fields }}
-		{{ .Name }}: {{ $.Source }}.{{ $locationName }}.{{ .Name }}.ValueString(),
+		{{ .PangoName }}: {{ $.Source }}.{{ $locationName }}.{{ .TerraformName }}.ValueString(),
     {{- end }}
 	}
 }
@@ -1812,6 +1977,9 @@ func RenderDataSourceStructs(resourceTyp properties.ResourceType, names *NamePro
 func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProvider, serviceName string, paramSpec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, resourceSDKName string) (string, error) {
 	funcMap := template.FuncMap{
 		"ConfigToEntry": ConfigEntry,
+		"RenderImportLocationAssignment": func(locationVar string) (string, error) {
+			return RenderImportLocationAssignment(names, paramSpec, locationVar)
+		},
 		"RenderCreateUpdateMovementRequired": func(state string, entries string) (string, error) {
 			return RendeCreateUpdateMovementRequired(state, entries)
 		},
@@ -2090,6 +2258,7 @@ func ResourceDeleteFunction(resourceTyp properties.ResourceType, names *NameProv
 	data := map[string]interface{}{
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
 		"ResourceIsMap":         resourceIsMap,
+		"HasImports":            len(paramSpec.Imports) > 0,
 		"EntryOrConfig":         paramSpec.EntryOrConfig(),
 		"ListAttribute":         listAttributeVariant,
 		"Exhaustive":            exhaustive,
@@ -2100,6 +2269,9 @@ func ResourceDeleteFunction(resourceTyp properties.ResourceType, names *NameProv
 	}
 
 	funcMap := template.FuncMap{
+		"RenderImportLocationAssignment": func(locationVar string) (string, error) {
+			return RenderImportLocationAssignment(names, paramSpec, locationVar)
+		},
 		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
 			return RenderLocationsStateToPango(names, paramSpec, source, dest)
 		},

@@ -36,6 +36,7 @@ type Import struct {
 
 type ImportLocation struct {
 	Name           *NameVariant
+	Required       bool
 	XpathElements  []string
 	XpathVariables map[string]ImportXpathVariable
 }
@@ -76,6 +77,14 @@ type NameVariant struct {
 	Underscore     string
 	CamelCase      string
 	LowerCamelCase string
+}
+
+func NewNameVariant(name string) *NameVariant {
+	return &NameVariant{
+		Underscore:     naming.Underscore("", name, ""),
+		CamelCase:      naming.CamelCase("", name, "", true),
+		LowerCamelCase: naming.CamelCase("", name, "", false),
+	}
 }
 
 type Location struct {
@@ -579,6 +588,7 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 					CamelCase:      naming.CamelCase("", location.Name, "", true),
 					LowerCamelCase: naming.CamelCase("", location.Name, "", false),
 				},
+				Required:       location.Required,
 				XpathVariables: xpathVars,
 				XpathElements:  xpath,
 			}

@@ -755,7 +755,8 @@ const resourceCreateFunction = `
 
 	// Perform the operation.
 {{- if .HasImports }}
-	create, err := svc.Create(ctx, loc.Location, nil, *obj)
+	{{ RenderImportLocationAssignment "state.Location" }}
+	create, err := svc.Create(ctx, loc.Location, []{{ .resourceSDKName }}.ImportLocation{location}, *obj)
 {{- else }}
 	create, err := svc.Create(ctx, loc.Location, *obj)
 {{- end }}
@@ -1099,14 +1100,13 @@ const resourceReadFunction = `
 {{- end }}
 	resp.Diagnostics.Append(copy_diags...)
 
-	{{ RenderLocationsPangoToState "loc.Location" "state.Location" }}
-
 	/*
 			// Keep the timeouts.
 		    // TODO: This won't work for state import.
 			state.Timeouts = savestate.Timeouts
 	*/
 
+	state.Location = savestate.Location
 	// Save tfid to state.
 	state.Tfid = savestate.Tfid
 
@@ -2023,7 +2023,13 @@ const resourceDeleteFunction = `
 
 	// Perform the operation.
 {{- if .HasEntryName }}
-	if err := svc.Delete(ctx, loc.Location, loc.Name); err != nil && !IsObjectNotFound(err) {
+  {{- if .HasImports }}
+	{{ RenderImportLocationAssignment "state.Location" }}
+	err := svc.Delete(ctx, loc.Location, []{{ .resourceSDKName }}.ImportLocation{location}, loc.Name)
+  {{- else }}
+	err := svc.Delete(ctx, loc.Location, loc.Name)
+  {{- end }}
+	if err != nil && !IsObjectNotFound(err) {
 		resp.Diagnostics.AddError("Error in delete", err.Error())
 	}
 {{- else }}
@@ -2038,7 +2044,9 @@ const resourceDeleteFunction = `
 	if diags.HasError() {
 		return
 	}
-	if err := svc.Delete(ctx, loc.Location, *obj); err != nil && !IsObjectNotFound(err) {
+	// HasImports: {{ .HasImports }}
+	err := svc.Delete(ctx, loc.Location, *obj)
+	if err != nil && !IsObjectNotFound(err) {
 		resp.Diagnostics.AddError("Error in delete", err.Error())
 	}
 {{- end }}
