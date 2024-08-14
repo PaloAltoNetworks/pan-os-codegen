@@ -14,6 +14,7 @@ const (
 
 type Location struct {
 	Name        string                       `yaml:"name"`
+	Required    bool                         `yaml:"required"`
 	ReadOnly    bool                         `yaml:"read_only"`
 	Description string                       `yaml:"description"`
 	Devices     []Device                     `yaml:"devices"`
