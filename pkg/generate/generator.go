@@ -57,27 +57,53 @@ func (c *Creator) RenderTemplate() error {
 }
 
 // RenderTerraformProviderFile generates a Go file for a Terraform provider based on the provided TerraformProviderFile and Normalization arguments.
-func (c *Creator) RenderTerraformProviderFile(terraformProvider *properties.TerraformProviderFile, spec *properties.Normalization) error {
+func (c *Creator) RenderTerraformProviderFile(spec *properties.Normalization, typ properties.ResourceType) ([]string, []string, error) {
+	var name string
+	switch typ {
+	case properties.ResourceUuidPlural:
+		name = fmt.Sprintf("%s_%s", spec.TerraformProviderConfig.Suffix, spec.TerraformProviderConfig.PluralName)
+	case properties.ResourceEntryPlural:
+		name = spec.TerraformProviderConfig.PluralSuffix
+	case properties.ResourceEntry, properties.ResourceUuid:
+		name = spec.Name
+	}
+
+	terraformProvider := properties.NewTerraformProviderFile(name)
 	tfp := terraform_provider.GenerateTerraformProvider{}
 
-	if err := tfp.GenerateTerraformDataSource(spec, terraformProvider); err != nil {
-		return err
+	if err := tfp.GenerateTerraformDataSource(typ, spec, terraformProvider); err != nil {
+		return nil, nil, err
 	}
 
-	if err := tfp.GenerateTerraformResource(spec, terraformProvider); err != nil {
-		return err
+	if err := tfp.GenerateTerraformResource(typ, spec, terraformProvider); err != nil {
+		return nil, nil, err
 	}
 
-	if err := tfp.GenerateCommonCode(spec, terraformProvider); err != nil {
-		return err
+	if err := tfp.GenerateCommonCode(typ, spec, terraformProvider); err != nil {
+		return nil, nil, err
 	}
 
 	if err := tfp.GenerateTerraformProviderFile(spec, terraformProvider); err != nil {
-		return err
+		return nil, nil, err
 	}
-	filePath := c.createTerraformProviderFilePath(spec.TerraformProviderConfig.Suffix)
 
-	return c.writeFormattedContentToFile(filePath, terraformProvider.Code.String())
+	var filePath string
+	switch typ {
+	case properties.ResourceUuidPlural:
+		name = fmt.Sprintf("%s_%s", spec.TerraformProviderConfig.Suffix, spec.TerraformProviderConfig.PluralName)
+		filePath = c.createTerraformProviderFilePath(name)
+	case properties.ResourceEntryPlural:
+		name = spec.TerraformProviderConfig.PluralSuffix
+		filePath = c.createTerraformProviderFilePath(name)
+	case properties.ResourceEntry, properties.ResourceUuid:
+		filePath = c.createTerraformProviderFilePath(spec.TerraformProviderConfig.Suffix)
+	}
+
+	if err := c.writeFormattedContentToFile(filePath, terraformProvider.Code.String()); err != nil {
+		return nil, nil, err
+	}
+
+	return terraformProvider.DataSources, terraformProvider.Resources, nil
 }
 
 // RenderTerraformProvider generates and writes a Terraform provider file.

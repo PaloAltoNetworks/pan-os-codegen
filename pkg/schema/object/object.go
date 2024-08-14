@@ -9,11 +9,30 @@ import (
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/validator"
 )
 
+type TerraformResourceType string
+
+const (
+	TerraformResourceEntry  TerraformResourceType = "entry"
+	TerraformResourceUuid   TerraformResourceType = "uuid"
+	TerraformResourceConfig TerraformResourceType = "config"
+)
+
+type TerraformResourceVariant string
+
+const (
+	TerraformResourceSingular TerraformResourceVariant = "singular"
+	TerraformResourcePlural   TerraformResourceVariant = "plural"
+)
+
 type TerraformConfig struct {
-	SkipResource          bool   `yaml:"skip_resource"`
-	SkipDatasource        bool   `yaml:"skip_datasource"`
-	SkipdatasourceListing bool   `yaml:"skip_datasource_listing"`
-	Suffix                string `yaml:"suffix"`
+	SkipResource          bool                       `yaml:"skip_resource"`
+	SkipDatasource        bool                       `yaml:"skip_datasource"`
+	SkipdatasourceListing bool                       `yaml:"skip_datasource_listing"`
+	ResourceType          TerraformResourceType      `yaml:"resource_type"`
+	ResourceVariants      []TerraformResourceVariant `yaml:"resource_variants"`
+	Suffix                string                     `yaml:"suffix"`
+	PluralSuffix          string                     `yaml:"plural_suffix"`
+	PluralName            string                     `yaml:"plural_name"`
 }
 
 type GoSdkConfig struct {

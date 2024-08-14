@@ -92,17 +92,67 @@ func (c *Command) Execute() error {
 		}
 
 		if c.commandType == properties.CommandTypeTerraform {
-
-			newProviderObject := properties.NewTerraformProviderFile(spec.Name)
-			terraformGenerator := generate.NewCreator(config.Output.TerraformProvider, c.templatePath, spec)
-			err = terraformGenerator.RenderTerraformProviderFile(newProviderObject, spec)
-			if err != nil {
-				return fmt.Errorf("error rendering Terraform provider file for %s - %s", specPath, err)
+			var singularVariant, pluralVariant bool
+			// For specs that are missing resource_variants, default to generating
+			// just singular variants of entry type.
+			if len(spec.TerraformProviderConfig.ResourceVariants) == 0 {
+				singularVariant = true
+			}
+			terraformResourceType := spec.TerraformProviderConfig.ResourceType
+			if terraformResourceType == "" {
+				terraformResourceType = properties.TerraformResourceEntry
 			}
 
-			resourceList = append(resourceList, newProviderObject.Resources...)
-			dataSourceList = append(dataSourceList, newProviderObject.DataSources...)
+			for _, elt := range spec.TerraformProviderConfig.ResourceVariants {
+				switch elt {
+				case properties.TerraformResourceSingular:
+					singularVariant = true
+				case properties.TerraformResourcePlural:
+					pluralVariant = true
+				}
+			}
 
+			if singularVariant {
+				var resourceTyp properties.ResourceType
+				switch terraformResourceType {
+				case properties.TerraformResourceEntry:
+					resourceTyp = properties.ResourceEntry
+				case properties.TerraformResourceUuid:
+					resourceTyp = properties.ResourceUuid
+				case properties.TerraformResourceConfig:
+					panic("missing implementation for config type resources")
+				}
+
+				terraformGenerator := generate.NewCreator(config.Output.TerraformProvider, c.templatePath, spec)
+				dataSources, resources, err := terraformGenerator.RenderTerraformProviderFile(spec, resourceTyp)
+				if err != nil {
+					return fmt.Errorf("error rendering Terraform provider file for %s - %s", specPath, err)
+				}
+
+				resourceList = append(resourceList, resources...)
+				dataSourceList = append(dataSourceList, dataSources...)
+			}
+
+			if pluralVariant {
+				var resourceTyp properties.ResourceType
+				switch terraformResourceType {
+				case properties.TerraformResourceEntry:
+					resourceTyp = properties.ResourceEntryPlural
+				case properties.TerraformResourceUuid:
+					resourceTyp = properties.ResourceUuidPlural
+				case properties.TerraformResourceConfig:
+					panic("missing implementation for config type resources")
+				}
+
+				terraformGenerator := generate.NewCreator(config.Output.TerraformProvider, c.templatePath, spec)
+				dataSources, resources, err := terraformGenerator.RenderTerraformProviderFile(spec, resourceTyp)
+				if err != nil {
+					return fmt.Errorf("error rendering Terraform provider file for %s - %s", specPath, err)
+				}
+
+				resourceList = append(resourceList, resources...)
+				dataSourceList = append(dataSourceList, dataSources...)
+			}
 		} else if c.commandType == properties.CommandTypeSDK {
 			generator := generate.NewCreator(config.Output.GoSdk, c.templatePath, spec)
 			if err = generator.RenderTemplate(); err != nil {

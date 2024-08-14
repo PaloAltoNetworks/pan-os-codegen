@@ -28,11 +28,30 @@ type Normalization struct {
 	Const                   map[string]*Const       `json:"const" yaml:"const"`
 }
 
+type TerraformResourceType string
+
+const (
+	TerraformResourceEntry  TerraformResourceType = "entry"
+	TerraformResourceUuid   TerraformResourceType = "uuid"
+	TerraformResourceConfig TerraformResourceType = "config"
+)
+
+type TerraformResourceVariant string
+
+const (
+	TerraformResourceSingular TerraformResourceVariant = "singular"
+	TerraformResourcePlural   TerraformResourceVariant = "plural"
+)
+
 type TerraformProviderConfig struct {
-	SkipResource          bool   `json:"skip_resource" yaml:"skip_resource"`
-	SkipDatasource        bool   `json:"skip_datasource" yaml:"skip_datasource"`
-	SkipDatasourceListing bool   `json:"skip_datasource_listing" yaml:"skip_datasource_listing"`
-	Suffix                string `json:"suffix" yaml:"suffix"`
+	SkipResource          bool                       `json:"skip_resource" yaml:"skip_resource"`
+	SkipDatasource        bool                       `json:"skip_datasource" yaml:"skip_datasource"`
+	SkipDatasourceListing bool                       `json:"skip_datasource_listing" yaml:"skip_datasource_listing"`
+	ResourceType          TerraformResourceType      `json:"resource_type" yaml:"resource_type"`
+	ResourceVariants      []TerraformResourceVariant `json:"resource_variants" yaml:"resource_variants"`
+	Suffix                string                     `json:"suffix" yaml:"suffix"`
+	PluralSuffix          string                     `json:"plural_suffix" yaml:"plural_suffix"`
+	PluralName            string                     `json:"plural_name" yaml:"plural_name"`
 }
 
 type NameVariant struct {
@@ -126,6 +145,10 @@ type SpecParam struct {
 	Spec                    *Spec                             `json:"spec" yaml:"spec"`
 }
 
+type SpecParamTerraformProviderConfig struct {
+	Computed bool `json:"computed" yaml:"computed"`
+}
+
 type SpecParamLength struct {
 	Min *int64 `json:"min" yaml:"min"`
 	Max *int64 `json:"max" yaml:"max"`
@@ -138,10 +161,6 @@ type SpecParamCount struct {
 
 type SpecParamHashing struct {
 	Type string `json:"type" yaml:"type"`
-}
-
-type SpecParamTerraformProviderConfig struct {
-	Computed bool `json:"computed" yaml:"computed"`
 }
 
 type SpecParamItems struct {
@@ -346,13 +365,27 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 		})
 	}
 
+	var specHashing *SpecParamHashing
+	if schemaSpec.Hashing != nil {
+		specHashing = &SpecParamHashing{
+			Type: schemaSpec.Hashing.Type,
+		}
+	}
+	var terraformProviderConfig *SpecParamTerraformProviderConfig
+	if schemaSpec.CodegenOverrides != nil {
+		terraformProviderConfig = &SpecParamTerraformProviderConfig{
+			Computed: schemaSpec.CodegenOverrides.Terraform.Computed,
+		}
+	}
 	specParameter := &SpecParam{
-		Description: schemaSpec.Description,
-		Type:        specType,
-		Default:     defaultVal,
-		Required:    schemaSpec.Required,
-		Profiles:    profiles,
-		Spec:        innerSpec,
+		Description:             schemaSpec.Description,
+		Type:                    specType,
+		Default:                 defaultVal,
+		Required:                schemaSpec.Required,
+		TerraformProviderConfig: terraformProviderConfig,
+		Hashing:                 specHashing,
+		Profiles:                profiles,
+		Spec:                    innerSpec,
 	}
 
 	for _, v := range schemaSpec.Validators {
@@ -428,13 +461,21 @@ func generateImportVariables(variables []xpathschema.Variable) map[string]*Impor
 }
 
 func schemaToSpec(object object.Object) (*Normalization, error) {
+	var resourceVariants []TerraformResourceVariant
+	for _, elt := range object.TerraformConfig.ResourceVariants {
+		resourceVariants = append(resourceVariants, TerraformResourceVariant(elt))
+	}
 	spec := &Normalization{
 		Name: object.DisplayName,
 		TerraformProviderConfig: TerraformProviderConfig{
 			SkipResource:          object.TerraformConfig.SkipResource,
 			SkipDatasource:        object.TerraformConfig.SkipDatasource,
 			SkipDatasourceListing: object.TerraformConfig.SkipdatasourceListing,
+			ResourceType:          TerraformResourceType(object.TerraformConfig.ResourceType),
+			ResourceVariants:      resourceVariants,
 			Suffix:                object.TerraformConfig.Suffix,
+			PluralSuffix:          object.TerraformConfig.PluralSuffix,
+			PluralName:            object.TerraformConfig.PluralName,
 		},
 		Locations:   make(map[string]*Location),
 		Imports:     make(map[string]*Import),

@@ -128,7 +128,7 @@ spec:
                                 - xpath: ["key-id"]
                           variants:
                             - name: md5
-                              type: string
+                              type: object
                               profiles:
                                 - xpath: ["algorithm", "md5"]
                               spec:
@@ -149,7 +149,7 @@ spec:
                                     profiles:
                                       - xpath: ["authentication-key"]
                             - name: sha1
-                              type: string
+                              type: object
                               profiles:
                                 - xpath: ["algorithm", "sha1"]
                               spec:
@@ -217,14 +217,16 @@ spec:
                                 - xpath: ["key-id"]
                           variants:
                             - name: md5
-                              type: string
+                              type: object
                               profiles:
-                                - xpath: ["algorithm/md5"]
+                                - xpath: ["algorithm", "md5"]
                               spec:
                                 params:
                                   - name: authentication_key
                                     type: string
                                     description: "Symmetric Key MD5 String"
+                                    hashing:
+                                      type: solo
                                     validators:
                                       - type: length
                                         spec:
@@ -233,14 +235,16 @@ spec:
                                     profiles:
                                       - xpath: ["authentication-key"]
                             - name: sha1
-                              type: string
+                              type: object
                               profiles:
-                                - xpath: ["algorithm/sha1"]
+                                - xpath: ["algorithm", "sha1"]
                               spec:
                                 params:
                                   - name: authentication_key
                                     type: string
                                     description: "Symmetric Key SHA1 Hexadecimal"
+                                    hashing:
+                                      type: solo
                                     validators:
                                       - type: length
                                         spec:

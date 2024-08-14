@@ -113,6 +113,124 @@ const resourceSchemaLocationAttribute = `
 			},
 `
 
+const resourceCreateUpdateMovementRequiredTmpl = `
+// We only manage a subset of PAN-OS object on the given list, so care
+// has to be taken to calculate the order of those managed elements on the
+// PAN-OS side.
+
+// We filter all existing entries to end up with a list of entries that
+// are in the plan. For every element of that list, we store its PAN-OS
+// list index as StateIdx. Finally, the managedEntries index will serve
+// as a way to check if managed entries are in order relative to each
+// other.
+var movementRequired bool
+managedEntriesByName := make(map[string]*entryWithState, len(planEntriesByName))
+idx := 0
+for existingIdx, elt := range existing {
+	if planEntry, found := planEntriesByName[elt.Name]; found {
+		managedEntriesByName[elt.Name] = &entryWithState{
+			Entry: &existing[existingIdx],
+			StateIdx: idx,
+		}
+		planEntry.Entry.Uuid = elt.Uuid
+		planEntriesByName[elt.Name] = planEntry
+	}
+	idx++
+}
+
+// First, we check if managedEntries order matches planEntriesByName to check
+// if all entries from the plan are properly ordered on the server.
+var previousManagedEntry, previousPlannedEntry *entryWithState
+for _, elt := range managedEntriesByName {
+	// plannedEntriesByName is a map of entries from the plan indexed by their
+	// name. If idx doesn't match StateIdx of the entry from the plan, the PAN-OS
+	// object is out of order.
+	plannedEntry := planEntriesByName[elt.Entry.Name]
+	if plannedEntry.StateIdx != elt.StateIdx {
+		movementRequired = true
+		break
+	}
+	// If this is the first element we are comparing, store it for future reference
+	// and continue. We will use it to calculate distance between two elements in
+	// PAN-OS list.
+	if previousManagedEntry == nil {
+		previousManagedEntry = elt
+		previousPlannedEntry = plannedEntry
+		continue
+	}
+
+	serverDistance := elt.StateIdx - previousManagedEntry.StateIdx
+	planDistance := plannedEntry.StateIdx - previousPlannedEntry.StateIdx
+
+	// If the distance between previous and current object differs between
+	// PAN-OS and the plan, we need to move objects around.
+	if serverDistance != planDistance {
+		movementRequired = true
+		break
+	}
+
+	previousManagedEntry = elt
+	previousPlannedEntry = plannedEntry
+}
+
+// If all entries are ordered properly, we check if their position matches what's
+// requested.
+if !movementRequired {
+	existingEntriesByName := make(map[string]*entryWithState, len(existing))
+	for idx, elt := range existing {
+		existingEntriesByName[elt.Name] = &entryWithState{
+			Entry: &existing[idx],
+			StateIdx: idx,
+		}
+	}
+
+	positionWhere := {{ .State }}.Position.Where.ValueString()
+	switch positionWhere {
+	case "first":
+		if existing[len({{ .Entries }})-1].Name != {{ .Entries }}[len({{ .Entries }})-1].Name {
+			movementRequired = true
+
+		}
+	case "last":
+		if existing[len({{ .Entries }})-1].Name != {{ .Entries }}[len({{ .Entries }})-1].Name {
+			movementRequired = true
+		}
+	case "before":
+		pivot := {{ .State }}.Position.Pivot.ValueString()
+		directly := {{ .State }}.Position.Directly.ValueBool()
+		if existingPivot, found := existingEntriesByName[pivot]; !found {
+			resp.Diagnostics.AddError("failed to create move actions", fmt.Sprintf("pivot point '%s' missing from the server", pivot))
+		} else if directly {
+			if existingPivot.StateIdx == 0 {
+				movementRequired = true
+			} else if existing[existingPivot.StateIdx-1].Name != {{ .Entries }}[len({{ .Entries }})-1].Name {
+				movementRequired = true
+			}
+		} else {
+			if existingPivot.StateIdx == 0 {
+				movementRequired = true
+			}
+		}
+	case "after":
+		pivot := {{ .State }}.Position.Pivot.ValueString()
+		directly := {{ .State }}.Position.Directly.ValueBool()
+		if existingPivot, found := existingEntriesByName[pivot]; !found {
+			resp.Diagnostics.AddError("failed to create move actions", fmt.Sprintf("pivot point '%s' missing from the server", pivot))
+		} else if directly {
+			if existingPivot.StateIdx == len(existing)-1 {
+				movementRequired = true
+			} else if existing[existingPivot.StateIdx+1].Name != {{ .Entries }}[0].Name {
+				movementRequired = true
+			}
+		} else {
+			if existingPivot.StateIdx == len(existing)-1 {
+				movementRequired = true
+			}
+		}
+	}
+}
+`
+
 const resourceObj = `
 {{- /* Begin */ -}}
 
@@ -151,32 +269,22 @@ func {{ resourceStructName }}LocationSchema() rsschema.Attribute {
 	return {{ structName }}LocationSchema()
 }
 
-type {{ resourceStructName }}Model struct {
-		{{ CreateTfIdResourceModel }}
-{{- if .HasEntryName }}
-		Name types.String` + "`" + `tfsdk:"name"` + "`" + `
-{{- end }}
-        {{- range $pName, $pParam := $.Spec.Params}}
-            {{- ParamToModelResource $pName $pParam resourceStructName -}}
-        {{- end}}
-        {{- range $pName, $pParam := $.Spec.OneOf}}
-            {{- ParamToModelResource $pName $pParam resourceStructName -}}
-        {{- end}}
-
-	{{- if .HasEncryptedResources }}
-		EncryptedValues types.Map ` + "`" + `tfsdk:"encrypted_values"` + "`" + `
-	{{- end }}
-}
-
-{{- range $pName, $pParam := $.Spec.Params}}
-	{{ ModelNestedStruct $pName $pParam resourceStructName }}
-{{- end}}
-{{- range $pName, $pParam := $.Spec.OneOf}}
-	{{ ModelNestedStruct $pName $pParam resourceStructName }}
-{{- end}}
+{{ RenderResourceStructs }}
 
 func (r *{{ resourceStructName }}) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "{{ metaName }}"
+}
+
+func (r *{{ resourceStructName }}) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+{{- if HasPosition }}
+	var resource {{ resourceStructName }}Model
+	resp.Diagnostics.Append(req.Config.Get(ctx, &resource)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resource.Position.ValidateConfig(resp)
+{{- end }}
 }
 
 // <ResourceSchema>
@@ -224,6 +332,365 @@ func (r *{{ resourceStructName }}) ImportState(ctx context.Context, req resource
 
 {{- /* Done */ -}}`
 
+const resourceCreateEntryListFunction = `
+{{ $resourceSDKStructName := printf "%s.%s" .resourceSDKName .EntryOrConfig }}
+{{ $resourceTFStructName := printf "%s%sObject" .structName .ListAttribute.CamelCase }}
+
+var state {{ .structName }}Model
+resp.Diagnostics.Append(req.Plan.Get(ctx, &state)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+// Basic logging.
+tflog.Info(ctx, "performing resource create", map[string]any{
+	"resource_name": "panos_{{ UnderscoreName .structName }}",
+	"function":      "Create",
+})
+
+var location {{ .resourceSDKName }}.Location
+{{ RenderLocationsStateToPango "state.Location" "location" }}
+
+{{ $ev := "" }}
+{{- if .HasEncryptedResources }}
+  {{- $ev = "&ev" }}
+ev := make(map[string]types.String, len(state.EncryptedValues.Elements()))
+{{- else }}
+  {{- $ev = "nil" }}
+{{- end }}
+
+
+type entryWithState struct {
+	Entry    *{{ $resourceSDKStructName }}
+	StateIdx int
+}
+
+var elements map[string]{{ $resourceTFStructName }}
+state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
+entries := make([]*{{ $resourceSDKStructName }}, len(elements))
+idx := 0
+for name, elt := range elements {
+	var list_diags diag.Diagnostics
+	var entry *{{ .resourceSDKName }}.{{ .EntryOrConfig }}
+	entry, list_diags = elt.CopyToPango(ctx, {{ $ev }})
+	resp.Diagnostics.Append(list_diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	entry.Name = name
+	entries[idx] = entry
+	idx++
+}
+
+svc := {{ .resourceSDKName }}.NewService(r.client)
+
+// First, check if none of the entries from the plan already exist on the server
+existing, err := svc.List(ctx, location, "get", "", "")
+if err != nil && err.Error() != "Object not found" {
+	resp.Diagnostics.AddError("sdk error while listing resources", err.Error())
+	return
+}
+
+for _, elt := range existing {
+	_, foundInPlan := elements[elt.Name]
+
+	if foundInPlan {
+		errorMsg := fmt.Sprintf("%s created outside of terraform", elt.Name)
+		resp.Diagnostics.AddError("Conflict between plan and server data", errorMsg)
+		return
+	}
+}
+
+specifier, _, err := {{ .resourceSDKName }}.Versioning(r.client.Versioning())
+if err != nil {
+	resp.Diagnostics.AddError("error while creating specifier", err.Error())
+	return
+}
+
+updates := xmlapi.NewMultiConfig(len(elements))
+
+for _, elt := range entries {
+	path, err := location.XpathWithEntryName(r.client.Versioning(), elt.Name)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to create xpath for existing entry", err.Error())
+		return
+	}
+
+	xmlEntry, err := specifier(*elt)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to transform Entry into XML document", err.Error())
+		return
+	}
+
+	updates.Add(&xmlapi.Config{
+		Action:  "edit",
+		Xpath:   util.AsXpath(path),
+		Element: xmlEntry,
+		Target:  r.client.GetTarget(),
+	})
+}
+
+if len(updates.Operations) > 0 {
+	if _, _, _, err := r.client.MultiConfig(ctx, updates, false, nil); err != nil {
+		resp.Diagnostics.AddError("error updating entries", err.Error())
+		return
+	}
+}
+
+existing, err = svc.List(ctx, location, "get", "", "")
+if err != nil && err.Error() != "Object not found" {
+	resp.Diagnostics.AddError("sdk error while listing resources", err.Error())
+	return
+}
+
+for _, elt := range existing {
+	if _, found := elements[elt.Name]; !found {
+		continue
+	}
+	var object {{ $resourceTFStructName }}
+	copy_diags := object.CopyFromPango(ctx, &elt, {{ $ev }})
+	resp.Diagnostics.Append(copy_diags...)
+	elements[elt.Name] = object
+}
+
+if resp.Diagnostics.HasError() {
+	return
+}
+
+var map_diags diag.Diagnostics
+state.{{ .ListAttribute.CamelCase }}, map_diags = types.MapValueFrom(ctx, state.getTypeFor("{{ .ListAttribute.Underscore }}"), elements)
+resp.Diagnostics.Append(map_diags...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+{{- if .HasEncryptedResources }}
+	{
+		copy_diags := state.CopyFromPango(ctx, create, &ev)
+		resp.Diagnostics.Append(copy_diags...)
+	}
+	ev_map, ev_diags := types.MapValueFrom(ctx, types.StringType, ev)
+        state.EncryptedValues = ev_map
+        resp.Diagnostics.Append(ev_diags...)
+{{- end }}
+
+resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+`
+
+const resourceCreateManyFunction = `
+{{ $resourceSDKStructName := printf "%s.%s" .resourceSDKName .EntryOrConfig }}
+{{ $resourceTFStructName := printf "%s%sObject" .structName .ListAttribute.CamelCase }}
+
+var state {{ .structName }}Model
+resp.Diagnostics.Append(req.Plan.Get(ctx, &state)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+// Basic logging.
+tflog.Info(ctx, "performing resource create", map[string]any{
+	"resource_name": "panos_{{ UnderscoreName .structName }}",
+	"function":      "Create",
+})
+
+var location {{ .resourceSDKName }}.Location
+{{ RenderLocationsStateToPango "state.Location" "location" }}
+
+{{ $ev := "" }}
+{{- if .HasEncryptedResources }}
+  {{- $ev = "&ev" }}
+ev := make(map[string]types.String, len(state.EncryptedValues.Elements()))
+{{- else }}
+  {{- $ev = "nil" }}
+{{- end }}
+
+
+type entryWithState struct {
+	Entry    *{{ $resourceSDKStructName }}
+	StateIdx int
+}
+
+var elements []{{ $resourceTFStructName }}
+state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
+entries := make([]*{{ $resourceSDKStructName }}, len(elements))
+
+planEntriesByName := make(map[string]*entryWithState, len(elements))
+for idx, elt := range elements {
+	var list_diags diag.Diagnostics
+	var entry *{{ $resourceSDKStructName }}
+	entry, list_diags = elt.CopyToPango(ctx, {{ $ev }})
+	resp.Diagnostics.Append(list_diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	planEntriesByName[elt.Name.ValueString()] = &entryWithState{
+		Entry: entry,
+		StateIdx: idx,
+	}
+	entries[idx] = entry
+}
+
+svc := {{ .resourceSDKName }}.NewService(r.client)
+
+// First, check if none of the entries from the plan already exist on the server
+existing, err := svc.List(ctx, location, "get", "", "")
+if err != nil && err.Error() != "Object not found" {
+	resp.Diagnostics.AddError("sdk error while listing resources", err.Error())
+	return
+}
+
+for _, elt := range existing {
+	_, foundInPlan := planEntriesByName[elt.Name]
+
+	if foundInPlan {
+		errorMsg := fmt.Sprintf("%s created outside of terraform", elt.Name)
+		resp.Diagnostics.AddError("Conflict between plan and server data", errorMsg)
+		return
+	}
+}
+
+specifier, _, err := {{ .resourceSDKName }}.Versioning(r.client.Versioning())
+if err != nil {
+	resp.Diagnostics.AddError("error while creating specifier", err.Error())
+	return
+}
+
+updates := xmlapi.NewMultiConfig(len(elements))
+
+for _, elt := range entries {
+	path, err := location.XpathWithEntryName(r.client.Versioning(), elt.Name)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to create xpath for existing entry", err.Error())
+		return
+	}
+
+	xmlEntry, err := specifier(*elt)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to transform Entry into XML document", err.Error())
+		return
+	}
+
+	updates.Add(&xmlapi.Config{
+		Action:  "edit",
+		Xpath:   util.AsXpath(path),
+		Element: xmlEntry,
+		Target:  r.client.GetTarget(),
+	})
+}
+
+if len(updates.Operations) > 0 {
+	if _, _, _, err := r.client.MultiConfig(ctx, updates, false, nil); err != nil {
+		resp.Diagnostics.AddError("error updating entries", err.Error())
+		return
+	}
+}
+
+existing, err = svc.List(ctx, location, "get", "", "")
+if err != nil && err.Error() != "Object not found" {
+	resp.Diagnostics.AddError("sdk error while listing resources", err.Error())
+	return
+}
+
+{{- if .Exhaustive }}
+// We manage the entire list of PAN-OS objects, so the order of entries
+// from the plan is compared against all existing PAN-OS objects.
+trueValue := true
+position := rule.Position{First: &trueValue}
+var movementRequired bool
+for idx, elt := range existing {
+	if planEntriesByName[elt.Name].StateIdx != idx {
+		movementRequired = true
+	}
+	planEntriesByName[elt.Name].Entry.Uuid = elt.Uuid
+}
+{{- else }}
+position := state.Position.CopyToPango()
+  {{ RenderCreateUpdateMovementRequired "state" "entries" }}
+{{- end }}
+
+{{- if .Exhaustive }}
+if movementRequired {
+	entries := make([]{{ $resourceSDKStructName }}, len(planEntriesByName))
+	for _, elt := range planEntriesByName {
+		entries[elt.StateIdx] = *elt.Entry
+	}
+
+	err = svc.MoveGroup(ctx, location, position, entries)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to reorder entries", err.Error())
+		return
+	}
+}
+{{- else }}
+if movementRequired {
+	entries := make([]{{ $resourceSDKStructName }}, len(planEntriesByName))
+	for _, elt := range planEntriesByName {
+		entries[elt.StateIdx] = *elt.Entry
+	}
+
+	err = svc.MoveGroup(ctx, location, position, entries)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to reorder entries", err.Error())
+		return
+	}
+}
+{{- end }}
+
+{{- if not .Exhaustive }}
+objects := make([]{{ $resourceTFStructName }}, len(planEntriesByName))
+for _, elt := range planEntriesByName {
+	var object {{ $resourceTFStructName }}
+	copy_diags := object.CopyFromPango(ctx, elt.Entry, {{ $ev }})
+	resp.Diagnostics.Append(copy_diags...)
+	objects[elt.StateIdx] = object
+}
+
+if resp.Diagnostics.HasError() {
+	return
+}
+
+var list_diags diag.Diagnostics
+state.{{ .ListAttribute.CamelCase }}, list_diags = types.ListValueFrom(ctx, state.getTypeFor("{{ .ListAttribute.Underscore }}"), objects)
+resp.Diagnostics.Append(list_diags...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+{{- else }}
+objects := make([]{{ $resourceTFStructName }}, len(planEntriesByName))
+for idx, elt := range existing {
+	var object {{ $resourceTFStructName }}
+	copy_diags := object.CopyFromPango(ctx, &elt, {{ $ev }})
+	resp.Diagnostics.Append(copy_diags...)
+	objects[idx] = object
+}
+
+if resp.Diagnostics.HasError() {
+	return
+}
+var list_diags diag.Diagnostics
+state.{{ .ListAttribute.CamelCase }}, list_diags = types.ListValueFrom(ctx, state.getTypeFor("{{ .ListAttribute.Underscore }}"), objects)
+resp.Diagnostics.Append(list_diags...)
+if resp.Diagnostics.HasError() {
+	return
+}
+{{- end }}
+
+{{- if .HasEncryptedResources }}
+	{
+		copy_diags := state.CopyFromPango(ctx, create, &ev)
+		resp.Diagnostics.Append(copy_diags...)
+	}
+	ev_map, ev_diags := types.MapValueFrom(ctx, types.StringType, ev)
+        state.EncryptedValues = ev_map
+        resp.Diagnostics.Append(ev_diags...)
+{{- end }}
+
+resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+
+`
+
 const resourceCreateFunction = `
 {{- /* Begin */ -}}
 	var state {{ .structName }}Model
@@ -259,7 +726,7 @@ const resourceCreateFunction = `
 
 
 	// TODO: this needs to handle location structure for UUID style shared has nested structure type
-	{{ RenderLocationsStateToPango "state" }}
+	{{ RenderLocationsStateToPango "state.Location" "loc.Location" }}
 
 	if err := loc.IsValid(); err != nil {
 		resp.Diagnostics.AddError("Invalid location", err.Error())
@@ -328,6 +795,221 @@ const resourceCreateFunction = `
 {{- /* Done */ -}}
 `
 
+const resourceReadEntryListFunction = `
+{{- $structName := "" }}
+{{- if eq .ResourceOrDS "DataSource" }}
+  {{ $structName = .dataSourceStructName }}
+{{- else }}
+  {{ $structName = .resourceStructName }}
+{{- end }}
+{{- $resourceSDKStructName := printf "%s.%s" .resourceSDKName .EntryOrConfig }}
+{{- $resourceTFStructName := printf "%s%sObject" $structName .ListAttribute.CamelCase }}
+
+{{- $stateName := "" }}
+{{- if eq .ResourceOrDS "DataSource" }}
+  {{- $stateName = "Config" }}
+{{- else }}
+  {{- $stateName = "State" }}
+{{- end -}}
+
+
+
+var state {{ .structName }}{{ .ResourceOrDS }}Model
+
+resp.Diagnostics.Append(req.{{ $stateName }}.Get(ctx, &state)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+// Basic logging.
+tflog.Info(ctx, "performing resource create", map[string]any{
+	"resource_name": "panos_{{ UnderscoreName .structName }}",
+	"function":      "Create",
+})
+
+svc := {{ .resourceSDKName }}.NewService(o.client)
+
+var location {{ .resourceSDKName }}.Location
+{{ RenderLocationsStateToPango "state.Location" "location" }}
+
+existing, err := svc.List(ctx, location, "get", "", "")
+if err != nil && err.Error() != "Object not found" {
+	resp.Diagnostics.AddError("sdk error during read", err.Error())
+	return
+}
+
+{{ $ev := "" }}
+{{- if .HasEncryptedResources }}
+  {{- $ev = "&ev" }}
+ev := make(map[string]types.String, len(state.EncryptedValues.Elements()))
+resp.Diagnostics.Append(savestate.EncryptedValues.ElementsAs(ctx, &ev, false)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+{{- else }}
+  {{- $ev = "nil" }}
+{{- end }}
+
+elements := make(map[string]{{ $resourceTFStructName }})
+resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+objects := make(map[string]{{ $resourceTFStructName }})
+for _, elt := range existing {
+	if _, found := elements[elt.Name]; !found {
+		continue
+	}
+	var object {{ $resourceTFStructName }}
+	resp.Diagnostics.Append(object.CopyFromPango(ctx, &elt, {{ $ev }})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	objects[elt.Name] = object
+}
+
+var map_diags diag.Diagnostics
+state.{{ .ListAttribute.CamelCase }}, map_diags = types.MapValueFrom(ctx, state.getTypeFor("{{ .ListAttribute.Underscore }}"), objects)
+resp.Diagnostics.Append(map_diags...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+`
+
+const resourceReadManyFunction = `
+{{- $structName := "" }}
+{{- if eq .ResourceOrDS "DataSource" }}
+  {{ $structName = .dataSourceStructName }}
+{{- else }}
+  {{ $structName = .resourceStructName }}
+{{- end }}
+{{- $resourceSDKStructName := printf "%s.%s" .resourceSDKName .EntryOrConfig }}
+{{- $resourceTFStructName := printf "%s%sObject" $structName .ListAttribute.CamelCase }}
+
+{{- $stateName := "" }}
+{{- if eq .ResourceOrDS "DataSource" }}
+  {{- $stateName = "Config" }}
+{{- else }}
+  {{- $stateName = "State" }}
+{{- end -}}
+
+
+
+var state {{ .structName }}{{ .ResourceOrDS }}Model
+
+resp.Diagnostics.Append(req.{{ $stateName }}.Get(ctx, &state)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+// Basic logging.
+tflog.Info(ctx, "performing resource create", map[string]any{
+	"resource_name": "panos_{{ UnderscoreName .structName }}",
+	"function":      "Create",
+})
+
+svc := {{ .resourceSDKName }}.NewService(o.client)
+
+var location {{ .resourceSDKName }}.Location
+{{ RenderLocationsStateToPango "state.Location" "location" }}
+
+existing, err := svc.List(ctx, location, "get", "", "")
+if err != nil && err.Error() != "Object not found" {
+	resp.Diagnostics.AddError("sdk error during read", err.Error())
+	return
+}
+
+{{ $ev := "" }}
+{{- if .HasEncryptedResources }}
+  {{- $ev = "&ev" }}
+ev := make(map[string]types.String, len(state.EncryptedValues.Elements()))
+resp.Diagnostics.Append(savestate.EncryptedValues.ElementsAs(ctx, &ev, false)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+{{- else }}
+  {{- $ev = "nil" }}
+{{- end }}
+
+{{- if .Exhaustive }}
+// For resources that take sole ownership of a given list, Read()
+// will return all existing entries from the server.
+objects := make([]{{ $resourceTFStructName }}, len(existing))
+for idx, elt := range existing {
+	var object {{ $resourceTFStructName }}
+	object.CopyFromPango(ctx, &elt, {{ $ev }})
+	objects[idx] = object
+}
+{{- else }}
+// For resources that only manage their own items in the list, Read()
+// must only objects that are already part of the state.
+
+type elementWithState struct {
+	Element  *{{ $resourceTFStructName }}
+	StateIdx int
+}
+
+var stateElements []{{ $resourceTFStructName }}
+state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &stateElements, false)
+stateElementsByName := make(map[string]elementWithState, len(stateElements))
+for idx, elt := range stateElements {
+	stateElementsByName[elt.Name.ValueString()] = elementWithState {
+		Element: &elt,
+		StateIdx: idx,
+	}
+}
+
+processedElementsByName := make(map[string]elementWithState, len(stateElementsByName))
+for _, elt := range existing {
+	stateElement, found := stateElementsByName[elt.Name]
+	if !found {
+		continue
+	}
+	var object {{ $resourceTFStructName }}
+	object.CopyFromPango(ctx, &elt, nil)
+	processedElement := elementWithState{
+		Element: &object,
+		StateIdx: stateElement.StateIdx,
+	}
+	processedElementsByName[elt.Name] = processedElement
+}
+
+
+// To keep indices correct, processed entries were stored in a map, with element
+// index being part of the entryWithState structure. Now it has to be converted
+// into a list that can be set in the plan.
+// First, create a list with a length matching number of elements in the
+// stateElementsByName and fill it out with elements from processedElementsByName
+// map.
+unfiltered := make([]elementWithState, len(stateElementsByName))
+for _, elt := range processedElementsByName {
+	unfiltered[elt.StateIdx] = elt
+}
+
+// If some elements were removed in the plan, unfiltered array is now going to have
+// empty spaces. We need to process it and remove them before we pass it back
+// to terraform.
+var objects []{{ $resourceTFStructName }}
+for _, elt := range unfiltered {
+	if elt.Element != nil {
+		objects = append(objects, *elt.Element)
+	}
+}
+{{- end }}
+
+var list_diags diag.Diagnostics
+state.{{ .ListAttribute.CamelCase }}, list_diags = types.ListValueFrom(ctx, state.getTypeFor("{{ .ListAttribute.Underscore }}"), objects)
+resp.Diagnostics.Append(list_diags...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+`
+
 const resourceReadFunction = `
 {{- if eq .ResourceOrDS "DataSource" }}
 	var savestate, state {{ .dataSourceStructName }}Model
@@ -345,7 +1027,7 @@ const resourceReadFunction = `
   {{- if .HasEntryName }}
 	loc.Name = *savestate.Name.ValueStringPointer()
   {{- end }}
-	{{ RenderLocationsStateToPango "savestate" }}
+	{{ RenderLocationsStateToPango "savestate.Location" "loc.Location" }}
 {{- else }}
 	var loc {{ .resourceStructName }}Tfid
 	// Parse the location from tfid.
@@ -413,7 +1095,7 @@ const resourceReadFunction = `
 {{- end }}
 	resp.Diagnostics.Append(copy_diags...)
 
-	{{ RenderLocationsPangoToState "state" }}
+	{{ RenderLocationsPangoToState "loc.Location" "state.Location" }}
 
 	/*
 			// Keep the timeouts.
@@ -435,6 +1117,687 @@ const resourceReadFunction = `
 
 	// Done.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+`
+
+const resourceUpdateEntryListFunction = `
+{{ $resourceSDKStructName := printf "%s.%s" .resourceSDKName .EntryOrConfig }}
+{{ $resourceTFStructName := printf "%s%sObject" .structName .ListAttribute.CamelCase }}
+
+var state, plan {{ .structName }}Model
+resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+// Basic logging.
+tflog.Info(ctx, "performing resource create", map[string]any{
+	"resource_name": "panos_{{ UnderscoreName .structName }}",
+	"function":      "Create",
+})
+
+svc := {{ .resourceSDKName }}.NewService(r.client)
+
+var location {{ .resourceSDKName }}.Location
+{{ RenderLocationsStateToPango "plan.Location" "location" }}
+
+// Basic logging.
+tflog.Info(ctx, "performing resource update", map[string]any{
+	"resource_name": "panos_{{ UnderscoreName .structName }}",
+	"function":      "Update",
+})
+
+var elements map[string]{{ $resourceTFStructName }}
+state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
+stateEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
+idx := 0
+for name, elt := range elements {
+	var list_diags diag.Diagnostics
+	var entry *{{ $resourceSDKStructName }}
+	entry, list_diags = elt.CopyToPango(ctx, nil)
+	resp.Diagnostics.Append(list_diags...)
+	if resp.Diagnostics.HasError() {
+		 return
+	}
+	entry.Name = name
+	stateEntries[idx] = entry
+	idx++
+}
+
+plan.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
+planEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
+idx = 0
+for name, elt := range elements {
+	var list_diags diag.Diagnostics
+	var entry *{{ $resourceSDKStructName }}
+	entry, list_diags = elt.CopyToPango(ctx, nil)
+	resp.Diagnostics.Append(list_diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	entry.Name = name
+	planEntries[idx] = entry
+	idx++
+}
+
+type entryState string
+const (
+	entryUnknown  entryState = "unknown"
+	entryMissing  entryState = "missing"
+	entryOutdated entryState = "outdated"
+	entryRenamed  entryState = "renamed"
+	entryDeleted  entryState = "deleted"
+	entryOk       entryState = "ok"
+)
+
+type entryWithState struct {
+	Entry    *{{ $resourceSDKStructName }}
+	State    entryState
+	NewName  string
+}
+
+stateEntriesByName := make(map[string]entryWithState, len(stateEntries))
+for _, elt := range stateEntries {
+	stateEntriesByName[elt.Name] = entryWithState{
+		Entry:    elt,
+	}
+}
+
+planEntriesByName := make(map[string]entryWithState, len(planEntries))
+for _, elt := range planEntries {
+	planEntriesByName[elt.Name] = entryWithState{
+		Entry:    elt,
+	}
+}
+
+
+renamedEntries := make(map[string]bool)
+processedStateEntries := make(map[string]*entryWithState)
+
+findMatchingStateEntry := func(entry *{{ $resourceSDKStructName }}) (*{{ $resourceSDKStructName }}, bool) {
+	var found *{{ $resourceSDKStructName }}
+
+	for _, elt := range stateEntriesByName {
+		if {{ .resourceSDKName }}.SpecMatches(entry, elt.Entry) {
+			found = elt.Entry
+			break
+		}
+	}
+
+	if found == nil {
+		return nil, false
+	}
+
+	// If matched entry already exists in the plan, this is not a rename
+	// but adding a missing entry.
+	if _, ok := planEntriesByName[found.Name]; ok {
+		return nil, false
+	}
+
+	return found, true
+}
+
+
+for _, elt := range planEntries {
+	var processedEntry *entryWithState
+
+	if stateElt, found := stateEntriesByName[elt.Name]; !found {
+		// If given plan entry is not found in state, check if there is another
+		// entry that matches it without name. If so, this plan entry is a rename.
+		// Keep the renamedEntry Index, and set its state to entryRename.
+		if stateEntry, found := findMatchingStateEntry(elt); found {
+			if _, found := renamedEntries[stateEntry.Name]; found {
+				resp.Diagnostics.AddError("Failed to generate update actions", "Entry name swapped between entries")
+				return
+			}
+			processedEntry = &entryWithState{
+				Entry:    stateEntry,
+				State:    entryRenamed,
+				NewName:  elt.Name,
+			}
+			renamedEntries[elt.Name] = true
+		} else {
+			processedEntry = &entryWithState{
+				Entry:    elt,
+				State:    entryMissing,
+			}
+		}
+
+		// If there is already a processed entry with state entryMissing, it means
+		// we've encountered a new entry with the name matching renamedEntry old name.
+		// It will have state entryOutdated because its spec didn't match spec of the
+		// entry about to be renamed.
+		// Change its state to entryMissing instead, and update its index to match
+		// index from the plan.
+		if previousEntry, found := processedStateEntries[processedEntry.Entry.Name]; found {
+			if previousEntry.State != entryOutdated && previousEntry.State != entryMissing {
+				resp.Diagnostics.AddError(
+					"failed to create a list of entries to process",
+					fmt.Sprintf("previousEntry.State '%s' != entryOutdated", previousEntry.State))
+				return
+			}
+		}
+		processedStateEntries[processedEntry.Entry.Name] = processedEntry
+	} else {
+		processedEntry = &entryWithState{
+			Entry:    elt,
+			State: entryMissing,
+		}
+
+		if !{{ .resourceSDKName }}.SpecMatches(elt, stateElt.Entry) {
+			processedEntry.State = entryOutdated
+		}
+
+		processedStateEntries[elt.Name] = processedEntry
+	}
+
+}
+
+existing, err := svc.List(ctx, location, "get", "", "")
+if err != nil && err.Error() != "Object not found" {
+	resp.Diagnostics.AddError("sdk error while listing resources", err.Error())
+	return
+}
+
+updates := xmlapi.NewMultiConfig(len(planEntries))
+
+// Iterate over all existing entries as returned from the server, comparing
+// them to processedEntries.
+for _, existingElt := range existing {
+	path, err := location.XpathWithEntryName(r.client.Versioning(), existingElt.Name)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to create xpath for existing entry", err.Error())
+	}
+
+	_, foundInState := stateEntriesByName[existingElt.Name]
+        _, foundInRenamed := renamedEntries[existingElt.Name]
+	_, foundInPlan := planEntriesByName[existingElt.Name]
+
+	if !foundInState && (foundInRenamed || foundInPlan) {
+		errorMsg := fmt.Sprintf("Resource '%s' created outside of terraform", existingElt.Name)
+		resp.Diagnostics.AddError("Conflict between Terraform and PAN-OS", errorMsg)
+		return
+	}
+
+	// If the existing entry name matches new name for the renamed entry,
+	// we delete it before adding Renamed commands.
+	if _, found := renamedEntries[existingElt.Name]; found {
+		updates.Add(&xmlapi.Config{
+			Action: "delete",
+			Xpath:  util.AsXpath(path),
+			Target: r.client.GetTarget(),
+		})
+		continue
+	}
+
+	processedElt, found := processedStateEntries[existingElt.Name]
+	if !found {
+		// If existing entry is not found in the processedEntries map, it's not
+		// entry we are managing and it should be deleted.
+		updates.Add(&xmlapi.Config{
+			Action: "delete",
+			Xpath:  util.AsXpath(path),
+			Target: r.client.GetTarget(),
+		})
+	} else {
+		// XXX: If entry from the plan is in process of being renamed, and its content
+		// differs from what exists on the server we should switch its state to entryOutdated
+		// instead.
+		if processedElt.State == entryRenamed {
+			continue
+		}
+
+		if !{{ .resourceSDKName }}.SpecMatches(processedElt.Entry, &existingElt) {
+			processedElt.State = entryOutdated
+		} else {
+			processedElt.State = entryOk
+		}
+	}
+}
+
+specifier, _, err := {{ .resourceSDKName }}.Versioning(r.client.Versioning())
+if err != nil {
+	resp.Diagnostics.AddError("error while creating specifier", err.Error())
+	return
+}
+
+for _, elt := range processedStateEntries {
+	path, err := location.XpathWithEntryName(r.client.Versioning(), elt.Entry.Name)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to create xpath for existing entry", err.Error())
+		return
+	}
+
+	xmlEntry, err := specifier(*elt.Entry)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to transform Entry into XML document", err.Error())
+		return
+	}
+
+	switch elt.State {
+	case entryMissing, entryOutdated:
+		updates.Add(&xmlapi.Config{
+			Action:  "edit",
+			Xpath:   util.AsXpath(path),
+			Element: xmlEntry,
+			Target:  r.client.GetTarget(),
+		})
+	case entryRenamed:
+		updates.Add(&xmlapi.Config{
+			Action:  "rename",
+			Xpath:   util.AsXpath(path),
+			NewName: elt.NewName,
+			Target:  r.client.GetTarget(),
+		})
+
+		// If existing entry is found in our plan with state entryRenamed,
+		// we move entry in processedEntries from old name to the new name,
+		// indicating it has been renamed.
+		// This is used later when we assign uuids to all entries.
+		delete(processedStateEntries, elt.Entry.Name)
+		elt.Entry.Name = elt.NewName
+		processedStateEntries[elt.NewName] = elt
+	case entryUnknown:
+		tflog.Warn(ctx, "Entry state is still unknown after reconciliation", map[string]any{"Name": elt.Entry.Name})
+	case entryOk:
+		// Nothing to do for entries that have no changes
+	}
+}
+
+if len(updates.Operations) > 0 {
+	if _, _, _, err := r.client.MultiConfig(ctx, updates, false, nil); err != nil {
+		resp.Diagnostics.AddError("error updating entries", err.Error())
+		return
+	}
+}
+
+objects := make(map[string]*{{ $resourceTFStructName }}, len(processedStateEntries))
+for _, elt := range processedStateEntries {
+	var object {{ $resourceTFStructName }}
+	copy_diags := object.CopyFromPango(ctx, elt.Entry, nil)
+	resp.Diagnostics.Append(copy_diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	objects[elt.Entry.Name] = &object
+}
+
+var list_diags diag.Diagnostics
+plan.{{ .ListAttribute.CamelCase }}, list_diags = types.MapValueFrom(ctx, state.getTypeFor("{{ .ListAttribute.Underscore }}"), objects)
+resp.Diagnostics.Append(list_diags...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+`
+
+const resourceUpdateManyFunction = `
+{{ $resourceSDKStructName := printf "%s.%s" .resourceSDKName .EntryOrConfig }}
+{{ $resourceTFStructName := printf "%s%sObject" .structName .ListAttribute.CamelCase }}
+
+var state, plan {{ .structName }}Model
+resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+// Basic logging.
+tflog.Info(ctx, "performing resource create", map[string]any{
+	"resource_name": "panos_{{ UnderscoreName .structName }}",
+	"function":      "Create",
+})
+
+svc := {{ .resourceSDKName }}.NewService(r.client)
+
+var location {{ .resourceSDKName }}.Location
+{{ RenderLocationsStateToPango "plan.Location" "location" }}
+
+var elements []{{ $resourceTFStructName }}
+state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
+stateEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
+for idx, elt := range elements {
+	var list_diags diag.Diagnostics
+	var entry *{{ $resourceSDKStructName }}
+	entry, list_diags = elt.CopyToPango(ctx, nil)
+	resp.Diagnostics.Append(list_diags...)
+	if resp.Diagnostics.HasError() {
+		 return
+	}
+	stateEntries[idx] = entry
+}
+
+plan.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
+planEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
+for idx, elt := range elements {
+	var list_diags diag.Diagnostics
+	var entry *{{ $resourceSDKStructName }}
+	entry, list_diags = elt.CopyToPango(ctx, nil)
+	resp.Diagnostics.Append(list_diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	planEntries[idx] = entry
+}
+
+type entryState string
+const (
+	entryUnknown  entryState = "unknown"
+	entryMissing  entryState = "missing"
+	entryOutdated entryState = "outdated"
+	entryRenamed  entryState = "renamed"
+	entryDeleted  entryState = "deleted"
+	entryOk       entryState = "ok"
+)
+
+type entryWithState struct {
+	Entry    *{{ $resourceSDKStructName }}
+	State    entryState
+	StateIdx int
+	NewName  string
+}
+
+stateEntriesByName := make(map[string]*entryWithState, len(stateEntries))
+for idx, elt := range stateEntries {
+	stateEntriesByName[elt.Name] = &entryWithState{
+		Entry:    elt,
+		StateIdx: idx,
+	}
+}
+
+planEntriesByName := make(map[string]*entryWithState, len(planEntries))
+for idx, elt := range planEntries {
+	planEntriesByName[elt.Name] = &entryWithState{
+		Entry:    elt,
+		StateIdx: idx,
+	}
+}
+
+findMatchingStateEntry := func(entry *{{ $resourceSDKStructName }}) (*{{ $resourceSDKStructName }}, bool) {
+	var found *{{ $resourceSDKStructName }}
+
+	for _, elt := range stateEntriesByName {
+		entry.Uuid = elt.Entry.Uuid
+		if {{ .resourceSDKName }}.SpecMatches(entry, elt.Entry) {
+			found = elt.Entry
+			break
+		}
+	}
+	entry.Uuid = nil
+
+	if found == nil {
+		return nil, false
+	}
+
+	// If matched entry already exists in the plan, this is not a rename
+	// but adding a missing entry.
+	if _, ok := planEntriesByName[found.Name]; ok {
+		return nil, false
+	}
+
+	return found, true
+}
+
+renamedEntries := make(map[string]bool)
+processedStateEntries := make(map[string]*entryWithState)
+
+for idx, elt := range planEntries {
+	var processedEntry *entryWithState
+
+	if stateElt, found := stateEntriesByName[elt.Name]; !found {
+		// If given plan entry is not found in state, check if there is another
+		// entry that matches it without name. If so, this plan entry is a rename.
+		// Keep the renamedEntry Index, and set its state to entryRename.
+		if renamedEntry, found := findMatchingStateEntry(elt); found {
+			if _, found := renamedEntries[renamedEntry.Name]; found {
+				resp.Diagnostics.AddError("Failed to generate update actions", "Entry name swapped between entries")
+				return
+			}
+			processedEntry = &entryWithState{
+				Entry:    renamedEntry,
+				State:    entryRenamed,
+				StateIdx: stateEntriesByName[renamedEntry.Name].StateIdx,
+				NewName:  elt.Name,
+			}
+			renamedEntries[elt.Name] = true
+		} else {
+			processedEntry = &entryWithState{
+				Entry:    elt,
+				State:    entryMissing,
+				StateIdx: idx,
+			}
+		}
+
+		// If there is already a processed entry with state entryMissing, it means
+		// we've encountered a new entry with the name matching renamedEntry old name.
+		// It will have state entryOutdated because its spec didn't match spec of the
+		// entry about to be renamed.
+		// Change its state to entryMissing instead, and update its index to match
+		// index from the plan.
+		if previousEntry, found := processedStateEntries[processedEntry.Entry.Name]; found {
+			if previousEntry.State != entryOutdated {
+				resp.Diagnostics.AddError(
+					"failed to create a list of entries to process",
+					fmt.Sprintf("previousEntry.State '%s' != entryOutdated", previousEntry.State))
+				return
+			}
+		}
+		processedStateEntries[processedEntry.Entry.Name] = processedEntry
+	} else {
+		processedEntry = &entryWithState{
+			Entry:    elt,
+			StateIdx: idx,
+		}
+
+		elt.Uuid = stateElt.Entry.Uuid
+		if {{ .resourceSDKName }}.SpecMatches(elt, stateElt.Entry) {
+			processedEntry.State = entryOk
+		} else {
+			processedEntry.State = entryOutdated
+		}
+
+		processedStateEntries[elt.Name] = processedEntry
+	}
+
+}
+
+existing, err := svc.List(ctx, location, "get", "", "")
+if err != nil && err.Error() != "Object not found" {
+	resp.Diagnostics.AddError("sdk error while listing resources", err.Error())
+	return
+}
+
+updates := xmlapi.NewMultiConfig(len(planEntries))
+
+// Iterate over all existing entries as returned from the server, comparing
+// them to processedEntries.
+for _, existingElt := range existing {
+	path, err := location.XpathWithEntryName(r.client.Versioning(), existingElt.Name)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to create xpath for existing entry", err.Error())
+	}
+
+	_, foundInState := stateEntriesByName[existingElt.Name]
+        _, foundInRenamed := renamedEntries[existingElt.Name]
+	_, foundInPlan := planEntriesByName[existingElt.Name]
+
+	if !foundInState && (foundInRenamed || foundInPlan) {
+		errorMsg := fmt.Sprintf("%s created outside of terraform", existingElt.Name)
+		resp.Diagnostics.AddError("Conflict between plan and PAN-OS data", errorMsg)
+		return
+	}
+
+	// If the existing entry name matches new name for the renamed entry,
+	// we delete it before adding Renamed commands.
+	if _, found := renamedEntries[existingElt.Name]; found {
+		updates.Add(&xmlapi.Config{
+			Action: "delete",
+			Xpath:  util.AsXpath(path),
+			Target: r.client.GetTarget(),
+		})
+		continue
+	}
+
+	processedElt, found := processedStateEntries[existingElt.Name]
+{{- if .Exhaustive }}
+	if !found {
+		// If existing entry is not found in the processedEntries map, it's not
+		// entry we are managing and it should be deleted.
+		updates.Add(&xmlapi.Config{
+			Action: "delete",
+			Xpath:  util.AsXpath(path),
+			Target: r.client.GetTarget(),
+		})
+		continue
+	}
+{{- end }}
+	if found && processedElt.Entry.Uuid != nil && *processedElt.Entry.Uuid == *existingElt.Uuid {
+		// XXX: If entry from the plan is in process of being renamed, and its content
+		// differs from what exists on the server we should switch its state to entryOutdated
+		// instead.
+		if processedElt.State == entryRenamed {
+			continue
+		}
+
+		if !{{ .resourceSDKName }}.SpecMatches(processedElt.Entry, &existingElt) {
+			processedElt.State = entryOutdated
+		} else {
+			processedElt.State = entryOk
+		}
+	}
+}
+
+// Check if any state entries were not in the plan, and if so mark them for
+// deletion.
+for _, elt := range stateEntriesByName {
+	if _, processedEltFound := processedStateEntries[elt.Entry.Name]; !processedEltFound {
+		elt.State = entryDeleted
+		processedStateEntries[elt.Entry.Name] = elt
+	}
+}
+
+specifier, _, err := {{ .resourceSDKName }}.Versioning(r.client.Versioning())
+if err != nil {
+	resp.Diagnostics.AddError("error while creating specifier", err.Error())
+	return
+}
+
+for _, elt := range processedStateEntries {
+	path, err := location.XpathWithEntryName(r.client.Versioning(), elt.Entry.Name)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to create xpath for existing entry", err.Error())
+		return
+	}
+
+	xmlEntry, err := specifier(*elt.Entry)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to transform Entry into XML document", err.Error())
+		return
+	}
+
+	switch elt.State {
+	case entryMissing, entryOutdated:
+		updates.Add(&xmlapi.Config{
+			Action:  "edit",
+			Xpath:   util.AsXpath(path),
+			Element: xmlEntry,
+			Target:  r.client.GetTarget(),
+		})
+	case entryRenamed:
+		updates.Add(&xmlapi.Config{
+			Action:  "rename",
+			Xpath:   util.AsXpath(path),
+			NewName: elt.NewName,
+			Target:  r.client.GetTarget(),
+		})
+
+		// If existing entry is found in our plan with state entryRenamed,
+		// we move entry in processedEntries from old name to the new name,
+		// indicating it has been renamed.
+		// This is used later when we assign uuids to all entries.
+		delete(processedStateEntries, elt.Entry.Name)
+		elt.Entry.Name = elt.NewName
+		processedStateEntries[elt.NewName] = elt
+	case entryDeleted:
+		updates.Add(&xmlapi.Config{
+			Action: "delete",
+			Xpath:  util.AsXpath(path),
+			Target: r.client.GetTarget(),
+		})
+		delete(processedStateEntries, elt.Entry.Name)
+	case entryOk:
+		// Nothing to do for entries that have no changes
+	}
+}
+
+if len(updates.Operations) > 0 {
+	if _, _, _, err := r.client.MultiConfig(ctx, updates, false, nil); err != nil {
+		resp.Diagnostics.AddError("error updating entries", err.Error())
+		return
+	}
+}
+
+existing, err = svc.List(ctx, location, "get", "", "")
+if err != nil && err.Error() != "Object not found" {
+	resp.Diagnostics.AddError("sdk error while listing resources", err.Error())
+	return
+}
+
+{{- if .Exhaustive }}
+var movementRequired bool
+trueValue := true
+position := rule.Position{First: &trueValue}
+for idx, elt := range existing {
+	if processedStateEntries[elt.Name].StateIdx != idx {
+		movementRequired = true
+	}
+	processedStateEntries[elt.Name].Entry.Uuid = elt.Uuid
+}
+{{- else }}
+position := state.Position.CopyToPango()
+  {{ RenderCreateUpdateMovementRequired "plan" "planEntries" }}
+{{- end }}
+
+if movementRequired {
+	entries := make([]{{ $resourceSDKStructName }}, len(processedStateEntries))
+	for _, elt := range processedStateEntries {
+		entries[elt.StateIdx] = *elt.Entry
+	}
+
+	var finalOrder []string
+	for _, elt := range entries {
+		finalOrder = append(finalOrder, elt.Name)
+	}
+
+	err = svc.MoveGroup(ctx, location, position, entries)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to reorder entries", err.Error())
+		return
+	}
+}
+
+objects := make([]*{{ $resourceTFStructName }}, len(processedStateEntries))
+for _, elt := range processedStateEntries {
+	var object {{ $resourceTFStructName }}
+	copy_diags := object.CopyFromPango(ctx, elt.Entry, nil)
+	resp.Diagnostics.Append(copy_diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	objects[elt.StateIdx] = &object
+}
+
+var list_diags diag.Diagnostics
+plan.{{ .ListAttribute.CamelCase }}, list_diags = types.ListValueFrom(ctx, state.getTypeFor("{{ .ListAttribute.Underscore }}"), objects)
+resp.Diagnostics.Append(list_diags...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 `
 
 const resourceUpdateFunction = `
@@ -535,6 +1898,85 @@ const resourceUpdateFunction = `
 
 	// Done.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+`
+
+const resourceDeleteManyFunction = `
+{{ $resourceSDKStructName := printf "%s.%s" .resourceSDKName .EntryOrConfig }}
+{{ $resourceTFStructName := printf "%s%sObject" .structName .ListAttribute.CamelCase }}
+
+var state {{ .structName }}Model
+resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+// Basic logging.
+tflog.Info(ctx, "performing resource delete", map[string]any{
+	"resource_name": "panos_{{ UnderscoreName .structName }}",
+	"function":      "Delete",
+})
+
+{{- if .ResourceIsMap }}
+elements := make(map[string]{{ $resourceTFStructName }}, len(state.{{ .ListAttribute.CamelCase }}.Elements()))
+state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
+{{- else }}
+var elements []{{ $resourceTFStructName }}
+state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
+{{- end }}
+
+var location {{ .resourceSDKName }}.Location
+{{ RenderLocationsStateToPango "state.Location" "location" }}
+
+updates := xmlapi.NewMultiConfig(len(elements))
+
+{{- if .Exhausitive }}
+existing, err := svc.List(ctx, location, "get", "", "")
+if err != nil {
+	resp.Diagnostics.AddError("sdk error while listing entries", err.Error())
+}
+for _, elt := range existing {
+	path, err := location.XpathWithEntryName(r.client.Versioning(), elt.Name)
+	if err != nil {
+		resp.Diagnostics.AddError("sdk error while creating xpath", err.Error())
+	}
+	updates.Add(&xmlapi.Config{
+		Action: "delete",
+		Xpath:  util.AsXpath(path),
+		Target: r.client.GetTarget(),
+	})
+}
+{{- else if .ResourceIsMap }}
+for name, _ := range elements {
+	path, err := location.XpathWithEntryName(r.client.Versioning(), name)
+	if err != nil {
+		resp.Diagnostics.AddError("sdk error while creating xpath", err.Error())
+	}
+	updates.Add(&xmlapi.Config{
+		Action: "delete",
+		Xpath:  util.AsXpath(path),
+		Target: r.client.GetTarget(),
+	})
+}
+{{- else }}
+for _, elt := range elements {
+	path, err := location.XpathWithEntryName(r.client.Versioning(), elt.Name.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("sdk error while creating xpath", err.Error())
+	}
+	updates.Add(&xmlapi.Config{
+		Action: "delete",
+		Xpath:  util.AsXpath(path),
+		Target: r.client.GetTarget(),
+	})
+}
+{{- end }}
+
+if len(updates.Operations) > 0 {
+	if _, _, _, err := r.client.MultiConfig(ctx, updates, false, nil); err != nil {
+		resp.Diagnostics.AddError("error updating entries", err.Error())
+		return
+	}
+}
 `
 
 const resourceDeleteFunction = `

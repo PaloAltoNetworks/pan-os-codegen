@@ -28,7 +28,7 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {
-                "codegen": { "type": "boolean" },
+                "computed": { "type": "boolean" },
                 "sensitive": { "type": "boolean" }
               }
             }
