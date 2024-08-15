@@ -273,6 +273,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 			"RenderCopyFromPangoFunctions": func() (string, error) {
 				return RenderCopyFromPangoFunctions(resourceTyp, names.PackageName, names.DataSourceStructName, spec)
 			},
+			"RenderCopyToPangoFunctions": func() (string, error) {
+				return RenderCopyToPangoFunctions(resourceTyp, names.PackageName, names.DataSourceStructName, spec)
+			},
 			"RenderDataSourceStructs": func() (string, error) { return RenderDataSourceStructs(resourceTyp, names, spec) },
 			"RenderDataSourceSchema":  func() (string, error) { return RenderDataSourceSchema(resourceTyp, names, spec) },
 		}

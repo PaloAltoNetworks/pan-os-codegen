@@ -2091,6 +2091,9 @@ func DataSourceReadFunction(resourceTyp properties.ResourceType, names *NameProv
 		"RenderLocationsPangoToState": func(source string, dest string) (string, error) {
 			return RenderLocationsPangoToState(names, paramSpec, source, dest)
 		},
+		"RenderCreateUpdateMovementRequired": func(state string, entries string) (string, error) {
+			return RendeCreateUpdateMovementRequired(state, entries)
+		},
 		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
 			return RenderLocationsStateToPango(names, paramSpec, source, dest)
 		},
@@ -2151,6 +2154,9 @@ func ResourceReadFunction(resourceTyp properties.ResourceType, names *NameProvid
 	funcMap := template.FuncMap{
 		"RenderLocationsPangoToState": func(source string, dest string) (string, error) {
 			return RenderLocationsPangoToState(names, paramSpec, source, dest)
+		},
+		"RenderCreateUpdateMovementRequired": func(state string, entries string) (string, error) {
+			return RendeCreateUpdateMovementRequired(state, entries)
 		},
 		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
 			return RenderLocationsStateToPango(names, paramSpec, source, dest)
