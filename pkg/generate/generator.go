@@ -64,7 +64,7 @@ func (c *Creator) RenderTerraformProviderFile(spec *properties.Normalization, ty
 		name = fmt.Sprintf("%s_%s", spec.TerraformProviderConfig.Suffix, spec.TerraformProviderConfig.PluralName)
 	case properties.ResourceEntryPlural:
 		name = spec.TerraformProviderConfig.PluralSuffix
-	case properties.ResourceEntry, properties.ResourceUuid:
+	case properties.ResourceEntry, properties.ResourceUuid, properties.ResourceCustom:
 		name = spec.Name
 	}
 
@@ -95,7 +95,7 @@ func (c *Creator) RenderTerraformProviderFile(spec *properties.Normalization, ty
 	case properties.ResourceEntryPlural:
 		name = spec.TerraformProviderConfig.PluralSuffix
 		filePath = c.createTerraformProviderFilePath(name)
-	case properties.ResourceEntry, properties.ResourceUuid:
+	case properties.ResourceEntry, properties.ResourceUuid, properties.ResourceCustom:
 		filePath = c.createTerraformProviderFilePath(spec.TerraformProviderConfig.Suffix)
 	}
 

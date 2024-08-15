@@ -18,6 +18,7 @@ import (
 type Normalization struct {
 	Name                    string                  `json:"name" yaml:"name"`
 	TerraformProviderConfig TerraformProviderConfig `json:"terraform_provider_config" yaml:"terraform_provider_config"`
+	GoSdkSkip               bool                    `json:"go_sdk_skip" yaml:"go_sdk_skip"`
 	GoSdkPath               []string                `json:"go_sdk_path" yaml:"go_sdk_path"`
 	XpathSuffix             []string                `json:"xpath_suffix" yaml:"xpath_suffix"`
 	Locations               map[string]*Location    `json:"locations" yaml:"locations"`
@@ -53,6 +54,7 @@ const (
 	TerraformResourceEntry  TerraformResourceType = "entry"
 	TerraformResourceUuid   TerraformResourceType = "uuid"
 	TerraformResourceConfig TerraformResourceType = "config"
+	TerraformResourceCustom TerraformResourceType = "custom"
 )
 
 type TerraformResourceVariant string
@@ -67,6 +69,7 @@ type TerraformProviderConfig struct {
 	SkipDatasource        bool                       `json:"skip_datasource" yaml:"skip_datasource"`
 	SkipDatasourceListing bool                       `json:"skip_datasource_listing" yaml:"skip_datasource_listing"`
 	ResourceType          TerraformResourceType      `json:"resource_type" yaml:"resource_type"`
+	CustomFuncs           map[string]string          `json:"custom_functions" yaml:"custom_functions"`
 	ResourceVariants      []TerraformResourceVariant `json:"resource_variants" yaml:"resource_variants"`
 	Suffix                string                     `json:"suffix" yaml:"suffix"`
 	PluralSuffix          string                     `json:"plural_suffix" yaml:"plural_suffix"`
@@ -473,12 +476,14 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 			SkipDatasource:        object.TerraformConfig.SkipDatasource,
 			SkipDatasourceListing: object.TerraformConfig.SkipdatasourceListing,
 			ResourceType:          TerraformResourceType(object.TerraformConfig.ResourceType),
+			CustomFuncs:           object.TerraformConfig.CustomFunctions,
 			ResourceVariants:      resourceVariants,
 			Suffix:                object.TerraformConfig.Suffix,
 			PluralSuffix:          object.TerraformConfig.PluralSuffix,
 			PluralName:            object.TerraformConfig.PluralName,
 		},
 		Locations:   make(map[string]*Location),
+		GoSdkSkip:   object.GoSdkConfig.Skip,
 		GoSdkPath:   object.GoSdkConfig.Package,
 		XpathSuffix: object.XpathSuffix,
 		Version:     object.Version,
