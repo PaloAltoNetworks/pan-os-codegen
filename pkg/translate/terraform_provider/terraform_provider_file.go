@@ -26,7 +26,7 @@ func NewNameProvider(spec *properties.Normalization, resourceTyp properties.Reso
 	var tfName string
 	switch resourceTyp {
 	case properties.ResourceEntry:
-		tfName = spec.Name
+		tfName = spec.TerraformProviderConfig.Suffix
 	case properties.ResourceEntryPlural:
 		tfName = spec.TerraformProviderConfig.PluralSuffix
 	case properties.ResourceUuid:
