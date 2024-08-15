@@ -940,29 +940,17 @@ func createSchemaAttributeForParameter(schemaTyp schemaType, packageName string,
 		computed = true
 	}
 
-	// TODO(kklimonda): This is pretty one-off implementation to
-	// support uuid-style resources, but could be expanded to be more
-	// generic if needed.
-	var modifiers *modifierCtx
-	if schemaTyp == schemaResource && computed && param.Default == "" {
-		modifiers = &modifierCtx{
-			SchemaType: fmt.Sprintf("planmodifier.%s", pascalCase(param.Type)),
-			Modifiers:  []string{fmt.Sprintf("%splanmodifier.UseStateForUnknown()", param.Type)},
-		}
-	}
-
 	return attributeCtx{
-		Package:       packageName,
-		Name:          param.Name,
-		SchemaType:    schemaType,
-		ElementType:   elementType,
-		Description:   param.Description,
-		Required:      param.Required,
-		Optional:      !param.Required,
-		Sensitive:     param.Sensitive,
-		Default:       defaultValue,
-		Computed:      computed,
-		PlanModifiers: modifiers,
+		Package:     packageName,
+		Name:        param.Name,
+		SchemaType:  schemaType,
+		ElementType: elementType,
+		Description: param.Description,
+		Required:    param.Required,
+		Optional:    !param.Required,
+		Sensitive:   param.Sensitive,
+		Default:     defaultValue,
+		Computed:    computed,
 	}
 }
 
