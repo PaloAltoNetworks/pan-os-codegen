@@ -22,7 +22,18 @@
       "properties": {
         "resource_type": {
           "type": "string",
-          "enum": ["entry", "config", "uuid"]
+          "enum": ["entry", "config", "uuid", "custom"]
+        },
+        "custom_functions": {
+          "type": "object",
+          "required": ["Read", "Create", "Update", "Delete"],
+          "additionalProperties": false,
+          "properties": {
+            "Read": { "type": "string" },
+            "Create": { "type": "string" },
+            "Update": { "type": "string" },
+            "Delete": { "type": "string" }
+          }
         },
         "resource_variants": {
           "type": "array",
@@ -42,6 +53,7 @@
       "type": "object",
       "required": ["package"],
       "properties": {
+        "generate": { "type": "boolean" },
         "package": {
           "type": "array",
           "items": {

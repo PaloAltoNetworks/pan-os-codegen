@@ -119,6 +119,8 @@ func (c *Command) Execute() error {
 					resourceTyp = properties.ResourceEntry
 				case properties.TerraformResourceUuid:
 					resourceTyp = properties.ResourceUuid
+				case properties.TerraformResourceCustom:
+					resourceTyp = properties.ResourceCustom
 				case properties.TerraformResourceConfig:
 					panic("missing implementation for config type resources")
 				}
@@ -140,6 +142,8 @@ func (c *Command) Execute() error {
 					resourceTyp = properties.ResourceEntryPlural
 				case properties.TerraformResourceUuid:
 					resourceTyp = properties.ResourceUuidPlural
+				case properties.TerraformResourceCustom:
+					resourceTyp = properties.ResourceCustom
 				case properties.TerraformResourceConfig:
 					panic("missing implementation for config type resources")
 				}
@@ -153,7 +157,7 @@ func (c *Command) Execute() error {
 				resourceList = append(resourceList, resources...)
 				dataSourceList = append(dataSourceList, dataSources...)
 			}
-		} else if c.commandType == properties.CommandTypeSDK {
+		} else if c.commandType == properties.CommandTypeSDK && !spec.GoSdkSkip {
 			generator := generate.NewCreator(config.Output.GoSdk, c.templatePath, spec)
 			if err = generator.RenderTemplate(); err != nil {
 				return fmt.Errorf("error rendering %s - %s", specPath, err)

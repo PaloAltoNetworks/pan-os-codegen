@@ -166,6 +166,8 @@ func generateFromTerraformToPangoParameter(resourceTyp properties.ResourceType, 
 			Params:          paramSpecs,
 			OneOf:           oneofSpecs,
 		})
+	case properties.ResourceCustom:
+		panic("custom resources don't generate anything")
 	}
 
 	for _, elt := range prop.Spec.Params {
@@ -504,6 +506,10 @@ func pascalCase(value string) string {
 }
 
 func RenderCopyToPangoFunctions(resourceTyp properties.ResourceType, pkgName string, terraformTypePrefix string, property *properties.Normalization) (string, error) {
+	if resourceTyp == properties.ResourceCustom {
+		return "", nil
+	}
+
 	specs := generateFromTerraformToPangoParameter(resourceTyp, pkgName, terraformTypePrefix, "", property, "")
 
 	type context struct {
@@ -520,6 +526,10 @@ func RenderCopyToPangoFunctions(resourceTyp properties.ResourceType, pkgName str
 }
 
 func RenderCopyFromPangoFunctions(resourceTyp properties.ResourceType, pkgName string, terraformTypePrefix string, property *properties.Normalization) (string, error) {
+	if resourceTyp == properties.ResourceCustom {
+		return "", nil
+	}
+
 	specs := generateFromTerraformToPangoParameter(resourceTyp, pkgName, terraformTypePrefix, "", property, "")
 
 	type context struct {
@@ -813,6 +823,17 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 	}
 
 	return processTemplate(locationSchemaGetterTmpl, "render-location-schema-getter", data, commonFuncMap)
+}
+
+func RenderCustomImports(spec *properties.Normalization) string {
+	template, _ := getCustomTemplateForFunction(spec, "Imports")
+	return template
+}
+
+func RenderCustomCommonCode(names *NameProvider, spec *properties.Normalization) string {
+	template, _ := getCustomTemplateForFunction(spec, "Common")
+	return template
+
 }
 
 func createSchemaSpecForParameter(schemaTyp schemaType, structPrefix string, packageName string, param *properties.SpecParam) []schemaCtx {
@@ -1184,10 +1205,8 @@ func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp sch
 		structName = names.ResourceStructName
 	}
 
-	log.Printf("createSchemaSpecForModel: structName: %s", structName)
-
 	switch resourceTyp {
-	case properties.ResourceEntry:
+	case properties.ResourceEntry, properties.ResourceCustom:
 		return createSchemaSpecForEntrySingularModel(resourceTyp, schemaTyp, spec, packageName, structName)
 	case properties.ResourceEntryPlural:
 		return createSchemaSpecForEntryListModel(resourceTyp, schemaTyp, spec, packageName, structName)
@@ -1888,7 +1907,7 @@ func createStructSpecForModel(resourceTyp properties.ResourceType, schemaTyp sch
 	}
 
 	switch resourceTyp {
-	case properties.ResourceEntry:
+	case properties.ResourceEntry, properties.ResourceCustom:
 		return createStructSpecForEntryModel(resourceTyp, schemaTyp, spec, names)
 	case properties.ResourceEntryPlural:
 		return createStructSpecForEntryListModel(resourceTyp, schemaTyp, spec, names)
@@ -1962,6 +1981,18 @@ func RenderDataSourceStructs(resourceTyp properties.ResourceType, names *NamePro
 	return processTemplate(dataSourceStructs, "render-structs", data, commonFuncMap)
 }
 
+func getCustomTemplateForFunction(spec *properties.Normalization, function string) (string, error) {
+	if resource, found := customResourceFuncsMap[spec.TerraformProviderConfig.Suffix]; !found {
+		return "", fmt.Errorf("cannot find a list of custom functions for %s", spec.TerraformProviderConfig.Suffix)
+	} else {
+		if template, found := resource[function]; !found {
+			return "", fmt.Errorf("No template for function '%s'", function)
+		} else {
+			return template, nil
+		}
+	}
+}
+
 func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProvider, serviceName string, paramSpec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, resourceSDKName string) (string, error) {
 	funcMap := template.FuncMap{
 		"ConfigToEntry": ConfigEntry,
@@ -2002,6 +2033,12 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 		exhaustive = false
 		tmpl = resourceCreateManyFunction
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
+	case properties.ResourceCustom:
+		var err error
+		tmpl, err = getCustomTemplateForFunction(paramSpec, "Create")
+		if err != nil {
+			return "", err
+		}
 	}
 
 	listAttributeVariant := &properties.NameVariant{
@@ -2053,6 +2090,12 @@ func DataSourceReadFunction(resourceTyp properties.ResourceType, names *NameProv
 	case properties.ResourceUuidPlural:
 		tmpl = resourceReadManyFunction
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
+	case properties.ResourceCustom:
+		var err error
+		tmpl, err = getCustomTemplateForFunction(paramSpec, "DataSourceRead")
+		if err != nil {
+			return "", err
+		}
 	}
 
 	listAttributeVariant := &properties.NameVariant{
@@ -2117,6 +2160,12 @@ func ResourceReadFunction(resourceTyp properties.ResourceType, names *NameProvid
 	case properties.ResourceUuidPlural:
 		tmpl = resourceReadManyFunction
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
+	case properties.ResourceCustom:
+		var err error
+		tmpl, err = getCustomTemplateForFunction(paramSpec, "ResourceRead")
+		if err != nil {
+			return "", err
+		}
 	}
 
 	listAttributeVariant := &properties.NameVariant{
@@ -2181,6 +2230,12 @@ func ResourceUpdateFunction(resourceTyp properties.ResourceType, names *NameProv
 	case properties.ResourceUuidPlural:
 		tmpl = resourceUpdateManyFunction
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
+	case properties.ResourceCustom:
+		var err error
+		tmpl, err = getCustomTemplateForFunction(paramSpec, "Update")
+		if err != nil {
+			return "", err
+		}
 	}
 
 	listAttributeVariant := &properties.NameVariant{
@@ -2242,6 +2297,12 @@ func ResourceDeleteFunction(resourceTyp properties.ResourceType, names *NameProv
 	case properties.ResourceUuidPlural:
 		tmpl = resourceDeleteManyFunction
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
+	case properties.ResourceCustom:
+		var err error
+		tmpl, err = getCustomTemplateForFunction(paramSpec, "Delete")
+		if err != nil {
+			return "", err
+		}
 	}
 
 	listAttributeVariant := &properties.NameVariant{
@@ -2300,4 +2361,16 @@ func ConfigEntry(entryName string, param *properties.SpecParam) (string, error) 
 	}
 
 	return processTemplate(resourceConfigEntry, "config-entry", entryData, nil)
+}
+
+var customResourceFuncsMap = map[string]map[string]string{
+	"device_group_parent": {
+		"Imports":        deviceGroupParentImports,
+		"DataSourceRead": deviceGroupParentDataSourceRead,
+		"ResourceRead":   deviceGroupParentResourceRead,
+		"Create":         deviceGroupParentResourceCreate,
+		"Update":         deviceGroupParentResourceUpdate,
+		"Delete":         deviceGroupParentResourceDelete,
+		"Common":         deviceGroupParentCommon,
+	},
 }
