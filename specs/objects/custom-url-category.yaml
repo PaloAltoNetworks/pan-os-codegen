@@ -1,0 +1,146 @@
+name: Custom URL Category
+terraform_provider_config:
+  suffix: "custom_url_category"
+go_sdk_config:
+  package:
+    - objects
+    - profiles
+xpath_suffix:
+  - custom-url-category
+locations:
+  - name: "shared"
+    description: "Located in shared."
+    devices:
+      - panorama
+      - ngfw
+    xpath:
+      path: ["config", "shared", "profiles"]
+  - name: "vsys"
+    description: "Located in a specific vsys."
+    devices:
+      - panorama
+      - ngfw
+    xpath:
+      path:
+        - "config"
+        - "devices"
+        - "$ngfw_device"
+        - "vsys"
+        - "$vsys"
+        - profiles
+      vars:
+        - name: "ngfw_device"
+          description: "The NGFW device."
+          default: "localhost.localdomain"
+        - name: "vsys"
+          description: "The vsys."
+          default: "vsys1"
+          validators:
+            - type: not-values
+              spec:
+                values:
+                  - value: "shared"
+                    error: 'The vsys cannot be "shared". Use the "shared" path instead.'
+  - name: "from_panorama_shared"
+    description: "Located in shared in the config pushed from Panorama."
+    read_only: true
+    devices:
+      - ngfw
+    xpath:
+      path:
+        - "config"
+        - "panorama"
+        - "shared"
+        - profiles
+  - name: "from_panorama_vsys"
+    description: "Located in a specific vsys in the config pushed from Panorama."
+    read_only: true
+    devices:
+      - ngfw
+    xpath:
+      path:
+        - "config"
+        - "panorama"
+        - "vsys"
+        - "$vsys"
+        - profiles
+      vars:
+        - name: "vsys"
+          description: "The vsys."
+          default: "vsys1"
+          validators:
+            - type: not-values
+              spec:
+                values:
+                  - value: "shared"
+                    error: 'The vsys cannot be "shared". Use the "shared" path instead.'
+  - name: "device_group"
+    description: "Located in a specific device group."
+    devices:
+      - panorama
+    xpath:
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+        - "device-group"
+        - "$device_group"
+        - profiles
+      vars:
+        - name: "panorama_device"
+          description: "The panorama device."
+          default: "localhost.localdomain"
+        - name: "device_group"
+          description: "The device group."
+          required: true
+          validators:
+            - type: not-values
+              spec:
+                values:
+                  - value: "shared"
+                    error: 'The device group cannot be "shared". Use the "shared" path instead.'
+entries:
+  - name: name
+    description: Name of the custom category
+    validators:
+      - type: length
+        spec:
+          min: 1
+          max: 31
+      - type: regexp
+        spec:
+          expr: ^[a-zA-Z._-]{1}[ 0-9a-zA-Z._-]*$
+      - type: not-values
+        spec:
+          values:
+            - value: any
+              error: "'any' is not allowed"
+version: "10.1.0"
+spec:
+  params:
+    - name: description
+      description: "The description."
+      type: string
+      validators:
+        - type: length
+          spec:
+            min: 0
+            max: 255
+      profiles:
+        - xpath: ["description"]
+    - name: list
+      type: list
+      profiles:
+        - type: member
+          xpath: ["list"]
+      spec:
+        items:
+          type: string
+    - name: type
+      type: string
+      profiles:
+        - xpath: ["type"]
+    - name: disable-override
+      type: bool
+      profiles:
+        - xpath: ["disable-override"]
