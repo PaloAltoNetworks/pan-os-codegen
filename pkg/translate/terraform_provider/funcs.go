@@ -865,8 +865,13 @@ func createSchemaSpecForParameter(schemaTyp schemaType, structPrefix string, pac
 	}
 
 	var computed bool
-	if param.TerraformProviderConfig != nil {
-		computed = param.TerraformProviderConfig.Computed
+	switch schemaTyp {
+	case schemaDataSource:
+		computed = true
+	case schemaResource:
+		if param.TerraformProviderConfig != nil {
+			computed = param.TerraformProviderConfig.Computed
+		}
 	}
 
 	schemas = append(schemas, schemaCtx{
@@ -934,10 +939,15 @@ func createSchemaAttributeForParameter(schemaTyp schemaType, packageName string,
 	}
 
 	var computed bool
-	if param.TerraformProviderConfig != nil {
-		computed = param.TerraformProviderConfig.Computed
-	} else if param.Default != "" {
+	switch schemaTyp {
+	case schemaDataSource:
 		computed = true
+	case schemaResource:
+		if param.TerraformProviderConfig != nil {
+			computed = param.TerraformProviderConfig.Computed
+		} else if param.Default != "" {
+			computed = true
+		}
 	}
 
 	// TODO(kklimonda): This is pretty one-off implementation to
