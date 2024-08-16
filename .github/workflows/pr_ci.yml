@@ -23,7 +23,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.59
+          version: v1.60
   ci:
     name: Continuous integration
     runs-on: ubuntu-latest
