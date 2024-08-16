@@ -174,6 +174,73 @@ spec:
           - value: "up"
           - value: "down"
         default: "auto"
+    - name: link-speed
+      description: "Interface link speed"
+      type: enum
+      profiles:
+        - xpath: ["link-speed"]
+      validators:
+        - type: values
+          spec:
+            values:
+              [
+                "auto",
+                "10",
+                "100",
+                "1000",
+                "2500",
+                "5000",
+                "10000",
+                "40000",
+                "100000",
+              ]
+      spec:
+        values:
+          [
+            { value: "auto" },
+            { value: "10" },
+            { value: "100" },
+            { value: "1000" },
+            { value: "2500" },
+            { value: "5000" },
+            { value: "10000" },
+            { value: "40000" },
+            { value: "100000" },
+          ]
+    - name: link-duplex
+      description: "Interface link duplex"
+      type: enum
+      profiles:
+        - xpath: ["link-duplex"]
+      validators:
+        - type: values
+          values: ["auto", "half", "full"]
+      spec:
+        values: [{ value: "auto" }, { value: "half" }, { value: "full" }]
+    - name: poe
+      description: "PoE configuration"
+      type: object
+      spec:
+        params:
+          - name: reserved-power
+            description: Reserved Power
+            profiles:
+              - xpath: ["poe-rsvd-pwr"]
+            type: int64
+            spec:
+              default: 0
+            validators:
+              - type: range
+                spec:
+                  min: 0
+                  max: 90
+          - name: enabled
+            description: PoE Enable
+            profiles:
+              - xpath: ["poe-enabled"]
+            type: bool
+            spec:
+              default: true
   variants:
     - name: tap
       type: object
@@ -298,6 +365,44 @@ spec:
             type: string
             profiles:
               - xpath: ["netflow-profile"]
+          - name: bonjour
+            description: Bonjour configuration
+            type: object
+            profiles:
+              - xpath: ["bonjour"]
+            spec:
+              params:
+                - name: enable
+                  description: Set to support Bonjour service
+                  type: bool
+                  spec:
+                    default: false
+          - name: sdwan-link-settings
+            type: object
+            profiles:
+              - xpath: ["sdwan-link-settings"]
+            spec:
+              params:
+                - name: enable
+                  type: bool
+                  default: false
+                  profiles:
+                    - xpath: [enable]
+                - name: upstream-nat
+                  type: object
+                  profiles:
+                    - xpath: [upstream-nat]
+                  spec:
+                    params:
+                      - name: enable
+                        type: bool
+                        default: false
+                        profiles:
+                          - xpath: [enable]
+                      - name: static-ip
+                        type: string
+                        profiles:
+                          - xpath: [static-ip]
           - name: adjust-tcp-mss
             type: object
             profiles:
@@ -326,3 +431,10 @@ spec:
                         max: 300
                   profiles:
                     - xpath: ["ipv6-mss-adjustment"]
+          - name: untagged-sub-interface
+            description: Enable untagged sub-interface
+            type: bool
+            profiles:
+              - xpath: ["untagged-sub-interface"]
+            spec:
+              default: false
