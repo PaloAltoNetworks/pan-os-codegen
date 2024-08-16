@@ -290,10 +290,12 @@ spec:
             description: "IP addresses or address objects names"
             profiles:
               - type: entry
-                xpath: ["ip"]
+                xpath: ["ip", "entry"]
             spec:
               items:
-                type: string
+                type: object
+                spec:
+                  params: []
           - name: ipv6
             type: object
             profiles:
