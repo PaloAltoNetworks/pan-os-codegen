@@ -124,11 +124,11 @@ const resourceCreateUpdateMovementRequiredTmpl = `
 // as a way to check if managed entries are in order relative to each
 // other.
 var movementRequired bool
-managedEntriesByName := make(map[string]*entryWithState, len(planEntriesByName))
+managedEntriesByName := make(map[string]entryWithState, len(planEntriesByName))
 idx := 0
 for existingIdx, elt := range existing {
 	if planEntry, found := planEntriesByName[elt.Name]; found {
-		managedEntriesByName[elt.Name] = &entryWithState{
+		managedEntriesByName[elt.Name] = entryWithState{
 			Entry: &existing[existingIdx],
 			StateIdx: idx,
 		}
@@ -140,7 +140,7 @@ for existingIdx, elt := range existing {
 
 // First, we check if managedEntries order matches planEntriesByName to check
 // if all entries from the plan are properly ordered on the server.
-var previousManagedEntry, previousPlannedEntry *entryWithState
+var previousManagedEntry, previousPlannedEntry entryWithState
 for _, elt := range managedEntriesByName {
 	// plannedEntriesByName is a map of entries from the plan indexed by their
 	// name. If idx doesn't match StateIdx of the entry from the plan, the PAN-OS
@@ -153,7 +153,7 @@ for _, elt := range managedEntriesByName {
 	// If this is the first element we are comparing, store it for future reference
 	// and continue. We will use it to calculate distance between two elements in
 	// PAN-OS list.
-	if previousManagedEntry == nil {
+	if previousManagedEntry.State == entryUnknown {
 		previousManagedEntry = elt
 		previousPlannedEntry = plannedEntry
 		continue
@@ -176,9 +176,9 @@ for _, elt := range managedEntriesByName {
 // If all entries are ordered properly, we check if their position matches what's
 // requested.
 if !movementRequired {
-	existingEntriesByName := make(map[string]*entryWithState, len(existing))
+	existingEntriesByName := make(map[string]entryWithState, len(existing))
 	for idx, elt := range existing {
-		existingEntriesByName[elt.Name] = &entryWithState{
+		existingEntriesByName[elt.Name] = entryWithState{
 			Entry: &existing[idx],
 			StateIdx: idx,
 		}
@@ -359,10 +359,21 @@ ev := make(map[string]types.String, len(state.EncryptedValues.Elements()))
   {{- $ev = "nil" }}
 {{- end }}
 
+type entryState string
+const (
+	entryUnknown  entryState = "unknown"
+	entryMissing  entryState = "missing"
+	entryOutdated entryState = "outdated"
+	entryRenamed  entryState = "renamed"
+	entryDeleted  entryState = "deleted"
+	entryOk       entryState = "ok"
+)
 
 type entryWithState struct {
 	Entry    *{{ $resourceSDKStructName }}
+	State    entryState
 	StateIdx int
+	NewName  string
 }
 
 var elements map[string]{{ $resourceTFStructName }}
@@ -504,17 +515,28 @@ ev := make(map[string]types.String, len(state.EncryptedValues.Elements()))
   {{- $ev = "nil" }}
 {{- end }}
 
+type entryState string
+const (
+	entryUnknown  entryState = "unknown"
+	entryMissing  entryState = "missing"
+	entryOutdated entryState = "outdated"
+	entryRenamed  entryState = "renamed"
+	entryDeleted  entryState = "deleted"
+	entryOk       entryState = "ok"
+)
 
 type entryWithState struct {
 	Entry    *{{ $resourceSDKStructName }}
+	State    entryState
 	StateIdx int
+	NewName  string
 }
 
 var elements []{{ $resourceTFStructName }}
 state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
 entries := make([]*{{ $resourceSDKStructName }}, len(elements))
 
-planEntriesByName := make(map[string]*entryWithState, len(elements))
+planEntriesByName := make(map[string]entryWithState, len(elements))
 for idx, elt := range elements {
 	var list_diags diag.Diagnostics
 	var entry *{{ $resourceSDKStructName }}
@@ -524,7 +546,7 @@ for idx, elt := range elements {
 		return
 	}
 
-	planEntriesByName[elt.Name.ValueString()] = &entryWithState{
+	planEntriesByName[elt.Name.ValueString()] = entryWithState{
 		Entry: entry,
 		StateIdx: idx,
 	}
@@ -540,6 +562,8 @@ if err != nil && err.Error() != "Object not found" {
 	return
 }
 
+updates := xmlapi.NewMultiConfig(len(elements))
+
 for _, elt := range existing {
 	_, foundInPlan := planEntriesByName[elt.Name]
 
@@ -548,6 +572,20 @@ for _, elt := range existing {
 		resp.Diagnostics.AddError("Conflict between plan and server data", errorMsg)
 		return
 	}
+{{- if .Exhaustive }}
+	if !foundInPlan {
+		path, err := location.XpathWithEntryName(r.client.Versioning(), elt.Name)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to create xpath for existing entry", err.Error())
+			return
+		}
+		updates.Add(&xmlapi.Config{
+			Action: "delete",
+			Xpath:  util.AsXpath(path),
+			Target: r.client.GetTarget(),
+		})
+	}
+{{- end }}
 }
 
 specifier, _, err := {{ .resourceSDKName }}.Versioning(r.client.Versioning())
@@ -555,8 +593,6 @@ if err != nil {
 	resp.Diagnostics.AddError("error while creating specifier", err.Error())
 	return
 }
-
-updates := xmlapi.NewMultiConfig(len(elements))
 
 for _, elt := range entries {
 	path, err := location.XpathWithEntryName(r.client.Versioning(), elt.Name)
@@ -901,8 +937,6 @@ const resourceReadManyFunction = `
   {{- $stateName = "State" }}
 {{- end -}}
 
-
-
 var state {{ .structName }}{{ .ResourceOrDS }}Model
 
 resp.Diagnostics.Append(req.{{ $stateName }}.Get(ctx, &state)...)
@@ -911,9 +945,9 @@ if resp.Diagnostics.HasError() {
 }
 
 // Basic logging.
-tflog.Info(ctx, "performing resource create", map[string]any{
+tflog.Info(ctx, "performing resource read", map[string]any{
 	"resource_name": "panos_{{ UnderscoreName .structName }}",
-	"function":      "Create",
+	"function":      "Read",
 })
 
 svc := {{ .resourceSDKName }}.NewService(o.client)
@@ -939,58 +973,87 @@ if resp.Diagnostics.HasError() {
   {{- $ev = "nil" }}
 {{- end }}
 
+type entryState string
+const (
+	entryUnknown  entryState = "unknown"
+	entryMissing  entryState = "missing"
+	entryOutdated entryState = "outdated"
+	entryRenamed  entryState = "renamed"
+	entryDeleted  entryState = "deleted"
+	entryOk       entryState = "ok"
+)
+
+type entryWithState struct {
+	Entry    *{{ $resourceSDKStructName }}
+	State    entryState
+	StateIdx int
+	NewName  string
+}
+
+var stateElements []{{ $resourceTFStructName }}
+state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &stateElements, false)
+stateEntries := make([]*{{ $resourceSDKStructName }}, len(stateElements))
+stateEntriesByName := make(map[string]entryWithState, len(stateElements))
+for idx, elt := range stateElements {
+	var list_diags diag.Diagnostics
+	var entry *{{ $resourceSDKStructName }}
+	entry, list_diags = elt.CopyToPango(ctx, {{ $ev }})
+	resp.Diagnostics.Append(list_diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	stateEntries[idx] = entry
+	stateEntriesByName[elt.Name.ValueString()] = entryWithState {
+		Entry: entry,
+		State: entryOk,
+		StateIdx: idx,
+	}
+}
+
+processedEntriesByName := make(map[string]entryWithState, len(stateEntriesByName))
+for _, elt := range existing {
+	stateEntry, found := stateEntriesByName[elt.Name]
+	if !found {
+		continue
+	}
+	processedEntriesByName[elt.Name] = entryWithState{
+		Entry: &elt,
+		StateIdx: stateEntry.StateIdx,
+	}
+}
+
 {{- if .Exhaustive }}
 // For resources that take sole ownership of a given list, Read()
 // will return all existing entries from the server.
-objects := make([]{{ $resourceTFStructName }}, len(existing))
+existingEntriesByName := make(map[string]entryWithState, len(existing))
 for idx, elt := range existing {
+	existingEntriesByName[elt.Name] = entryWithState{
+		Entry: &elt,
+		StateIdx: idx,
+	}
+}
+
+objects := make([]{{ $resourceTFStructName }}, len(existingEntriesByName))
+for _, elt := range existingEntriesByName {
 	var object {{ $resourceTFStructName }}
-	object.CopyFromPango(ctx, &elt, {{ $ev }})
-	objects[idx] = object
+	resp.Diagnostics.Append(object.CopyFromPango(ctx, elt.Entry, {{ $ev }})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	objects[elt.StateIdx] = object
 }
 {{- else }}
 // For resources that only manage their own items in the list, Read()
 // must only objects that are already part of the state.
 
-type elementWithState struct {
-	Element  *{{ $resourceTFStructName }}
-	StateIdx int
-}
-
-var stateElements []{{ $resourceTFStructName }}
-state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &stateElements, false)
-stateElementsByName := make(map[string]elementWithState, len(stateElements))
-for idx, elt := range stateElements {
-	stateElementsByName[elt.Name.ValueString()] = elementWithState {
-		Element: &elt,
-		StateIdx: idx,
-	}
-}
-
-processedElementsByName := make(map[string]elementWithState, len(stateElementsByName))
-for _, elt := range existing {
-	stateElement, found := stateElementsByName[elt.Name]
-	if !found {
-		continue
-	}
-	var object {{ $resourceTFStructName }}
-	object.CopyFromPango(ctx, &elt, nil)
-	processedElement := elementWithState{
-		Element: &object,
-		StateIdx: stateElement.StateIdx,
-	}
-	processedElementsByName[elt.Name] = processedElement
-}
-
-
 // To keep indices correct, processed entries were stored in a map, with element
 // index being part of the entryWithState structure. Now it has to be converted
-// into a list that can be set in the plan.
-// First, create a list with a length matching number of elements in the
-// stateElementsByName and fill it out with elements from processedElementsByName
+// into a list that can be set in the plan.11
+// First, create a list with a length matching number of entries in the
+// stateEntriesByName and fill it out with elements from processedEntriesByName.
 // map.
-unfiltered := make([]elementWithState, len(stateElementsByName))
-for _, elt := range processedElementsByName {
+unfiltered := make([]entryWithState, len(stateEntriesByName))
+for _, elt := range processedEntriesByName {
 	unfiltered[elt.StateIdx] = elt
 }
 
@@ -999,10 +1062,23 @@ for _, elt := range processedElementsByName {
 // to terraform.
 var objects []{{ $resourceTFStructName }}
 for _, elt := range unfiltered {
-	if elt.Element != nil {
-		objects = append(objects, *elt.Element)
+	if elt.Entry != nil {
+		var object {{ $resourceTFStructName }}
+		resp.Diagnostics.Append(object.CopyFromPango(ctx, elt.Entry, {{ $ev }})...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		objects = append(objects, object)
 	}
 }
+{{- end }}
+
+{{- if and (not .Exhaustive) (eq .ResourceOrDS "Resource") }}
+  planEntriesByName := stateEntriesByName
+  {{ RenderCreateUpdateMovementRequired "state" "stateEntries" }}
+  if movementRequired {
+    state.Position.Where = types.StringValue("outdated")
+  }
 {{- end }}
 
 var list_diags diag.Diagnostics
@@ -1197,6 +1273,7 @@ const (
 type entryWithState struct {
 	Entry    *{{ $resourceSDKStructName }}
 	State    entryState
+	StateIdx int
 	NewName  string
 }
 
@@ -1216,7 +1293,7 @@ for _, elt := range planEntries {
 
 
 renamedEntries := make(map[string]bool)
-processedStateEntries := make(map[string]*entryWithState)
+processedStateEntries := make(map[string]entryWithState)
 
 findMatchingStateEntry := func(entry *{{ $resourceSDKStructName }}) (*{{ $resourceSDKStructName }}, bool) {
 	var found *{{ $resourceSDKStructName }}
@@ -1243,7 +1320,7 @@ findMatchingStateEntry := func(entry *{{ $resourceSDKStructName }}) (*{{ $resour
 
 
 for _, elt := range planEntries {
-	var processedEntry *entryWithState
+	var processedEntry entryWithState
 
 	if stateElt, found := stateEntriesByName[elt.Name]; !found {
 		// If given plan entry is not found in state, check if there is another
@@ -1254,14 +1331,14 @@ for _, elt := range planEntries {
 				resp.Diagnostics.AddError("Failed to generate update actions", "Entry name swapped between entries")
 				return
 			}
-			processedEntry = &entryWithState{
+			processedEntry = entryWithState{
 				Entry:    stateEntry,
 				State:    entryRenamed,
 				NewName:  elt.Name,
 			}
 			renamedEntries[elt.Name] = true
 		} else {
-			processedEntry = &entryWithState{
+			processedEntry = entryWithState{
 				Entry:    elt,
 				State:    entryMissing,
 			}
@@ -1283,7 +1360,7 @@ for _, elt := range planEntries {
 		}
 		processedStateEntries[processedEntry.Entry.Name] = processedEntry
 	} else {
-		processedEntry = &entryWithState{
+		processedEntry = entryWithState{
 			Entry:    elt,
 			State: entryMissing,
 		}
@@ -1503,18 +1580,19 @@ type entryWithState struct {
 	NewName  string
 }
 
-stateEntriesByName := make(map[string]*entryWithState, len(stateEntries))
+stateEntriesByName := make(map[string]entryWithState, len(stateEntries))
 for idx, elt := range stateEntries {
-	stateEntriesByName[elt.Name] = &entryWithState{
+	stateEntriesByName[elt.Name] = entryWithState{
 		Entry:    elt,
 		StateIdx: idx,
 	}
 }
 
-planEntriesByName := make(map[string]*entryWithState, len(planEntries))
+planEntriesByName := make(map[string]entryWithState, len(planEntries))
 for idx, elt := range planEntries {
-	planEntriesByName[elt.Name] = &entryWithState{
+	planEntriesByName[elt.Name] = entryWithState{
 		Entry:    elt,
+		State:    entryOk,
 		StateIdx: idx,
 	}
 }
@@ -1545,10 +1623,10 @@ findMatchingStateEntry := func(entry *{{ $resourceSDKStructName }}) (*{{ $resour
 }
 
 renamedEntries := make(map[string]bool)
-processedStateEntries := make(map[string]*entryWithState)
+processedStateEntries := make(map[string]entryWithState)
 
 for idx, elt := range planEntries {
-	var processedEntry *entryWithState
+	var processedEntry entryWithState
 
 	if stateElt, found := stateEntriesByName[elt.Name]; !found {
 		// If given plan entry is not found in state, check if there is another
@@ -1559,7 +1637,7 @@ for idx, elt := range planEntries {
 				resp.Diagnostics.AddError("Failed to generate update actions", "Entry name swapped between entries")
 				return
 			}
-			processedEntry = &entryWithState{
+			processedEntry = entryWithState{
 				Entry:    renamedEntry,
 				State:    entryRenamed,
 				StateIdx: stateEntriesByName[renamedEntry.Name].StateIdx,
@@ -1567,7 +1645,7 @@ for idx, elt := range planEntries {
 			}
 			renamedEntries[elt.Name] = true
 		} else {
-			processedEntry = &entryWithState{
+			processedEntry = entryWithState{
 				Entry:    elt,
 				State:    entryMissing,
 				StateIdx: idx,
@@ -1590,7 +1668,7 @@ for idx, elt := range planEntries {
 		}
 		processedStateEntries[processedEntry.Entry.Name] = processedEntry
 	} else {
-		processedEntry = &entryWithState{
+		processedEntry = entryWithState{
 			Entry:    elt,
 			StateIdx: idx,
 		}
@@ -1760,7 +1838,7 @@ for idx, elt := range existing {
 	processedStateEntries[elt.Name].Entry.Uuid = elt.Uuid
 }
 {{- else }}
-position := state.Position.CopyToPango()
+position := plan.Position.CopyToPango()
   {{ RenderCreateUpdateMovementRequired "plan" "planEntries" }}
 {{- end }}
 
@@ -2095,6 +2173,8 @@ func (o *{{ dataSourceStructName }}Tfid) IsValid() error {
 {{ RenderDataSourceStructs }}
 
 {{ RenderCopyFromPangoFunctions }}
+
+{{ RenderCopyToPangoFunctions }}
 
 {{ RenderDataSourceSchema }}
 

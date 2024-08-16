@@ -940,29 +940,17 @@ func createSchemaAttributeForParameter(schemaTyp schemaType, packageName string,
 		computed = true
 	}
 
-	// TODO(kklimonda): This is pretty one-off implementation to
-	// support uuid-style resources, but could be expanded to be more
-	// generic if needed.
-	var modifiers *modifierCtx
-	if schemaTyp == schemaResource && computed && param.Default == "" {
-		modifiers = &modifierCtx{
-			SchemaType: fmt.Sprintf("planmodifier.%s", pascalCase(param.Type)),
-			Modifiers:  []string{fmt.Sprintf("%splanmodifier.UseStateForUnknown()", param.Type)},
-		}
-	}
-
 	return attributeCtx{
-		Package:       packageName,
-		Name:          param.Name,
-		SchemaType:    schemaType,
-		ElementType:   elementType,
-		Description:   param.Description,
-		Required:      param.Required,
-		Optional:      !param.Required,
-		Sensitive:     param.Sensitive,
-		Default:       defaultValue,
-		Computed:      computed,
-		PlanModifiers: modifiers,
+		Package:     packageName,
+		Name:        param.Name,
+		SchemaType:  schemaType,
+		ElementType: elementType,
+		Description: param.Description,
+		Required:    param.Required,
+		Optional:    !param.Required,
+		Sensitive:   param.Sensitive,
+		Default:     defaultValue,
+		Computed:    computed,
 	}
 }
 
@@ -2051,13 +2039,18 @@ func DataSourceReadFunction(resourceTyp properties.ResourceType, names *NameProv
 
 	var tmpl string
 	var listAttribute string
+	var exhaustive bool
 	switch resourceTyp {
 	case properties.ResourceEntry:
 		tmpl = resourceReadFunction
 	case properties.ResourceEntryPlural:
 		tmpl = resourceReadEntryListFunction
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
-	case properties.ResourceUuid, properties.ResourceUuidPlural:
+	case properties.ResourceUuid:
+		exhaustive = true
+		tmpl = resourceReadManyFunction
+		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
+	case properties.ResourceUuidPlural:
 		tmpl = resourceReadManyFunction
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 	}
@@ -2076,6 +2069,7 @@ func DataSourceReadFunction(resourceTyp properties.ResourceType, names *NameProv
 		"ResourceOrDS":          "DataSource",
 		"ResourceIsMap":         resourceIsMap,
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
+		"Exhaustive":            exhaustive,
 		"ListAttribute":         listAttributeVariant,
 		"EntryOrConfig":         paramSpec.EntryOrConfig(),
 		"HasEntryName":          paramSpec.HasEntryName(),
@@ -2090,6 +2084,9 @@ func DataSourceReadFunction(resourceTyp properties.ResourceType, names *NameProv
 	funcMap := template.FuncMap{
 		"RenderLocationsPangoToState": func(source string, dest string) (string, error) {
 			return RenderLocationsPangoToState(names, paramSpec, source, dest)
+		},
+		"RenderCreateUpdateMovementRequired": func(state string, entries string) (string, error) {
+			return RendeCreateUpdateMovementRequired(state, entries)
 		},
 		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
 			return RenderLocationsStateToPango(names, paramSpec, source, dest)
@@ -2151,6 +2148,9 @@ func ResourceReadFunction(resourceTyp properties.ResourceType, names *NameProvid
 	funcMap := template.FuncMap{
 		"RenderLocationsPangoToState": func(source string, dest string) (string, error) {
 			return RenderLocationsPangoToState(names, paramSpec, source, dest)
+		},
+		"RenderCreateUpdateMovementRequired": func(state string, entries string) (string, error) {
+			return RendeCreateUpdateMovementRequired(state, entries)
 		},
 		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
 			return RenderLocationsStateToPango(names, paramSpec, source, dest)
