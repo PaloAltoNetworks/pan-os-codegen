@@ -295,7 +295,11 @@ spec:
               items:
                 type: object
                 spec:
-                  params: []
+                  params:
+                    - name: sdwan-gateway
+                      type: string
+                      profiles:
+                        - xpath: [sdwan-gateway]
           - name: ipv6
             type: object
             profiles:
@@ -390,6 +394,10 @@ spec:
                   default: false
                   profiles:
                     - xpath: [enable]
+                - name: sdwan-interface-profile
+                  type: string
+                  profiles:
+                    - xpath: [sdwan-interface-profile]
                 - name: upstream-nat
                   type: object
                   profiles:
@@ -404,7 +412,7 @@ spec:
                       - name: static-ip
                         type: string
                         profiles:
-                          - xpath: [static-ip]
+                          - xpath: [static-ip, ip-address]
           - name: adjust-tcp-mss
             type: object
             profiles:
