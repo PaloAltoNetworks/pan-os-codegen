@@ -132,17 +132,19 @@ func (c *Creator) processTemplate(templateName, filePath string) error {
 	// If no data was rendered from the template, skip creating an empty file.
 	dataLength := len(bytes.TrimSpace(data.Bytes()))
 	if dataLength > 0 {
-		formattedCode, err := format.Source(data.Bytes())
+		var formattedCode []byte
+		formattedCode, err = format.Source(data.Bytes())
 		if err != nil {
-			return fmt.Errorf("error formatting code %w", err)
+			log.Printf("Failed to format source code: %s", err.Error())
+			formattedCode = data.Bytes()
 		}
 		formattedBuf := bytes.NewBuffer(formattedCode)
 
-		if err := c.createAndWriteFile(filePath, formattedBuf); err != nil {
+		if writeErr := c.createAndWriteFile(filePath, formattedBuf); writeErr != nil {
 			return fmt.Errorf("error creating and writing to file %s: %w", filePath, err)
 		}
 	}
-	return nil
+	return err
 }
 
 // writeFormattedContentToFile formats the content and writes it to a file.
