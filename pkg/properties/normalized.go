@@ -18,14 +18,34 @@ import (
 type Normalization struct {
 	Name                    string                  `json:"name" yaml:"name"`
 	TerraformProviderConfig TerraformProviderConfig `json:"terraform_provider_config" yaml:"terraform_provider_config"`
+	GoSdkSkip               bool                    `json:"go_sdk_skip" yaml:"go_sdk_skip"`
 	GoSdkPath               []string                `json:"go_sdk_path" yaml:"go_sdk_path"`
 	XpathSuffix             []string                `json:"xpath_suffix" yaml:"xpath_suffix"`
 	Locations               map[string]*Location    `json:"locations" yaml:"locations"`
 	Entry                   *Entry                  `json:"entry" yaml:"entry"`
-	Imports                 map[string]*Import      `json:"imports" yaml:"imports"`
+	Imports                 []Import                `json:"imports" yaml:"imports"`
 	Version                 string                  `json:"version" yaml:"version"`
 	Spec                    *Spec                   `json:"spec" yaml:"spec"`
 	Const                   map[string]*Const       `json:"const" yaml:"const"`
+}
+
+type Import struct {
+	Variant   *NameVariant
+	Type      *NameVariant
+	Locations map[string]ImportLocation
+}
+
+type ImportLocation struct {
+	Name           *NameVariant
+	Required       bool
+	XpathElements  []string
+	XpathVariables map[string]ImportXpathVariable
+}
+
+type ImportXpathVariable struct {
+	Name        *NameVariant
+	Description string
+	Default     string
 }
 
 type TerraformResourceType string
@@ -34,6 +54,7 @@ const (
 	TerraformResourceEntry  TerraformResourceType = "entry"
 	TerraformResourceUuid   TerraformResourceType = "uuid"
 	TerraformResourceConfig TerraformResourceType = "config"
+	TerraformResourceCustom TerraformResourceType = "custom"
 )
 
 type TerraformResourceVariant string
@@ -48,6 +69,7 @@ type TerraformProviderConfig struct {
 	SkipDatasource        bool                       `json:"skip_datasource" yaml:"skip_datasource"`
 	SkipDatasourceListing bool                       `json:"skip_datasource_listing" yaml:"skip_datasource_listing"`
 	ResourceType          TerraformResourceType      `json:"resource_type" yaml:"resource_type"`
+	CustomFuncs           map[string]string          `json:"custom_functions" yaml:"custom_functions"`
 	ResourceVariants      []TerraformResourceVariant `json:"resource_variants" yaml:"resource_variants"`
 	Suffix                string                     `json:"suffix" yaml:"suffix"`
 	PluralSuffix          string                     `json:"plural_suffix" yaml:"plural_suffix"`
@@ -58,6 +80,14 @@ type NameVariant struct {
 	Underscore     string
 	CamelCase      string
 	LowerCamelCase string
+}
+
+func NewNameVariant(name string) *NameVariant {
+	return &NameVariant{
+		Underscore:     naming.Underscore("", name, ""),
+		CamelCase:      naming.CamelCase("", name, "", true),
+		LowerCamelCase: naming.CamelCase("", name, "", false),
+	}
 }
 
 type Location struct {
@@ -88,19 +118,6 @@ type LocationVarValidation struct {
 
 type Entry struct {
 	Name *EntryName `json:"name" yaml:"name"`
-}
-
-type Import struct {
-	Name          *NameVariant
-	Xpath         []string              `json:"xpath" yaml:"xpath"`
-	Vars          map[string]*ImportVar `json:"vars" yaml:"vars"`
-	OnlyForParams []string              `json:"only_for_params" yaml:"only_for_params"`
-}
-
-type ImportVar struct {
-	Name        *NameVariant
-	Description string `json:"description" yaml:"description"`
-	Default     string `json:"default" yaml:"default"`
 }
 
 type EntryName struct {
@@ -371,8 +388,11 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 			Type: schemaSpec.Hashing.Type,
 		}
 	}
+
+	var sensitive bool
 	var terraformProviderConfig *SpecParamTerraformProviderConfig
 	if schemaSpec.CodegenOverrides != nil {
+		sensitive = schemaSpec.CodegenOverrides.Terraform.Sensitive
 		terraformProviderConfig = &SpecParamTerraformProviderConfig{
 			Computed: schemaSpec.CodegenOverrides.Terraform.Computed,
 		}
@@ -382,6 +402,7 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 		Type:                    specType,
 		Default:                 defaultVal,
 		Required:                schemaSpec.Required,
+		Sensitive:               sensitive,
 		TerraformProviderConfig: terraformProviderConfig,
 		Hashing:                 specHashing,
 		Profiles:                profiles,
@@ -447,19 +468,6 @@ func generateXpathVariables(variables []xpathschema.Variable) map[string]*Locati
 	return xpathVars
 }
 
-func generateImportVariables(variables []xpathschema.Variable) map[string]*ImportVar {
-	importVars := make(map[string]*ImportVar)
-	for _, variable := range variables {
-		entry := &ImportVar{
-			Description: variable.Description,
-			Default:     variable.Default,
-		}
-		importVars[variable.Name] = entry
-	}
-
-	return importVars
-}
-
 func schemaToSpec(object object.Object) (*Normalization, error) {
 	var resourceVariants []TerraformResourceVariant
 	for _, elt := range object.TerraformConfig.ResourceVariants {
@@ -472,13 +480,14 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 			SkipDatasource:        object.TerraformConfig.SkipDatasource,
 			SkipDatasourceListing: object.TerraformConfig.SkipdatasourceListing,
 			ResourceType:          TerraformResourceType(object.TerraformConfig.ResourceType),
+			CustomFuncs:           object.TerraformConfig.CustomFunctions,
 			ResourceVariants:      resourceVariants,
 			Suffix:                object.TerraformConfig.Suffix,
 			PluralSuffix:          object.TerraformConfig.PluralSuffix,
 			PluralName:            object.TerraformConfig.PluralName,
 		},
 		Locations:   make(map[string]*Location),
-		Imports:     make(map[string]*Import),
+		GoSdkSkip:   object.GoSdkConfig.Skip,
 		GoSdkPath:   object.GoSdkConfig.Package,
 		XpathSuffix: object.XpathSuffix,
 		Version:     object.Version,
@@ -560,39 +569,53 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 
 	}
 
-	imports := make(map[string]*Import, len(object.Imports))
+	var imports []Import
 	for _, elt := range object.Imports {
-		var xpath []string
-
-		schemaXpathVars := make(map[string]xpathschema.Variable)
-		for _, xpathVariable := range elt.Xpath.Variables {
-			schemaXpathVars[xpathVariable.Name] = xpathVariable
-		}
-
-		for _, element := range elt.Xpath.Elements {
-			var eltEntry string
-			if xpathVar, ok := schemaXpathVars[element[1:]]; ok {
-				if xpathVar.Type == "entry" {
-					eltEntry = fmt.Sprintf("{{ Entry %s }}", elt.Name)
-				} else if xpathVar.Type == "object" {
-					eltEntry = fmt.Sprintf("{{ Object %s }}", elt.Name)
+		locations := make(map[string]ImportLocation, len(elt.Locations))
+		for _, location := range elt.Locations {
+			schemaXpathVars := make(map[string]xpathschema.Variable, len(location.Xpath.Variables))
+			xpathVars := make(map[string]ImportXpathVariable, len(location.Xpath.Variables))
+			for _, xpathVariable := range location.Xpath.Variables {
+				schemaXpathVars[xpathVariable.Name] = xpathVariable
+				xpathVars[xpathVariable.Name] = ImportXpathVariable{
+					Name: &NameVariant{
+						Underscore:     naming.Underscore("", xpathVariable.Name, ""),
+						CamelCase:      naming.CamelCase("", xpathVariable.Name, "", true),
+						LowerCamelCase: naming.CamelCase("", xpathVariable.Name, "", false),
+					},
+					Description: xpathVariable.Description,
+					Default:     xpathVariable.Default,
 				}
-			} else {
-				eltEntry = element
 			}
-			xpath = append(xpath, eltEntry)
+
+			var xpath []string
+			xpath = append(xpath, location.Xpath.Elements...)
+
+			locations[location.Name] = ImportLocation{
+				Name: &NameVariant{
+					Underscore:     naming.Underscore("", location.Name, ""),
+					CamelCase:      naming.CamelCase("", location.Name, "", true),
+					LowerCamelCase: naming.CamelCase("", location.Name, "", false),
+				},
+				Required:       location.Required,
+				XpathVariables: xpathVars,
+				XpathElements:  xpath,
+			}
 		}
 
-		importVariables := generateImportVariables(elt.Xpath.Variables)
-		if len(importVariables) == 0 {
-			importVariables = nil
-		}
-
-		imports[elt.Name] = &Import{
-			Xpath:         xpath,
-			Vars:          importVariables,
-			OnlyForParams: elt.OnlyForParams,
-		}
+		imports = append(imports, Import{
+			Type: &NameVariant{
+				Underscore:     naming.Underscore("", elt.Type, ""),
+				CamelCase:      naming.CamelCase("", elt.Type, "", true),
+				LowerCamelCase: naming.CamelCase("", elt.Type, "", false),
+			},
+			Variant: &NameVariant{
+				Underscore:     naming.Underscore("", elt.Variant, ""),
+				CamelCase:      naming.CamelCase("", elt.Variant, "", true),
+				LowerCamelCase: naming.CamelCase("", elt.Variant, "", false),
+			},
+			Locations: locations,
+		})
 	}
 
 	if len(imports) > 0 {
@@ -660,11 +683,6 @@ func ParseSpec(input []byte) (*Normalization, error) {
 		return nil, err
 	}
 
-	err = spec.AddNameVariantsForImports()
-	if err != nil {
-		return nil, err
-	}
-
 	err = spec.AddNameVariantsForParams()
 	if err != nil {
 		return nil, err
@@ -693,27 +711,6 @@ func (spec *Normalization) AddNameVariantsForLocation() error {
 		}
 
 		for subkey, variable := range location.Vars {
-			variable.Name = &NameVariant{
-				Underscore:     naming.Underscore("", subkey, ""),
-				CamelCase:      naming.CamelCase("", subkey, "", true),
-				LowerCamelCase: naming.CamelCase("", subkey, "", false),
-			}
-		}
-	}
-
-	return nil
-}
-
-// AddNameVariantsForImports add name variants for imports (under_score and CamelCase).
-func (spec *Normalization) AddNameVariantsForImports() error {
-	for key, imp := range spec.Imports {
-		imp.Name = &NameVariant{
-			Underscore:     naming.Underscore("", key, ""),
-			CamelCase:      naming.CamelCase("", key, "", true),
-			LowerCamelCase: naming.CamelCase("", key, "", false),
-		}
-
-		for subkey, variable := range imp.Vars {
 			variable.Name = &NameVariant{
 				Underscore:     naming.Underscore("", subkey, ""),
 				CamelCase:      naming.CamelCase("", subkey, "", true),

@@ -25,8 +25,8 @@ type NameProvider struct {
 func NewNameProvider(spec *properties.Normalization, resourceTyp properties.ResourceType) *NameProvider {
 	var tfName string
 	switch resourceTyp {
-	case properties.ResourceEntry:
-		tfName = spec.Name
+	case properties.ResourceEntry, properties.ResourceCustom:
+		tfName = spec.TerraformProviderConfig.Suffix
 	case properties.ResourceEntryPlural:
 		tfName = spec.TerraformProviderConfig.PluralSuffix
 	case properties.ResourceUuid:
@@ -121,11 +121,12 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 	switch resourceTyp {
 	case properties.ResourceUuidPlural:
 		hasPosition = true
-	case properties.ResourceEntry, properties.ResourceEntryPlural, properties.ResourceUuid:
+	case properties.ResourceEntry, properties.ResourceEntryPlural, properties.ResourceUuid, properties.ResourceCustom:
 		hasPosition = false
 	}
 
 	funcMap := template.FuncMap{
+		"GoSDKSkipped":            func() bool { return spec.GoSdkSkip },
 		"HasPosition":             func() bool { return hasPosition },
 		"metaName":                func() string { return names.MetaName },
 		"structName":              func() string { return names.StructName },
@@ -183,13 +184,15 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 			case properties.ResourceEntryPlural:
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/xmlapi", "")
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "")
-			case properties.ResourceEntry:
+			case properties.ResourceEntry, properties.ResourceCustom:
 			}
 
 			// Generate Resource with entry style
 			terraformProvider.ImportManager.AddStandardImport("fmt", "")
 
-			terraformProvider.ImportManager.AddSdkImport(sdkPkgPath(spec), "")
+			if !spec.GoSdkSkip {
+				terraformProvider.ImportManager.AddSdkImport(sdkPkgPath(spec), "")
+			}
 
 			conditionallyAddValidators(terraformProvider.ImportManager, spec)
 			conditionallyAddModifiers(terraformProvider.ImportManager, spec)
@@ -213,7 +216,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 
 			terraformProvider.ImportManager.AddStandardImport("fmt", "")
 
-			terraformProvider.ImportManager.AddSdkImport(sdkPkgPath(spec), "")
+			if !spec.GoSdkSkip {
+				terraformProvider.ImportManager.AddSdkImport(sdkPkgPath(spec), "")
+			}
 
 			conditionallyAddValidators(terraformProvider.ImportManager, spec)
 			conditionallyAddModifiers(terraformProvider.ImportManager, spec)
@@ -262,6 +267,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 		resourceType := "DataSource"
 		names := NewNameProvider(spec, resourceTyp)
 		funcMap := template.FuncMap{
+			"GoSDKSkipped":         func() bool { return spec.GoSdkSkip },
 			"metaName":             func() string { return names.MetaName },
 			"structName":           func() string { return names.StructName },
 			"serviceName":          func() string { return names.TfName },
@@ -306,6 +312,7 @@ func (g *GenerateTerraformProvider) GenerateCommonCode(resourceTyp properties.Re
 	funcMap := template.FuncMap{
 		"RenderLocationStructs":      func() (string, error) { return RenderLocationStructs(resourceTyp, names, spec) },
 		"RenderLocationSchemaGetter": func() (string, error) { return RenderLocationSchemaGetter(names, spec) },
+		"RenderCustomCommonCode":     func() string { return RenderCustomCommonCode(names, spec) },
 	}
 	return g.generateTerraformEntityTemplate("Common", names, spec, terraformProvider, commonTemplate, funcMap)
 }
@@ -316,8 +323,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformProviderFile(spec *properti
 	// terraformProvider.ImportManager.AddSdkImport(sdkPkgPath(spec), "")
 
 	funcMap := template.FuncMap{
-		"renderImports": func() (string, error) { return terraformProvider.ImportManager.RenderImports() },
-		"renderCode":    func() string { return terraformProvider.Code.String() },
+		"renderImports":       func() (string, error) { return terraformProvider.ImportManager.RenderImports() },
+		"renderCustomImports": func() string { return RenderCustomImports(spec) },
+		"renderCode":          func() string { return terraformProvider.Code.String() },
 	}
 	return g.generateTerraformEntityTemplate("ProviderFile", &NameProvider{}, spec, terraformProvider, providerFile, funcMap)
 }

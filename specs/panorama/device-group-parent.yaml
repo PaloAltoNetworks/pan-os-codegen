@@ -1,0 +1,43 @@
+name: "Device group Parent"
+terraform_provider_config:
+  resource_type: custom
+  custom_functions:
+    Imports: deviceGroupParentImports
+    ResourceRead: deviceGroupParentResourceRead
+    DataSourceRead: deviceGroupParentDataSouceRead
+    Create: deviceGroupParentResourceCreate
+    Update: deviceGroupParentResourceUpdate
+    Delete: deviceGroupParentResourceDelete
+  suffix: "device_group_parent"
+go_sdk_config:
+  skip: true
+  package: ["device_group_parent"]
+xpath_suffix:
+  - device-group
+locations:
+  - name: "panorama"
+    description: "Located in a specific Panorama."
+    devices:
+      - panorama
+    xpath:
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+      vars:
+        - name: "panorama_device"
+          description: "The Panorama device."
+          default: "localhost.localdomain"
+version: "10.1.0"
+spec:
+  params:
+    - name: device-group
+      description: "The device group whose parent is being set"
+      type: string
+      profiles:
+        - xpath: ["device-group"]
+    - name: parent
+      description: "The parent device group. Leaving it empty moves 'device-group' under 'shared'."
+      type: string
+      profiles:
+        - xpath: ["parent"]

@@ -166,6 +166,8 @@ func generateFromTerraformToPangoParameter(resourceTyp properties.ResourceType, 
 			Params:          paramSpecs,
 			OneOf:           oneofSpecs,
 		})
+	case properties.ResourceCustom:
+		panic("custom resources don't generate anything")
 	}
 
 	for _, elt := range prop.Spec.Params {
@@ -504,6 +506,10 @@ func pascalCase(value string) string {
 }
 
 func RenderCopyToPangoFunctions(resourceTyp properties.ResourceType, pkgName string, terraformTypePrefix string, property *properties.Normalization) (string, error) {
+	if resourceTyp == properties.ResourceCustom {
+		return "", nil
+	}
+
 	specs := generateFromTerraformToPangoParameter(resourceTyp, pkgName, terraformTypePrefix, "", property, "")
 
 	type context struct {
@@ -520,6 +526,10 @@ func RenderCopyToPangoFunctions(resourceTyp properties.ResourceType, pkgName str
 }
 
 func RenderCopyFromPangoFunctions(resourceTyp properties.ResourceType, pkgName string, terraformTypePrefix string, property *properties.Normalization) (string, error) {
+	if resourceTyp == properties.ResourceCustom {
+		return "", nil
+	}
+
 	specs := generateFromTerraformToPangoParameter(resourceTyp, pkgName, terraformTypePrefix, "", property, "")
 
 	type context struct {
@@ -590,10 +600,32 @@ func RenderLocationStructs(resourceTyp properties.ResourceType, names *NameProvi
 		}
 
 		var fields []fieldCtx
+
+		for _, i := range spec.Imports {
+			if i.Type.CamelCase != data.Name.CamelCase {
+				continue
+			}
+
+			for _, elt := range i.Locations {
+				if elt.Required {
+					fields = append(fields, fieldCtx{
+						Name: elt.Name.CamelCase,
+						Type: "types.String",
+						Tags: []string{fmt.Sprintf("`tfsdk:\"%s\"`", elt.Name.Underscore)},
+					})
+				}
+			}
+		}
+
 		for _, param := range data.Vars {
 			paramTag := fmt.Sprintf("`tfsdk:\"%s\"`", param.Name.Underscore)
+			name := param.Name.CamelCase
+			if name == data.Name.CamelCase {
+				name = "Name"
+				paramTag = "`tfsdk:\"name\"`"
+			}
 			fields = append(fields, fieldCtx{
-				Name: param.Name.CamelCase,
+				Name: name,
 				Type: "types.String",
 				Tags: []string{paramTag},
 			})
@@ -619,7 +651,7 @@ const locationSchemaGetterTmpl = `
 "{{ .Name.Underscore }}": {{ .SchemaType }}{
 	Description: "{{ .Description }}",
   {{- if .Required }}
-	Required: true
+	Required: true,
   {{- else }}
 	Optional: true,
   {{- end }}
@@ -709,9 +741,31 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 		}
 
 		var variableAttrs []attributeCtx
+
+		for _, i := range spec.Imports {
+			if i.Type.CamelCase != data.Name.CamelCase {
+				continue
+			}
+
+			for _, elt := range i.Locations {
+				if elt.Required {
+					variableAttrs = append(variableAttrs, attributeCtx{
+						Name:         elt.Name,
+						SchemaType:   "rsschema.StringAttribute",
+						Required:     true,
+						ModifierType: "String",
+					})
+				}
+			}
+		}
+
 		for _, variable := range data.Vars {
+			name := variable.Name
+			if name.CamelCase == data.Name.CamelCase {
+				name = properties.NewNameVariant("name")
+			}
 			attribute := attributeCtx{
-				Name:        variable.Name,
+				Name:        name,
 				Description: variable.Description,
 				SchemaType:  "rsschema.StringAttribute",
 				Required:    false,
@@ -771,6 +825,17 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 	return processTemplate(locationSchemaGetterTmpl, "render-location-schema-getter", data, commonFuncMap)
 }
 
+func RenderCustomImports(spec *properties.Normalization) string {
+	template, _ := getCustomTemplateForFunction(spec, "Imports")
+	return template
+}
+
+func RenderCustomCommonCode(names *NameProvider, spec *properties.Normalization) string {
+	template, _ := getCustomTemplateForFunction(spec, "Common")
+	return template
+
+}
+
 func createSchemaSpecForParameter(schemaTyp schemaType, structPrefix string, packageName string, param *properties.SpecParam) []schemaCtx {
 	var schemas []schemaCtx
 
@@ -821,8 +886,13 @@ func createSchemaSpecForParameter(schemaTyp schemaType, structPrefix string, pac
 	}
 
 	var computed bool
-	if param.TerraformProviderConfig != nil {
-		computed = param.TerraformProviderConfig.Computed
+	switch schemaTyp {
+	case schemaDataSource:
+		computed = true
+	case schemaResource:
+		if param.TerraformProviderConfig != nil {
+			computed = param.TerraformProviderConfig.Computed
+		}
 	}
 
 	schemas = append(schemas, schemaCtx{
@@ -890,10 +960,15 @@ func createSchemaAttributeForParameter(schemaTyp schemaType, packageName string,
 	}
 
 	var computed bool
-	if param.TerraformProviderConfig != nil {
-		computed = param.TerraformProviderConfig.Computed
-	} else if param.Default != "" {
+	switch schemaTyp {
+	case schemaDataSource:
 		computed = true
+	case schemaResource:
+		if param.TerraformProviderConfig != nil {
+			computed = param.TerraformProviderConfig.Computed
+		} else if param.Default != "" {
+			computed = true
+		}
 	}
 
 	// TODO(kklimonda): This is pretty one-off implementation to
@@ -1152,10 +1227,8 @@ func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp sch
 		structName = names.ResourceStructName
 	}
 
-	log.Printf("createSchemaSpecForModel: structName: %s", structName)
-
 	switch resourceTyp {
-	case properties.ResourceEntry:
+	case properties.ResourceEntry, properties.ResourceCustom:
 		return createSchemaSpecForEntrySingularModel(resourceTyp, schemaTyp, spec, packageName, structName)
 	case properties.ResourceEntryPlural:
 		return createSchemaSpecForEntryListModel(resourceTyp, schemaTyp, spec, packageName, structName)
@@ -1371,9 +1444,124 @@ func RenderDataSourceSchema(resourceTyp properties.ResourceType, names *NameProv
 	return processTemplate(renderSchemaTemplate, "render-resource-schema", data, commonFuncMap)
 }
 
+const importLocationAssignmentTmpl = `
+var location {{ $.PackageName }}.ImportLocation
+{{- range .Specs }}
+{{ $type := . }}
+if {{ $.LocationVar }}.{{ .Name.CamelCase }} != nil {
+  {{- range .Locations }}
+    {{- $pangoStruct := GetPangoStructForLocation $.Variants $type.Name .Name }}
+	// {{ .Name.CamelCase }}
+	location = {{ $.PackageName }}.New{{ $pangoStruct }}({{ $.PackageName }}.{{ $pangoStruct }}Spec{
+    {{- range .Fields }}
+		{{ . }}: {{ $.LocationVar }}.{{ $type.Name.CamelCase }}.{{ . }}.ValueString(),
+    {{- end }}
+	})
+  {{- end }}
+}
+{{- end }}
+`
+
+func RenderImportLocationAssignment(names *NameProvider, spec *properties.Normalization, locationVar string) (string, error) {
+	if len(spec.Imports) == 0 {
+		return "", nil
+	}
+
+	type importVariantSpec struct {
+		PangoStructNames *map[string]string
+	}
+
+	type importLocationSpec struct {
+		Name   *properties.NameVariant
+		Fields []string
+	}
+
+	type importSpec struct {
+		Name      *properties.NameVariant
+		Locations []importLocationSpec
+	}
+
+	var importSpecs []importSpec
+	variantsByName := make(map[string]importVariantSpec)
+	for _, elt := range spec.Imports {
+		existing, found := variantsByName[elt.Type.CamelCase]
+		if !found {
+			pangoStructNames := make(map[string]string)
+			existing = importVariantSpec{
+				PangoStructNames: &pangoStructNames,
+			}
+		}
+
+		var locations []importLocationSpec
+		for _, loc := range elt.Locations {
+			if !loc.Required {
+				continue
+			}
+
+			var fields []string
+			for _, elt := range loc.XpathVariables {
+				fields = append(fields, elt.Name.CamelCase)
+			}
+
+			pangoStructName := fmt.Sprintf("%s%s%sImportLocation", elt.Variant.CamelCase, elt.Type.CamelCase, loc.Name.CamelCase)
+			(*existing.PangoStructNames)[loc.Name.CamelCase] = pangoStructName
+			locations = append(locations, importLocationSpec{
+				Name:   loc.Name,
+				Fields: fields,
+			})
+		}
+		variantsByName[elt.Type.CamelCase] = existing
+
+		importSpecs = append(importSpecs, importSpec{
+			Name:      elt.Type,
+			Locations: locations,
+		})
+	}
+
+	type context struct {
+		PackageName string
+		LocationVar string
+		Variants    map[string]importVariantSpec
+		Specs       []importSpec
+	}
+
+	data := context{
+		PackageName: names.PackageName,
+		LocationVar: locationVar,
+		Variants:    variantsByName,
+		Specs:       importSpecs,
+	}
+
+	funcMap := template.FuncMap{
+		"GetPangoStructForLocation": func(variants map[string]importVariantSpec, typ *properties.NameVariant, location *properties.NameVariant) (string, error) {
+			log.Printf("len(variants): %d", len(variants))
+			for name, elt := range variants {
+				log.Printf("Type: %s", name)
+				for name, structName := range *elt.PangoStructNames {
+					log.Printf("   Name: %s, StructName: %s", name, structName)
+				}
+			}
+			variantSpec, found := variants[typ.CamelCase]
+			if !found {
+				return "", fmt.Errorf("failed to find variant for type '%s'", typ.CamelCase)
+			}
+
+			structName, found := (*variantSpec.PangoStructNames)[location.CamelCase]
+			if !found {
+				return "", fmt.Errorf("failed to find variant for type '%s', location '%s'", typ.CamelCase, location.CamelCase)
+			}
+
+			return structName, nil
+		},
+	}
+
+	return processTemplate(importLocationAssignmentTmpl, "render-locations-pango-to-state", data, funcMap)
+}
+
 type locationFieldCtx struct {
-	Name string
-	Type string
+	PangoName     string
+	TerraformName string
+	Type          string
 }
 
 type locationCtx struct {
@@ -1390,9 +1578,15 @@ func renderLocationsGetContext(names *NameProvider, spec *properties.Normalizati
 	for _, location := range spec.Locations {
 		var fields []locationFieldCtx
 		for _, variable := range location.Vars {
+			name := variable.Name.CamelCase
+			if variable.Name.CamelCase == location.Name.CamelCase {
+				name = "Name"
+			}
+
 			fields = append(fields, locationFieldCtx{
-				Name: variable.Name.CamelCase,
-				Type: "String",
+				PangoName:     variable.Name.CamelCase,
+				TerraformName: name,
+				Type:          "String",
 			})
 		}
 		locations = append(locations, locationCtx{
@@ -1418,7 +1612,7 @@ if {{ $.Source }}.{{ .Name }} != nil {
 	{{ $.Dest }}.{{ .Name }} = &{{ .TerraformStructName }}{
     {{ $locationName := .Name }}
     {{- range .Fields }}
-		{{ .Name }}: types.{{ .Type }}Value({{ $.Source }}.{{ $locationName }}.{{ .Name }}),
+		{{ .TerraformName }}: types.{{ .Type }}Value({{ $.Source }}.{{ $locationName }}.{{ .PangoName }}),
     {{- end }}
 	}
 }
@@ -1447,7 +1641,7 @@ if {{ $.Source }}.{{ .Name }} != nil {
 	{{ $.Dest }}.{{ .Name }} = &{{ .SdkStructName }}{
     {{ $locationName := .Name }}
     {{- range .Fields }}
-		{{ .Name }}: {{ $.Source }}.{{ $locationName }}.{{ .Name }}.ValueString(),
+		{{ .PangoName }}: {{ $.Source }}.{{ $locationName }}.{{ .TerraformName }}.ValueString(),
     {{- end }}
 	}
 }
@@ -1735,7 +1929,7 @@ func createStructSpecForModel(resourceTyp properties.ResourceType, schemaTyp sch
 	}
 
 	switch resourceTyp {
-	case properties.ResourceEntry:
+	case properties.ResourceEntry, properties.ResourceCustom:
 		return createStructSpecForEntryModel(resourceTyp, schemaTyp, spec, names)
 	case properties.ResourceEntryPlural:
 		return createStructSpecForEntryListModel(resourceTyp, schemaTyp, spec, names)
@@ -1809,9 +2003,24 @@ func RenderDataSourceStructs(resourceTyp properties.ResourceType, names *NamePro
 	return processTemplate(dataSourceStructs, "render-structs", data, commonFuncMap)
 }
 
+func getCustomTemplateForFunction(spec *properties.Normalization, function string) (string, error) {
+	if resource, found := customResourceFuncsMap[spec.TerraformProviderConfig.Suffix]; !found {
+		return "", fmt.Errorf("cannot find a list of custom functions for %s", spec.TerraformProviderConfig.Suffix)
+	} else {
+		if template, found := resource[function]; !found {
+			return "", fmt.Errorf("No template for function '%s'", function)
+		} else {
+			return template, nil
+		}
+	}
+}
+
 func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProvider, serviceName string, paramSpec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, resourceSDKName string) (string, error) {
 	funcMap := template.FuncMap{
 		"ConfigToEntry": ConfigEntry,
+		"RenderImportLocationAssignment": func(locationVar string) (string, error) {
+			return RenderImportLocationAssignment(names, paramSpec, locationVar)
+		},
 		"RenderCreateUpdateMovementRequired": func(state string, entries string) (string, error) {
 			return RendeCreateUpdateMovementRequired(state, entries)
 		},
@@ -1846,6 +2055,12 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 		exhaustive = false
 		tmpl = resourceCreateManyFunction
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
+	case properties.ResourceCustom:
+		var err error
+		tmpl, err = getCustomTemplateForFunction(paramSpec, "Create")
+		if err != nil {
+			return "", err
+		}
 	}
 
 	listAttributeVariant := &properties.NameVariant{
@@ -1860,6 +2075,7 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 	}
 	data := map[string]interface{}{
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
+		"HasImports":            len(paramSpec.Imports) > 0,
 		"Exhaustive":            exhaustive,
 		"ResourceIsMap":         resourceIsMap,
 		"ListAttribute":         listAttributeVariant,
@@ -1891,6 +2107,12 @@ func DataSourceReadFunction(resourceTyp properties.ResourceType, names *NameProv
 	case properties.ResourceUuid, properties.ResourceUuidPlural:
 		tmpl = resourceReadManyFunction
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
+	case properties.ResourceCustom:
+		var err error
+		tmpl, err = getCustomTemplateForFunction(paramSpec, "DataSourceRead")
+		if err != nil {
+			return "", err
+		}
 	}
 
 	listAttributeVariant := &properties.NameVariant{
@@ -1951,6 +2173,12 @@ func ResourceReadFunction(resourceTyp properties.ResourceType, names *NameProvid
 	case properties.ResourceUuidPlural:
 		tmpl = resourceReadManyFunction
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
+	case properties.ResourceCustom:
+		var err error
+		tmpl, err = getCustomTemplateForFunction(paramSpec, "ResourceRead")
+		if err != nil {
+			return "", err
+		}
 	}
 
 	listAttributeVariant := &properties.NameVariant{
@@ -2012,6 +2240,12 @@ func ResourceUpdateFunction(resourceTyp properties.ResourceType, names *NameProv
 	case properties.ResourceUuidPlural:
 		tmpl = resourceUpdateManyFunction
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
+	case properties.ResourceCustom:
+		var err error
+		tmpl, err = getCustomTemplateForFunction(paramSpec, "Update")
+		if err != nil {
+			return "", err
+		}
 	}
 
 	listAttributeVariant := &properties.NameVariant{
@@ -2073,6 +2307,12 @@ func ResourceDeleteFunction(resourceTyp properties.ResourceType, names *NameProv
 	case properties.ResourceUuidPlural:
 		tmpl = resourceDeleteManyFunction
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
+	case properties.ResourceCustom:
+		var err error
+		tmpl, err = getCustomTemplateForFunction(paramSpec, "Delete")
+		if err != nil {
+			return "", err
+		}
 	}
 
 	listAttributeVariant := &properties.NameVariant{
@@ -2089,6 +2329,7 @@ func ResourceDeleteFunction(resourceTyp properties.ResourceType, names *NameProv
 	data := map[string]interface{}{
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
 		"ResourceIsMap":         resourceIsMap,
+		"HasImports":            len(paramSpec.Imports) > 0,
 		"EntryOrConfig":         paramSpec.EntryOrConfig(),
 		"ListAttribute":         listAttributeVariant,
 		"Exhaustive":            exhaustive,
@@ -2099,6 +2340,9 @@ func ResourceDeleteFunction(resourceTyp properties.ResourceType, names *NameProv
 	}
 
 	funcMap := template.FuncMap{
+		"RenderImportLocationAssignment": func(locationVar string) (string, error) {
+			return RenderImportLocationAssignment(names, paramSpec, locationVar)
+		},
 		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
 			return RenderLocationsStateToPango(names, paramSpec, source, dest)
 		},
@@ -2127,4 +2371,16 @@ func ConfigEntry(entryName string, param *properties.SpecParam) (string, error) 
 	}
 
 	return processTemplate(resourceConfigEntry, "config-entry", entryData, nil)
+}
+
+var customResourceFuncsMap = map[string]map[string]string{
+	"device_group_parent": {
+		"Imports":        deviceGroupParentImports,
+		"DataSourceRead": deviceGroupParentDataSourceRead,
+		"ResourceRead":   deviceGroupParentResourceRead,
+		"Create":         deviceGroupParentResourceCreate,
+		"Update":         deviceGroupParentResourceUpdate,
+		"Delete":         deviceGroupParentResourceDelete,
+		"Common":         deviceGroupParentCommon,
+	},
 }

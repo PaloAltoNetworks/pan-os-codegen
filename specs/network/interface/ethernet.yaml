@@ -82,26 +82,69 @@ entries:
           min: 10
           max: 20
 imports:
-  - name: template
-    xpath:
-      path:
-        - "config"
-        - "devices"
-        - "$ngfw_device"
-        - "vsys"
-        - "$vsys"
-        - "import"
-        - "network"
-        - "interfaces"
-      vars:
-        - name: "ngfw_device"
-          description: "The NGFW device."
-          default: "localhost.localdomain"
-        - name: "vsys"
-          description: "The vsys."
-          default: "vsys1"
-    only_for_params:
-      - layer3
+  - variant: layer3
+    type: template
+    locations:
+      - name: virtual-router
+        xpath:
+          path:
+            - network
+            - virtual-router
+            - $router
+            - interface
+          vars:
+            - name: "vsys"
+              description: "The vsys."
+              default: "vsys1"
+            - name: router
+              description: Virtual Router
+      - name: logical-router
+        xpath:
+          path:
+            - network
+            - logical-router
+            - $router
+            - vrf
+            - $vrf
+            - interface
+          vars:
+            - name: "vsys"
+              description: "The vsys."
+              default: "vsys1"
+            - name: router
+              description: Logical Router Name
+            - name: vrf
+              description: Logical Router VRF
+      - name: vsys
+        required: true
+        xpath:
+          path:
+            - vsys
+            - $vsys
+            - import
+            - network
+            - interface
+          vars:
+            - name: "vsys"
+              description: "The vsys."
+              default: "vsys1"
+      - name: zone
+        xpath:
+          path:
+            - vsys
+            - $vsys
+            - zone
+            - $zone
+            - network
+            - layer3
+          vars:
+            - name: "vsys"
+              description: "The vsys."
+              default: "vsys1"
+            - name: "vsys"
+              description: "Security Zone"
+            - name: zone
+              description: Security Zone Identifier
 version: "10.1.0"
 spec:
   params:

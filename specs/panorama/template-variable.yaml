@@ -1,0 +1,100 @@
+name: "Template Variable"
+terraform_provider_config:
+  suffix: "panorama_template_variable"
+go_sdk_config:
+  package:
+    - "panorama"
+    - "template_variable"
+xpath_suffix:
+  - "variable"
+locations:
+  - name: "template"
+    description: "Located in a specific template."
+    devices:
+      - panorama
+    xpath:
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+        - "template"
+        - "$template"
+      vars:
+        - name: "panorama_device"
+          description: "The panorama device."
+          default: "localhost.localdomain"
+        - name: "template"
+          description: "The template."
+          required: true
+entries:
+  - name: name
+    description: "The name of the service."
+    validators:
+      - type: length
+        spec:
+          min: 1
+          max: 63
+      - type: regexp
+        spec:
+          expr: "^$.+"
+version: "10.1.0"
+spec:
+  params:
+    - name: description
+      type: string
+      profiles:
+        - xpath: ["description"]
+      validators:
+        - type: length
+          spec:
+            max: 255
+    - name: type
+      type: object
+      profiles:
+        - xpath: ["type"]
+      spec:
+        variants:
+          - name: ip-netmask
+            type: string
+            profiles:
+              - xpath: ["ip-netmask"]
+          - name: ip-range
+            type: string
+            profiles:
+              - xpath: [ip-range]
+          - name: fqdn
+            type: string
+            profiles:
+              - xpath: [fqdn]
+          - name: group-id
+            type: string
+            profiles:
+              - xpath: [group-id]
+          - name: device-priority
+            type: string
+            profiles:
+              - xpath: [device-priority]
+          - name: device-id
+            type: string
+            profiles:
+              - xpath: [device-id]
+          - name: interface
+            type: string
+            profiles:
+              - xpath: [interface]
+          - name: as-number
+            type: string
+            profiles:
+              - xpath: [as-number]
+          - name: qos-profile
+            type: string
+            profiles:
+              - xpath: [qos-profile]
+          - name: egress-max
+            type: string
+            profiles:
+              - xpath: [egress-max]
+          - name: link-tag
+            type: string
+            profiles:
+              - xpath: [link-tag]

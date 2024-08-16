@@ -15,6 +15,7 @@ const (
 	TerraformResourceEntry  TerraformResourceType = "entry"
 	TerraformResourceUuid   TerraformResourceType = "uuid"
 	TerraformResourceConfig TerraformResourceType = "config"
+	TerraformResourceCustom TerraformResourceType = "custom"
 )
 
 type TerraformResourceVariant string
@@ -29,6 +30,7 @@ type TerraformConfig struct {
 	SkipDatasource        bool                       `yaml:"skip_datasource"`
 	SkipdatasourceListing bool                       `yaml:"skip_datasource_listing"`
 	ResourceType          TerraformResourceType      `yaml:"resource_type"`
+	CustomFunctions       map[string]string          `yaml:"custom_functions"`
 	ResourceVariants      []TerraformResourceVariant `yaml:"resource_variants"`
 	Suffix                string                     `yaml:"suffix"`
 	PluralSuffix          string                     `yaml:"plural_suffix"`
@@ -36,7 +38,8 @@ type TerraformConfig struct {
 }
 
 type GoSdkConfig struct {
-	Package []string
+	Skip    bool     `yaml:"skip"`
+	Package []string `yaml:"package"`
 }
 
 type Entry struct {
