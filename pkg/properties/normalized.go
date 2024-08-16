@@ -329,11 +329,11 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 		for _, v := range schemaSpec.Validators {
 			switch spec := v.Spec.(type) {
 			case *validator.CountSpec:
-				min := int64(spec.Min)
-				max := int64(spec.Max)
+				minValue := int64(spec.Min)
+				maxValue := int64(spec.Max)
 				itemsSpec.Length = &SpecParamItemsLength{
-					Min: &min,
-					Max: &max,
+					Min: &minValue,
+					Max: &maxValue,
 				}
 			}
 		}
@@ -393,18 +393,18 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 		case *validator.RegexpSpec:
 			specParameter.Regex = spec.Expr
 		case *validator.StringLengthSpec:
-			min := int64(spec.Min)
-			max := int64(spec.Max)
+			minValue := int64(spec.Min)
+			maxValue := int64(spec.Max)
 			specParameter.Length = &SpecParamLength{
-				Min: &min,
-				Max: &max,
+				Min: &minValue,
+				Max: &maxValue,
 			}
 		case *validator.CountSpec:
-			min := int64(spec.Min)
-			max := int64(spec.Max)
+			minValue := int64(spec.Min)
+			maxValue := int64(spec.Max)
 			specParameter.Count = &SpecParamCount{
-				Min: &min,
-				Max: &max,
+				Min: &minValue,
+				Max: &maxValue,
 			}
 		}
 	}
@@ -547,11 +547,11 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 			for _, v := range entry.Validators {
 				switch spec := v.Spec.(type) {
 				case *validator.StringLengthSpec:
-					min := int64(spec.Min)
-					max := int64(spec.Max)
+					minValue := int64(spec.Min)
+					maxValue := int64(spec.Max)
 					specEntry.Name.Length = &EntryNameLength{
-						Min: &min,
-						Max: &max,
+						Min: &minValue,
+						Max: &maxValue,
 					}
 				}
 			}
