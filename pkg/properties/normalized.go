@@ -388,8 +388,11 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 			Type: schemaSpec.Hashing.Type,
 		}
 	}
+
+	var sensitive bool
 	var terraformProviderConfig *SpecParamTerraformProviderConfig
 	if schemaSpec.CodegenOverrides != nil {
+		sensitive = schemaSpec.CodegenOverrides.Terraform.Sensitive
 		terraformProviderConfig = &SpecParamTerraformProviderConfig{
 			Computed: schemaSpec.CodegenOverrides.Terraform.Computed,
 		}
@@ -399,6 +402,7 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 		Type:                    specType,
 		Default:                 defaultVal,
 		Required:                schemaSpec.Required,
+		Sensitive:               sensitive,
 		TerraformProviderConfig: terraformProviderConfig,
 		Hashing:                 specHashing,
 		Profiles:                profiles,
