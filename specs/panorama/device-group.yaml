@@ -54,12 +54,22 @@ spec:
     - name: devices
       description: "List of devices"
       type: list
+      profiles:
+        - type: entry
+          xpath: ["devices", "entry"]
       spec:
         items:
-          type: string
-      profiles:
-        - type: member
-          xpath: ["devices"]
+          type: object
+          spec:
+            params:
+              - name: "vsys"
+                type: list
+                profiles:
+                  - type: member
+                    xpath: [vsys]
+                spec:
+                  items:
+                    type: string
     - name: authorization_code
       type: string
       description: "Authorization code"

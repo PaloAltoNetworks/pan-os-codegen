@@ -198,7 +198,7 @@ const copyToPangoTmpl = `
 {{- define "terraformListElementsAs" }}
   {{- with .Parameter }}
     {{- $pangoType := printf "%s%s" $.Spec.PangoType .Name.CamelCase }}
-    {{- $terraformType := printf "%s%s%s" $.Spec.TerraformType .Name.CamelCase $.Spec.ModelOrObject }}
+    {{- $terraformType := printf "%s%sObject" $.Spec.TerraformType .Name.CamelCase }}
     {{- $pangoEntries := printf "%s_pango_entries" .Name.LowerCamelCase }}
     {{- $tfEntries := printf "%s_tf_entries" .Name.LowerCamelCase }}
     {{- if eq .ItemsType "entry" }}
@@ -342,7 +342,7 @@ var {{ .Name.LowerCamelCase }}_list types.List
 {{- define "terraformListElementsAsParam" }}
   {{- with .Parameter }}
     {{- $pangoType := printf "%s%s" $.Spec.PangoType .Name.CamelCase }}
-    {{- $terraformType := printf "%s%s%s" $.Spec.TerraformType .Name.CamelCase $.Spec.ModelOrObject }}
+    {{- $terraformType := printf "%s%sObject" $.Spec.TerraformType .Name.CamelCase }}
     {{- $terraformList := printf "%s_list" .Name.LowerCamelCase }}
     {{- $pangoEntries := printf "%s_pango_entries" .Name.LowerCamelCase }}
     {{- $tfEntries := printf "%s_tf_entries" .Name.LowerCamelCase }}
