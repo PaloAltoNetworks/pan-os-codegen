@@ -43,7 +43,8 @@ type EnumSpecValue struct {
 }
 
 type CodegenOverridesTerraform struct {
-	Computed bool `yaml:"computed"`
+	Sensitive bool `yaml:"sensitive"`
+	Computed  bool `yaml:"computed"`
 }
 
 type CodegenOverrides struct {
