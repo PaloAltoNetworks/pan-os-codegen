@@ -174,6 +174,73 @@ spec:
           - value: "up"
           - value: "down"
         default: "auto"
+    - name: link-speed
+      description: "Interface link speed"
+      type: enum
+      profiles:
+        - xpath: ["link-speed"]
+      validators:
+        - type: values
+          spec:
+            values:
+              [
+                "auto",
+                "10",
+                "100",
+                "1000",
+                "2500",
+                "5000",
+                "10000",
+                "40000",
+                "100000",
+              ]
+      spec:
+        values:
+          [
+            { value: "auto" },
+            { value: "10" },
+            { value: "100" },
+            { value: "1000" },
+            { value: "2500" },
+            { value: "5000" },
+            { value: "10000" },
+            { value: "40000" },
+            { value: "100000" },
+          ]
+    - name: link-duplex
+      description: "Interface link duplex"
+      type: enum
+      profiles:
+        - xpath: ["link-duplex"]
+      validators:
+        - type: values
+          values: ["auto", "half", "full"]
+      spec:
+        values: [{ value: "auto" }, { value: "half" }, { value: "full" }]
+    - name: poe
+      description: "PoE configuration"
+      type: object
+      spec:
+        params:
+          - name: reserved-power
+            description: Reserved Power
+            profiles:
+              - xpath: ["poe-rsvd-pwr"]
+            type: int64
+            spec:
+              default: 0
+            validators:
+              - type: range
+                spec:
+                  min: 0
+                  max: 90
+          - name: enabled
+            description: PoE Enable
+            profiles:
+              - xpath: ["poe-enabled"]
+            type: bool
+            spec:
+              default: true
   variants:
     - name: tap
       type: object
@@ -200,14 +267,45 @@ spec:
         - xpath: ["layer3"]
       spec:
         params:
+          - name: arp
+            description: "ARP configuration"
+            type: list
+            profiles:
+              - type: entry
+                xpath: [arp, entry]
+            spec:
+              items:
+                type: object
+                spec:
+                  params:
+                    - name: hw-address
+                      type: string
+                      description: MAC address (format xx:xx:xx:xx:xx:xx)
+                      profiles:
+                        - xpath: [hw-address]
           - name: ndp-proxy
             type: bool
             profiles:
               - xpath: ["ndp-proxy", "enabled"]
+            spec:
+              default: false
           - name: lldp
-            type: bool
+            description: lldp configuration
+            type: object
             profiles:
-              - xpath: ["lldp", "enable"]
+              - xpath: ["lldp"]
+            spec:
+              params:
+                - name: enable
+                  type: bool
+                  profiles:
+                    - xpath: ["enable"]
+                  spec:
+                    default: false
+                - name: profile
+                  type: string
+                  profiles:
+                    - xpath: [profile]
           - name: mtu
             type: int64
             description: "Maximum Transfer Unit, up to 9216 in Jumbo-Frame mode, up to 1500 otherwise"
@@ -223,16 +321,32 @@ spec:
             description: "IP addresses or address objects names"
             profiles:
               - type: entry
-                xpath: ["ip"]
+                xpath: ["ip", "entry"]
             spec:
               items:
-                type: string
+                type: object
+                spec:
+                  params:
+                    - name: sdwan-gateway
+                      type: string
+                      profiles:
+                        - xpath: [sdwan-gateway]
           - name: ipv6
             type: object
             profiles:
               - xpath: ["ipv6"]
             spec:
               params:
+                - name: enabled
+                  type: bool
+                  profiles:
+                    - xpath: ["enabled"]
+                  spec:
+                    default: false
+                - name: interface-id
+                  type: string
+                  profiles:
+                    - xpath: ["interface-id"]
                 - name: addresses
                   type: list
                   profiles:
@@ -244,9 +358,364 @@ spec:
                       spec:
                         params:
                           - name: enable-on-interface
+                            description: configure this address on interface
                             type: bool
                             profiles:
                               - xpath: ["enable-on-interface"]
+                          - name: prefix
+                            description: use this as prefix to form full address with interface id/EUI-64
+                            type: string
+                            profiles:
+                              - xpath: ["prefix"]
+                          - name: anycast
+                            description: anycast address
+                            type: string
+                            profiles:
+                              - xpath: ["anycast"]
+                          - name: advertise
+                            description: configure router advertisement prefix option
+                            profiles:
+                              - xpath: ["advertise"]
+                            type: object
+                            spec:
+                              params:
+                                - name: enable
+                                  type: bool
+                                  description: enable advertising this prefix in router advertisements
+                                  profiles:
+                                    - xpath: ["enable"]
+                                - name: valid-lifetime
+                                  description: Valid Lifetime (in seconds) of the prefix adverised in Router Advertisement messages
+                                  type: string
+                                  profiles:
+                                    - xpath: ["valid-lifetime"]
+                                - name: preferred-lifetime
+                                  description: Preferred Lifetime (in seconds) of the prefix advertised in Router Advertisement messages
+                                  type: string
+                                  profiles:
+                                    - xpath: ["preferred-lifetime"]
+                                - name: onlink-flag
+                                  type: bool
+                                  description: Set the On-Link Flag (L-bit) of the prefix in Router Advertisement messages
+                                  profiles:
+                                    - xpath: ["onlink-flag"]
+                                  spec:
+                                    default: true
+                                - name: auto-config-flag
+                                  type: bool
+                                  description: Set the Auto Address Configuration Flag (A-bit) of the prefix in Router Advertisement messages
+                                  profiles:
+                                    - xpath: ["auto-config-flag"]
+                                  spec:
+                                    default: true
+                - name: neighbor-discovery
+                  description: Neighbor Discovery configuration
+                  type: object
+                  profiles:
+                    - xpath: ["neighbor-discovery"]
+                  spec:
+                    params:
+                      - name: enable-ndp-monitor
+                        description: Enable NDP Monitoring
+                        type: bool
+                        profiles:
+                          - xpath: ["enable-ndp-monitor"]
+                        spec:
+                          default: false
+                      - name: enable-dad
+                        description: Enable Duplicate ADdress Detection (DAD)
+                        type: bool
+                        profiles:
+                          - xpath: ["enable-dad"]
+                        spec:
+                          default: true
+                      - name: dad-attempts
+                        description: Number of consecutive neighbor solicitation messages sent for duplicate address detection
+                        type: int64
+                        profiles:
+                          - xpath: ["dad-attempts"]
+                        validators:
+                          - type: range
+                            spec:
+                              min: 1
+                              max: 10
+                        spec:
+                          default: 1
+                      - name: ns-interval
+                        description: Interval (in seconds) between consecutive neighbor solicitation messages
+                        type: int64
+                        profiles:
+                          - xpath: ["ns-interval"]
+                        validators:
+                          - type: range
+                            spec:
+                              min: 1
+                              max: 3600
+                        spec:
+                          default: 1
+                      - name: reachable-time
+                        description: Time (in seconds) that the Reachable status for a neighbor can be maintained
+                        type: int64
+                        profiles:
+                          - xpath: ["reachable-time"]
+                        validators:
+                          - type: range
+                            spec:
+                              min: 10
+                              max: 36000
+                        spec:
+                          default: 30
+                      - name: router-advertisement
+                        description: Router Advertisement configuration
+                        type: object
+                        profiles:
+                          - xpath: ["router-advertisement"]
+                        spec:
+                          params:
+                            - name: enable
+                              type: bool
+                              profiles:
+                                - xpath: ["enable"]
+                              spec:
+                                default: false
+                            - name: max-interval
+                              description: Maximum interval (seconds) between consecutive unsolicited Router Advertisement messages
+                              type: int64
+                              profiles:
+                                - xpath: ["max-interval"]
+                              validators:
+                                - type: range
+                                  spec:
+                                    min: 4
+                                    max: 1800
+                              spec:
+                                default: 600
+                            - name: min-interval
+                              description: Minimum interval (seconds) between consecutive unsolicited Router Advertisement messages
+                              type: int64
+                              profiles:
+                                - xpath: ["min-interval"]
+                              validators:
+                                - type: range
+                                  spec:
+                                    min: 3
+                                    max: 1350
+                              spec:
+                                default: 200
+                            - name: link-mtu
+                              description: value of MTU option in Router Advertisement messages, upto 9216 in Jumbo-Frame mode, up to 1500 otherwise
+                              type: string
+                              profiles:
+                                - xpath: ["link-mtu"]
+                              spec:
+                                default: unspecified
+                            - name: reachable-time
+                              description: Reachable Time (in milliseconds) advertised in Router Advertisement messages
+                              type: string
+                              profiles:
+                                - xpath: ["reachable-time"]
+                              spec:
+                                default: unspecified
+                            - name: retransmission-timer
+                              description: Retransmission Timer (in milliseconds) advertised in Router Advertisement messages
+                              type: string
+                              profiles:
+                                - xpath: ["retransmission-timer"]
+                              spec:
+                                default: unspecified
+                            - name: hop-limit
+                              description: Current Hop Limit advertised in Router Advertisement messages
+                              type: string
+                              profiles:
+                                - xpath: ["hop-limit"]
+                              spec:
+                                default: "64"
+                            - name: lifetime
+                              description: Router Lifetime (in seconds) advertised in Router Advertisement messages
+                              type: int64
+                              profiles:
+                                - xpath: ["lifetime"]
+                              validators:
+                                - type: range
+                                  spec:
+                                    min: 0
+                                    max: 9000
+                              spec:
+                                default: 1800
+                            - name: router-preference
+                              description: Router Preference
+                              type: enum
+                              profiles:
+                                - xpath: ["router-preference"]
+                              validators:
+                                - type: values
+                                  spec:
+                                    values: [High, Medium, Low]
+                              spec:
+                                values:
+                                  [
+                                    { value: High },
+                                    { value: Medium },
+                                    { value: Low },
+                                  ]
+                            - name: managed-flag
+                              description: Set the Managed Configuration Flag (M-bit) in Router Advertisement messages
+                              type: bool
+                              profiles:
+                                - xpath: ["managed-flag"]
+                              spec:
+                                default: false
+                            - name: other-flag
+                              description: Set the Other Stateful Configuration Flag (O-bit) in Router Advertisement messages
+                              type: bool
+                              profiles:
+                                - xpath: ["other-flag"]
+                              spec:
+                                default: false
+                            - name: enable-consistency-check
+                              description: check consistency of RA messages from other routers.
+                              type: bool
+                              profiles:
+                                - xpath: ["enable-consistency-check"]
+                              spec:
+                                default: false
+                      - name: neighbor
+                        description: Static entries in neighbor cache
+                        type: list
+                        profiles:
+                          - type: entry
+                            xpath: [neighbor, entry]
+                        spec:
+                          items:
+                            type: object
+                            spec:
+                              params:
+                                - name: hw-address
+                                  description: MAC address (format xx:xx:xx:xx:xx:xx)
+                                  type: string
+                                  profiles:
+                                    - xpath: [hw-address]
+                - name: dns-server
+                  description: DNS Recursive Name Server
+                  type: object
+                  profiles:
+                    - xpath: ["dns-server"]
+                  spec:
+                    params:
+                      - name: enable
+                        type: bool
+                        profiles:
+                          - xpath: ["enable"]
+                        spec:
+                          default: false
+                      - name: source
+                        description: Either source from DHCPv6 Server or manually configure
+                        type: object
+                        profiles:
+                          - xpath: ["source"]
+                        spec:
+                          variants:
+                            - name: dhcpv6
+                              description: Source from DHCPv6 Server
+                              type: object
+                              profiles:
+                                - xpath: ["dhcpv6"]
+                              spec:
+                                params:
+                                  - name: prefix-pool
+                                    description: Prefix-Pool Name
+                                    type: string
+                                    profiles:
+                                      - xpath: ["prefix-pool"]
+                            - name: manual
+                              description: Configure manually
+                              type: object
+                              profiles:
+                                - xpath: ["manual"]
+                              spec:
+                                params:
+                                  - name: suffix
+                                    description: DNS suffixes
+                                    type: list
+                                    profiles:
+                                      - type: entry
+                                        xpath: ["suffix", "entry"]
+                                    spec:
+                                      items:
+                                        type: object
+                                        spec:
+                                          params:
+                                            - name: lifetime
+                                              description: (4-3600) lifetime in seconds
+                                              profiles:
+                                                - xpath: ["lifetime"]
+                                              type: int64
+                                              validators:
+                                                - type: range
+                                                  spec:
+                                                    min: 4
+                                                    max: 3600
+                      - name: dns-support
+                        description: DNS configuration support
+                        type: object
+                        profiles:
+                          - xpath: [dns-support]
+                        spec:
+                          params:
+                            - name: enable
+                              type: bool
+                              spec:
+                                default: false
+                            - name: server
+                              description: DNS Recusrive Name Server
+                              type: list
+                              profiles:
+                                - type: entry
+                                  xpath: ["server", "entry"]
+                              validators:
+                                - type: count
+                                  spec:
+                                    max: 8
+                              spec:
+                                items:
+                                  type: object
+                                  spec:
+                                    params:
+                                      - name: lifetime
+                                        description: (4-3600) lifetime in seconds
+                                        type: int64
+                                        validators:
+                                          - type: range
+                                            spec:
+                                              min: 4
+                                              max: 3600
+                                        spec:
+                                          default: 1200
+                            - name: suffix
+                              description: Domain Search List
+                              type: list
+                              profiles:
+                                - type: entry
+                                  xpath: [suffix, entry]
+                              validators:
+                                - type: count
+                                  spec:
+                                    max: 8
+                              spec:
+                                items:
+                                  type: object
+                                  spec:
+                                    params:
+                                      - name: lifetime
+                                        description: (4-3600) lifetime in seconds
+                                        type: int64
+                                        validators:
+                                          - type: range
+                                            spec:
+                                              min: 4
+                                              max: 3600
+                                        spec:
+                                          default: 1200
           - name: dhcp-client
             type: object
             profiles:
@@ -298,6 +767,50 @@ spec:
             type: string
             profiles:
               - xpath: ["netflow-profile"]
+          - name: bonjour
+            description: Bonjour configuration
+            type: object
+            profiles:
+              - xpath: ["bonjour"]
+            spec:
+              params:
+                - name: enable
+                  description: Set to support Bonjour service
+                  type: bool
+                  spec:
+                    default: false
+          - name: sdwan-link-settings
+            type: object
+            profiles:
+              - xpath: ["sdwan-link-settings"]
+            spec:
+              params:
+                - name: enable
+                  type: bool
+                  profiles:
+                    - xpath: [enable]
+                  spec:
+                    default: false
+                - name: sdwan-interface-profile
+                  type: string
+                  profiles:
+                    - xpath: [sdwan-interface-profile]
+                - name: upstream-nat
+                  type: object
+                  profiles:
+                    - xpath: [upstream-nat]
+                  spec:
+                    params:
+                      - name: enable
+                        type: bool
+                        profiles:
+                          - xpath: [enable]
+                        spec:
+                          default: false
+                      - name: static-ip
+                        type: string
+                        profiles:
+                          - xpath: [static-ip, ip-address]
           - name: adjust-tcp-mss
             type: object
             profiles:
@@ -326,3 +839,10 @@ spec:
                         max: 300
                   profiles:
                     - xpath: ["ipv6-mss-adjustment"]
+          - name: untagged-sub-interface
+            description: Enable untagged sub-interface
+            type: bool
+            profiles:
+              - xpath: ["untagged-sub-interface"]
+            spec:
+              default: false
