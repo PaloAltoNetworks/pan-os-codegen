@@ -267,14 +267,45 @@ spec:
         - xpath: ["layer3"]
       spec:
         params:
+          - name: arp
+            description: "ARP configuration"
+            type: list
+            profiles:
+              - type: entry
+                xpath: [arp, entry]
+            spec:
+              items:
+                type: object
+                spec:
+                  params:
+                    - name: hw-address
+                      type: string
+                      description: MAC address (format xx:xx:xx:xx:xx:xx)
+                      profiles:
+                        - xpath: [hw-address]
           - name: ndp-proxy
             type: bool
             profiles:
               - xpath: ["ndp-proxy", "enabled"]
+            spec:
+              default: false
           - name: lldp
-            type: bool
+            description: lldp configuration
+            type: object
             profiles:
-              - xpath: ["lldp", "enable"]
+              - xpath: ["lldp"]
+            spec:
+              params:
+                - name: enable
+                  type: bool
+                  profiles:
+                    - xpath: ["enable"]
+                  spec:
+                    default: false
+                - name: profile
+                  type: string
+                  profiles:
+                    - xpath: [profile]
           - name: mtu
             type: int64
             description: "Maximum Transfer Unit, up to 9216 in Jumbo-Frame mode, up to 1500 otherwise"
