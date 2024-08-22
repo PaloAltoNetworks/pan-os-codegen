@@ -896,6 +896,11 @@ func (spec *Normalization) HasEntryName() bool {
 	return spec.Entry != nil
 }
 
+func (spec *Normalization) HasEntryUuid() bool {
+	_, found := spec.Spec.Params["uuid"]
+	return found
+}
+
 func (spec *Normalization) HasEncryptedResources() bool {
 	for _, param := range spec.Spec.Params {
 		if param.HasEncryptedResources() {

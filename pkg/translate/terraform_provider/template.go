@@ -247,6 +247,13 @@ func New{{ resourceStructName }}() resource.Resource {
 
 type {{ resourceStructName }} struct {
 	client *pango.Client
+{{- if IsEntry }}
+	manager sdkmanager.EntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service]
+{{- else if IsUuid }}
+	manager sdkmanager.UuidObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service]
+{{- else if IsConfig }}
+	manager sdkmanager.ConfigObjectManager[*{{ resourceSDKName }}.Config, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service]
+{{- end }}
 }
 
 {{- if not GoSDKSkipped }}

@@ -127,6 +127,10 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 
 	funcMap := template.FuncMap{
 		"GoSDKSkipped":            func() bool { return spec.GoSdkSkip },
+		"IsEntry":                 func() bool { return spec.HasEntryName() && !spec.HasEntryUuid() },
+		"IsUuid":                  func() bool { return spec.HasEntryUuid() },
+		"IsConfig":                func() bool { return !spec.HasEntryName() && !spec.HasEntryUuid() },
+		"resourceSDKName":         func() string { return names.PackageName },
 		"HasPosition":             func() bool { return hasPosition },
 		"metaName":                func() string { return names.MetaName },
 		"structName":              func() string { return names.StructName },
@@ -168,6 +172,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 	if !spec.TerraformProviderConfig.SkipResource {
 		terraformProvider.ImportManager.AddStandardImport("context", "")
 		terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "")
+		terraformProvider.ImportManager.AddOtherImport("github.com/PaloAltoNetworks/terraform-provider-panos/internal/manager", "sdkmanager")
 
 		// entry or uuid style resource
 		if spec.Entry != nil {

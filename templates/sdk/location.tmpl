@@ -71,7 +71,7 @@ return fmt.Errorf("multiple paths specified: only one should be specified")
 return nil
 }
 
-func (o Location) xpath(vn version.Number) ([]string, error) {
+func (o Location) XpathPrefix(vn version.Number) ([]string, error) {
 
 var ans []string
 
@@ -108,7 +108,7 @@ return ans, nil
     func (o Location) Xpath(vn version.Number) ([]string, error) {
 {{- end}}
 
-ans, err := o.xpath(vn)
+ans, err := o.XpathPrefix(vn)
 if err != nil {
 return nil, err
 }
@@ -124,7 +124,7 @@ return ans, nil
 {{- if .Entry}}
     func (o Location) XpathWithUuid(vn version.Number, uuid string) ([]string, error) {
 
-    ans, err := o.xpath(vn)
+    ans, err := o.XpathPrefix(vn)
     if err != nil {
     return nil, err
     }

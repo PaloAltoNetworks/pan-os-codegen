@@ -70,12 +70,8 @@ func addNameAsParamForNestedSpec(parent []string, nestedSpecs map[string]*proper
 }
 
 const importLocationStructTmpl = `
-type ILocation interface {
-	xpath(version.Number) ([]string, error)
-}
-
 type ImportLocation interface {
-	XpathForLocation(version.Number, ILocation) ([]string, error)
+	XpathForLocation(version.Number, util.ILocation) ([]string, error)
 	MarshalPangoXML([]string) (string, error)
 	UnmarshalPangoXML([]byte) ([]string, error)
 }
@@ -131,8 +127,8 @@ func New{{ $typeName }}(spec {{ $typeName }}Spec) *{{ $topType }} {
 	}
 }
 
-func (o *{{ $typeName }}) XpathForLocation(vn version.Number, loc ILocation) ([]string, error) {
-	ans, err := loc.xpath(vn)
+func (o *{{ $typeName }}) XpathForLocation(vn version.Number, loc util.ILocation) ([]string, error) {
+	ans, err := loc.XpathPrefix(vn)
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +214,7 @@ func (o *{{ $topType }}) UnmarshalPangoXML(bytes []byte) ([]string, error) {
 	}
 }
 
-func (o *{{ $topType }}) XpathForLocation(vn version.Number, loc ILocation) ([]string, error) {
+func (o *{{ $topType }}) XpathForLocation(vn version.Number, loc util.ILocation) ([]string, error) {
 	switch o.typ {
   {{- range .Locations }}
 	case {{ $spec.Variant.LowerCamelCase }}{{ $spec.Type.CamelCase }}{{ .Name.CamelCase }}:

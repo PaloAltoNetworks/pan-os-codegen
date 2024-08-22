@@ -164,7 +164,7 @@
     }
 
     {{ range $version := .SupportedVersions }}
-        func specifyEntry{{createGoSuffixFromVersion $version}}(o Entry) (any, error) {
+        func specifyEntry{{createGoSuffixFromVersion $version}}(o *Entry) (any, error) {
         entry := entryXml{{createGoSuffixFromVersion $version}}{}
 
         entry.Name = o.Name
@@ -182,10 +182,10 @@
     {{- end}}
 
     {{- range $version := .SupportedVersions }}
-        func (c *entryXmlContainer{{createGoSuffixFromVersion $version}}) Normalize() ([]Entry, error) {
-        entryList := make([]Entry, 0, len(c.Answer))
+        func (c *entryXmlContainer{{createGoSuffixFromVersion $version}}) Normalize() ([]*Entry, error) {
+        entryList := make([]*Entry, 0, len(c.Answer))
         for _, o := range c.Answer {
-        entry := Entry{
+        entry := &Entry{
         Misc: make(map[string][]generic.Xml),
         }
         entry.Name = o.Name
@@ -228,4 +228,22 @@
     }
 
     {{nestedSpecMatchesFunction $.Spec}}
+
+    func (o *Entry) EntryName() string {
+        return o.Name
+    }
+
+    func (o *Entry) SetEntryName(name string) {
+        o.Name = name
+    }
+
+  {{- if .Spec.Params.uuid}}
+    func (o *Entry) EntryUuid() *string {
+        return o.Uuid
+    }
+
+    func (o *Entry) SetEntryUuid(uuid *string) {
+        o.Uuid = uuid
+    }
+  {{- end }}
 {{- end}}
