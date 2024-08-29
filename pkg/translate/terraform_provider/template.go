@@ -410,10 +410,8 @@ state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
 entries := make([]*{{ $resourceSDKStructName }}, len(elements))
 idx := 0
 for name, elt := range elements {
-	var list_diags diag.Diagnostics
 	var entry *{{ .resourceSDKName }}.{{ .EntryOrConfig }}
-	entry, list_diags = elt.CopyToPango(ctx, {{ $ev }})
-	resp.Diagnostics.Append(list_diags...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, &entry, {{ $ev }})...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -433,8 +431,7 @@ for _, elt := range created {
 		continue
 	}
 	var object {{ $resourceTFStructName }}
-	copy_diags := object.CopyFromPango(ctx, elt, {{ $ev }})
-	resp.Diagnostics.Append(copy_diags...)
+	resp.Diagnostics.Append(object.CopyFromPango(ctx, elt, {{ $ev }})...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -490,10 +487,8 @@ var elements []{{ $resourceTFStructName }}
 state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
 entries := make([]*{{ $resourceSDKStructName }}, len(elements))
 for idx, elt := range elements {
-	var list_diags diag.Diagnostics
 	var entry *{{ $resourceSDKStructName }}
-	entry, list_diags = elt.CopyToPango(ctx, {{ $ev }})
-	resp.Diagnostics.Append(list_diags...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, &entry, {{ $ev }})...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -614,15 +609,13 @@ const resourceCreateFunction = `
 
 	// Load the desired config.
 	var obj *{{ .resourceSDKName }}.{{ .EntryOrConfig }}
-
 {{ $ev := "nil" }}
 {{- if .HasEncryptedResources }}
   {{ $ev = "&ev" }}
 	ev := make(map[string]types.String)
 {{- end }}
-	obj, diags := state.CopyToPango(ctx, {{ $ev }})
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
+	resp.Diagnostics.Append(state.CopyToPango(ctx, &obj, {{ $ev }})...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -730,8 +723,8 @@ if resp.Diagnostics.HasError() {
 
 entries := make([]*{{ $resourceSDKStructName }}, 0, len(elements))
 for name, elt := range elements {
-	entry, err := elt.CopyToPango(ctx, {{ $ev }})
-	resp.Diagnostics.Append(err...)
+	var entry *{{ $resourceSDKStructName }}
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, &entry, {{ $ev }})...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -818,8 +811,8 @@ var elements []{{ $resourceTFStructName }}
 state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
 entries := make([]*{{ $resourceSDKStructName }}, 0, len(elements))
 for _, elt := range elements {
-	entry, err := elt.CopyToPango(ctx, {{ $ev }})
-	resp.Diagnostics.Append(err...)
+	var entry *{{ $resourceSDKStructName }}
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, &entry, {{ $ev }})...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -985,10 +978,8 @@ state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
 stateEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
 idx := 0
 for name, elt := range elements {
-	var list_diags diag.Diagnostics
 	var entry *{{ $resourceSDKStructName }}
-	entry, list_diags = elt.CopyToPango(ctx, nil)
-	resp.Diagnostics.Append(list_diags...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, &entry, nil)...)
 	if resp.Diagnostics.HasError() {
 		 return
 	}
@@ -997,17 +988,27 @@ for name, elt := range elements {
 	idx++
 }
 
+existing, err := r.manager.ReadMany(ctx, location, stateEntries)
+if err != nil && !sdkerrors.IsObjectNotFound(err) {
+	resp.Diagnostics.AddError("Error while reading entries from the server", err.Error())
+	return
+}
+
+existingEntriesByName := make(map[string]*{{ $resourceSDKStructName }}, len(existing))
+for _, elt := range existing {
+	existingEntriesByName[elt.Name] = elt
+}
+
 plan.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
 planEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
 idx = 0
 for name, elt := range elements {
-	var list_diags diag.Diagnostics
-	var entry *{{ $resourceSDKStructName }}
-	entry, list_diags = elt.CopyToPango(ctx, nil)
-	resp.Diagnostics.Append(list_diags...)
+	entry, _ := existingEntriesByName[name]
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, &entry, nil)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
 	entry.Name = name
 	planEntries[idx] = entry
 	idx++
@@ -1065,27 +1066,12 @@ var elements []{{ $resourceTFStructName }}
 state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
 stateEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
 for idx, elt := range elements {
-	var list_diags diag.Diagnostics
 	var entry *{{ $resourceSDKStructName }}
-	entry, list_diags = elt.CopyToPango(ctx, nil)
-	resp.Diagnostics.Append(list_diags...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, &entry, nil)...)
 	if resp.Diagnostics.HasError() {
 		 return
 	}
 	stateEntries[idx] = entry
-}
-
-plan.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
-planEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
-for idx, elt := range elements {
-	var list_diags diag.Diagnostics
-	var entry *{{ $resourceSDKStructName }}
-	entry, list_diags = elt.CopyToPango(ctx, nil)
-	resp.Diagnostics.Append(list_diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	planEntries[idx] = entry
 }
 
 {{ $exhaustive := "sdkmanager.NonExhaustive" }}
@@ -1096,6 +1082,29 @@ position := rule.Position{First: &trueValue}
 {{- else }}
 position := state.Position.CopyToPango()
 {{- end }}
+
+existing, err := r.manager.ReadMany(ctx, location, stateEntries, {{ $exhaustive }})
+if err != nil && !sdkerrors.IsObjectNotFound(err) {
+	resp.Diagnostics.AddError("Error while reading entries from the server", err.Error())
+	return
+}
+
+existingEntriesByName := make(map[string]*{{ $resourceSDKStructName }}, len(existing))
+for _, elt := range existing {
+	existingEntriesByName[elt.Name] = elt
+}
+
+plan.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
+planEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
+for idx, elt := range elements {
+	entry, _ := existingEntriesByName[elt.Name.ValueString()]
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, &entry, nil)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	planEntries[idx] = entry
+}
+
 processed, err := r.manager.UpdateMany(ctx, location, stateEntries, planEntries, {{ $exhaustive }}, position)
 if err != nil {
 	resp.Diagnostics.AddError("Failed to udpate entries", err.Error())
@@ -1123,6 +1132,8 @@ resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 `
 
 const resourceUpdateFunction = `
+{{ $resourceSDKStructName := printf "%s.%s" .resourceSDKName .EntryOrConfig }}
+
 	var plan, state {{ .structName }}Model
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -1159,10 +1170,17 @@ const resourceUpdateFunction = `
 		return
 	}
 
-	// Create the service.
+{{- if .HasEntryName }}
+	obj, err := r.manager.Read(ctx, loc.Location, loc.Name)
+{{- else }}
+	obj, err := r.manager.Read(ctx, loc.Location)
+{{- end }}
+	if err != nil {
+		resp.Diagnostics.AddError("Error in update", err.Error())
+		return
+	}
 
-	obj, copy_diags := plan.CopyToPango(ctx, {{ $ev }})
-	resp.Diagnostics.Append(copy_diags...)
+	resp.Diagnostics.Append(plan.CopyToPango(ctx, &obj, {{ $ev }})...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -1197,7 +1215,7 @@ const resourceUpdateFunction = `
 	}
 	state.Tfid = types.StringValue(tfid)
 
-	copy_diags = state.CopyFromPango(ctx, updated, {{ $ev }})
+	copy_diags := state.CopyFromPango(ctx, updated, {{ $ev }})
 {{- if .HasEncryptedResources }}
 	ev_map, ev_diags := types.MapValueFrom(ctx, types.StringType, ev)
         state.EncryptedValues = ev_map
@@ -1264,6 +1282,8 @@ if err != nil {
 `
 
 const resourceDeleteFunction = `
+{{ $resourceSDKStructName := printf "%s.%s" .resourceSDKName .EntryOrConfig }}
+
 	var state {{ .structName }}Model
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
@@ -1304,14 +1324,14 @@ const resourceDeleteFunction = `
 	}
 {{- else }}
 
+{{- $ev := "nil" }}
 {{- if .HasEncryptedResources }}
+  {{- $ev = "&ev" }}
 	ev := make(map[string]types.String)
-	obj, diags := state.CopyToPango(ctx, &ev)
-{{- else }}
-	obj, diags := state.CopyToPango(ctx, nil)
 {{- end }}
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
+	var obj *{{ $resourceSDKStructName }}
+	resp.Diagnostics.Append(state.CopyToPango(ctx, &obj, {{ $ev }})...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 

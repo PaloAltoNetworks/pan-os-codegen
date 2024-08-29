@@ -201,9 +201,16 @@ const copyToPangoTmpl = `
   {{- $diag := .Name.LowerCamelCase | printf "%s_diags" }}
 	var {{ $result }}_entry *{{ $.Spec.PangoType }}{{ .Name.CamelCase }}
 	if o.{{ .Name.CamelCase }} != nil {
-		var {{ $diag }} diag.Diagnostics
-		{{ $result }}_entry, {{ $diag }} = o.{{ .Name.CamelCase }}.CopyToPango(ctx, encrypted)
-		diags.Append({{ $diag }}...)
+		if *obj != nil && (*obj).{{ .Name.CamelCase }} != nil {
+			{{ $result }}_entry = (*obj).{{ .Name.CamelCase }}
+		} else {
+			{{ $result }}_entry = new({{ $.Spec.PangoType }}{{ .Name.CamelCase }})
+		}
+
+		diags.Append(o.{{ .Name.CamelCase }}.CopyToPango(ctx, &{{ $result }}_entry, encrypted)...)
+		if diags.HasError() {
+			return diags
+		}
 	}
 
   {{- end }}
@@ -221,17 +228,23 @@ const copyToPangoTmpl = `
 	{
 		d := o.{{ .Name.CamelCase }}.ElementsAs(ctx, &{{ $tfEntries }}, false)
 		diags.Append(d...)
+		if diags.HasError() {
+			return diags
+		}
 		for _, elt := range {{ $tfEntries }} {
-			entry, d := elt.CopyToPango(ctx, encrypted)
-			diags.Append(d...)
+			var entry *{{ $pangoType }}
+			diags.Append(elt.CopyToPango(ctx, &entry, encrypted)...)
+			if diags.HasError() {
+				return diags
+			}
 			{{ $pangoEntries }} = append({{ $pangoEntries }}, *entry)
 		}
 	}
     {{- else }}
-		{{ $pangoEntries }} := make([]{{ .ItemsType }}, 0)
-	{
-		d := o.{{ .Name.CamelCase }}.ElementsAs(ctx, &{{ $pangoEntries }}, false)
-		diags.Append(d...)
+	{{ $pangoEntries }} := make([]{{ .ItemsType }}, 0)
+	diags.Append(o.{{ .Name.CamelCase }}.ElementsAs(ctx, &{{ $pangoEntries }}, false)...)
+	if diags.HasError() {
+		return diags
 	}
     {{- end }}
   {{- end }}
@@ -246,7 +259,7 @@ const copyToPangoTmpl = `
 
 {{- range .Specs }}
 {{- $spec := . }}
-func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Context, encrypted *map[string]types.String) (*{{ .PangoReturnType }}, diag.Diagnostics) {
+func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Context, obj **{{ .PangoReturnType }}, encrypted *map[string]types.String) diag.Diagnostics {
 	var diags diag.Diagnostics
   {{- range .Params }}
     {{- $terraformType := printf "%s%s" $spec.TerraformType .Name.CamelCase }}
@@ -272,32 +285,33 @@ func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Conte
     {{- end }}
   {{- end }}
 
-	result := &{{ .PangoReturnType }}{
+  if (*obj) == nil {
+	*obj = new({{ .PangoReturnType }})
+  }
   {{- if .HasEntryName }}
-	Name: o.Name.ValueString(),
+	(*obj).Name = o.Name.ValueString()
   {{- end }}
   {{- range .Params }}
     {{- if eq .Type "" }}
-	{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_entry,
+	(*obj).{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_entry
     {{- else if eq .Type "list" }}
-	{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_pango_entries,
+	(*obj).{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_pango_entries
     {{- else }}
-	{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_value,
+	(*obj).{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_value
     {{- end }}
   {{- end }}
 
   {{- range .OneOf }}
     {{- if eq .Type "" }}
-	{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_entry,
+	(*obj).{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_entry
     {{- else if eq .Type "list" }}
-	{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_pango_entries,
+	(*obj).{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_pango_entries
     {{- else }}
-	{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_value,
+	(*obj).{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_value
     {{- end }}
   {{- end }}
-	}
 
-	return result, diags
+	return diags
 }
 {{- end }}
 `
@@ -408,9 +422,10 @@ var {{ .Name.LowerCamelCase }}_list types.List
   if obj.{{ .Name.CamelCase }} != nil {
 	{{ $result }}_object = new({{ $.Spec.TerraformType }}{{ .Name.CamelCase }}Object)
 
-	var {{ $diag }} diag.Diagnostics
-	{{ $diag }} = {{ $result }}_object.CopyFromPango(ctx, obj.{{ .Name.CamelCase }}, encrypted)
-	diags.Append({{ $diag }}...)
+	diags.Append({{ $result }}_object.CopyFromPango(ctx, obj.{{ .Name.CamelCase }}, encrypted)...)
+	if diags.HasError() {
+		return diags
+	}
   }
   {{- end }}
 {{- end }}
@@ -418,13 +433,13 @@ var {{ .Name.LowerCamelCase }}_list types.List
 {{- define "terraformCreateEntryAssignment" }}
   {{- range .Params }}
     {{- if eq .Type "" }}
-      {{- template "terraformCreateEntryAssignmentForParam" Map "Spec" $ "Parameter" . }}
+      {{- template "EntryAssignmentForParam" Map "Spec" $ "Parameter" . }}
     {{- end }}
   {{- end }}
 
   {{- range .OneOf }}
     {{- if eq .Type "" }}
-      {{- template "terraformCreateEntryAssignmentForParam" Map "Spec" $ "Parameter" . }}
+      {{- template "EntryAssignmentForParam" Map "Spec" $ "Parameter" . }}
     {{- end }}
   {{- end }}
 {{- end }}

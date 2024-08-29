@@ -188,9 +188,13 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 			switch resourceTyp {
 			case properties.ResourceUuid:
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/rule", "")
+				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/errors", "sdkerrors")
 			case properties.ResourceEntry:
 			case properties.ResourceUuidPlural:
-			case properties.ResourceEntryPlural, properties.ResourceCustom:
+				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/errors", "sdkerrors")
+			case properties.ResourceEntryPlural:
+				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/errors", "sdkerrors")
+			case properties.ResourceCustom:
 			}
 
 			// Generate Resource with entry style
