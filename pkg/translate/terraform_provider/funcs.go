@@ -1269,11 +1269,17 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 			LowerCamelCase: naming.CamelCase("", "name", "", false),
 		}
 
+		var description string
+		if spec.Entry != nil && spec.Entry.Name != nil {
+			description = spec.Entry.Name.Description
+		}
+
 		attributes = append(attributes, attributeCtx{
-			Package:    packageName,
-			Name:       name,
-			SchemaType: "StringAttribute",
-			Required:   true,
+			Description: description,
+			Package:     packageName,
+			Name:        name,
+			SchemaType:  "StringAttribute",
+			Required:    true,
 		})
 	}
 
