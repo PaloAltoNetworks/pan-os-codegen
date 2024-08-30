@@ -1293,6 +1293,7 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 const renderSchemaTemplate = `
 {{- define "renderSchemaListAttribute" }}
 	"{{ .Name.Underscore }}": {{ .Package }}.{{ .SchemaType }} {
+		Description: "{{ .Description }}",
 		Required: {{ .Required }},
 		Optional: {{ .Optional }},
 		Computed: {{ .Computed }},
@@ -1303,6 +1304,7 @@ const renderSchemaTemplate = `
 
 {{- define "renderSchemaMapAttribute" }}
 	"{{ .Name.Underscore }}": {{ .Package }}.{{ .SchemaType }} {
+		Description: "{{ .Description }}",
 		Required: {{ .Required }},
 		Optional: {{ .Optional }},
 		Computed: {{ .Computed }},
@@ -1314,6 +1316,7 @@ const renderSchemaTemplate = `
 {{- define "renderSchemaListNestedAttribute" }}
   {{- with .Attribute }}
 	"{{ .Name.Underscore }}": {{ .Package }}.{{ .SchemaType }} {
+		Description: "{{ .Description }}",
 		Required: {{ .Required }},
 		Optional: {{ .Optional }},
 		Computed: {{ .Computed }},
@@ -1386,6 +1389,7 @@ const renderSchemaTemplate = `
 func {{ .StructName }}Schema() {{ .Package }}.{{ .ReturnType }} {
 	return {{ .Package }}.{{ .ReturnType }}{
 {{- if not (or (eq .ReturnType "Schema") (eq .ReturnType "NestedAttributeObject")) }}
+		Description: "{{ .Description }}",
 		Required: {{ .Required }},
 		Computed: {{ .Computed }},
 		Optional: {{ .Optional }},
