@@ -30,12 +30,12 @@ func asMovable(mocks []string) []movement.Movable {
 }
 
 var _ = Describe("MoveGroup()", func() {
-	Context("With PositionTop used as position", func() {
+	Context("With PositionFirst used as position", func() {
 		Context("when existing positions matches expected", func() {
 			It("should generate no movements", func() {
 				// '(A B C) -> '(A B C)
 				expected := asMovable([]string{"A", "B", "C"})
-				moves, err := movement.MoveGroup(movement.PositionTop{}, expected, expected)
+				moves, err := movement.MoveGroup(movement.PositionFirst{}, expected, expected)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(moves).To(HaveLen(0))
 			})
@@ -46,12 +46,12 @@ var _ = Describe("MoveGroup()", func() {
 				entries := asMovable([]string{"A", "B", "C"})
 				existing := asMovable([]string{"D", "E", "A", "B", "C"})
 
-				moves, err := movement.MoveGroup(movement.PositionTop{}, entries, existing)
+				moves, err := movement.MoveGroup(movement.PositionFirst{}, entries, existing)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(moves).To(HaveLen(3))
 
 				Expect(moves[0].Movable.EntryName()).To(Equal("A"))
-				Expect(moves[0].Where).To(Equal(movement.ActionWhereTop))
+				Expect(moves[0].Where).To(Equal(movement.ActionWhereFirst))
 				Expect(moves[0].Destination).To(BeNil())
 
 				Expect(moves[1].Movable.EntryName()).To(Equal("B"))
@@ -68,7 +68,7 @@ var _ = Describe("MoveGroup()", func() {
 				// '(A B C D E) -> '(E D C B A)
 				entries := asMovable([]string{"E", "D", "C", "B", "A"})
 				existing := asMovable([]string{"A", "B", "C", "D", "E"})
-				moves, err := movement.MoveGroup(movement.PositionTop{}, entries, existing)
+				moves, err := movement.MoveGroup(movement.PositionFirst{}, entries, existing)
 				Expect(err).ToNot(HaveOccurred())
 
 				// '((E 'top nil)(B 'after E)(C 'after B)(D 'after C))
@@ -77,19 +77,19 @@ var _ = Describe("MoveGroup()", func() {
 			})
 		})
 	})
-	Context("With PositionBottom used as position", func() {
+	Context("With PositionLast used as position", func() {
 		Context("with non-consecutive entries", func() {
 			It("should generate two move actions", func() {
 				// '(A E B C D) -> '(A B D E C)
 				entries := asMovable([]string{"E", "C"})
 				existing := asMovable([]string{"A", "E", "B", "C", "D"})
 
-				moves, err := movement.MoveGroup(movement.PositionBottom{}, entries, existing)
+				moves, err := movement.MoveGroup(movement.PositionLast{}, entries, existing)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(moves).To(HaveLen(2))
 
 				Expect(moves[0].Movable.EntryName()).To(Equal("E"))
-				Expect(moves[0].Where).To(Equal(movement.ActionWhereBottom))
+				Expect(moves[0].Where).To(Equal(movement.ActionWhereLast))
 				Expect(moves[0].Destination).To(BeNil())
 
 				Expect(moves[1].Movable.EntryName()).To(Equal("C"))
@@ -98,19 +98,19 @@ var _ = Describe("MoveGroup()", func() {
 			})
 		})
 	})
-	Context("With PositionBottom used as position", func() {
+	Context("With PositionLast used as position", func() {
 		Context("when it needs to move one element", func() {
 			It("should generate a single move action", func() {
 				// '(A E B C D) -> '(A B C D E)
 				entries := asMovable([]string{"E"})
 				existing := asMovable([]string{"A", "E", "B", "C", "D"})
 
-				moves, err := movement.MoveGroup(movement.PositionBottom{}, entries, existing)
+				moves, err := movement.MoveGroup(movement.PositionLast{}, entries, existing)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(moves).To(HaveLen(1))
 
 				Expect(moves[0].Movable.EntryName()).To(Equal("E"))
-				Expect(moves[0].Where).To(Equal(movement.ActionWhereBottom))
+				Expect(moves[0].Where).To(Equal(movement.ActionWhereLast))
 				Expect(moves[0].Destination).To(BeNil())
 			})
 		})
@@ -123,7 +123,7 @@ var _ = Describe("MoveGroup()", func() {
 				// '(A B C D E) -> '(A B C D E)
 				entries := asMovable([]string{"D", "E"})
 				moves, err := movement.MoveGroup(
-					movement.PositionAfter{Directly: false, Pivot: Mock{"B"}},
+					movement.PositionAfter{Directly: false, Pivot: "B"},
 					entries, existing,
 				)
 
@@ -135,7 +135,7 @@ var _ = Describe("MoveGroup()", func() {
 					// '(A B C D E) -> '(A B C E D)
 					entries := asMovable([]string{"E", "D"})
 					moves, err := movement.MoveGroup(
-						movement.PositionAfter{Directly: false, Pivot: Mock{"B"}},
+						movement.PositionAfter{Directly: false, Pivot: "B"},
 						entries, existing,
 					)
 
@@ -153,7 +153,7 @@ var _ = Describe("MoveGroup()", func() {
 				// '(A B C D E) -> '(C D A B E)
 				entries := asMovable([]string{"A", "B"})
 				moves, err := movement.MoveGroup(
-					movement.PositionAfter{Directly: true, Pivot: Mock{"D"}},
+					movement.PositionAfter{Directly: true, Pivot: "D"},
 					entries, existing,
 				)
 
@@ -174,7 +174,7 @@ var _ = Describe("MoveGroup()", func() {
 				// '(A B C D E) -> '(C D B A E)
 				entries := asMovable([]string{"B", "A"})
 				moves, err := movement.MoveGroup(
-					movement.PositionAfter{Directly: true, Pivot: Mock{"D"}},
+					movement.PositionAfter{Directly: true, Pivot: "D"},
 					entries, existing,
 				)
 
@@ -206,7 +206,7 @@ var _ = Describe("MoveGroup()", func() {
 				// '(A B C D E) -> '(A D C B E)
 				entries := asMovable([]string{"C", "B"})
 				moves, err := movement.MoveGroup(
-					movement.PositionBefore{Directly: true, Pivot: Mock{"E"}},
+					movement.PositionBefore{Directly: true, Pivot: "E"},
 					entries, existing,
 				)
 
@@ -227,7 +227,7 @@ var _ = Describe("MoveGroup()", func() {
 				// '(A B C D E) -> '(A C B D E)
 				entries := asMovable([]string{"C", "B"})
 				moves, err := movement.MoveGroup(
-					movement.PositionBefore{Directly: false, Pivot: Mock{"E"}},
+					movement.PositionBefore{Directly: false, Pivot: "E"},
 					entries, existing,
 				)
 
@@ -245,7 +245,7 @@ var _ = Describe("MoveGroup()", func() {
 					// '(A B C D E) -> '(A B C D E)
 					entries := asMovable([]string{"A", "B"})
 					moves, err := movement.MoveGroup(
-						movement.PositionBefore{Directly: false, Pivot: Mock{"D"}},
+						movement.PositionBefore{Directly: false, Pivot: "D"},
 						entries, existing,
 					)
 
@@ -258,7 +258,7 @@ var _ = Describe("MoveGroup()", func() {
 					// '(A B C D E) -> '(A C B D E)
 					entries := asMovable([]string{"C", "B"})
 					moves, err := movement.MoveGroup(
-						movement.PositionBefore{Directly: false, Pivot: Mock{"D"}},
+						movement.PositionBefore{Directly: false, Pivot: "D"},
 						entries, existing,
 					)
 
@@ -275,7 +275,7 @@ var _ = Describe("MoveGroup()", func() {
 					// '(A B C D E) -> '(A B C D E)
 					entries := asMovable([]string{"A", "C"})
 					moves, err := movement.MoveGroup(
-						movement.PositionBefore{Directly: false, Pivot: Mock{"D"}},
+						movement.PositionBefore{Directly: false, Pivot: "D"},
 						entries, existing,
 					)
 
@@ -288,7 +288,7 @@ var _ = Describe("MoveGroup()", func() {
 					// '(A B C D E) -> '(A C B D E)
 					entries := asMovable([]string{"A", "C", "B"})
 					moves, err := movement.MoveGroup(
-						movement.PositionBefore{Directly: false, Pivot: Mock{"D"}},
+						movement.PositionBefore{Directly: false, Pivot: "D"},
 						entries, existing,
 					)
 
@@ -306,7 +306,7 @@ var _ = Describe("MoveGroup()", func() {
 				// '(A B C D E) -> '(C A B D E)
 				entries := asMovable([]string{"A", "B"})
 				moves, err := movement.MoveGroup(
-					movement.PositionBefore{Directly: true, Pivot: Mock{"D"}},
+					movement.PositionBefore{Directly: true, Pivot: "D"},
 					entries, existing,
 				)
 
@@ -328,7 +328,7 @@ var _ = Describe("MoveGroup()", func() {
 				// '(A B C D E) -> '(A D B C E)
 				entries := asMovable([]string{"B", "C"})
 				moves, err := movement.MoveGroup(
-					movement.PositionBefore{Directly: true, Pivot: Mock{"E"}},
+					movement.PositionBefore{Directly: true, Pivot: "E"},
 					entries, existing)
 
 				Expect(err).ToNot(HaveOccurred())
@@ -348,9 +348,9 @@ var _ = Describe("MoveGroups()", Label("MoveGroups"), func() {
 				Entries: entries,
 				Position: movement.PositionBefore{
 					Directly: true,
-					Pivot:    Mock{"E"},
+					Pivot:    "E",
 				}}}
-			moves, err := movement.MoveGroups(existing, movements)
+			moves, err := movement.MoveGroups[Mock](existing, movements)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(moves).To(HaveLen(2))
@@ -368,7 +368,7 @@ var _ = Describe("MoveGroups()", Label("MoveGroups"), func() {
 	// 			},
 	// 			{
 	// 				Entries:  asMovable([]string{"A"}),
-	// 				Position: movement.PositionBottom{},
+	// 				Position: movement.PositionLast{},
 	// 			},
 	// 		}
 	// 		moves, err := movement.MoveGroups(existing, movements)
@@ -396,7 +396,7 @@ var _ = Describe("Movement benchmarks", func() {
 
 			entries := asMovable([]string{"90", "80", "70", "60", "50", "40"})
 			moves, err := movement.MoveGroup(
-				movement.PositionBefore{Directly: true, Pivot: Mock{"100"}},
+				movement.PositionBefore{Directly: true, Pivot: "100"},
 				entries, existing,
 			)
 
