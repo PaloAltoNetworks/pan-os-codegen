@@ -136,7 +136,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 		"CreateTfIdStruct":        func() (string, error) { return CreateTfIdStruct(structType, spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
 		"CreateTfIdResourceModel": func() (string, error) { return CreateTfIdResourceModel(structType, names.StructName) },
 		"RenderResourceStructs":   func() (string, error) { return RenderResourceStructs(resourceTyp, names, spec) },
-		"RenderResourceSchema":    func() (string, error) { return RenderResourceSchema(resourceTyp, names, spec) },
+		"RenderResourceSchema": func() (string, error) {
+			return RenderResourceSchema(resourceTyp, names, spec, terraformProvider.ImportManager)
+		},
 		"RenderCopyToPangoFunctions": func() (string, error) {
 			return RenderCopyToPangoFunctions(resourceTyp, names.PackageName, names.ResourceStructName, spec)
 		},
@@ -280,7 +282,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 				return RenderCopyFromPangoFunctions(resourceTyp, names.PackageName, names.DataSourceStructName, spec)
 			},
 			"RenderDataSourceStructs": func() (string, error) { return RenderDataSourceStructs(resourceTyp, names, spec) },
-			"RenderDataSourceSchema":  func() (string, error) { return RenderDataSourceSchema(resourceTyp, names, spec) },
+			"RenderDataSourceSchema": func() (string, error) {
+				return RenderDataSourceSchema(resourceTyp, names, spec, terraformProvider.ImportManager)
+			},
 		}
 		err := g.generateTerraformEntityTemplate(resourceType, names, spec, terraformProvider, dataSourceSingletonObj, funcMap)
 		if err != nil {
@@ -361,7 +365,56 @@ func sdkPkgPath(spec *properties.Normalization) string {
 	return path
 }
 
+func hasVariantsImpl(props []*properties.SpecParam) bool {
+	for _, elt := range props {
+		if elt.Spec == nil {
+			continue
+		}
+
+		if len(elt.Spec.OneOf) > 0 {
+			return true
+		}
+
+		var params []*properties.SpecParam
+		for _, elt := range elt.Spec.Params {
+			params = append(params, elt)
+		}
+		for _, elt := range elt.Spec.OneOf {
+			params = append(params, elt)
+		}
+
+		if hasVariantsImpl(params) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func conditionallyAddValidators(manager *imports.Manager, spec *properties.Normalization) {
+	if spec.Spec == nil {
+		return
+	}
+
+	hasVariants := func() bool {
+		if len(spec.Spec.OneOf) > 0 {
+			return true
+		}
+
+		var params []*properties.SpecParam
+		for _, elt := range spec.Spec.Params {
+			params = append(params, elt)
+		}
+		for _, elt := range spec.Spec.OneOf {
+			params = append(params, elt)
+		}
+		return hasVariantsImpl(params)
+	}
+
+	if hasVariants() {
+		manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
+		manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/schema/validator", "")
+	}
 
 }
 

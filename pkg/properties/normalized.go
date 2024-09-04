@@ -230,6 +230,18 @@ func (o *SpecParam) HasEntryName() bool {
 	return o.Items.Type == "entry"
 }
 
+func (o *SpecParam) ValidatorType() string {
+	if o.Type == "" {
+		return "object"
+	} else if o.Type == "list" && o.Items.Type == "entry" {
+		return "object"
+	} else if o.Type == "list" {
+		return "list"
+	} else {
+		return o.Type
+	}
+}
+
 func (o *SpecParam) HasEncryptedResources() bool {
 	if o.Hashing != nil {
 		return true

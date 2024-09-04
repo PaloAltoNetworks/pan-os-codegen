@@ -9,6 +9,7 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/imports"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 )
@@ -699,6 +700,17 @@ type modifierCtx struct {
 	Modifiers  []string
 }
 
+type validatorFunctionCtx struct {
+	Function    string
+	Expressions []string
+}
+
+type validatorCtx struct {
+	ListType  string
+	Package   string
+	Functions []validatorFunctionCtx
+}
+
 type attributeCtx struct {
 	Package       string
 	Name          *properties.NameVariant
@@ -714,6 +726,7 @@ type attributeCtx struct {
 	ModifierType  string
 	Attributes    []attributeCtx
 	PlanModifiers *modifierCtx
+	Validators    *validatorCtx
 }
 
 type schemaCtx struct {
@@ -728,6 +741,7 @@ type schemaCtx struct {
 	Optional      bool
 	Sensitive     bool
 	Attributes    []attributeCtx
+	Validators    *validatorCtx
 }
 
 func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalization) (string, error) {
@@ -836,7 +850,7 @@ func RenderCustomCommonCode(names *NameProvider, spec *properties.Normalization)
 
 }
 
-func createSchemaSpecForParameter(schemaTyp schemaType, structPrefix string, packageName string, param *properties.SpecParam) []schemaCtx {
+func createSchemaSpecForParameter(schemaTyp schemaType, manager *imports.Manager, structPrefix string, packageName string, param *properties.SpecParam, validators *validatorCtx) []schemaCtx {
 	var schemas []schemaCtx
 
 	if param.Spec == nil {
@@ -872,12 +886,35 @@ func createSchemaSpecForParameter(schemaTyp schemaType, structPrefix string, pac
 		})
 	}
 
-	for _, elt := range param.Spec.Params {
-		attributes = append(attributes, createSchemaAttributeForParameter(schemaTyp, packageName, elt))
+	var expressions []string
+	for _, elt := range param.Spec.OneOf {
+		expressions = append(expressions, fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, elt.Name.Underscore))
 	}
 
+	functions := []validatorFunctionCtx{{
+		Function:    "ExactlyOneOf",
+		Expressions: expressions,
+	}}
+
+	for _, elt := range param.Spec.Params {
+		attributes = append(attributes, createSchemaAttributeForParameter(schemaTyp, manager, packageName, elt, nil))
+	}
+
+	var idx int
 	for _, elt := range param.Spec.OneOf {
-		attributes = append(attributes, createSchemaAttributeForParameter(schemaTyp, packageName, elt))
+		var validators *validatorCtx
+		if idx == 0 {
+			typ := elt.ValidatorType()
+			validatorImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework-validators/%svalidator", typ)
+			manager.AddHashicorpImport(validatorImport, "")
+			validators = &validatorCtx{
+				ListType:  pascalCase(typ),
+				Package:   fmt.Sprintf("%svalidator", typ),
+				Functions: functions,
+			}
+		}
+		attributes = append(attributes, createSchemaAttributeForParameter(schemaTyp, manager, packageName, elt, validators))
+		idx += 1
 	}
 
 	var isResource bool
@@ -907,24 +944,32 @@ func createSchemaSpecForParameter(schemaTyp schemaType, structPrefix string, pac
 		Computed:      computed,
 		Sensitive:     param.Sensitive,
 		Attributes:    attributes,
+		Validators:    validators,
 	})
 
 	for _, elt := range param.Spec.Params {
 		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
-			schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, structName, packageName, elt)...)
+			schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, manager, structName, packageName, elt, nil)...)
 		}
 	}
 
 	for _, elt := range param.Spec.OneOf {
 		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
-			schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, structName, packageName, elt)...)
+			validatorImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework-validators/%svalidator", "object")
+			manager.AddHashicorpImport(validatorImport, "")
+			validators := &validatorCtx{
+				ListType:  "Object",
+				Package:   "objectvalidator",
+				Functions: functions,
+			}
+			schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, manager, structName, packageName, elt, validators)...)
 		}
 	}
 
 	return schemas
 }
 
-func createSchemaAttributeForParameter(schemaTyp schemaType, packageName string, param *properties.SpecParam) attributeCtx {
+func createSchemaAttributeForParameter(schemaTyp schemaType, manager *imports.Manager, packageName string, param *properties.SpecParam, validators *validatorCtx) attributeCtx {
 	var schemaType, elementType string
 	switch param.Type {
 	case "":
@@ -994,6 +1039,7 @@ func createSchemaAttributeForParameter(schemaTyp schemaType, packageName string,
 		Default:       defaultValue,
 		Computed:      computed,
 		PlanModifiers: modifiers,
+		Validators:    validators,
 	}
 }
 
@@ -1005,7 +1051,7 @@ const (
 )
 
 // createSchemaSpecForUuidModel creates a schema for uuid-type resources, where top-level model describes a list of objects.
-func createSchemaSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string) []schemaCtx {
+func createSchemaSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string, manager *imports.Manager) []schemaCtx {
 	var schemas []schemaCtx
 	var attributes []attributeCtx
 
@@ -1066,7 +1112,7 @@ func createSchemaSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 	})
 
 	structName = fmt.Sprintf("%s%s", structName, listName.CamelCase)
-	normalizationAttrs, normalizationSchemas := createSchemaSpecForNormalization(resourceTyp, schemaTyp, spec, packageName, structName)
+	normalizationAttrs, normalizationSchemas := createSchemaSpecForNormalization(resourceTyp, schemaTyp, spec, packageName, structName, manager)
 
 	schemas = append(schemas, schemaCtx{
 		Package:       packageName,
@@ -1085,7 +1131,7 @@ func createSchemaSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 // createSchemaSpecForEntrySingularModel creates a schema for entry-type singular resources.
 //
 // Entry-type singular resources are resources that manage a single object in PAN-OS, e.g. `resource_ethernet_interface`.
-func createSchemaSpecForEntrySingularModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string) []schemaCtx {
+func createSchemaSpecForEntrySingularModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string, manager *imports.Manager) []schemaCtx {
 	var schemas []schemaCtx
 	var attributes []attributeCtx
 	location := &properties.NameVariant{
@@ -1115,7 +1161,7 @@ func createSchemaSpecForEntrySingularModel(resourceTyp properties.ResourceType, 
 		Computed:    true,
 	})
 
-	normalizationAttrs, normalizationSchemas := createSchemaSpecForNormalization(resourceTyp, schemaTyp, spec, packageName, structName)
+	normalizationAttrs, normalizationSchemas := createSchemaSpecForNormalization(resourceTyp, schemaTyp, spec, packageName, structName, manager)
 	attributes = append(attributes, normalizationAttrs...)
 
 	var isResource bool
@@ -1143,7 +1189,7 @@ func createSchemaSpecForEntrySingularModel(resourceTyp properties.ResourceType, 
 // provide users with a simple way of indexing into specific objects based on their name,
 // so the terraform object represents lists as sets, where key is object name, and the value
 // is an terraform nested attribute describing the rest of object parameters.
-func createSchemaSpecForEntryListModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string) []schemaCtx {
+func createSchemaSpecForEntryListModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string, manager *imports.Manager) []schemaCtx {
 	var schemas []schemaCtx
 	var attributes []attributeCtx
 	location := &properties.NameVariant{
@@ -1187,7 +1233,7 @@ func createSchemaSpecForEntryListModel(resourceTyp properties.ResourceType, sche
 	})
 
 	structName = fmt.Sprintf("%s%s", structName, listName.CamelCase)
-	normalizationAttrs, normalizationSchemas := createSchemaSpecForNormalization(resourceTyp, schemaTyp, spec, packageName, structName)
+	normalizationAttrs, normalizationSchemas := createSchemaSpecForNormalization(resourceTyp, schemaTyp, spec, packageName, structName, manager)
 
 	schemas = append(schemas, schemaCtx{
 		Package:       packageName,
@@ -1204,7 +1250,7 @@ func createSchemaSpecForEntryListModel(resourceTyp properties.ResourceType, sche
 }
 
 // createSchemaSpecForModel generates schema spec for the top-level object based on the ResourceType.
-func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization) []schemaCtx {
+func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, manager *imports.Manager) []schemaCtx {
 	var packageName string
 	switch schemaTyp {
 	case schemaDataSource:
@@ -1229,17 +1275,17 @@ func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp sch
 
 	switch resourceTyp {
 	case properties.ResourceEntry, properties.ResourceCustom:
-		return createSchemaSpecForEntrySingularModel(resourceTyp, schemaTyp, spec, packageName, structName)
+		return createSchemaSpecForEntrySingularModel(resourceTyp, schemaTyp, spec, packageName, structName, manager)
 	case properties.ResourceEntryPlural:
-		return createSchemaSpecForEntryListModel(resourceTyp, schemaTyp, spec, packageName, structName)
+		return createSchemaSpecForEntryListModel(resourceTyp, schemaTyp, spec, packageName, structName, manager)
 	case properties.ResourceUuid, properties.ResourceUuidPlural:
-		return createSchemaSpecForUuidModel(resourceTyp, schemaTyp, spec, packageName, structName)
+		return createSchemaSpecForUuidModel(resourceTyp, schemaTyp, spec, packageName, structName, manager)
 	default:
 		panic("unreachable")
 	}
 }
 
-func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string) ([]attributeCtx, []schemaCtx) {
+func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string, manager *imports.Manager) ([]attributeCtx, []schemaCtx) {
 	var schemas []schemaCtx
 	var attributes []attributeCtx
 
@@ -1278,13 +1324,38 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 	}
 
 	for _, elt := range spec.Spec.Params {
-		attributes = append(attributes, createSchemaAttributeForParameter(schemaTyp, packageName, elt))
-		schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, structName, packageName, elt)...)
+		attributes = append(attributes, createSchemaAttributeForParameter(schemaTyp, manager, packageName, elt, nil))
+		schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, manager, structName, packageName, elt, nil)...)
 	}
 
+	var expressions []string
 	for _, elt := range spec.Spec.OneOf {
-		attributes = append(attributes, createSchemaAttributeForParameter(schemaTyp, packageName, elt))
-		schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, structName, packageName, elt)...)
+		expressions = append(expressions, fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, elt.Name.Underscore))
+	}
+
+	functions := []validatorFunctionCtx{{
+		Function:    "ExactlyOneOf",
+		Expressions: expressions,
+	}}
+
+	var idx int
+	for _, elt := range spec.Spec.OneOf {
+		var validators *validatorCtx
+		if idx == 0 {
+			typ := elt.ValidatorType()
+			validatorImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework-validators/%svalidator", typ)
+			manager.AddHashicorpImport(validatorImport, "")
+			validators = &validatorCtx{
+				ListType:  pascalCase(typ),
+				Package:   fmt.Sprintf("%svalidator", typ),
+				Functions: functions,
+			}
+		}
+
+		attributes = append(attributes, createSchemaAttributeForParameter(schemaTyp, manager, packageName, elt, validators))
+		schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, manager, structName, packageName, elt, validators)...)
+
+		idx += 1
 	}
 
 	return attributes, schemas
@@ -1298,6 +1369,18 @@ const renderSchemaTemplate = `
 		Computed: {{ .Computed }},
 		Sensitive: {{ .Sensitive }},
 		ElementType: {{ .ElementType }},
+  {{- with .Validators }}
+    {{ $package := .Package }}
+		Validators: []validator.{{ .ListType }}{
+    {{- range .Functions }}
+			{{ $package }}.{{ .Function }}(path.Expressions{
+      {{- range .Expressions }}
+				{{ . }},
+      {{- end }}
+			}...),
+    {{- end }}
+		},
+  {{- end }}
 	},
 {{- end }}
 
@@ -1357,6 +1440,19 @@ const renderSchemaTemplate = `
     {{- end }}
 		},
   {{- end }}
+
+  {{- with .Validators }}
+    {{ $package := .Package }}
+		Validators: []validator.{{ .ListType }}{
+    {{- range .Functions }}
+			{{ $package }}.{{ .Function }}(path.Expressions{
+      {{- range .Expressions }}
+				{{ . }},
+      {{- end }}
+			}...),
+    {{- end }}
+		},
+  {{- end }}
 	},
 {{- end }}
 
@@ -1391,6 +1487,18 @@ func {{ .StructName }}Schema() {{ .Package }}.{{ .ReturnType }} {
 		Optional: {{ .Optional }},
 		Sensitive: {{ .Sensitive }},
 {{- end }}
+  {{- with .Validators }}
+    {{ $package := .Package }}
+		Validators: []validator.{{ .ListType }}{
+    {{- range .Functions }}
+			{{ $package }}.{{ .Function }}(path.Expressions{
+      {{- range .Expressions }}
+				{{ . }},
+      {{- end }}
+			}...),
+    {{- end }}
+		},
+  {{- end }}
 		Attributes: map[string]{{ .Package }}.Attribute{
   {{- range .Attributes -}}
 	{{- template "renderSchemaAttribute" Map "StructName" $schema.StructName "Attribute" . }}
@@ -1420,25 +1528,25 @@ func (o *{{ .StructName }}{{ .ObjectOrModel }}) getTypeFor(name string) attr.Typ
 {{- end }}
 `
 
-func RenderResourceSchema(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
+func RenderResourceSchema(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization, manager *imports.Manager) (string, error) {
 	type context struct {
 		Schemas []schemaCtx
 	}
 
 	data := context{
-		Schemas: createSchemaSpecForModel(resourceTyp, schemaResource, spec),
+		Schemas: createSchemaSpecForModel(resourceTyp, schemaResource, spec, manager),
 	}
 
 	return processTemplate(renderSchemaTemplate, "render-resource-schema", data, commonFuncMap)
 }
 
-func RenderDataSourceSchema(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
+func RenderDataSourceSchema(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization, manager *imports.Manager) (string, error) {
 	type context struct {
 		Schemas []schemaCtx
 	}
 
 	data := context{
-		Schemas: createSchemaSpecForModel(resourceTyp, schemaDataSource, spec),
+		Schemas: createSchemaSpecForModel(resourceTyp, schemaDataSource, spec, manager),
 	}
 
 	return processTemplate(renderSchemaTemplate, "render-resource-schema", data, commonFuncMap)
