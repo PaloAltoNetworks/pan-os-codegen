@@ -44,7 +44,7 @@ type GoSdkConfig struct {
 
 type Entry struct {
 	Name        string                 `yaml:"name"`
-	Description string                 `yaml:"descripion"`
+	Description string                 `yaml:"description"`
 	Validators  []*validator.Validator `yaml:"validators"`
 }
 
