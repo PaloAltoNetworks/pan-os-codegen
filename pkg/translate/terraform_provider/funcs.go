@@ -672,6 +672,18 @@ const locationSchemaGetterTmpl = `
 	PlanModifiers: []planmodifier.{{ .ModifierType }}{
 		{{ .ModifierType | LowerCase }}planmodifier.RequiresReplace(),
 	},
+  {{- with .Validators }}
+    {{ $package := .Package }}
+		Validators: []validator.{{ .ListType }}{
+    {{- range .Functions }}
+			{{ $package }}.{{ .Function }}(path.Expressions{
+      {{- range .Expressions }}
+				{{ . }},
+      {{- end }}
+			}...),
+    {{- end }}
+		},
+  {{- end }}
 },
 {{- end }}
 
@@ -744,8 +756,15 @@ type schemaCtx struct {
 	Validators    *validatorCtx
 }
 
-func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalization) (string, error) {
+func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalization, manager *imports.Manager) (string, error) {
 	var attributes []attributeCtx
+
+	var locations []string
+	for _, loc := range spec.Locations {
+		locations = append(locations, loc.Name.Underscore)
+	}
+
+	var idx int
 	for _, data := range spec.Locations {
 		var schemaType string
 		if len(data.Vars) == 0 {
@@ -800,6 +819,29 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 			modifierType = "Bool"
 		}
 
+		var validators *validatorCtx
+		if len(locations) > 1 && idx == 0 {
+			var expressions []string
+			for _, location := range locations {
+				expressions = append(expressions, fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, location))
+			}
+
+			functions := []validatorFunctionCtx{{
+				Function:    "ExactlyOneOf",
+				Expressions: expressions,
+			}}
+
+			typ := data.ValidatorType()
+			validatorImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework-validators/%svalidator", typ)
+			manager.AddHashicorpImport(validatorImport, "")
+
+			validators = &validatorCtx{
+				ListType:  pascalCase(typ),
+				Package:   fmt.Sprintf("%svalidator", typ),
+				Functions: functions,
+			}
+		}
+
 		attribute := attributeCtx{
 			Name:         data.Name,
 			SchemaType:   schemaType,
@@ -807,8 +849,11 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 			Required:     false,
 			Attributes:   variableAttrs,
 			ModifierType: modifierType,
+			Validators:   validators,
 		}
 		attributes = append(attributes, attribute)
+
+		idx += 1
 	}
 
 	locationName := &properties.NameVariant{

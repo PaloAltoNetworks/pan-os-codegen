@@ -99,6 +99,14 @@ type Location struct {
 	Vars        map[string]*LocationVar `json:"vars" yaml:"vars"`
 }
 
+func (o Location) ValidatorType() string {
+	if len(o.Vars) == 0 {
+		return "bool"
+	} else {
+		return "object"
+	}
+}
+
 type LocationDevice struct {
 	Panorama bool `json:"panorama" yaml:"panorama"`
 	Ngfw     bool `json:"ngfw" yaml:"ngfw"`

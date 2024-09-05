@@ -314,9 +314,11 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 func (g *GenerateTerraformProvider) GenerateCommonCode(resourceTyp properties.ResourceType, spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile) error {
 	names := NewNameProvider(spec, resourceTyp)
 	funcMap := template.FuncMap{
-		"RenderLocationStructs":      func() (string, error) { return RenderLocationStructs(resourceTyp, names, spec) },
-		"RenderLocationSchemaGetter": func() (string, error) { return RenderLocationSchemaGetter(names, spec) },
-		"RenderCustomCommonCode":     func() string { return RenderCustomCommonCode(names, spec) },
+		"RenderLocationStructs": func() (string, error) { return RenderLocationStructs(resourceTyp, names, spec) },
+		"RenderLocationSchemaGetter": func() (string, error) {
+			return RenderLocationSchemaGetter(names, spec, terraformProvider.ImportManager)
+		},
+		"RenderCustomCommonCode": func() string { return RenderCustomCommonCode(names, spec) },
 	}
 	return g.generateTerraformEntityTemplate("Common", names, spec, terraformProvider, commonTemplate, funcMap)
 }
@@ -411,7 +413,7 @@ func conditionallyAddValidators(manager *imports.Manager, spec *properties.Norma
 		return hasVariantsImpl(params)
 	}
 
-	if hasVariants() {
+	if hasVariants() || len(spec.Locations) > 1 {
 		manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
 		manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/schema/validator", "")
 	}
