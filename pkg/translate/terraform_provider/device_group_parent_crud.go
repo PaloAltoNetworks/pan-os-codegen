@@ -4,8 +4,9 @@ const deviceGroupParentImports = `
 import (
   "encoding/xml"
 
-  "github.com/PaloAltoNetworks/pango/xmlapi"
+  sdkerrors "github.com/PaloAltoNetworks/pango/errors"
   "github.com/PaloAltoNetworks/pango/util"
+  "github.com/PaloAltoNetworks/pango/xmlapi"
 )
 `
 
@@ -106,7 +107,11 @@ if resp.Diagnostics.HasError() {
 name := state.DeviceGroup.ValueString()
 hierarchy, err := getParents(ctx, o.client, name)
 if err != nil {
-	resp.Diagnostics.AddError("Failed to query for the device group parent", err.Error())
+	if sdkerrors.IsObjectNotFound(err) {
+		resp.State.RemoveResource(ctx)
+	} else {
+		resp.Diagnostics.AddError("Failed to query for the device group parent", err.Error())
+	}
 	return
 }
 
@@ -130,13 +135,17 @@ if resp.Diagnostics.HasError() {
 name := state.DeviceGroup.ValueString()
 hierarchy, err := getParents(ctx, o.client, name)
 if err != nil {
-	resp.Diagnostics.AddError("Failed to query for the device group parent", err.Error())
+	if sdkerrors.IsObjectNotFound(err) {
+		resp.State.RemoveResource(ctx)
+	} else {
+		resp.Diagnostics.AddError("Failed to query for the device group parent", err.Error())
+	}
 	return
 }
 
 parent, ok := hierarchy[name]
 if !ok {
-	resp.Diagnostics.AddError("Failed to query for the device group parent", fmt.Sprintf("Device Group '%s' doesn't exist", name))
+	resp.State.RemoveResource(ctx)
 	return
 }
 state.Parent = types.StringValue(parent)
