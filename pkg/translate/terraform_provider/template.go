@@ -2262,6 +2262,12 @@ func (p *PanosProvider) Resources(_ context.Context) []func() resource.Resource 
 	}
 }
 
+func (p *PanosProvider) Functions(_ context.Context) []func() function.Function {
+	return []func() function.Function{
+		NewAddressValueFunction,
+	}
+}
+
 // New is a helper function to get the provider implementation.
 func New(version string) func() provider.Provider {
 	return func() provider.Provider {
