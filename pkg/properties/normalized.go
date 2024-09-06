@@ -171,7 +171,9 @@ type SpecParam struct {
 }
 
 type SpecParamTerraformProviderConfig struct {
-	Computed bool `json:"computed" yaml:"computed"`
+	Private   bool `json:"ignored" yaml:"private"`
+	Sensitive bool `json:"sensitive" yaml:"sensitive"`
+	Computed  bool `json:"computed" yaml:"computed"`
 }
 
 type SpecParamLength struct {
@@ -269,6 +271,34 @@ func (o *SpecParam) HasEncryptedResources() bool {
 		if hasChildEncryptedResources(elt) {
 			return true
 		}
+	}
+
+	return false
+}
+
+func (o *SpecParam) HasPrivateParameters() bool {
+	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.Private {
+		return true
+	}
+
+	for _, elt := range o.Spec.Params {
+		if elt.HasPrivateParameters() {
+			return true
+		}
+	}
+
+	for _, elt := range o.Spec.OneOf {
+		if elt.HasPrivateParameters() {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (o *SpecParam) IsPrivateParameter() bool {
+	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.Private {
+		return true
 	}
 
 	return false
@@ -414,7 +444,9 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 	if schemaSpec.CodegenOverrides != nil {
 		sensitive = schemaSpec.CodegenOverrides.Terraform.Sensitive
 		terraformProviderConfig = &SpecParamTerraformProviderConfig{
-			Computed: schemaSpec.CodegenOverrides.Terraform.Computed,
+			Private:   schemaSpec.CodegenOverrides.Terraform.Private,
+			Sensitive: schemaSpec.CodegenOverrides.Terraform.Sensitive,
+			Computed:  schemaSpec.CodegenOverrides.Terraform.Computed,
 		}
 	}
 	specParameter := &SpecParam{
@@ -910,6 +942,22 @@ func (spec *Normalization) HasEncryptedResources() bool {
 
 	for _, param := range spec.Spec.OneOf {
 		if param.HasEncryptedResources() {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (spec *Normalization) HasPrivateParameters() bool {
+	for _, param := range spec.Spec.Params {
+		if param.HasPrivateParameters() {
+			return true
+		}
+	}
+
+	for _, param := range spec.Spec.OneOf {
+		if param.HasPrivateParameters() {
 			return true
 		}
 	}

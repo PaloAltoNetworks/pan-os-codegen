@@ -28,6 +28,7 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {
+                "private": { "type": "booleanf" },
                 "computed": { "type": "boolean" },
                 "sensitive": { "type": "boolean" }
               }

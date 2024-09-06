@@ -110,7 +110,7 @@ func (s *Service) importToLocations(ctx context.Context, loc Location, importLoc
 		}
 
                 bytes, _, err := s.client.Communicate(ctx, cmd, false, nil)
-		if err != nil {
+		if err != nil && !errors.IsObjectNotFound(err) {
 			return err
 		}
 
@@ -162,7 +162,7 @@ func (s *Service) unimportFromLocations(ctx context.Context, updates *xmlapi.Mul
 		}
 
                 bytes, _, err := s.client.Communicate(ctx, cmd, false, nil)
-		if err != nil {
+		if err != nil && !errors.IsObjectNotFound(err) {
 			return err
 		}
 
