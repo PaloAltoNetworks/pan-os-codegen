@@ -439,6 +439,7 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 		} else {
 			// If entry from the plan was found in the state check if they match and set the
 			// processedEntry State accordingly.
+			elt.SetEntryUuid(stateEntry.Entry.EntryUuid())
 			processedEntry = uuidObjectWithState[E]{
 				Entry:    elt,
 				StateIdx: idx,
@@ -492,15 +493,17 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 		}
 
 		processedEntry, found := processedStateEntries[existingEntryName]
-		if !found && exhaustive == Exhaustive {
-			// If existing entry is not found in the processedStateEntries map,
-			// entry is not managed by terraform. If Exhaustive update has been
-			// called, delete it from the server.
-			updates.Add(&xmlapi.Config{
-				Action: "delete",
-				Xpath:  util.AsXpath(path),
-				Target: o.client.GetTarget(),
-			})
+		if !found {
+			if exhaustive == Exhaustive {
+				// If existing entry is not found in the processedStateEntries map,
+				// entry is not managed by terraform. If Exhaustive update has been
+				// called, delete it from the server.
+				updates.Add(&xmlapi.Config{
+					Action: "delete",
+					Xpath:  util.AsXpath(path),
+					Target: o.client.GetTarget(),
+				})
+			}
 			continue
 		}
 
