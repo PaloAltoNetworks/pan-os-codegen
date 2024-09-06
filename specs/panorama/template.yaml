@@ -1,6 +1,6 @@
 name: "Template"
 terraform_provider_config:
-  suffix: "template"
+  suffix: "panorama_template"
 go_sdk_config:
   package:
     - "panorama"
@@ -51,6 +51,9 @@ spec:
       type: object
       profiles:
         - xpath: ["config"]
+      codegen_overrides:
+        terraform:
+          private: true
       spec:
         params:
           - name: devices
