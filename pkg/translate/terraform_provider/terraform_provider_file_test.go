@@ -34,11 +34,14 @@ func TestExecuteTemplate(t *testing.T) {
 	g := &GenerateTerraformProvider{}
 	tmpl, _ := template.New("test").Parse("Name: {{.Name}}")
 	spec := &properties.Normalization{Name: "testResource"}
-	terraformProvider := &properties.TerraformProviderFile{Code: new(strings.Builder)}
+	terraformProvider := &properties.TerraformProviderFile{
+		SpecMetadata: make(map[string]properties.TerraformProviderSpecMetadata),
+		Code:         new(strings.Builder),
+	}
 	names := &NameProvider{TfName: "testResource", MetaName: "_testResource", ResourceStructName: "TestResource"}
 
 	// When
-	err := g.executeTemplate(tmpl, spec, terraformProvider, "Resource", names)
+	err := g.executeTemplate(tmpl, spec, terraformProvider, properties.ResourceEntry, properties.SchemaResource, names)
 
 	// Then
 	assert.NoError(t, err, "executeTemplate should not return an error")
@@ -50,12 +53,15 @@ func TestGenerateTerraformEntityTemplate(t *testing.T) {
 	g := &GenerateTerraformProvider{}
 	names := &NameProvider{TfName: "testResource", MetaName: "_testResource", ResourceStructName: "TestResource"}
 	spec := &properties.Normalization{Name: "testResource"}
-	terraformProvider := &properties.TerraformProviderFile{Code: new(strings.Builder)}
+	terraformProvider := &properties.TerraformProviderFile{
+		SpecMetadata: make(map[string]properties.TerraformProviderSpecMetadata),
+		Code:         new(strings.Builder),
+	}
 	templateStr := "Name: {{.Name}}"
 	funcMap := template.FuncMap{"testFunc": func() string { return "test" }}
 
 	// When
-	err := g.generateTerraformEntityTemplate("Resource", names, spec, terraformProvider, templateStr, funcMap)
+	err := g.generateTerraformEntityTemplate(properties.ResourceEntry, properties.SchemaResource, names, spec, terraformProvider, templateStr, funcMap)
 
 	// Then
 	assert.NoError(t, err, "generateTerraformEntityTemplate should not return an error")

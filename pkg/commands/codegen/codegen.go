@@ -74,6 +74,7 @@ func (c *Command) Execute() error {
 	}
 	var resourceList []string
 	var dataSourceList []string
+	specMetadata := make(map[string]properties.TerraformProviderSpecMetadata)
 
 	for _, specPath := range c.specs {
 		log.Printf("Parsing %s...\n", specPath)
@@ -126,13 +127,18 @@ func (c *Command) Execute() error {
 				}
 
 				terraformGenerator := generate.NewCreator(config.Output.TerraformProvider, c.templatePath, spec)
-				dataSources, resources, err := terraformGenerator.RenderTerraformProviderFile(spec, resourceTyp)
+				dataSources, resources, partialNames, err := terraformGenerator.RenderTerraformProviderFile(spec, resourceTyp)
 				if err != nil {
 					return fmt.Errorf("error rendering Terraform provider file for %s - %s", specPath, err)
 				}
 
 				resourceList = append(resourceList, resources...)
 				dataSourceList = append(dataSourceList, dataSources...)
+
+				for k, v := range partialNames {
+					specMetadata[k] = v
+				}
+
 			}
 
 			if pluralVariant {
@@ -149,13 +155,17 @@ func (c *Command) Execute() error {
 				}
 
 				terraformGenerator := generate.NewCreator(config.Output.TerraformProvider, c.templatePath, spec)
-				dataSources, resources, err := terraformGenerator.RenderTerraformProviderFile(spec, resourceTyp)
+				dataSources, resources, partialNames, err := terraformGenerator.RenderTerraformProviderFile(spec, resourceTyp)
 				if err != nil {
 					return fmt.Errorf("error rendering Terraform provider file for %s - %s", specPath, err)
 				}
 
 				resourceList = append(resourceList, resources...)
 				dataSourceList = append(dataSourceList, dataSources...)
+
+				for k, v := range partialNames {
+					specMetadata[k] = v
+				}
 			}
 		} else if c.commandType == properties.CommandTypeSDK && !spec.GoSdkSkip {
 			generator := generate.NewCreator(config.Output.GoSdk, c.templatePath, spec)
@@ -173,6 +183,7 @@ func (c *Command) Execute() error {
 		newProviderObject := properties.NewTerraformProviderFile(providerSpec.Name)
 		newProviderObject.DataSources = append(newProviderObject.DataSources, dataSourceList...)
 		newProviderObject.Resources = append(newProviderObject.Resources, resourceList...)
+		newProviderObject.SpecMetadata = specMetadata
 
 		terraformGenerator := generate.NewCreator(config.Output.TerraformProvider, c.templatePath, providerSpec)
 		err = terraformGenerator.RenderTerraformProvider(newProviderObject, providerSpec, config.TerraformProviderConfig)
