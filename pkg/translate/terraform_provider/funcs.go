@@ -433,13 +433,13 @@ var {{ .Name.LowerCamelCase }}_list types.List
 {{- define "terraformCreateEntryAssignment" }}
   {{- range .Params }}
     {{- if eq .Type "" }}
-      {{- template "EntryAssignmentForParam" Map "Spec" $ "Parameter" . }}
+      {{- template "terraformCreateEntryAssignmentForParam" Map "Spec" $ "Parameter" . }}
     {{- end }}
   {{- end }}
 
   {{- range .OneOf }}
     {{- if eq .Type "" }}
-      {{- template "EntryAssignmentForParam" Map "Spec" $ "Parameter" . }}
+      {{- template "terraformCreateEntryAssignmentForParam" Map "Spec" $ "Parameter" . }}
     {{- end }}
   {{- end }}
 {{- end }}
