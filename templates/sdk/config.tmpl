@@ -116,7 +116,7 @@
     }
 
     {{- range $version := .SupportedVersions }}
-        func specifyConfig{{createGoSuffixFromVersion $version}}(o Config) (any, error) {
+        func specifyConfig{{createGoSuffixFromVersion $version}}(o *Config) (any, error) {
         config := configXml{{createGoSuffixFromVersion $version}}{}
 
         {{- range $_, $param := $.Spec.Params}}
@@ -133,10 +133,10 @@
     {{- end}}
 
     {{- range $version := .SupportedVersions }}
-        func (c *configXmlContainer{{createGoSuffixFromVersion $version}}) Normalize() ([]Config, error) {
-        configList := make([]Config, 0, len(c.Answer))
+        func (c *configXmlContainer{{createGoSuffixFromVersion $version}}) Normalize() ([]*Config, error) {
+        configList := make([]*Config, 0, len(c.Answer))
         for _, o := range c.Answer {
-        config := Config{
+        config := &Config{
         Misc: make(map[string][]generic.Xml),
         }
         {{- range $_, $param := $.Spec.Params}}

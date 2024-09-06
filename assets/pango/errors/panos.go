@@ -33,6 +33,15 @@ func (e Panos) ObjectNotFound() bool {
 	return e.Code == 7
 }
 
+func IsObjectNotFound(e error) bool {
+	e2, ok := e.(Panos)
+	if ok && e2.ObjectNotFound() {
+		return true
+	}
+
+	return false
+}
+
 // ObjectNotFound returns an object not found error.
 func ObjectNotFound() Panos {
 	return Panos{

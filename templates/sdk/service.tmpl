@@ -34,11 +34,11 @@ client: client,
 
 // Create adds new item, then returns the result.
 {{- if and (.Entry) (.Imports)}}
-    func (s *Service) Create(ctx context.Context, loc Location, importLocations []ImportLocation, entry Entry) (*Entry, error) {
+    func (s *Service) Create(ctx context.Context, loc Location, importLocations []ImportLocation, entry *Entry) (*Entry, error) {
 {{- else if (.Entry) }}
-    func (s *Service) Create(ctx context.Context, loc Location, entry Entry) (*Entry, error) {
+    func (s *Service) Create(ctx context.Context, loc Location, entry *Entry) (*Entry, error) {
 {{- else }}
-    func (s *Service) Create(ctx context.Context, loc Location, config Config) (*Config, error) {
+    func (s *Service) Create(ctx context.Context, loc Location, config *Config) (*Config, error) {
 {{- end}}
 
 {{- if .Entry}}
@@ -311,7 +311,7 @@ return nil, err
 return nil, fmt.Errorf("expected to %q 1 entry, got %d", action, len(list))
 }
 
-return &list[0], nil
+return list[0], nil
 }
 
 {{ $object := "Config" }}
@@ -321,7 +321,7 @@ return &list[0], nil
 
 {{- if .Entry }}
     // Update updates the given config object, then returns the result.
-    func (s *Service) Update(ctx context.Context, loc Location, entry {{ $object }}, name string) (*{{ $object }}, error) {
+    func (s *Service) Update(ctx context.Context, loc Location, entry *{{ $object }}, name string) (*{{ $object }}, error) {
   {{- if $.Spec.Params.uuid}}
         return s.update(ctx, loc, entry, name, true)
   {{- else}}
@@ -331,13 +331,13 @@ return &list[0], nil
 
   {{- if $.Spec.Params.uuid}}
         // UpdateById updates the given config object, then returns the result.
-        func (s *Service) UpdateById(ctx context.Context, loc Location, entry {{ $object }}, uuid string) (*{{ $object }}, error) {
+        func (s *Service) UpdateById(ctx context.Context, loc Location, entry *{{ $object }}, uuid string) (*{{ $object }}, error) {
         return s.update(ctx, loc, entry, uuid, false)
         }
   {{- end}}
 
   {{- if $.Spec.Params.uuid}}
-        func (s *Service) update(ctx context.Context, loc Location, entry {{ $object }}, value string, byName bool) (*{{ $object }}, error) {
+        func (s *Service) update(ctx context.Context, loc Location, entry *{{ $object }}, value string, byName bool) (*{{ $object }}, error) {
   {{- if .Entry }}
         if byName && entry.Name == "" {
         return nil, errors.NameNotSpecifiedError
@@ -347,7 +347,7 @@ return &list[0], nil
         }
   {{- end }}
   {{- else}}
-        func (s *Service) update(ctx context.Context, loc Location, entry {{ $object }}, value string) (*{{ $object }}, error) {
+        func (s *Service) update(ctx context.Context, loc Location, entry *{{ $object }}, value string) (*{{ $object }}, error) {
     {{- if .Entry }}
         if entry.Name == "" {
         return nil, errors.NameNotSpecifiedError
@@ -355,7 +355,7 @@ return &list[0], nil
     {{- end }}
   {{- end}}
 {{- else }}
-func (s *Service) Update(ctx context.Context, loc Location, entry {{ $object }}) (*{{ $object }}, error) {
+func (s *Service) Update(ctx context.Context, loc Location, entry *{{ $object }}) (*{{ $object }}, error) {
 {{- end }}
 
     vn := s.client.Versioning()
@@ -409,10 +409,10 @@ func (s *Service) Update(ctx context.Context, loc Location, entry {{ $object }})
   {{- end }}
 
   {{- if .Entry }}
-    if !SpecMatches(&entry, old) {
+    if !SpecMatches(entry, old) {
         path, err := loc.XpathWithEntryName(vn, entry.Name)
   {{- else }}
-    if !SpecMatches(&entry, old) {
+    if !SpecMatches(entry, old) {
         path, err := loc.Xpath(vn)
   {{- end }}
         if err != nil {
@@ -484,7 +484,7 @@ func (s *Service) Update(ctx context.Context, loc Location, entry {{ $object }})
         }
     {{- end}}
 {{- else }}
-    func (s *Service) Delete(ctx context.Context, loc Location, config Config) error {
+    func (s *Service) Delete(ctx context.Context, loc Location, config *Config) error {
     return s.delete(ctx, loc, config)
     }
 {{- end}}
@@ -502,7 +502,7 @@ func (s *Service) Update(ctx context.Context, loc Location, entry {{ $object }})
         func (s *Service) delete(ctx context.Context, loc Location, values []string) error {
     {{- end}}
 {{- else}}
-    func (s *Service) delete(ctx context.Context, loc Location, config Config) error {
+    func (s *Service) delete(ctx context.Context, loc Location, config *Config) error {
 {{- end}}
 {{- if .Entry}}
     {{- if $.Spec.Params.uuid}}
@@ -671,18 +671,18 @@ func (s *Service) RemoveFromImport(ctx context.Context, loc Location, entry Entr
 {{- if .Entry}}
     // List returns a list of objects using the given action ("get" or "show").
     // Params filter and quote are for client side filtering.
-    func (s *Service) List(ctx context.Context, loc Location, action, filter, quote string) ([]Entry, error) {
+    func (s *Service) List(ctx context.Context, loc Location, action, filter, quote string) ([]*Entry, error) {
     return s.list(ctx, loc, action, filter, quote, false)
     }
 
     // ListFromConfig returns a list of objects at the given location.
     // Requires that client.LoadPanosConfig() has been invoked.
     // Params filter and quote are for client side filtering.
-    func (s *Service) ListFromConfig(ctx context.Context, loc Location, filter, quote string) ([]Entry, error) {
+    func (s *Service) ListFromConfig(ctx context.Context, loc Location, filter, quote string) ([]*Entry, error) {
     return s.list(ctx, loc, "", filter, quote, true)
     }
 
-    func (s *Service) list(ctx context.Context, loc Location, action, filter, quote string, usePanosConfig bool) ([]Entry, error) {
+    func (s *Service) list(ctx context.Context, loc Location, action, filter, quote string, usePanosConfig bool) ([]*Entry, error) {
     var err error
 
     var logic *filtering.Group
@@ -729,9 +729,9 @@ func (s *Service) RemoveFromImport(ctx context.Context, loc Location, entry Entr
     return listing, err
     }
 
-    filtered := make([]Entry, 0, len(listing))
+    filtered := make([]*Entry, 0, len(listing))
     for _, x := range listing {
-    ok, err := logic.Matches(&x)
+    ok, err := logic.Matches(x)
     if err != nil {
     return nil, err
     }
@@ -747,7 +747,7 @@ func (s *Service) RemoveFromImport(ctx context.Context, loc Location, entry Entr
         // MoveGroup arranges the given rules in the order specified.
         // Any rule with a UUID specified is ignored.
         // Only the rule names are considered for the purposes of the rule placement.
-        func (s *Service) MoveGroup(ctx context.Context, loc Location, position rule.Position, entries []Entry) error {
+        func (s *Service) MoveGroup(ctx context.Context, loc Location, position rule.Position, entries []*Entry) error {
         if len(entries) == 0 {
         return nil
         }
@@ -835,14 +835,14 @@ func (s *Service) RemoveFromImport(ctx context.Context, loc Location, entry Entr
         return nil
         }
 
-        func (s *Service) moveRestOfRules(topDown bool, entries []Entry, i int, baseIndex int, rp map[string]int, loc Location, vn version.Number, updates *xmlapi.MultiConfig, where string, prevName string) error {
+        func (s *Service) moveRestOfRules(topDown bool, entries []*Entry, i int, baseIndex int, rp map[string]int, loc Location, vn version.Number, updates *xmlapi.MultiConfig, where string, prevName string) error {
         var target Entry
         var desiredIndex int
         if topDown {
-        target = entries[i]
+        target = *entries[i]
         desiredIndex = baseIndex + i
         } else {
-        target = entries[len(entries)-1-i]
+        target = *entries[len(entries)-1-i]
         desiredIndex = baseIndex - i
         }
 
@@ -885,7 +885,7 @@ func (s *Service) RemoveFromImport(ctx context.Context, loc Location, entry Entr
         return nil
         }
 
-        func (s *Service) moveDirectlyBefore(entries []Entry, baseIndex int, ok bool, rp map[string]int, otherIndex int, position rule.Position, loc Location, vn version.Number, updates *xmlapi.MultiConfig) (int, bool, error) {
+        func (s *Service) moveDirectlyBefore(entries []*Entry, baseIndex int, ok bool, rp map[string]int, otherIndex int, position rule.Position, loc Location, vn version.Number, updates *xmlapi.MultiConfig) (int, bool, error) {
         target := entries[len(entries)-1]
 
         baseIndex, ok = rp[target.Name]
@@ -926,7 +926,7 @@ func (s *Service) RemoveFromImport(ctx context.Context, loc Location, entry Entr
         return baseIndex, ok, nil
         }
 
-        func (s *Service) moveDirectlyAfter(topDown bool, entries []Entry, baseIndex int, ok bool, rp map[string]int, otherIndex int, position rule.Position, loc Location, vn version.Number, updates *xmlapi.MultiConfig) (bool, int, bool, int, error) {
+        func (s *Service) moveDirectlyAfter(topDown bool, entries []*Entry, baseIndex int, ok bool, rp map[string]int, otherIndex int, position rule.Position, loc Location, vn version.Number, updates *xmlapi.MultiConfig) (bool, int, bool, int, error) {
         topDown = true
         target := entries[0]
 
@@ -968,7 +968,7 @@ func (s *Service) RemoveFromImport(ctx context.Context, loc Location, entry Entr
         return topDown, baseIndex, ok, otherIndex, nil
         }
 
-        func (s *Service) moveSomewhereBefore(entries []Entry, baseIndex int, ok bool, rp map[string]int, otherIndex int, position rule.Position, loc Location, vn version.Number, updates *xmlapi.MultiConfig) (int, bool, int, error) {
+        func (s *Service) moveSomewhereBefore(entries []*Entry, baseIndex int, ok bool, rp map[string]int, otherIndex int, position rule.Position, loc Location, vn version.Number, updates *xmlapi.MultiConfig) (int, bool, int, error) {
         target := entries[len(entries)-1]
 
         baseIndex, ok = rp[target.Name]
@@ -1009,7 +1009,7 @@ func (s *Service) RemoveFromImport(ctx context.Context, loc Location, entry Entr
         return baseIndex, ok, otherIndex, nil
         }
 
-        func (s *Service) moveSomewhereAfter(topDown bool, entries []Entry, baseIndex int, ok bool, rp map[string]int, otherIndex int, position rule.Position, loc Location, vn version.Number, updates *xmlapi.MultiConfig) (bool, int, bool, int, error) {
+        func (s *Service) moveSomewhereAfter(topDown bool, entries []*Entry, baseIndex int, ok bool, rp map[string]int, otherIndex int, position rule.Position, loc Location, vn version.Number, updates *xmlapi.MultiConfig) (bool, int, bool, int, error) {
         topDown = true
         target := entries[0]
 
@@ -1051,7 +1051,7 @@ func (s *Service) RemoveFromImport(ctx context.Context, loc Location, entry Entr
         return topDown, baseIndex, ok, otherIndex, nil
         }
 
-        func (s *Service) moveBottom(entries []Entry, baseIndex int, ok bool, rp map[string]int, listing []Entry, loc Location, vn version.Number, updates *xmlapi.MultiConfig) (int, bool, error) {
+        func (s *Service) moveBottom(entries []*Entry, baseIndex int, ok bool, rp map[string]int, listing []*Entry, loc Location, vn version.Number, updates *xmlapi.MultiConfig) (int, bool, error) {
         target := entries[len(entries)-1]
 
         baseIndex, ok = rp[target.Name]
@@ -1093,7 +1093,7 @@ func (s *Service) RemoveFromImport(ctx context.Context, loc Location, entry Entr
         return baseIndex, ok, nil
         }
 
-        func (s *Service) moveTop(topDown bool, entries []Entry, baseIndex int, ok bool, rp map[string]int, loc Location, vn version.Number, updates *xmlapi.MultiConfig) (bool, int, bool, error) {
+        func (s *Service) moveTop(topDown bool, entries []*Entry, baseIndex int, ok bool, rp map[string]int, loc Location, vn version.Number, updates *xmlapi.MultiConfig) (bool, int, bool, error) {
         topDown = true
         target := entries[0]
 

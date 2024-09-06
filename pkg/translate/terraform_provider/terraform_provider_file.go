@@ -127,6 +127,12 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 
 	funcMap := template.FuncMap{
 		"GoSDKSkipped":            func() bool { return spec.GoSdkSkip },
+		"IsEntry":                 func() bool { return spec.HasEntryName() && !spec.HasEntryUuid() },
+		"HasImports":              func() bool { return len(spec.Imports) > 0 },
+		"IsCustom":                func() bool { return spec.TerraformProviderConfig.ResourceType == properties.TerraformResourceCustom },
+		"IsUuid":                  func() bool { return spec.HasEntryUuid() },
+		"IsConfig":                func() bool { return !spec.HasEntryName() && !spec.HasEntryUuid() },
+		"resourceSDKName":         func() string { return names.PackageName },
 		"HasPosition":             func() bool { return hasPosition },
 		"metaName":                func() string { return names.MetaName },
 		"structName":              func() string { return names.StructName },
@@ -168,6 +174,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 	if !spec.TerraformProviderConfig.SkipResource {
 		terraformProvider.ImportManager.AddStandardImport("context", "")
 		terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "")
+		if spec.TerraformProviderConfig.ResourceType != properties.TerraformResourceCustom {
+			terraformProvider.ImportManager.AddOtherImport("github.com/PaloAltoNetworks/terraform-provider-panos/internal/manager", "sdkmanager")
+		}
 
 		// entry or uuid style resource
 		if spec.Entry != nil {
@@ -175,18 +184,13 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 				return fmt.Errorf("invalid resource configuration")
 			}
 
+			terraformProvider.ImportManager.AddStandardImport("errors", "")
 			switch resourceTyp {
 			case properties.ResourceUuid:
-				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/xmlapi", "")
-				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "")
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/rule", "")
+			case properties.ResourceEntry:
 			case properties.ResourceUuidPlural:
-				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/xmlapi", "")
-				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "")
-			case properties.ResourceEntryPlural:
-				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/xmlapi", "")
-				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "")
-			case properties.ResourceEntry, properties.ResourceCustom:
+			case properties.ResourceEntryPlural, properties.ResourceCustom:
 			}
 
 			// Generate Resource with entry style
@@ -222,6 +226,12 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 				terraformProvider.ImportManager.AddSdkImport(sdkPkgPath(spec), "")
 			}
 
+			switch resourceTyp {
+			case properties.ResourceEntry:
+				terraformProvider.ImportManager.AddStandardImport("errors", "")
+			case properties.ResourceEntryPlural, properties.ResourceUuid:
+			case properties.ResourceUuidPlural, properties.ResourceCustom:
+			}
 			conditionallyAddValidators(terraformProvider.ImportManager, spec)
 			conditionallyAddModifiers(terraformProvider.ImportManager, spec)
 			conditionallyAddDefaults(terraformProvider.ImportManager, spec.Spec)
@@ -270,6 +280,12 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 		names := NewNameProvider(spec, resourceTyp)
 		funcMap := template.FuncMap{
 			"GoSDKSkipped":         func() bool { return spec.GoSdkSkip },
+			"IsEntry":              func() bool { return spec.HasEntryName() && !spec.HasEntryUuid() },
+			"HasImports":           func() bool { return len(spec.Imports) > 0 },
+			"IsCustom":             func() bool { return spec.TerraformProviderConfig.ResourceType == properties.TerraformResourceCustom },
+			"IsUuid":               func() bool { return spec.HasEntryUuid() },
+			"resourceSDKName":      func() string { return names.PackageName },
+			"IsConfig":             func() bool { return !spec.HasEntryName() && !spec.HasEntryUuid() },
 			"metaName":             func() string { return names.MetaName },
 			"structName":           func() string { return names.StructName },
 			"serviceName":          func() string { return names.TfName },
@@ -277,6 +293,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 			"dataSourceStructName": func() string { return names.DataSourceStructName },
 			"DataSourceReadFunction": func(structName string, serviceName string) (string, error) {
 				return DataSourceReadFunction(resourceTyp, names, serviceName, spec, names.PackageName)
+			},
+			"RenderCopyToPangoFunctions": func() (string, error) {
+				return RenderCopyToPangoFunctions(resourceTyp, names.PackageName, names.DataSourceStructName, spec)
 			},
 			"RenderCopyFromPangoFunctions": func() (string, error) {
 				return RenderCopyFromPangoFunctions(resourceTyp, names.PackageName, names.DataSourceStructName, spec)

@@ -6,7 +6,6 @@ linters:
     - dogsled
     - errname
     - exhaustive
-    - exportloopref
     - fatcontext
     - forcetypeassert
     - gci
