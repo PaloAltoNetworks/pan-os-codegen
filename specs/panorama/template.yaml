@@ -47,6 +47,9 @@ spec:
       type: string
       profiles:
         - xpath: ["settings", "default-vsys"]
+      codegen_overrides:
+        terraform:
+          private: true
     - name: config
       type: object
       profiles:
