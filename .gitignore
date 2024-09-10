@@ -16,6 +16,7 @@
 # Custom ignores
 .DS_Store
 *.swp
+.env
 
 # IDE
 .idea/
