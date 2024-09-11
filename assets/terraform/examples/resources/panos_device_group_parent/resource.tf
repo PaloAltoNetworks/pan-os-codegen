@@ -21,4 +21,3 @@ resource "panos_device_group_parent" "example" {
   device_group = panos_device_group.child.name
   parent       = panos_device_group.parent.name
 }
-w
