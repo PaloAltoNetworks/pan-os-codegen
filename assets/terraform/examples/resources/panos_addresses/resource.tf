@@ -17,6 +17,8 @@ resource "panos_addresses" "example" {
   }
 }
 
+# Provider function to get the address values
+
 # Example 1: Get the value of a single address object.
 output "foo_value" {
   value = provider::panos::address_value(panos_addresses.example.addresses.foo)
