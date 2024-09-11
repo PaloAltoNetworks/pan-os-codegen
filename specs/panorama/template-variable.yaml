@@ -1,6 +1,6 @@
 name: "Template Variable"
 terraform_provider_config:
-  suffix: "panorama_template_variable"
+  suffix: "template_variable"
 go_sdk_config:
   package:
     - "panorama"

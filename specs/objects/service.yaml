@@ -1,6 +1,6 @@
 name: "Service"
 terraform_provider_config:
-  suffix: "service_object"
+  suffix: "service"
 go_sdk_config:
   package:
     - "objects"
