@@ -1,6 +1,6 @@
 name: "DNS"
 terraform_provider_config:
-  suffix: "dns"
+  suffix: "dns_settings"
 go_sdk_config:
   package:
     - "device"
