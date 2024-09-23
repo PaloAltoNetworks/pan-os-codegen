@@ -1006,8 +1006,19 @@ func (c *Client) GetTechSupportFile(ctx context.Context) (string, []byte, error)
 func (c *Client) setupLogging(logging LoggingInfo) error {
 	var logger *slog.Logger
 
+	var logLevel slog.Level
+	var levelStr string
+	if levelStr = os.Getenv("PANOS_LOG_LEVEL"); c.CheckEnvironment && levelStr != "" {
+		err := logLevel.UnmarshalText([]byte(levelStr))
+		if err != nil {
+			return err
+		}
+	} else {
+		logLevel = slog.LevelInfo
+	}
+
 	if logging.SLogHandler == nil {
-		logger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: logging.LogLevel}))
+		logger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel}))
 		logger.Info("No slog handler provided, creating default os.Stderr handler.", "LogLevel", logging.LogLevel.Level())
 	} else {
 		logger = slog.New(logging.SLogHandler)
@@ -1019,7 +1030,7 @@ func (c *Client) setupLogging(logging LoggingInfo) error {
 	// 1. logging.LogCategories has the highest priority
 	// 2. If logging.LogCategories is not set, we check logging.LogSymbols
 	// 3. If logging.LogSymbols is empty and c.CheckEnvironment is true we consult
-	//    PANOS_LOGGING environment variable.
+	//    PANOS_LOG_CATEGORIES environment variable.
 	// 4. If no logging categories have been selected, default to basic library logging
 	//    (i.e. "pango" category)
 	logMask := logging.LogCategories
@@ -1031,7 +1042,7 @@ func (c *Client) setupLogging(logging LoggingInfo) error {
 		}
 
 		if logMask == 0 {
-			if val := os.Getenv("PANOS_LOGGING"); c.CheckEnvironment && val != "" {
+			if val := os.Getenv("PANOS_LOG_CATEGORIES"); c.CheckEnvironment && val != "" {
 				symbols := strings.Split(val, ",")
 				logMask, err = LogCategoryFromStrings(symbols)
 				if err != nil {
