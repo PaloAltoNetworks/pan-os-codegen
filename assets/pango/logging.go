@@ -80,7 +80,6 @@ func LogCategoryFromStrings(symbols []string) (LogCategory, error) {
 		}
 
 		logCategoriesMask |= category
-		slog.Info("logCategoriesMask", "equal", logCategoriesMask)
 	}
 	return logCategoriesMask, nil
 }

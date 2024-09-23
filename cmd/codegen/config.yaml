@@ -90,14 +90,17 @@ terraform_provider_config:
       description: "(Local inspection mode) The PAN-OS config file to load read in using `file()`"
       optional: true
       type: string
-    sdk_log_level:
-      description: "Log level configured for the PAN-OS SDK library"
-      optional: true
-      type: string
     sdk_log_categories:
       description: "Log categories to configure for the PAN-OS SDK library"
+      env_name: "PANOS_LOG_CATEGORIES"
       optional: true
       type: string
+    sdk_log_level:
+      description: "SDK logging Level for categories"
+      env_name: "PANOS_LOG_LEVEL"
+      type: string
+      default_value: "INFO"
+      optional: true
     panos_version:
       description: "(Local inspection mode) The version of PAN-OS that exported the config file. This is only used if the root 'config' block does not contain the 'detail-version' attribute. Example: `10.2.3`."
       optional: true
