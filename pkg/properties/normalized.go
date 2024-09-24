@@ -65,6 +65,7 @@ const (
 )
 
 type TerraformProviderConfig struct {
+	Description           string                     `json:"description" yaml:"description"`
 	SkipResource          bool                       `json:"skip_resource" yaml:"skip_resource"`
 	SkipDatasource        bool                       `json:"skip_datasource" yaml:"skip_datasource"`
 	SkipDatasourceListing bool                       `json:"skip_datasource_listing" yaml:"skip_datasource_listing"`
@@ -528,6 +529,7 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 	spec := &Normalization{
 		Name: object.DisplayName,
 		TerraformProviderConfig: TerraformProviderConfig{
+			Description:           object.TerraformConfig.Description,
 			SkipResource:          object.TerraformConfig.SkipResource,
 			SkipDatasource:        object.TerraformConfig.SkipDatasource,
 			SkipDatasourceListing: object.TerraformConfig.SkipdatasourceListing,

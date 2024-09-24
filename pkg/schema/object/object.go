@@ -26,6 +26,7 @@ const (
 )
 
 type TerraformConfig struct {
+	Description           string                     `yaml:"description"`
 	SkipResource          bool                       `yaml:"skip_resource"`
 	SkipDatasource        bool                       `yaml:"skip_datasource"`
 	SkipdatasourceListing bool                       `yaml:"skip_datasource_listing"`
