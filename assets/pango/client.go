@@ -61,7 +61,7 @@ type Client struct {
 	// Variables determined at runtime.
 	Version    version.Number    `json:"-"`
 	systemInfo map[string]string `json:"-"`
-	plugin     []plugin.Info     `json:"-"`
+	plugins     []plugin.Info     `json:"-"`
 
 	// Internal variables.
 	con        *http.Client
