@@ -361,6 +361,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformProviderFile(spec *properti
 
 func (g *GenerateTerraformProvider) GenerateTerraformProvider(terraformProvider *properties.TerraformProviderFile, spec *properties.Normalization, providerConfig properties.TerraformProvider) error {
 	terraformProvider.ImportManager.AddStandardImport("context", "")
+	terraformProvider.ImportManager.AddStandardImport("strings", "")
+	terraformProvider.ImportManager.AddStandardImport("fmt", "")
+	terraformProvider.ImportManager.AddStandardImport("log/slog", "")
 	terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "sdk")
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource", "")
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/function", "")

@@ -1544,6 +1544,28 @@ func (p *PanosProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		}
 	} else {
 		tflog.Info(ctx, "Configuring client for API mode")
+		var logCategories sdk.LogCategory
+		if !config.SdkLogCategories.IsNull() {
+			categories := strings.Split(config.SdkLogCategories.ValueString(), ",")
+			var err error
+			logCategories, err = sdk.LogCategoryFromStrings(categories)
+			if err != nil {
+				resp.Diagnostics.AddError("Failed to configure Terraform provider", err.Error())
+				return
+			}
+		}
+
+		var logLevel slog.Level
+		if !config.SdkLogLevel.IsNull() {
+			levelStr := config.SdkLogLevel.ValueString()
+			err := logLevel.UnmarshalText([]byte(levelStr))
+			if err != nil {
+				resp.Diagnostics.AddError("Failed to configure Terraform provider", fmt.Sprintf("Invalid Log Level: %s", levelStr))
+			}
+		} else {
+			logLevel = slog.LevelInfo
+		}
+
 		con = &sdk.Client{
 			Hostname:        config.Hostname.ValueString(),
 			Username:        config.Username.ValueString(),
@@ -1557,6 +1579,10 @@ func (p *PanosProvider) Configure(ctx context.Context, req provider.ConfigureReq
 			SkipVerifyCertificate: config.SkipVerifyCertificate.ValueBool(),
 			AuthFile:              config.AuthFile.ValueString(),
 			CheckEnvironment:      true,
+			Logging: sdk.LoggingInfo{
+				LogLevel: logLevel,
+				LogCategories: logCategories,
+			},
 			//Agent:            fmt.Sprintf("Terraform/%s Provider/scm Version/%s", req.TerraformVersion, p.version),
 		}
 
