@@ -158,6 +158,7 @@ type SpecParam struct {
 	Name                    *NameVariant
 	Description             string                            `json:"description" yaml:"description"`
 	TerraformProviderConfig *SpecParamTerraformProviderConfig `json:"terraform_provider_config" yaml:"terraform_provider_config"`
+	IsNil                   bool                              `json:"-" yaml:"-"`
 	Type                    string                            `json:"type" yaml:"type"`
 	Default                 string                            `json:"default" yaml:"default"`
 	Required                bool                              `json:"required" yaml:"required"`
@@ -346,6 +347,7 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 
 	var defaultVal string
 
+	var paramTypeIsNil bool
 	var innerSpec *Spec
 	var itemsSpec SpecParamItems
 
@@ -408,7 +410,8 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 	case *parameter.EnumSpec:
 		defaultVal = spec.Default
 	case *parameter.NilSpec:
-		specType = "string"
+		paramTypeIsNil = true
+		specType = ""
 	case *parameter.SimpleSpec:
 		if typed, ok := spec.Default.(string); ok {
 			defaultVal = typed
@@ -453,6 +456,7 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 	specParameter := &SpecParam{
 		Description:             schemaSpec.Description,
 		Type:                    specType,
+		IsNil:                   paramTypeIsNil,
 		Default:                 defaultVal,
 		Required:                schemaSpec.Required,
 		Sensitive:               sensitive,
