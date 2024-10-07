@@ -957,11 +957,17 @@ func createSchemaSpecForParameter(schemaTyp schemaType, manager *imports.Manager
 		})
 	}
 
+	validatorFn := "ExactlyOneOf"
 	var expressions []string
 	for _, elt := range param.Spec.OneOf {
 		if elt.IsPrivateParameter() {
 			continue
 		}
+
+		if elt.IsNil {
+			validatorFn = "ConflictsWith"
+		}
+
 		expressions = append(expressions, fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, elt.Name.Underscore))
 	}
 
@@ -973,7 +979,7 @@ func createSchemaSpecForParameter(schemaTyp schemaType, manager *imports.Manager
 	}
 
 	functions := []validatorFunctionCtx{{
-		Function:    "ExactlyOneOf",
+		Function:    validatorFn,
 		Expressions: expressions,
 	}}
 
@@ -1003,11 +1009,13 @@ func createSchemaSpecForParameter(schemaTyp schemaType, manager *imports.Manager
 		isResource = true
 	}
 
-	var computed bool
+	var computed, required bool
 	switch schemaTyp {
 	case schemaDataSource:
 		computed = true
+		required = false
 	case schemaResource:
+		required = param.Required
 		if param.TerraformProviderConfig != nil {
 			computed = param.TerraformProviderConfig.Computed
 		}
@@ -1020,7 +1028,7 @@ func createSchemaSpecForParameter(schemaTyp schemaType, manager *imports.Manager
 		StructName:    structName,
 		ReturnType:    returnType,
 		Description:   "",
-		Required:      param.Required,
+		Required:      required,
 		Optional:      !param.Required,
 		Computed:      computed,
 		Sensitive:     param.Sensitive,
@@ -1093,11 +1101,13 @@ func createSchemaAttributeForParameter(schemaTyp schemaType, manager *imports.Ma
 		}
 	}
 
-	var computed bool
+	var computed, required bool
 	switch schemaTyp {
 	case schemaDataSource:
+		required = false
 		computed = true
 	case schemaResource:
+		required = param.Required
 		if param.TerraformProviderConfig != nil {
 			computed = param.TerraformProviderConfig.Computed
 		} else if param.Default != "" {
@@ -1111,8 +1121,8 @@ func createSchemaAttributeForParameter(schemaTyp schemaType, manager *imports.Ma
 		SchemaType:  schemaType,
 		ElementType: elementType,
 		Description: param.Description,
-		Required:    param.Required,
-		Optional:    !param.Required,
+		Required:    required,
+		Optional:    !required,
 		Sensitive:   param.Sensitive,
 		Default:     defaultValue,
 		Computed:    computed,
@@ -1414,16 +1424,21 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 		schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, manager, structName, packageName, elt, nil)...)
 	}
 
+	validatorFn := "ExactlyOneOf"
 	var expressions []string
 	for _, elt := range spec.Spec.OneOf {
 		if elt.IsPrivateParameter() {
 			continue
 		}
+
+		if elt.IsNil {
+			validatorFn = "ConflictsWith"
+		}
 		expressions = append(expressions, fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, elt.Name.Underscore))
 	}
 
 	functions := []validatorFunctionCtx{{
-		Function:    "ExactlyOneOf",
+		Function:    validatorFn,
 		Expressions: expressions,
 	}}
 
