@@ -61,13 +61,6 @@ locations:
                 values:
                   - value: "shared"
                     error: 'The vsys cannot be "shared". Use the "shared" path instead.'
-        - name: "rulebase"
-          description: "The rulebase."
-          default: "pre-rulebase"
-          validators:
-            - type: values
-              spec:
-                values: ["post-rulebase", "pre-rulebase"]
   - name: "from_panorama_vsys"
     description: "Located in a specific vsys in the config pushed from Panorama."
     read_only: true
