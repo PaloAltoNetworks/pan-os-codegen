@@ -61,7 +61,7 @@ type Client struct {
 	// Variables determined at runtime.
 	Version    version.Number    `json:"-"`
 	systemInfo map[string]string `json:"-"`
-	plugins     []plugin.Info     `json:"-"`
+	plugins    []plugin.Info     `json:"-"`
 
 	// Internal variables.
 	con        *http.Client
@@ -92,13 +92,13 @@ func (c *Client) SystemInfo(ctx context.Context) (map[string]string, error) {
 }
 
 func (c *Client) Plugins(ctx context.Context) ([]plugin.Info, error) {
-	if c.plugin == nil {
+	if c.plugins == nil {
 		if err := c.RetrievePlugins(ctx); err != nil {
 			return nil, err
 		}
 	}
 
-	return c.plugin, nil
+	return c.plugins, nil
 }
 
 // GetTarget returns the Target param, used in certain API calls.
@@ -460,7 +460,7 @@ func (c *Client) RetrievePlugins(ctx context.Context) error {
 		return err
 	}
 
-	c.plugin = ans.Listing()
+	c.plugins = ans.Listing()
 
 	return nil
 }
