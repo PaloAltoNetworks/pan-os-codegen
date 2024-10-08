@@ -68,16 +68,23 @@ jobs:
       - name: Download Go dependencies
         run: go get  ./... && go mod tidy
 
+      - name: Test codegen
+        run: go test -v ./...
+
       - name: Build codegen
         run: go build -v ./...
 
       - name: Execute codegen for PANGO SDK
         run: go run cmd/codegen/main.go -t mksdk
 
-      - name: List generated PANGO SDK files
+      - name: Test generated code
         run: |
-          echo "Generated Files:"
-          ls ../generated/pango
+          for dir in $(ls ../generated); do
+            echo "Run tests for ${dir}"
+            cd ../generated/${dir}
+            go test -v ./...
+            cd -
+          done
 
       - name: Workaround actions/upload-artifact#176
         run: |
