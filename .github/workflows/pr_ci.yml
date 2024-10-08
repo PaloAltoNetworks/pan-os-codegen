@@ -74,8 +74,8 @@ jobs:
       - name: Build codegen
         run: go build -v ./...
 
-      - name: Execute codegen for PANGO SDK
-        run: go run cmd/codegen/main.go -t mksdk
+      - name: Execute codegen for all targets
+        run: go run cmd/codegen/main.go
 
       - name: Test generated code
         run: |
