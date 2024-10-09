@@ -173,9 +173,11 @@ type SpecParam struct {
 }
 
 type SpecParamTerraformProviderConfig struct {
-	Private   bool `json:"ignored" yaml:"private"`
-	Sensitive bool `json:"sensitive" yaml:"sensitive"`
-	Computed  bool `json:"computed" yaml:"computed"`
+	Name      string `json:"name" yaml:"name"`
+	Type      string `json:"type" yaml:"type"`
+	Private   bool   `json:"ignored" yaml:"private"`
+	Sensitive bool   `json:"sensitive" yaml:"sensitive"`
+	Computed  bool   `json:"computed" yaml:"computed"`
 }
 
 type SpecParamLength struct {
@@ -208,6 +210,14 @@ type SpecParamProfile struct {
 	Type        string   `json:"type" yaml:"type,omitempty"`
 	NotPresent  bool     `json:"not_present" yaml:"not_present"`
 	FromVersion string   `json:"from_version" yaml:"from_version"`
+}
+
+func (o *SpecParam) NameVariant() *NameVariant {
+	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.Name != "" {
+		return NewNameVariant(o.TerraformProviderConfig.Name)
+	}
+
+	return o.Name
 }
 
 func hasChildEncryptedResources(param *SpecParam) bool {
@@ -448,6 +458,8 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 	if schemaSpec.CodegenOverrides != nil {
 		sensitive = schemaSpec.CodegenOverrides.Terraform.Sensitive
 		terraformProviderConfig = &SpecParamTerraformProviderConfig{
+			Name:      schemaSpec.CodegenOverrides.Terraform.Name,
+			Type:      schemaSpec.CodegenOverrides.Terraform.Type,
 			Private:   schemaSpec.CodegenOverrides.Terraform.Private,
 			Sensitive: schemaSpec.CodegenOverrides.Terraform.Sensitive,
 			Computed:  schemaSpec.CodegenOverrides.Terraform.Computed,

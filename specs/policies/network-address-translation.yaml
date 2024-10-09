@@ -232,6 +232,9 @@ spec:
     - name: to-interface
       description: Destination Interface
       type: string
+      codegen_overrides:
+        terraform:
+          name: destination-interface
       profiles:
         - xpath: [to-interface]
     - name: source-translation

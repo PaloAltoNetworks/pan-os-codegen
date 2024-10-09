@@ -30,11 +30,12 @@ type parameterEncryptionSpec struct {
 }
 
 type parameterSpec struct {
-	Name       *properties.NameVariant
-	Type       string
-	Required   bool
-	ItemsType  string
-	Encryption *parameterEncryptionSpec
+	PangoName     *properties.NameVariant
+	TerraformName *properties.NameVariant
+	Type          string
+	Required      bool
+	ItemsType     string
+	Encryption    *parameterEncryptionSpec
 }
 
 type spec struct {
@@ -70,10 +71,11 @@ func renderSpecsForParams(params map[string]*properties.SpecParam, parentNames [
 		}
 
 		specs = append(specs, parameterSpec{
-			Name:       elt.Name,
-			Type:       elt.Type,
-			ItemsType:  itemsType,
-			Encryption: encryptionSpec,
+			PangoName:     elt.Name,
+			TerraformName: elt.NameVariant(),
+			Type:          elt.Type,
+			ItemsType:     itemsType,
+			Encryption:    encryptionSpec,
 		})
 
 	}
@@ -90,7 +92,7 @@ func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix st
 	pangoType := fmt.Sprintf("%s%s", pangoTypePrefix, paramSpec.Name.CamelCase)
 
 	pangoReturnType := fmt.Sprintf("%s%s", pangoTypePrefix, paramSpec.Name.CamelCase)
-	terraformType := fmt.Sprintf("%s%s", terraformPrefix, paramSpec.Name.CamelCase)
+	terraformType := fmt.Sprintf("%s%s", terraformPrefix, paramSpec.NameVariant().CamelCase)
 
 	parentNames = append(parentNames, paramSpec.Name.Underscore)
 
@@ -197,17 +199,17 @@ const copyToPangoTmpl = `
 {{- define "terraformNestedElementsAssign" }}
   {{- with .Parameter }}
 
-  {{- $result := .Name.LowerCamelCase }}
-  {{- $diag := .Name.LowerCamelCase | printf "%s_diags" }}
-	var {{ $result }}_entry *{{ $.Spec.PangoType }}{{ .Name.CamelCase }}
-	if o.{{ .Name.CamelCase }} != nil {
-		if *obj != nil && (*obj).{{ .Name.CamelCase }} != nil {
-			{{ $result }}_entry = (*obj).{{ .Name.CamelCase }}
+  {{- $result := .TerraformName.LowerCamelCase }}
+  {{- $diag := .TerraformName.LowerCamelCase | printf "%s_diags" }}
+	var {{ $result }}_entry *{{ $.Spec.PangoType }}{{ .PangoName.CamelCase }}
+	if o.{{ .TerraformName.CamelCase }} != nil {
+		if *obj != nil && (*obj).{{ .PangoName.CamelCase }} != nil {
+			{{ $result }}_entry = (*obj).{{ .PangoName.CamelCase }}
 		} else {
-			{{ $result }}_entry = new({{ $.Spec.PangoType }}{{ .Name.CamelCase }})
+			{{ $result }}_entry = new({{ $.Spec.PangoType }}{{ .PangoName.CamelCase }})
 		}
 
-		diags.Append(o.{{ .Name.CamelCase }}.CopyToPango(ctx, &{{ $result }}_entry, encrypted)...)
+		diags.Append(o.{{ .TerraformName.CamelCase }}.CopyToPango(ctx, &{{ $result }}_entry, encrypted)...)
 		if diags.HasError() {
 			return diags
 		}
@@ -218,15 +220,15 @@ const copyToPangoTmpl = `
 
 {{- define "terraformListElementsAs" }}
   {{- with .Parameter }}
-    {{- $pangoType := printf "%s%s" $.Spec.PangoType .Name.CamelCase }}
-    {{- $terraformType := printf "%s%sObject" $.Spec.TerraformType .Name.CamelCase }}
-    {{- $pangoEntries := printf "%s_pango_entries" .Name.LowerCamelCase }}
-    {{- $tfEntries := printf "%s_tf_entries" .Name.LowerCamelCase }}
+    {{- $pangoType := printf "%s%s" $.Spec.PangoType .TerraformName.CamelCase }}
+    {{- $terraformType := printf "%s%sObject" $.Spec.TerraformType .TerraformName.CamelCase }}
+    {{- $pangoEntries := printf "%s_pango_entries" .TerraformName.LowerCamelCase }}
+    {{- $tfEntries := printf "%s_tf_entries" .TerraformName.LowerCamelCase }}
     {{- if eq .ItemsType "entry" }}
 		var {{ $tfEntries }} []{{ $terraformType }}
 		var {{ $pangoEntries }} []{{ $pangoType }}
 	{
-		d := o.{{ .Name.CamelCase }}.ElementsAs(ctx, &{{ $tfEntries }}, false)
+		d := o.{{ .TerraformName.CamelCase }}.ElementsAs(ctx, &{{ $tfEntries }}, false)
 		diags.Append(d...)
 		if diags.HasError() {
 			return diags
@@ -242,7 +244,7 @@ const copyToPangoTmpl = `
 	}
     {{- else }}
 	{{ $pangoEntries }} := make([]{{ .ItemsType }}, 0)
-	diags.Append(o.{{ .Name.CamelCase }}.ElementsAs(ctx, &{{ $pangoEntries }}, false)...)
+	diags.Append(o.{{ .TerraformName.CamelCase }}.ElementsAs(ctx, &{{ $pangoEntries }}, false)...)
 	if diags.HasError() {
 		return diags
 	}
@@ -252,9 +254,9 @@ const copyToPangoTmpl = `
 
 {{- define "renderSimpleAssignment" }}
   {{- if .Encryption }}
-	(*encrypted)["{{ .Encryption.PlaintextPath }}"] = o.{{ .Name.CamelCase }}
+	(*encrypted)["{{ .Encryption.PlaintextPath }}"] = o.{{ .TerraformName.CamelCase }}
   {{- end }}
-	{{ .Name.LowerCamelCase }}_value := o.{{ .Name.CamelCase }}.Value{{ CamelCaseType .Type }}Pointer()
+	{{ .TerraformName.LowerCamelCase }}_value := o.{{ .TerraformName.CamelCase }}.Value{{ CamelCaseType .Type }}Pointer()
 {{- end }}
 
 {{- range .Specs }}
@@ -262,12 +264,12 @@ const copyToPangoTmpl = `
 func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Context, obj **{{ .PangoReturnType }}, encrypted *map[string]types.String) diag.Diagnostics {
 	var diags diag.Diagnostics
   {{- range .Params }}
-    {{- $terraformType := printf "%s%s" $spec.TerraformType .Name.CamelCase }}
+    {{- $terraformType := printf "%s%s" $spec.TerraformType .TerraformName.CamelCase }}
     {{- if eq .Type "" }}
       {{- $pangoType := printf "%sObject" $spec.PangoType }}
 	{{- template "terraformNestedElementsAssign" Map "Parameter" . "Spec" $spec }}
     {{- else if eq .Type "list" }}
-      {{- $pangoType := printf "%s%s" $spec.PangoType .Name.CamelCase }}
+      {{- $pangoType := printf "%s%s" $spec.PangoType .TerraformName.CamelCase }}
 	{{- template "terraformListElementsAs" Map "Parameter" . "Spec" $spec }}
     {{- else }}
         {{- template "renderSimpleAssignment" . }}
@@ -293,21 +295,21 @@ func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Conte
   {{- end }}
   {{- range .Params }}
     {{- if eq .Type "" }}
-	(*obj).{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_entry
+	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_entry
     {{- else if eq .Type "list" }}
-	(*obj).{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_pango_entries
+	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_pango_entries
     {{- else }}
-	(*obj).{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_value
+	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_value
     {{- end }}
   {{- end }}
 
   {{- range .OneOf }}
     {{- if eq .Type "" }}
-	(*obj).{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_entry
+	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_entry
     {{- else if eq .Type "list" }}
-	(*obj).{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_pango_entries
+	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_pango_entries
     {{- else }}
-	(*obj).{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_value
+	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_value
     {{- end }}
   {{- end }}
 
@@ -321,37 +323,37 @@ const copyFromPangoTmpl = `
   {{- if eq .Type "" }}
 	// TODO: Missing implementation
   {{- else if eq .Type "list" }}
-	{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_list,
+	{{ .TerraformName.CamelCase }}: {{ .TerraformName.LowerCamelCase }}_list,
   {{- end }}
 {{- end }}
 
 {{- define "renderListValueSimple" }}
-var {{ .Name.LowerCamelCase }}_list types.List
+var {{ .TerraformName.LowerCamelCase }}_list types.List
 {
 	schema := rsschema.{{ .Type | PascalCase }}Attribute{}
-	{{ .Name.LowerCamelCase }}_list, {{ .Name.LowerCamelCase }}_diags := types.ListValueFrom(ctx, obj.{{ .Name.CamelCase }}, schema.GetType())
-	diags.Append({{ .Name.LowerCamelCase }}_diags...)
+	{{ .TerraformName.LowerCamelCase }}_list, {{ .TerraformName.LowerCamelCase }}_diags := types.ListValueFrom(ctx, obj.{{ .PangoName.CamelCase }}, schema.GetType())
+	diags.Append({{ .TerraformName.LowerCamelCase }}_diags...)
 }
 {{- end }}
 
 {{- define "renderNestedValues" }}
   {{- range .Spec.Params }}
-    {{- $terraformType := printf "%s%s" $.TerraformType (.Name.CamelCase) }}
+    {{- $terraformType := printf "%s%s" $.TerraformType (.TerraformName.CamelCase) }}
     {{- if eq .Type "" }}
-	// TODO {{ .Name.CamelCase }} {{ .Type }}
+	// TODO {{ .TerraformName.CamelCase }} {{ .Type }}
     {{- else if (and (eq .Type "list") (eq .ItemsType "entry")) }}
-	{{- template "renderListValueEntry" Map "Name" .Name "Type" $terraformType }}
+	{{- template "renderListValueEntry" Map "Name" .TerraformName "Type" $terraformType }}
     {{- else if (and (eq .Type "list") (eq .ItemsType "member")) }}
-	// TODO: {{ .Name.CamelCase }} {{ .ItemsType }}
+	// TODO: {{ .TerraformName.CamelCase }} {{ .ItemsType }}
     {{- else if (eq .Type "list") }}
-	{{- template "renderListValueSimple" Map "Name" .Name "Type" .ItemsType }}
+	{{- template "renderListValueSimple" Map "Name" .TerraformName "Type" .ItemsType }}
     {{- else }}
-	// TODO: {{ .Name.CamelCase }} {{ .Type }}
+	// TODO: {{ .TerraformName.CamelCase }} {{ .Type }}
     {{- end }}
   {{- end }}
 
   {{- range .Spec.OneOf }}
-	// TODO: .Spec.OneOf {{ .Name.CamelCase }}
+	// TODO: .Spec.OneOf {{ .TerraformName.CamelCase }}
   {{- end }}
 {{- end }}
 
@@ -369,31 +371,31 @@ var {{ .Name.LowerCamelCase }}_list types.List
 
 {{- define "terraformListElementsAsParam" }}
   {{- with .Parameter }}
-    {{- $pangoType := printf "%s%s" $.Spec.PangoType .Name.CamelCase }}
-    {{- $terraformType := printf "%s%sObject" $.Spec.TerraformType .Name.CamelCase }}
-    {{- $terraformList := printf "%s_list" .Name.LowerCamelCase }}
-    {{- $pangoEntries := printf "%s_pango_entries" .Name.LowerCamelCase }}
-    {{- $tfEntries := printf "%s_tf_entries" .Name.LowerCamelCase }}
+    {{- $pangoType := printf "%s%s" $.Spec.PangoType .TerraformName.CamelCase }}
+    {{- $terraformType := printf "%s%sObject" $.Spec.TerraformType .TerraformName.CamelCase }}
+    {{- $terraformList := printf "%s_list" .TerraformName.LowerCamelCase }}
+    {{- $pangoEntries := printf "%s_pango_entries" .TerraformName.LowerCamelCase }}
+    {{- $tfEntries := printf "%s_tf_entries" .TerraformName.LowerCamelCase }}
     {{- if eq .ItemsType "entry" }}
 	var {{ $terraformList }} types.List
 	{
 		var {{ $tfEntries }} []{{ $terraformType }}
-		for _, elt := range obj.{{ .Name.CamelCase }} {
+		for _, elt := range obj.{{ .TerraformName.CamelCase }} {
 			var entry {{ $terraformType }}
 			entry_diags := entry.CopyFromPango(ctx, &elt, encrypted)
 			diags.Append(entry_diags...)
 			{{ $tfEntries }} = append({{ $tfEntries }}, entry)
 		}
 		var list_diags diag.Diagnostics
-		schemaType := o.getTypeFor("{{ .Name.Underscore }}")
+		schemaType := o.getTypeFor("{{ .TerraformName.Underscore }}")
 		{{ $terraformList }}, list_diags = types.ListValueFrom(ctx, schemaType, {{ $tfEntries }})
 		diags.Append(list_diags...)
 	}
     {{- else }}
-		var {{ .Name.LowerCamelCase }}_list types.List
+		var {{ .TerraformName.LowerCamelCase }}_list types.List
 		{
 			var list_diags diag.Diagnostics
-			{{ .Name.LowerCamelCase }}_list, list_diags = types.ListValueFrom(ctx, types.{{ .ItemsType | PascalCase }}Type, obj.{{ .Name.CamelCase }})
+			{{ .TerraformName.LowerCamelCase }}_list, list_diags = types.ListValueFrom(ctx, types.{{ .ItemsType | PascalCase }}Type, obj.{{ .PangoName.CamelCase }})
 			diags.Append(list_diags...)
 		}
     {{- end }}
@@ -416,13 +418,13 @@ var {{ .Name.LowerCamelCase }}_list types.List
 
 {{- define "terraformCreateEntryAssignmentForParam" }}
   {{- with .Parameter }}
-  {{- $result := .Name.LowerCamelCase }}
-  {{- $diag := .Name.LowerCamelCase | printf "%s_diags" }}
-  var {{ $result }}_object *{{ $.Spec.TerraformType }}{{ .Name.CamelCase }}Object
-  if obj.{{ .Name.CamelCase }} != nil {
-	{{ $result }}_object = new({{ $.Spec.TerraformType }}{{ .Name.CamelCase }}Object)
+  {{- $result := .TerraformName.LowerCamelCase }}
+  {{- $diag := .TerraformName.LowerCamelCase | printf "%s_diags" }}
+  var {{ $result }}_object *{{ $.Spec.TerraformType }}{{ .TerraformName.CamelCase }}Object
+  if obj.{{ .PangoName.CamelCase }} != nil {
+	{{ $result }}_object = new({{ $.Spec.TerraformType }}{{ .TerraformName.CamelCase }}Object)
 
-	diags.Append({{ $result }}_object.CopyFromPango(ctx, obj.{{ .Name.CamelCase }}, encrypted)...)
+	diags.Append({{ $result }}_object.CopyFromPango(ctx, obj.{{ .PangoName.CamelCase }}, encrypted)...)
 	if diags.HasError() {
 		return diags
 	}
@@ -448,17 +450,17 @@ var {{ .Name.LowerCamelCase }}_list types.List
   {{- range .Params }}
     {{- $terraformType := printf "types.%s" (.Type | PascalCase) }}
     {{- if (not (or (eq .Type "") (eq .Type "list"))) }}
-	var {{ .Name.LowerCamelCase }}_value {{ $terraformType }}
-	if obj.{{ .Name.CamelCase }} != nil {
+	var {{ .TerraformName.LowerCamelCase }}_value {{ $terraformType }}
+	if obj.{{ .PangoName.CamelCase }} != nil {
 {{- if .Encryption }}
-		(*encrypted)["{{ .Encryption.EncryptedPath }}"] = types.StringValue(*obj.{{ .Name.CamelCase }})
+		(*encrypted)["{{ .Encryption.EncryptedPath }}"] = types.StringValue(*obj.{{ .TerraformName.CamelCase }})
 		if value, ok := (*encrypted)["{{ .Encryption.PlaintextPath }}"]; ok {
-			{{ .Name.LowerCamelCase }}_value = value
+			{{ .TerraformName.LowerCamelCase }}_value = value
 		} else {
 			panic("{{ .Encryption.PlaintextPath }}")
 		}
 {{- else }}
-		{{ .Name.LowerCamelCase }}_value = types.{{ .Type | PascalCase }}Value(*obj.{{ .Name.CamelCase }})
+		{{ .TerraformName.LowerCamelCase }}_value = types.{{ .Type | PascalCase }}Value(*obj.{{ .PangoName.CamelCase }})
 {{- end }}
 	}
     {{- end }}
@@ -467,9 +469,9 @@ var {{ .Name.LowerCamelCase }}_list types.List
   {{- range .OneOf }}
     {{- $terraformType := printf "types.%s" (.Type | PascalCase) }}
     {{- if (not (or (eq .Type "") (eq .Type "list"))) }}
-	var {{ .Name.LowerCamelCase }}_value {{ $terraformType }}
-	if obj.{{ .Name.CamelCase }} != nil {
-		{{ .Name.LowerCamelCase }}_value = types.{{ .Type | PascalCase }}Value(*obj.{{ .Name.CamelCase }})
+	var {{ .TerraformName.LowerCamelCase }}_value {{ $terraformType }}
+	if obj.{{ .PangoName.CamelCase }} != nil {
+		{{ .TerraformName.LowerCamelCase }}_value = types.{{ .Type | PascalCase }}Value(*obj.{{ .PangoName.CamelCase }})
 	}
     {{- end }}
   {{- end }}
@@ -478,11 +480,11 @@ var {{ .Name.LowerCamelCase }}_list types.List
 {{- define "assignFromPangoToTerraform" }}
   {{- with .Parameter }}
   {{- if eq .Type "" }}
-	o.{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_object
+	o.{{ .TerraformName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_object
   {{- else if eq .Type "list" }}
-	o.{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_list
+	o.{{ .TerraformName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_list
   {{- else }}
-	o.{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_value
+	o.{{ .TerraformName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_value
   {{- end }}
   {{- end }}
 {{- end }}
@@ -939,7 +941,7 @@ func createSchemaSpecForParameter(schemaTyp schemaType, manager *imports.Manager
 		}
 	}
 
-	structName := fmt.Sprintf("%s%s", structPrefix, param.Name.CamelCase)
+	structName := fmt.Sprintf("%s%s", structPrefix, param.NameVariant().CamelCase)
 
 	var attributes []attributeCtx
 	if param.HasEntryName() {
@@ -1117,7 +1119,7 @@ func createSchemaAttributeForParameter(schemaTyp schemaType, manager *imports.Ma
 
 	return attributeCtx{
 		Package:     packageName,
-		Name:        param.Name,
+		Name:        param.NameVariant(),
 		SchemaType:  schemaType,
 		ElementType: elementType,
 		Description: param.Description,
@@ -1911,7 +1913,7 @@ type datasourceStructSpec struct {
 
 func terraformTypeForProperty(structPrefix string, prop *properties.SpecParam) string {
 	if prop.Type == "" {
-		return fmt.Sprintf("*%s%sObject", structPrefix, prop.Name.CamelCase)
+		return fmt.Sprintf("*%s%sObject", structPrefix, prop.NameVariant().CamelCase)
 	}
 
 	if prop.Type == "list" && prop.Items.Type == "entry" {
@@ -1926,9 +1928,9 @@ func terraformTypeForProperty(structPrefix string, prop *properties.SpecParam) s
 }
 
 func structFieldSpec(param *properties.SpecParam, structPrefix string) datasourceStructFieldSpec {
-	tfTag := fmt.Sprintf("`tfsdk:\"%s\"`", param.Name.Underscore)
+	tfTag := fmt.Sprintf("`tfsdk:\"%s\"`", param.NameVariant().Underscore)
 	return datasourceStructFieldSpec{
-		Name: param.Name.CamelCase,
+		Name: param.NameVariant().CamelCase,
 		Type: terraformTypeForProperty(structPrefix, param),
 		Tags: []string{tfTag},
 	}
@@ -1937,7 +1939,7 @@ func structFieldSpec(param *properties.SpecParam, structPrefix string) datasourc
 func dataSourceStructContextForParam(structPrefix string, param *properties.SpecParam) []datasourceStructSpec {
 	var structs []datasourceStructSpec
 
-	structName := fmt.Sprintf("%s%s", structPrefix, param.Name.CamelCase)
+	structName := fmt.Sprintf("%s%s", structPrefix, param.NameVariant().CamelCase)
 
 	var fields []datasourceStructFieldSpec
 
