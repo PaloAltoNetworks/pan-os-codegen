@@ -56,17 +56,17 @@ func TestAccPanosPanoramaTemplateVariable(t *testing.T) {
 				},
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
-						"panos_panorama_template_variable."+resourceName,
+						"panos_template_variable."+resourceName,
 						tfjsonpath.New("type").AtMapKey(testEntry.variableType),
 						knownvalue.StringExact(testEntry.value),
 					),
 					statecheck.ExpectKnownValue(
-						"panos_panorama_template_variable."+resourceName,
+						"panos_template_variable."+resourceName,
 						tfjsonpath.New("name"),
 						knownvalue.StringExact("$tempvar-"+nameSuffix),
 					),
 					compareValuesDiffer.AddStateValue(
-						"panos_panorama_template_variable."+resourceName,
+						"panos_template_variable."+resourceName,
 						tfjsonpath.New("type"),
 					),
 				},
@@ -92,7 +92,7 @@ func makePanoramaTemplateVariableConfig(label string) string {
     variable "templ_var_value" { type = string }
     variable "templ_name" { type = string }
 
-    resource "panos_panorama_template" "%s" {
+    resource "panos_template" "%s" {
       name = "${var.templ_name}_${var.name_suffix}"
 
       location = {
@@ -102,10 +102,10 @@ func makePanoramaTemplateVariableConfig(label string) string {
       }
     }
 
-    resource "panos_panorama_template_variable" "%s" {
+    resource "panos_template_variable" "%s" {
       location = {
         template = {
-          name = panos_panorama_template.%s.name
+          name = panos_template.%s.name
         }
       }
 
@@ -142,4 +142,3 @@ func testAccPanosPanoramaTemplateVariableDestroy(entryName, templateName string)
 		return nil
 	}
 }
-
