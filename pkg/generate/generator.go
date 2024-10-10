@@ -135,7 +135,7 @@ func (c *Creator) processTemplate(templateName, filePath string) error {
 		var formattedCode []byte
 		formattedCode, err = format.Source(data.Bytes())
 		if err != nil {
-			log.Printf("Failed to format source code: %s", err.Error())
+			log.Printf("Failed to format source code: %s, %s", filePath, err.Error())
 			formattedCode = data.Bytes()
 		}
 		formattedBuf := bytes.NewBuffer(formattedCode)
