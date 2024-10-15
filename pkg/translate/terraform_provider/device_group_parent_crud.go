@@ -167,7 +167,6 @@ if err := assignParent(ctx, r.client, deviceGroup, parent); err != nil {
 	return
 }
 
-state.Tfid = types.StringValue("")
 resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 `
 const deviceGroupParentResourceUpdate = deviceGroupParentResourceCreate
