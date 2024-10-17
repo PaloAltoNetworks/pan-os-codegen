@@ -118,7 +118,7 @@ func makePanosVirtualRouterConfig(label string) string {
         default = "ethernet1/40"
     }
 
-    resource "panos_panorama_template" "template" {
+    resource "panos_template" "template" {
         name = "${var.template_name}-${var.name_suffix}"
 
         location = {
@@ -133,7 +133,7 @@ func makePanosVirtualRouterConfig(label string) string {
       location = {
         template = {
           vsys = "vsys1"
-          name = panos_panorama_template.template.name
+          name = panos_template.template.name
         }
       }
 
@@ -166,7 +166,7 @@ func makePanosVirtualRouterConfig(label string) string {
     resource "panos_virtual_router" "%s" {
       location = {
        template = {
-          name = panos_panorama_template.template.name
+          name = panos_template.template.name
         }
       }
 

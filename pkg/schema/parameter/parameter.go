@@ -43,9 +43,11 @@ type EnumSpecValue struct {
 }
 
 type CodegenOverridesTerraform struct {
-	Private   bool `yaml:"private"`
-	Sensitive bool `yaml:"sensitive"`
-	Computed  bool `yaml:"computed"`
+	Name      string `yaml:"name"`
+	Type      string `yaml:"type"`
+	Private   bool   `yaml:"private"`
+	Sensitive bool   `yaml:"sensitive"`
+	Computed  bool   `yaml:"computed"`
 }
 
 type CodegenOverrides struct {

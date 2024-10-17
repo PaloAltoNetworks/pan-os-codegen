@@ -1,0 +1,559 @@
+name: "Network address translation policy"
+terraform_provider_config:
+  resource_type: uuid
+  resource_variants:
+    - singular
+    - plural
+  suffix: "nat_policy"
+  plural_suffix: "nat_policy_rules"
+  plural_name: "rules"
+go_sdk_config:
+  package:
+    - "policies"
+    - "rules"
+    - "nat"
+xpath_suffix:
+  - "nat"
+  - "rules"
+locations:
+  - name: "shared"
+    description: "Located in shared."
+    devices:
+      - panorama
+      - ngfw
+    xpath:
+      path:
+        - "config"
+        - "shared"
+        - "$rulebase"
+      vars:
+        - name: "rulebase"
+          type: object
+          description: "The rulebase."
+          default: "pre-rulebase"
+          validators:
+            - type: values
+              spec:
+                values: ["post-rulebase", "pre-rulebase"]
+  - name: "vsys"
+    description: "Located in a specific vsys."
+    devices:
+      - panorama
+      - ngfw
+    xpath:
+      path:
+        - "config"
+        - "devices"
+        - "$ngfw_device"
+        - "vsys"
+        - "$vsys"
+        - "rulebase"
+      vars:
+        - name: "ngfw_device"
+          description: "The NGFW device."
+          default: "localhost.localdomain"
+        - name: "vsys"
+          description: "The vsys."
+          default: "vsys1"
+          validators:
+            - type: not-values
+              spec:
+                values:
+                  - value: "shared"
+                    error: 'The vsys cannot be "shared". Use the "shared" path instead.'
+  - name: "from_panorama_vsys"
+    description: "Located in a specific vsys in the config pushed from Panorama."
+    read_only: true
+    devices:
+      - ngfw
+    xpath:
+      path:
+        - "config"
+        - "panorama"
+        - "vsys"
+        - "$vsys"
+        - "rulebase"
+      vars:
+        - name: "vsys"
+          description: "The vsys."
+          default: "vsys1"
+          validators:
+            - type: not-values
+              spec:
+                values:
+                  - value: "shared"
+                    error: 'The vsys cannot be "shared". Use the "shared" path instead.'
+  - name: "device_group"
+    description: "Located in a specific device group."
+    devices:
+      - panorama
+    xpath:
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+        - "device-group"
+        - "$device_group"
+        - "$rulebase"
+      vars:
+        - name: "panorama_device"
+          description: "The panorama device."
+          default: "localhost.localdomain"
+        - name: "device_group"
+          description: "The device group."
+          required: true
+          validators:
+            - type: not-values
+              spec:
+                values:
+                  - value: "shared"
+                    error: 'The device group cannot be "shared". Use the "shared" path instead.'
+        - name: "rulebase"
+          type: object
+          description: "The rulebase."
+          default: "pre-rulebase"
+          validators:
+            - type: values
+              spec:
+                values: ["post-rulebase", "pre-rulebase"]
+entries:
+  - name: name
+    description: "The name of the NAT rule."
+    validators:
+      - type: length
+        spec:
+          min: 1
+          max: 63
+version: 11.2.0
+spec:
+  params:
+    - name: uuid
+      type: string
+      description: "The UUID value."
+      codegen_overrides:
+        terraform:
+          computed: true
+      validators:
+        - type: regexp
+          spec:
+            expr: "[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}"
+        - type: length
+          spec:
+            min: 3
+            max: 36
+      profiles:
+        - xpath: ["uuid"]
+    - name: from
+      description: Source Zone(s)
+      codegen_overrides:
+        terraform:
+          name: source_zones
+      type: list
+      profiles:
+        - type: member
+          xpath: [from]
+      spec:
+        items:
+          type: string
+          validators:
+            - type: length
+              spec:
+                max: 31
+    - name: to
+      description: Destination Zone(s)
+      codegen_overrides:
+        terraform:
+          name: destination_zone
+          type: string
+      type: list
+      profiles:
+        - type: member
+          xpath: [to]
+      spec:
+        items:
+          type: string
+          validators:
+            - type: length
+              spec:
+                max: 31
+    - name: source
+      description: Source Address(es)
+      required: true
+      type: list
+      codegen_overrides:
+        terraform:
+          name: source_addresses
+      profiles:
+        - type: member
+          xpath: [source]
+      spec:
+        items:
+          type: string
+          validators:
+            - type: length
+              spec:
+                max: 63
+    - name: destination
+      description: Destination Address(es)
+      required: true
+      type: list
+      codegen_overrides:
+        terraform:
+          name: destination_addresses
+      profiles:
+        - type: member
+          xpath: [destination]
+      spec:
+        items:
+          type: string
+          validators:
+            - type: length
+              spec:
+                max: 63
+    - name: service
+      type: string
+      profiles:
+        - xpath: [service]
+      spec:
+        default: any
+    - name: nat-type
+      type: enum
+      profiles:
+        - xpath: [nat-type]
+      validators:
+        - type: values
+          spec:
+            values: [ipv4, nat64, nptv6]
+      spec:
+        values:
+          - { value: ipv4 }
+          - { value: nat64 }
+          - { value: nptv6 }
+    - name: to-interface
+      description: Destination Interface
+      type: string
+      codegen_overrides:
+        terraform:
+          name: destination-interface
+      profiles:
+        - xpath: [to-interface]
+    - name: source-translation
+      description: Source Address Translation
+      type: object
+      profiles:
+        - xpath: [source-translation]
+      spec:
+        variants:
+          - name: dynamic-ip-and-port
+            description: Dynamic IP and Port
+            type: object
+            profiles:
+              - xpath: [dynamic-ip-and-port]
+            spec:
+              variants:
+                - name: translated-address
+                  description: Translated Address
+                  type: list
+                  profiles:
+                    - type: member
+                      xpath: [translated-address]
+                  spec:
+                    items:
+                      type: string
+                - name: interface-address
+                  description: Interface Address
+                  type: object
+                  profiles:
+                    - xpath: [interface-address]
+                  spec:
+                    params:
+                      - name: interface
+                        type: list
+                        profiles:
+                          - type: member
+                            xpath: [interface]
+                        validators:
+                          - type: count
+                            spec:
+                              min: 1
+                              max: 1
+                        spec:
+                          items:
+                            type: string
+                    variants:
+                      - name: ip
+                        description: IP
+                        type: string
+                        profiles:
+                          - xpath: [ip]
+                      - name: floating-ip
+                        description: Floating IP
+                        type: string
+                        profiles:
+                          - xpath: [floating-ip]
+          - name: interface-address
+            description: Interface Address
+            type: object
+            spec:
+              params:
+                - name: interface
+                  description: Interface
+                  type: string
+                  profiles:
+                    - xpath: [interface-address]
+              variants:
+                - name: ip
+                  description: IP
+                  type: string
+                  profiles:
+                    - xpath: [ip]
+                - name: floating-ip
+                  description: Floating IP
+                  type: string
+                  profiles:
+                    - xpath: [floating-ip]
+          - name: dynamic-ip
+            type: object
+            profiles:
+              - xpath: [dynamic-ip]
+            spec:
+              params:
+                - name: translated-address
+                  type: list
+                  profiles:
+                    - type: member
+                      xpath: [translated-address]
+                  spec:
+                    items:
+                      type: string
+                - name: fallback
+                  description: Dynamic IP/Port Fallback
+                  type: object
+                  profiles:
+                    - xpath: [fallback]
+                  spec:
+                    variants:
+                      - name: translated-address
+                        description: Translated Address
+                        type: list
+                        profiles:
+                          - type: member
+                            xpath: [translated-address]
+                        spec:
+                          items:
+                            type: string
+                      - name: interface-address
+                        description: Interface Address
+                        type: object
+                        profiles:
+                          - xpath: [interface-address]
+                        spec:
+                          params:
+                            - name: interface
+                              description: Interface
+                              type: string
+                              profiles:
+                                - xpath: [interface]
+                              validators:
+                                - type: length
+                                  spec:
+                                    max: 31
+                          variants:
+                            - name: ip
+                              description: IP
+                              type: string
+                              profiles:
+                                - xpath: [ip]
+                            - name: floating-ip
+                              description: Floating IP
+                              type: string
+                              profiles:
+                                - xpath: [floating-ip]
+          - name: static-ip
+            type: object
+            profiles:
+              - xpath: [static-ip]
+            spec:
+              params:
+                - name: translated-address
+                  type: string
+                  profiles:
+                    - xpath: [translated-address]
+                  validators:
+                    - type: length
+                      spec:
+                        max: 63
+                - name: bi-directional
+                  type: enum
+                  profiles:
+                    - xpath: [bi-directional]
+                  validators:
+                    - type: values
+                      spec:
+                        values: [yes, no]
+                  spec:
+                    values:
+                      - { value: yes }
+                      - { value: no }
+    - name: active-active-device-binding
+      type: enum
+      profiles:
+        - xpath: [active-active-device-binding]
+      validators:
+        - type: values
+          spec:
+            values: [primary, both, "0", "1"]
+      spec:
+        values:
+          - { value: primary }
+          - { value: secondary }
+          - { value: "0" }
+          - { value: "1" }
+    - name: tags
+      type: list
+      profiles:
+        - type: member
+          xpath: [tag]
+      spec:
+        items:
+          type: string
+    - name: target
+      type: object
+      profiles:
+        - xpath: [target]
+      spec:
+        params:
+          - name: devices
+            type: list
+            profiles:
+              - type: entry
+                xpath: [devices]
+            spec:
+              items:
+                type: string
+          - name: tags
+            type: list
+            profiles:
+              - type: member
+                xpath: [tags]
+            spec:
+              items:
+                type: string
+          - name: negate
+            type: bool
+            profiles:
+              - xpath: [negate]
+    - name: disabled
+      type: bool
+      profiles:
+        - xpath: [disabled]
+      spec:
+        default: false
+    - name: description
+      type: string
+      profiles:
+        - xpath: [description]
+      validators:
+        - type: length
+          spec:
+            min: 0
+            max: 1024
+    - name: group-tag
+      type: string
+      profiles:
+        - xpath: [group-tag]
+      validators:
+        - type: length
+          spec:
+            max: 127
+  variants:
+    - name: none
+      type: nil
+      profiles:
+        - xpath: []
+    - name: destination-translation
+      type: object
+      profiles:
+        - xpath: [destination-translation]
+      spec:
+        params:
+          - name: translated-address
+            type: string
+            profiles:
+              - xpath: [translated-address]
+            validators:
+              - type: length
+                spec:
+                  max: 63
+          - name: translated-port
+            type: int64
+            profiles:
+              - xpath: [translated-port]
+            validators:
+              - type: range
+                spec:
+                  min: 1
+                  max: 65535
+          - name: dns-rewrite
+            type: object
+            profiles:
+              - xpath: [dns-rewrite]
+            spec:
+              params:
+                - name: direction
+                  type: enum
+                  profiles:
+                    - xpath: [direction]
+                  validators:
+                    - type: values
+                      spec:
+                        values: [reverse, forward]
+                  spec:
+                    values:
+                      - { value: reverse }
+                      - { value: forward }
+    - name: dynamic-destination-translation
+      type: object
+      profiles:
+        - xpath: [dynamic-destination-translation]
+      spec:
+        params:
+          - name: translated-address
+            type: string
+            profiles:
+              - xpath: [translated-address]
+            validators:
+              - type: length
+                spec:
+                  max: 63
+          - name: translated-port
+            type: int64
+            profiles:
+              - xpath: [translated-port]
+            validators:
+              - type: range
+                spec:
+                  min: 1
+                  max: 65535
+          - name: distribution
+            type: enum
+            profiles:
+              - xpath: [distribution]
+            validators:
+              - type: values
+                spec:
+                  values:
+                    [
+                      round-robin,
+                      source-ip-hash,
+                      ip-modulo,
+                      ip-hash,
+                      least-sessions,
+                    ]
+            spec:
+              values:
+                - { value: round-robin }
+                - { value: source-ip-hash }
+                - { value: ip-modulo }
+                - { value: ip-hash }
+                - { value: least-sessions }
