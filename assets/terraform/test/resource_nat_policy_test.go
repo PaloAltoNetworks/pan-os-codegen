@@ -26,7 +26,12 @@ type deviceType int
 
 const (
 	devicePanorama deviceType = iota
-	deviceFirewall deviceType = iota
+	deviceFirewall
+)
+
+var (
+	UnexpectedRulesError = errors.New("exhaustive resource didn't delete existing rules")
+	DanglingObjectsError = errors.New("some objects were not deleted by the provider")
 )
 
 type expectServerRulesOrder struct {
@@ -160,46 +165,52 @@ func TestAccPanosNatPolicy(t *testing.T) {
 
 	device := devicePanorama
 
-	location := locationByDeviceType(device)
+	sdkLocation, cfgLocation := natPolicyLocationByDeviceType(device)
+
+	stateExpectedRuleName := func(idx int, value string) statecheck.StateCheck {
+		return statecheck.ExpectKnownValue(
+			fmt.Sprintf("panos_nat_policy.%s", prefix),
+			tfjsonpath.New("rules").AtSliceIndex(idx).AtMapKey("name"),
+			knownvalue.StringExact(prefixed(value)),
+		)
+	}
+
+	planExpectedRuleName := func(idx int, value string) plancheck.PlanCheck {
+		return plancheck.ExpectKnownValue(
+			fmt.Sprintf("panos_nat_policy.%s", prefix),
+			tfjsonpath.New("rules").AtSliceIndex(idx).AtMapKey("name"),
+			knownvalue.StringExact(prefixed(value)),
+		)
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			natPolicyPreCheck(prefix, location)
+			natPolicyPreCheck(prefix, sdkLocation)
 
 		},
 		ProtoV6ProviderFactories: testAccProviders,
-		CheckDestroy:             natPolicyCheckDestroy(prefix, location),
+		CheckDestroy:             natPolicyCheckDestroy(prefix, sdkLocation),
 		Steps: []resource.TestStep{
 			{
-				Config: makeConfig(prefix, device),
+				Config: makeNatPolicyConfig(prefix),
 				ConfigVariables: map[string]config.Variable{
 					"rule_names": config.ListVariable(withPrefix(rulesInitial)...),
+					"location":   cfgLocation,
 				},
 				ConfigStateChecks: []statecheck.StateCheck{
-					statecheck.ExpectKnownValue(
-						fmt.Sprintf("panos_nat_policy.%s", prefix),
-						tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("name"),
-						knownvalue.StringExact(prefixed("rule-1")),
-					),
-					statecheck.ExpectKnownValue(
-						fmt.Sprintf("panos_nat_policy.%s", prefix),
-						tfjsonpath.New("rules").AtSliceIndex(1).AtMapKey("name"),
-						knownvalue.StringExact(prefixed("rule-2")),
-					),
-					statecheck.ExpectKnownValue(
-						fmt.Sprintf("panos_nat_policy.%s", prefix),
-						tfjsonpath.New("rules").AtSliceIndex(2).AtMapKey("name"),
-						knownvalue.StringExact(prefixed("rule-3")),
-					),
-					ExpectServerRulesCount(prefix, location, len(rulesInitial)),
-					ExpectServerRulesOrder(prefix, location, rulesInitial),
+					stateExpectedRuleName(0, "rule-1"),
+					stateExpectedRuleName(1, "rule-2"),
+					stateExpectedRuleName(2, "rule-3"),
+					ExpectServerRulesCount(prefix, sdkLocation, len(rulesInitial)),
+					ExpectServerRulesOrder(prefix, sdkLocation, rulesInitial),
 				},
 			},
 			{
-				Config: makeConfig(prefix, device),
+				Config: makeNatPolicyConfig(prefix),
 				ConfigVariables: map[string]config.Variable{
 					"rule_names": config.ListVariable(withPrefix(rulesInitial)...),
+					"location":   cfgLocation,
 				},
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
@@ -208,46 +219,23 @@ func TestAccPanosNatPolicy(t *testing.T) {
 				},
 			},
 			{
-				Config: makeConfig(prefix, device),
+				Config: makeNatPolicyConfig(prefix),
 				ConfigVariables: map[string]config.Variable{
 					"rule_names": config.ListVariable(withPrefix(rulesReordered)...),
+					"location":   cfgLocation,
 				},
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
-						plancheck.ExpectKnownValue(
-							fmt.Sprintf("panos_nat_policy.%s", prefix),
-							tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("name"),
-							knownvalue.StringExact(prefixed("rule-2")),
-						),
-						plancheck.ExpectKnownValue(
-							fmt.Sprintf("panos_nat_policy.%s", prefix),
-							tfjsonpath.New("rules").AtSliceIndex(1).AtMapKey("name"),
-							knownvalue.StringExact(prefixed("rule-1")),
-						),
-						plancheck.ExpectKnownValue(
-							fmt.Sprintf("panos_nat_policy.%s", prefix),
-							tfjsonpath.New("rules").AtSliceIndex(2).AtMapKey("name"),
-							knownvalue.StringExact(prefixed("rule-3")),
-						),
+						planExpectedRuleName(0, "rule-2"),
+						planExpectedRuleName(1, "rule-1"),
+						planExpectedRuleName(2, "rule-3"),
 					},
 				},
 				ConfigStateChecks: []statecheck.StateCheck{
-					statecheck.ExpectKnownValue(
-						fmt.Sprintf("panos_nat_policy.%s", prefix),
-						tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("name"),
-						knownvalue.StringExact(prefixed("rule-2")),
-					),
-					statecheck.ExpectKnownValue(
-						fmt.Sprintf("panos_nat_policy.%s", prefix),
-						tfjsonpath.New("rules").AtSliceIndex(1).AtMapKey("name"),
-						knownvalue.StringExact(prefixed("rule-1")),
-					),
-					statecheck.ExpectKnownValue(
-						fmt.Sprintf("panos_nat_policy.%s", prefix),
-						tfjsonpath.New("rules").AtSliceIndex(2).AtMapKey("name"),
-						knownvalue.StringExact(prefixed("rule-3")),
-					),
-					ExpectServerRulesOrder(prefix, location, rulesReordered),
+					stateExpectedRuleName(0, "rule-2"),
+					stateExpectedRuleName(1, "rule-1"),
+					stateExpectedRuleName(2, "rule-3"),
+					ExpectServerRulesOrder(prefix, sdkLocation, rulesReordered),
 				},
 			},
 		},
@@ -256,21 +244,10 @@ func TestAccPanosNatPolicy(t *testing.T) {
 
 const configTmpl = `
 variable "rule_names" { type = list(string) }
+variable "location" { type = map }
 
 resource "panos_nat_policy" "{{ .ResourceName }}" {
-{{- if .IsPanorama }}
-  location = {
-    shared = {
-      rulebase = "pre-rulebase"
-    }
-  }
-{{- else }}
-  location = {
-    vsys = {
-      name = "vsys1"
-    }
-  }
-{{- end }}
+  location = var.location
 
   rules = [
     for index, name in var.rule_names: {
@@ -288,18 +265,14 @@ resource "panos_nat_policy" "{{ .ResourceName }}" {
 }
 `
 
-func makeConfig(prefix string, deviceType deviceType) string {
+func makeNatPolicyConfig(prefix string) string {
 	var buf bytes.Buffer
 	tmpl := template.Must(template.New("").Parse(configTmpl))
 
 	context := struct {
-		IsPanorama   bool
 		ResourceName string
-		DeviceGroup  string
 	}{
-		IsPanorama:   deviceType == devicePanorama,
 		ResourceName: prefix,
-		DeviceGroup:  fmt.Sprintf("%s-dg", prefix),
 	}
 
 	err := tmpl.Execute(&buf, context)
@@ -310,28 +283,36 @@ func makeConfig(prefix string, deviceType deviceType) string {
 	return buf.String()
 }
 
-var UnexpectedRulesError = errors.New("exhaustive resource didn't delete existing rules")
-var DanglingObjectsError = errors.New("some objects were not deleted by the provider")
-
-func locationByDeviceType(typ deviceType) nat.Location {
-	var location nat.Location
+func natPolicyLocationByDeviceType(typ deviceType) (nat.Location, config.Variable) {
+	var sdkLocation nat.Location
+	var cfgLocation config.Variable
 	switch typ {
 	case devicePanorama:
-		location = nat.Location{
+		sdkLocation = nat.Location{
 			Shared: &nat.SharedLocation{
 				Rulebase: "pre-rulebase",
 			},
 		}
+		cfgLocation = config.ObjectVariable(map[string]config.Variable{
+			"shared": config.ObjectVariable(map[string]config.Variable{
+				"rulebase": config.StringVariable("pre-rulebase"),
+			}),
+		})
 	case deviceFirewall:
-		location = nat.Location{
+		sdkLocation = nat.Location{
 			Vsys: &nat.VsysLocation{
 				NgfwDevice: "localhost.localdomain",
 				Vsys:       "vsys1",
 			},
 		}
+		cfgLocation = config.ObjectVariable(map[string]config.Variable{
+			"vsys": config.ObjectVariable(map[string]config.Variable{
+				"name": config.StringVariable("vsys1"),
+			}),
+		})
 	}
 
-	return location
+	return sdkLocation, cfgLocation
 }
 
 func natPolicyPreCheck(prefix string, location nat.Location) {
@@ -375,18 +356,13 @@ func natPolicyCheckDestroy(prefix string, location nat.Location) func(s *terrafo
 
 		rules, err := service.List(ctx, location, "get", "", "")
 		if err != nil && !sdkerrors.IsObjectNotFound(err) {
-			panic(err)
+			return err
 		}
 
-		var foundDanglingRules bool
 		for _, elt := range rules {
 			if strings.HasPrefix(elt.Name, prefix) {
-				foundDanglingRules = true
+				return DanglingObjectsError
 			}
-		}
-
-		if foundDanglingRules {
-			return DanglingObjectsError
 		}
 
 		return nil
@@ -409,7 +385,7 @@ func init() {
 				panic("invalid device type")
 			}
 
-			location := locationByDeviceType(deviceTyp)
+			location, _ := natPolicyLocationByDeviceType(deviceTyp)
 			ctx := context.TODO()
 			objects, err := service.List(ctx, location, "get", "", "")
 			if err != nil && !sdkerrors.IsObjectNotFound(err) {
