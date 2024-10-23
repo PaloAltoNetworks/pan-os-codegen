@@ -1181,10 +1181,11 @@ func createSchemaSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 	}
 
 	attributes = append(attributes, attributeCtx{
-		Package:    packageName,
-		Name:       listName,
-		Required:   true,
-		SchemaType: "ListNestedAttribute",
+		Package:     packageName,
+		Name:        listName,
+		Required:    true,
+		Description: spec.TerraformProviderConfig.PluralDescription,
+		SchemaType:  "ListNestedAttribute",
 	})
 
 	var isResource bool
@@ -1302,10 +1303,11 @@ func createSchemaSpecForEntryListModel(resourceTyp properties.ResourceType, sche
 	}
 
 	attributes = append(attributes, attributeCtx{
-		Package:    packageName,
-		Name:       listName,
-		Required:   true,
-		SchemaType: "MapNestedAttribute",
+		Package:     packageName,
+		Name:        listName,
+		Description: spec.TerraformProviderConfig.PluralDescription,
+		Required:    true,
+		SchemaType:  "MapNestedAttribute",
 	})
 
 	var isResource bool
