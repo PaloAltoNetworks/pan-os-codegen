@@ -2,6 +2,7 @@ package generate
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"go/format"
 	"io"
@@ -149,14 +150,16 @@ func (c *Creator) processTemplate(templateName, filePath string) error {
 
 // writeFormattedContentToFile formats the content and writes it to a file.
 func (c *Creator) writeFormattedContentToFile(filePath, content string) error {
-	formattedCode, err := format.Source([]byte(content))
-	if err != nil {
-		log.Printf("provided content: %s", content)
-		return fmt.Errorf("error formatting code: %w", err)
+	var formattedCode []byte
+	var formatErr error
+	formattedCode, formatErr = format.Source([]byte(content))
+	if formatErr != nil {
+		log.Printf("Failed to format target path: %s", filePath)
+		formattedCode = []byte(content)
 	}
 	formattedBuf := bytes.NewBuffer(formattedCode)
 
-	return c.createFileAndWriteContent(filePath, formattedBuf)
+	return errors.Join(formatErr, c.createFileAndWriteContent(filePath, formattedBuf))
 }
 
 // createTerraformProviderFilePath returns a file path for a Terraform provider based on the provided suffix.
