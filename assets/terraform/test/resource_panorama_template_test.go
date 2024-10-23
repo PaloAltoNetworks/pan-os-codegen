@@ -36,7 +36,7 @@ func TestAccPanosTemplate_RequiredInputs(t *testing.T) {
 				},
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
-						"panos_panorama_template."+resourceName,
+						"panos_template."+resourceName,
 						tfjsonpath.New("name"),
 						knownvalue.StringExact(templateName),
 					),
@@ -50,7 +50,7 @@ func makePanosTemplateConfig(label string) string {
 	configTpl := `
     variable "template_name" { type = string }
 
-    resource "panos_panorama_template" "%s" {
+    resource "panos_template" "%s" {
         name = var.template_name
 
         location = {

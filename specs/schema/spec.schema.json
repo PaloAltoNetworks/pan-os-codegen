@@ -43,6 +43,7 @@
           }
         },
         "type": { "$ref": "#/$defs/type" },
+        "required": { "type": "boolean", "default": "false" },
         "profiles": {
           "type": "array",
           "items": { "$ref": "profile.schema.json" }
