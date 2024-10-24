@@ -72,7 +72,6 @@ func (g *GenerateTerraformProvider) updateProviderFile(renderedTemplate *strings
 	case "ProviderFile":
 		terraformProvider.Code = renderedTemplate
 	default:
-		log.Printf("updateProviderFile() renderedTemplate: %d", renderedTemplate.Len())
 		if _, err := terraformProvider.Code.WriteString(renderedTemplate.String()); err != nil {
 			return fmt.Errorf("error writing %s template: %v", resourceType, err)
 		}
