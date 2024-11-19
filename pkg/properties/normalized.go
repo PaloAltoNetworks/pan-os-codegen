@@ -3,6 +3,7 @@ package properties
 import (
 	"fmt"
 	"io/fs"
+	"log"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -174,11 +175,12 @@ type SpecParam struct {
 }
 
 type SpecParamTerraformProviderConfig struct {
-	Name      string `json:"name" yaml:"name"`
-	Type      string `json:"type" yaml:"type"`
-	Private   bool   `json:"ignored" yaml:"private"`
-	Sensitive bool   `json:"sensitive" yaml:"sensitive"`
-	Computed  bool   `json:"computed" yaml:"computed"`
+	Name         string `json:"name" yaml:"name"`
+	Type         string `json:"type" yaml:"type"`
+	Private      bool   `json:"ignored" yaml:"private"`
+	Sensitive    bool   `json:"sensitive" yaml:"sensitive"`
+	Computed     bool   `json:"computed" yaml:"computed"`
+	VariantCheck string `json:"variant_check" yaml:"variant_check"`
 }
 
 type SpecParamLength struct {
@@ -459,12 +461,14 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 	if schemaSpec.CodegenOverrides != nil {
 		sensitive = schemaSpec.CodegenOverrides.Terraform.Sensitive
 		terraformProviderConfig = &SpecParamTerraformProviderConfig{
-			Name:      schemaSpec.CodegenOverrides.Terraform.Name,
-			Type:      schemaSpec.CodegenOverrides.Terraform.Type,
-			Private:   schemaSpec.CodegenOverrides.Terraform.Private,
-			Sensitive: schemaSpec.CodegenOverrides.Terraform.Sensitive,
-			Computed:  schemaSpec.CodegenOverrides.Terraform.Computed,
+			Name:         schemaSpec.CodegenOverrides.Terraform.Name,
+			Type:         schemaSpec.CodegenOverrides.Terraform.Type,
+			Private:      schemaSpec.CodegenOverrides.Terraform.Private,
+			Sensitive:    schemaSpec.CodegenOverrides.Terraform.Sensitive,
+			Computed:     schemaSpec.CodegenOverrides.Terraform.Computed,
+			VariantCheck: string(schemaSpec.CodegenOverrides.Terraform.VariantCheck),
 		}
+		log.Printf("terraformProviderConfig: %s VariantCheck: '%s'\n", schemaSpec.Name, terraformProviderConfig.VariantCheck)
 	}
 	specParameter := &SpecParam{
 		Description:             schemaSpec.Description,

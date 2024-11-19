@@ -2,6 +2,7 @@ package generate
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"go/format"
 	"io"
@@ -140,8 +141,9 @@ func (c *Creator) processTemplate(templateName, filePath string) error {
 		}
 		formattedBuf := bytes.NewBuffer(formattedCode)
 
-		if writeErr := c.createAndWriteFile(filePath, formattedBuf); writeErr != nil {
-			return fmt.Errorf("error creating and writing to file %s: %w", filePath, err)
+		writeErr := c.createAndWriteFile(filePath, formattedBuf)
+		if writeErr != nil {
+			return errors.Join(err, writeErr)
 		}
 	}
 	return err
@@ -151,8 +153,8 @@ func (c *Creator) processTemplate(templateName, filePath string) error {
 func (c *Creator) writeFormattedContentToFile(filePath, content string) error {
 	formattedCode, err := format.Source([]byte(content))
 	if err != nil {
-		log.Printf("provided content: %s", content)
-		return fmt.Errorf("error formatting code: %w", err)
+		log.Printf("failed to format provided content: %s", filePath)
+		formattedCode = []byte(content)
 	}
 	formattedBuf := bytes.NewBuffer(formattedCode)
 

@@ -42,12 +42,20 @@ type EnumSpecValue struct {
 	Const string `yaml:"const"`
 }
 
+type VariantCheckType string
+
+const (
+	VariantCheckConflictsWith VariantCheckType = "ConflictsWith"
+	VariantCheckExactlyOneOf  VariantCheckType = "ExactlyOneOf"
+)
+
 type CodegenOverridesTerraform struct {
-	Name      string `yaml:"name"`
-	Type      string `yaml:"type"`
-	Private   bool   `yaml:"private"`
-	Sensitive bool   `yaml:"sensitive"`
-	Computed  bool   `yaml:"computed"`
+	Name         string           `yaml:"name"`
+	Type         string           `yaml:"type"`
+	Private      bool             `yaml:"private"`
+	Sensitive    bool             `yaml:"sensitive"`
+	Computed     bool             `yaml:"computed"`
+	VariantCheck VariantCheckType `yaml:"variant_check"`
 }
 
 type CodegenOverrides struct {

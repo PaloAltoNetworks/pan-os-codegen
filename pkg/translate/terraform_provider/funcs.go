@@ -103,6 +103,7 @@ func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix st
 	if paramSpec.Type == "list" && paramSpec.Items.Type == "entry" {
 		hasEntryName = true
 	}
+
 	element := spec{
 		PangoType:              pangoType,
 		PangoReturnType:        pangoReturnType,
@@ -121,7 +122,7 @@ func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix st
 				continue
 			}
 
-			terraformPrefix := fmt.Sprintf("%s%s", terraformPrefix, paramSpec.Name.CamelCase)
+			terraformPrefix := fmt.Sprintf("%s%s", terraformPrefix, paramSpec.NameVariant().CamelCase)
 			specs = append(specs, generateFromTerraformToPangoSpec(pangoType, terraformPrefix, elt, parentNames)...)
 		}
 	}
@@ -220,7 +221,7 @@ const copyToPangoTmpl = `
 
 {{- define "terraformListElementsAs" }}
   {{- with .Parameter }}
-    {{- $pangoType := printf "%s%s" $.Spec.PangoType .TerraformName.CamelCase }}
+    {{- $pangoType := printf "%s%s" $.Spec.PangoType .PangoName.CamelCase }}
     {{- $terraformType := printf "%s%sObject" $.Spec.TerraformType .TerraformName.CamelCase }}
     {{- $pangoEntries := printf "%s_pango_entries" .TerraformName.LowerCamelCase }}
     {{- $tfEntries := printf "%s_tf_entries" .TerraformName.LowerCamelCase }}
@@ -380,7 +381,7 @@ var {{ .TerraformName.LowerCamelCase }}_list types.List
 	var {{ $terraformList }} types.List
 	{
 		var {{ $tfEntries }} []{{ $terraformType }}
-		for _, elt := range obj.{{ .TerraformName.CamelCase }} {
+		for _, elt := range obj.{{ .PangoName.CamelCase }} {
 			var entry {{ $terraformType }}
 			entry_diags := entry.CopyFromPango(ctx, &elt, encrypted)
 			diags.Append(entry_diags...)
@@ -1048,15 +1049,17 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		})
 	}
 
-	validatorFn := "ExactlyOneOf"
+	var validatorFn string
+	if param.Required {
+		validatorFn = "ExactlyOneOf"
+	} else {
+		validatorFn = "ConflictsWith"
+	}
+
 	var expressions []string
 	for _, elt := range param.Spec.OneOf {
 		if elt.IsPrivateParameter() {
 			continue
-		}
-
-		if elt.IsNil {
-			validatorFn = "ConflictsWith"
 		}
 
 		expressions = append(expressions, fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, elt.Name.Underscore))
@@ -1509,9 +1512,10 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 			continue
 		}
 
-		if elt.IsNil {
-			validatorFn = "ConflictsWith"
+		if elt.TerraformProviderConfig != nil && elt.TerraformProviderConfig.VariantCheck != "" {
+			validatorFn = elt.TerraformProviderConfig.VariantCheck
 		}
+
 		expressions = append(expressions, fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, elt.Name.Underscore))
 	}
 
