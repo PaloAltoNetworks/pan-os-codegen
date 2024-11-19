@@ -1,255 +1,271 @@
-name: "Tag"
+name: administrative-tag
 terraform_provider_config:
-  suffix: "administrative_tag"
+  description: Administrative Tag
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: administrative_tag
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
 go_sdk_config:
+  skip: false
   package:
-    - "objects"
-    - "tag"
+  - objects
+  - admintag
 xpath_suffix:
-  - "tag"
+- tag
 locations:
-  - name: "shared"
-    description: "Located in shared."
-    devices:
-      - panorama
-      - ngfw
-    xpath:
-      path: ["config", "shared"]
-  - name: "vsys"
-    description: "Located in a specific vsys."
-    devices:
-      - panorama
-      - ngfw
-    xpath:
-      path:
-        - "config"
-        - "devices"
-        - "$ngfw_device"
-        - "vsys"
-        - "$vsys"
-      vars:
-        - name: "ngfw_device"
-          description: "The NGFW device."
-          default: "localhost.localdomain"
-        - name: "vsys"
-          description: "The vsys."
-          default: "vsys1"
-          validators:
-            - type: not-values
-              spec:
-                values:
-                  - value: "shared"
-                    error: 'The vsys cannot be "shared". Use the "shared" path instead.'
-  - name: "from_panorama_shared"
-    description: "Located in shared in the config pushed from Panorama."
-    read_only: true
-    devices:
-      - ngfw
-    xpath:
-      path:
-        - "config"
-        - "panorama"
-        - "shared"
-  - name: "from_panorama_vsys"
-    description: "Located in a specific vsys in the config pushed from Panorama."
-    read_only: true
-    devices:
-      - ngfw
-    xpath:
-      path:
-        - "config"
-        - "panorama"
-        - "vsys"
-        - "$vsys"
-      vars:
-        - name: "vsys"
-          description: "The vsys."
-          default: "vsys1"
-          validators:
-            - type: not-values
-              spec:
-                values:
-                  - value: "shared"
-                    error: 'The vsys cannot be "shared". Use the "shared" path instead.'
-  - name: "device_group"
-    description: "Located in a specific device group."
-    devices:
-      - panorama
-    xpath:
-      path:
-        - "config"
-        - "devices"
-        - "$panorama_device"
-        - "device-group"
-        - "$device_group"
-      vars:
-        - name: "panorama_device"
-          description: "The panorama device."
-          default: "localhost.localdomain"
-        - name: "device_group"
-          description: "The device group."
-          required: true
-          validators:
-            - type: not-values
-              spec:
-                values:
-                  - value: "shared"
-                    error: 'The device group cannot be "shared". Use the "shared" path instead.'
-entries:
-  - name: name
-    description: "The name of the tag."
-    validators:
-      - type: length
+- name: shared
+  xpath:
+    path:
+    - config
+    - shared
+    vars: []
+  description: Location in Shared Panorama
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: ngfw_device
+      description: The NGFW device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The Virtual System name
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
         spec:
-          min: 1
-          max: 127
-version: "10.1.0"
+          values:
+          - value: shared
+            error: The vsys name cannot be "shared". Use the "shared" location instead
+      type: entry
+  description: Located in a specific Virtual System
+  devices:
+  - ngfw
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: device-group
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - device-group
+    - $device_group
+    vars:
+    - name: panorama_device
+      description: Panorama device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: device_group
+      description: Device Group name
+      required: true
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The device group name cannot be "shared". Use the "shared" location
+              instead
+      type: entry
+  description: Located in a specific Device Group
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
 spec:
   params:
-    - name: color
-      description: "The color."
-      type: enum
-      validators:
-        - type: values
-          spec:
-            values:
-              [
-                color1,
-                color2,
-                color3,
-                color4,
-                color5,
-                color6,
-                color7,
-                color8,
-                color9,
-                color10,
-                color11,
-                color12,
-                color13,
-                color14,
-                color15,
-                color16,
-                color17,
-                color18,
-                color19,
-                color20,
-                color21,
-                color22,
-                color23,
-                color24,
-                color25,
-                color26,
-                color27,
-                color28,
-                color29,
-                color30,
-                color31,
-                color32,
-                color33,
-                color34,
-                color35,
-                color36,
-                color37,
-                color38,
-                color39,
-                color40,
-                color41,
-                color42,
-              ]
+  - name: color
+    type: enum
+    profiles:
+    - xpath:
+      - color
+    validators:
+    - type: values
       spec:
         values:
-          - value: color1
-            const: red
-          - value: color2
-            const: green
-          - value: color3
-            const: yellow
-          - value: color4
-            const: copper
-          - value: color5
-            const: orange
-          - value: color6
-            const: purple
-          - value: color7
-            const: gray
-          - value: color8
-            const: light green
-          - value: color9
-            const: cyan
-          - value: color10
-            const: light gray
-          - value: color11
-            const: blue gray
-          - value: color12
-            const: blue gray
-          - value: color13
-            const: lime
-          - value: color14
-            const: black
-          - value: color15
-            const: gold
-          - value: color16
-            const: brown
-          - value: color17
-            const: olive
-          - value: color19
-            const: maroon
-          - value: color20
-            const: red-orange
-          - value: color21
-            const: yellow-orange
-          - value: color22
-            const: forest green
-          - value: color23
-            const: turquoise blue
-          - value: color24
-            const: azure blue
-          - value: color25
-            const: cerulean blue
-          - value: color26
-            const: midnight blue
-          - value: color27
-            const: medium blue
-          - value: color28
-            const: cobalt blue
-          - value: color29
-            const: violet blue
-          - value: color30
-            const: blue violet
-          - value: color31
-            const: medium violet
-          - value: color32
-            const: medium rose
-          - value: color33
-            const: lavender
-          - value: color34
-            const: orchid
-          - value: color35
-            const: thistle
-          - value: color36
-            const: peach
-          - value: color37
-            const: salmon
-          - value: color38
-            const: magenta
-          - value: color39
-            const: red violet
-          - value: color40
-            const: mahogany
-          - value: color41
-            const: burnt sienna
-          - value: color42
-            const: chestnut
-      profiles:
-        - xpath: ["color"]
-    - name: comments
-      description: "Comments."
-      type: string
-      validators:
-        - type: length
-          spec:
-            min: 0
-            max: 1023
-      profiles:
-        - xpath: ["comments"]
+        - color1
+        - color2
+        - color3
+        - color4
+        - color5
+        - color6
+        - color7
+        - color8
+        - color9
+        - color10
+        - color11
+        - color12
+        - color13
+        - color14
+        - color15
+        - color16
+        - color17
+        - color19
+        - color20
+        - color21
+        - color22
+        - color23
+        - color24
+        - color25
+        - color26
+        - color27
+        - color28
+        - color29
+        - color30
+        - color31
+        - color32
+        - color33
+        - color34
+        - color35
+        - color36
+        - color37
+        - color38
+        - color39
+        - color40
+        - color41
+        - color42
+    spec:
+      values:
+      - value: color1
+        const: red
+      - value: color2
+        const: green
+      - value: color3
+        const: yellow
+      - value: color4
+        const: copper
+      - value: color5
+        const: orange
+      - value: color6
+        const: purple
+      - value: color7
+        const: gray
+      - value: color8
+        const: light green
+      - value: color9
+        const: cyan
+      - value: color10
+        const: light gray
+      - value: color11
+        const: blue gray
+      - value: color12
+        const: blue gray
+      - value: color13
+        const: lime
+      - value: color14
+        const: black
+      - value: color15
+        const: gold
+      - value: color16
+        const: brown
+      - value: color17
+        const: olive
+      - value: color19
+        const: maroon
+      - value: color20
+        const: red-orange
+      - value: color21
+        const: yellow-orange
+      - value: color22
+        const: forest green
+      - value: color23
+        const: turquoise blue
+      - value: color24
+        const: azure blue
+      - value: color25
+        const: cerulean blue
+      - value: color26
+        const: midnight blue
+      - value: color27
+        const: medium blue
+      - value: color28
+        const: cobalt blue
+      - value: color29
+        const: violet blue
+      - value: color30
+        const: blue violet
+      - value: color31
+        const: medium violet
+      - value: color32
+        const: medium rose
+      - value: color33
+        const: lavender
+      - value: color34
+        const: orchid
+      - value: color35
+        const: thistle
+      - value: color36
+        const: peach
+      - value: color37
+        const: salmon
+      - value: color38
+        const: magenta
+      - value: color39
+        const: red violet
+      - value: color40
+        const: mahogany
+      - value: color41
+        const: burnt sienna
+      - value: color42
+        const: chestnut
+    description: ''
+    required: false
+  - name: comments
+    type: string
+    profiles:
+    - xpath:
+      - comments
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 1023
+    spec: {}
+    description: ''
+    required: false
+  - name: disable-override
+    type: enum
+    profiles:
+    - xpath:
+      - disable-override
+    validators:
+    - type: values
+      spec:
+        values:
+        - 'no'
+    spec:
+      default: 'no'
+      values:
+      - value: 'no'
+    description: disable object override in child device groups
+    required: false
+  variants: []

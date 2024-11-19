@@ -1,116 +1,177 @@
-name: "DNS"
+name: DNS
 terraform_provider_config:
-  suffix: "dns_settings"
+  description: DNS configuration
+  skip_resource: false
+  skip_datasource: false
+  resource_type: config
+  resource_variants: []
+  suffix: dns_settings
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
 go_sdk_config:
+  skip: false
   package:
-    - "device"
-    - "services"
-    - "dns"
+  - device
+  - services
+  - dns
+xpath_suffix: []
 locations:
-  - name: "system"
-    description: "Located in a system settings."
-    devices:
-      - panorama
-      - ngfw
-    xpath:
-      path:
-        - "config"
-        - "devices"
-        - "$ngfw_device"
-        - "deviceconfig"
-        - "system"
-      vars:
-        - name: "ngfw_device"
-          description: "The NGFW device."
-          default: "localhost.localdomain"
-  - name: "template"
-    description: "Located in a specific template."
-    devices:
-      - panorama
-    xpath:
-      path:
-        - "config"
-        - "devices"
-        - "$panorama_device"
-        - "template"
-        - "$template"
-        - "config"
-        - "devices"
-        - "$ngfw_device"
-        - "deviceconfig"
-        - "system"
-      vars:
-        - name: "panorama_device"
-          description: "The panorama device."
-          default: "localhost.localdomain"
-        - name: "template"
-          description: "The template."
-          required: true
-        - name: "ngfw_device"
-          description: "The NGFW device."
-          default: "localhost.localdomain"
-  - name: "template-stack"
-    description: "Located in a specific template stack."
-    devices:
-      - panorama
-    xpath:
-      path:
-        - "config"
-        - "devices"
-        - "$panorama_device"
-        - "template-stack"
-        - "$template_stack"
-        - "config"
-        - "devices"
-        - "$ngfw_device"
-        - "deviceconfig"
-        - "system"
-      vars:
-        - name: "panorama_device"
-          description: "The panorama device."
-          default: "localhost.localdomain"
-        - name: "template_stack"
-          description: "The template stack."
-          required: true
-        - name: "ngfw_device"
-          description: "The NGFW device."
-          default: "localhost.localdomain"
-version: "10.1.0"
+- name: system
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - deviceconfig
+    - system
+    vars:
+    - name: ngfw_device
+      description: The NGFW device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a system settings.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    - deviceconfig
+    - system
+    vars:
+    - name: panorama_device
+      description: The panorama device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: The template.
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template.
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    - deviceconfig
+    - system
+    vars:
+    - name: panorama_device
+      description: The panorama device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack.
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack.
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries: []
+imports: []
 spec:
   params:
-    - name: fqdn_refresh_time
-      description: "Seconds for Periodic Timer to refresh expired FQDN object entries"
-      type: int64
-      spec:
-        default: 1800
-        validators:
-          - type: range
-            spec:
-              min: 600
-              max: 14399
-      profiles:
-        - xpath: ["fqdn-refresh-time"]
-    - name: dns_setting
-      description: "DNS settings"
-      type: object
-      profiles:
-        - xpath: ["dns-setting"]
-      spec:
-        params:
-          - name: servers
-            description: "DNS servers"
-            type: object
+  - name: dns-setting
+    type: object
+    profiles:
+    - xpath:
+      - dns-setting
+    validators: []
+    spec:
+      params:
+      - name: servers
+        type: object
+        profiles:
+        - xpath:
+          - servers
+        validators: []
+        spec:
+          params:
+          - name: primary
+            type: string
             profiles:
-              - xpath: ["servers"]
-            spec:
-              params:
-                - name: primary
-                  description: "Primary DNS server IP address"
-                  type: string
-                  profiles:
-                    - xpath: ["primary"]
-                - name: secondary
-                  description: "Secondary DNS server IP address"
-                  type: string
-                  profiles:
-                    - xpath: ["secondary"]
+            - xpath:
+              - primary
+            validators: []
+            spec: {}
+            description: Primary DNS server IP address
+            required: false
+          - name: secondary
+            type: string
+            profiles:
+            - xpath:
+              - secondary
+            validators: []
+            spec: {}
+            description: Secondary DNS server IP address
+            required: false
+          variants: []
+        description: Primary and secondary dns servers
+        required: false
+      variants: []
+    description: DNS settings
+    required: false
+    codegen_overrides:
+      terraform:
+        name: dns-settings
+  - name: fqdn-refresh-time
+    type: int64
+    profiles:
+    - xpath:
+      - fqdn-refresh-time
+    validators:
+    - type: length
+      spec:
+        min: 600
+        max: 14399
+    spec:
+      default: 1800
+    description: Seconds for Periodic Timer to refresh expired FQDN object entries
+    required: false
+  variants: []
