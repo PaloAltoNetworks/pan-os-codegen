@@ -96,7 +96,7 @@ func (c *Creator) RenderTerraformProviderFile(spec *properties.Normalization, ty
 	case properties.ResourceEntryPlural:
 		name = spec.TerraformProviderConfig.PluralSuffix
 		filePath = c.createTerraformProviderFilePath(name)
-	case properties.ResourceEntry, properties.ResourceUuid, properties.ResourceCustom:
+	case properties.ResourceEntry, properties.ResourceUuid, properties.ResourceCustom, properties.ResourceConfig:
 		filePath = c.createTerraformProviderFilePath(spec.TerraformProviderConfig.Suffix)
 	}
 

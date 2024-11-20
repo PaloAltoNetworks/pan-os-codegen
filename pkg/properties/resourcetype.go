@@ -3,11 +3,12 @@ package properties
 type ResourceType int
 
 const (
-	ResourceEntry       ResourceType = iota
-	ResourceCustom      ResourceType = iota
-	ResourceEntryPlural ResourceType = iota
-	ResourceUuid        ResourceType = iota
-	ResourceUuidPlural  ResourceType = iota
+	ResourceEntry ResourceType = iota
+	ResourceCustom
+	ResourceConfig
+	ResourceEntryPlural
+	ResourceUuid
+	ResourceUuidPlural
 )
 
 type SchemaType int

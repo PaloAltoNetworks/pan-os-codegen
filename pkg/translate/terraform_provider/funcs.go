@@ -148,7 +148,7 @@ func generateFromTerraformToPangoParameter(resourceTyp properties.ResourceType, 
 	oneofSpecs := renderSpecsForParams(prop.Spec.OneOf, []string{parentName})
 
 	switch resourceTyp {
-	case properties.ResourceEntry:
+	case properties.ResourceEntry, properties.ResourceConfig:
 		specs = append(specs, spec{
 			HasEntryName:    prop.Entry != nil,
 			PangoType:       pangoPrefix,
@@ -1442,7 +1442,7 @@ func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp pro
 	}
 
 	switch resourceTyp {
-	case properties.ResourceEntry, properties.ResourceCustom:
+	case properties.ResourceEntry, properties.ResourceCustom, properties.ResourceConfig:
 		return createSchemaSpecForEntrySingularModel(resourceTyp, schemaTyp, spec, packageName, structName, manager)
 	case properties.ResourceEntryPlural:
 		return createSchemaSpecForEntryListModel(resourceTyp, schemaTyp, spec, packageName, structName, manager)
@@ -2244,7 +2244,7 @@ func createStructSpecForModel(resourceTyp properties.ResourceType, schemaTyp pro
 	}
 
 	switch resourceTyp {
-	case properties.ResourceEntry, properties.ResourceCustom:
+	case properties.ResourceEntry, properties.ResourceCustom, properties.ResourceConfig:
 		return createStructSpecForEntryModel(resourceTyp, schemaTyp, spec, names)
 	case properties.ResourceEntryPlural:
 		return createStructSpecForEntryListModel(resourceTyp, schemaTyp, spec, names)
@@ -2363,7 +2363,7 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 	var listAttribute string
 	var exhaustive bool
 	switch resourceTyp {
-	case properties.ResourceEntry:
+	case properties.ResourceEntry, properties.ResourceConfig:
 		exhaustive = true
 		tmpl = resourceCreateFunction
 	case properties.ResourceEntryPlural:
@@ -2422,7 +2422,7 @@ func DataSourceReadFunction(resourceTyp properties.ResourceType, names *NameProv
 	var tmpl string
 	var listAttribute string
 	switch resourceTyp {
-	case properties.ResourceEntry:
+	case properties.ResourceEntry, properties.ResourceConfig:
 		tmpl = resourceReadFunction
 	case properties.ResourceEntryPlural:
 		tmpl = resourceReadEntryListFunction
@@ -2551,7 +2551,7 @@ func ResourceUpdateFunction(resourceTyp properties.ResourceType, names *NameProv
 	var listAttribute string
 	var exhaustive bool
 	switch resourceTyp {
-	case properties.ResourceEntry:
+	case properties.ResourceEntry, properties.ResourceConfig:
 		tmpl = resourceUpdateFunction
 	case properties.ResourceEntryPlural:
 		tmpl = resourceUpdateEntryListFunction
@@ -2618,7 +2618,7 @@ func ResourceDeleteFunction(resourceTyp properties.ResourceType, names *NameProv
 	var listAttribute string
 	var exhaustive bool
 	switch resourceTyp {
-	case properties.ResourceEntry:
+	case properties.ResourceEntry, properties.ResourceConfig:
 		tmpl = resourceDeleteFunction
 	case properties.ResourceEntryPlural:
 		tmpl = resourceDeleteManyFunction
