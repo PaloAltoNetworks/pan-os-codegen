@@ -38,7 +38,7 @@ type TerraformNameProvider struct {
 func NewTerraformNameProvider(spec *Normalization, resourceTyp ResourceType) *TerraformNameProvider {
 	var tfName string
 	switch resourceTyp {
-	case ResourceEntry, ResourceCustom:
+	case ResourceEntry, ResourceCustom, ResourceConfig:
 		tfName = spec.TerraformProviderConfig.Suffix
 	case ResourceEntryPlural:
 		tfName = spec.TerraformProviderConfig.PluralSuffix

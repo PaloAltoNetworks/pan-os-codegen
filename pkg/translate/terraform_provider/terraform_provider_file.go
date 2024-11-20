@@ -241,7 +241,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 			}
 
 			switch resourceTyp {
-			case properties.ResourceEntry:
+			case properties.ResourceEntry, properties.ResourceConfig:
 				terraformProvider.ImportManager.AddStandardImport("errors", "")
 			case properties.ResourceEntryPlural, properties.ResourceUuid:
 			case properties.ResourceUuidPlural, properties.ResourceCustom:
