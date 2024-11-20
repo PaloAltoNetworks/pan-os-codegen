@@ -252,6 +252,7 @@ resource "panos_nat_policy" "{{ .ResourceName }}" {
   rules = [
     for index, name in var.rule_names: {
       name = name
+
       source_zones = ["any"]
       source_addresses = ["any"]
       destination_zone = ["external"]
