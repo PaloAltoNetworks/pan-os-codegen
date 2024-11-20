@@ -180,6 +180,7 @@ type SpecParamTerraformProviderConfig struct {
 	Private      bool   `json:"ignored" yaml:"private"`
 	Sensitive    bool   `json:"sensitive" yaml:"sensitive"`
 	Computed     bool   `json:"computed" yaml:"computed"`
+	Required     *bool  `json:"required" yaml:"required"`
 	VariantCheck string `json:"variant_check" yaml:"variant_check"`
 }
 
@@ -221,6 +222,14 @@ func (o *SpecParam) NameVariant() *NameVariant {
 	}
 
 	return o.Name
+}
+
+func (o *SpecParam) FinalRequired() bool {
+	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.Required != nil {
+		return *o.TerraformProviderConfig.Required
+	}
+
+	return o.Required
 }
 
 func hasChildEncryptedResources(param *SpecParam) bool {
@@ -466,6 +475,7 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 			Private:      schemaSpec.CodegenOverrides.Terraform.Private,
 			Sensitive:    schemaSpec.CodegenOverrides.Terraform.Sensitive,
 			Computed:     schemaSpec.CodegenOverrides.Terraform.Computed,
+			Required:     schemaSpec.CodegenOverrides.Terraform.Required,
 			VariantCheck: string(schemaSpec.CodegenOverrides.Terraform.VariantCheck),
 		}
 		log.Printf("terraformProviderConfig: %s VariantCheck: '%s'\n", schemaSpec.Name, terraformProviderConfig.VariantCheck)
