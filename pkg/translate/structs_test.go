@@ -17,7 +17,7 @@ func TestLocationType(t *testing.T) {
 	// given
 	yamlParsedData, _ := properties.ParseSpec([]byte(sampleSpec))
 
-	locationKeys := []string{"device_group", "shared"}
+	locationKeys := []string{"device-group", "shared"}
 	locations := yamlParsedData.Locations
 	var locationTypes []string
 
@@ -66,7 +66,7 @@ func TestOmitEmpty(t *testing.T) {
 
 	// given
 	yamlParsedData, _ := properties.ParseSpec([]byte(sampleSpec))
-	locationKeys := []string{"device_group", "shared"}
+	locationKeys := []string{"device-group", "shared"}
 	locations := yamlParsedData.Locations
 	var omitEmptyLocations []string
 
