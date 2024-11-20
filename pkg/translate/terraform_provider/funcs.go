@@ -1112,6 +1112,7 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		if param.TerraformProviderConfig != nil {
 			computed = param.TerraformProviderConfig.Computed
 		}
+		required = param.FinalRequired()
 	case properties.SchemaCommon, properties.SchemaProvider:
 		panic("unreachable")
 	}
@@ -1207,6 +1208,7 @@ func createSchemaAttributeForParameter(schemaTyp properties.SchemaType, manager 
 		} else if param.Default != "" {
 			computed = true
 		}
+		required = param.FinalRequired()
 	case properties.SchemaCommon, properties.SchemaProvider:
 		panic("unreachable")
 	}

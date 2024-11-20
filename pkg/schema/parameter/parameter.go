@@ -55,6 +55,7 @@ type CodegenOverridesTerraform struct {
 	Private      bool             `yaml:"private"`
 	Sensitive    bool             `yaml:"sensitive"`
 	Computed     bool             `yaml:"computed"`
+	Required     *bool            `yaml:"required"`
 	VariantCheck VariantCheckType `yaml:"variant_check"`
 }
 
