@@ -1,0 +1,413 @@
+name: "Antivirus security profile"
+terraform_provider_config:
+  suffix: "security_profile_antivirus"
+go_sdk_config:
+  package:
+    - "objects"
+    - "profiles"
+    - "antivirus"
+xpath_suffix:
+  - "virus"
+locations:
+  - name: "shared"
+    description: "Shared object."
+    devices:
+      - panorama
+      - ngfw
+    xpath:
+      path: ["config", "shared"]
+  - name: "vsys"
+    description: "Located in a specific vsys."
+    devices:
+      - panorama
+      - ngfw
+    xpath:
+      path:
+        - "config"
+        - "devices"
+        - "$ngfw_device"
+        - "vsys"
+        - "$vsys"
+      vars:
+        - name: "ngfw_device"
+          description: "The NGFW device."
+          default: "localhost.localdomain"
+        - name: "vsys"
+          description: "The vsys."
+          default: "vsys1"
+          validators:
+            - type: not-values
+              spec:
+                values:
+                  - value: "shared"
+                    error: 'The vsys cannot be "shared". Use the "shared" path instead.'
+  - name: "from_panorama_shared"
+    description: "Shared object in the config pushed from Panorama."
+    read_only: true
+    devices:
+      - ngfw
+    xpath:
+      path:
+        - "config"
+        - "panorama"
+        - "shared"
+  - name: "from_panorama_vsys"
+    description: "Located in a specific vsys in the config pushed from Panorama."
+    read_only: true
+    devices:
+      - ngfw
+    xpath:
+      path:
+        - "config"
+        - "panorama"
+        - "vsys"
+        - "$vsys"
+      vars:
+        - name: "vsys"
+          description: "The vsys."
+          default: "vsys1"
+          validators:
+            - type: not-values
+              spec:
+                values:
+                  - value: "shared"
+                    error: 'The vsys cannot be "shared". Use the "shared" path instead.'
+  - name: "device_group"
+    description: "Located in a specific device group."
+    devices:
+      - panorama
+    xpath:
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+        - "device-group"
+        - "$device_group"
+      vars:
+        - name: "panorama_device"
+          description: "The panorama device."
+          default: "localhost.localdomain"
+        - name: "device_group"
+          description: "The device group."
+          required: true
+          validators:
+            - type: not-values
+              spec:
+                values:
+                  - value: "shared"
+                    error: 'The device group cannot be "shared". Use the "shared" path instead.'
+entries:
+  - name: name
+    description: "The name of the antivirus profile."
+    validators:
+      - type: length
+        spec:
+          min: 1
+          max: 31
+      - type: regexp
+        spec:
+          expr: "^[ 0-9a-zA-Z._-]$"
+version: "10.1.0"
+spec:
+  params:
+    - name: description
+      description: "Profile description."
+      type: string
+      profiles:
+        - xpath: ["description"]
+      validators:
+        - type: length
+          spec:
+            # min: 0
+            max: 255
+    - name: packet-capture
+      description: "Enable packet capture."
+      type: bool
+      profiles:
+        - xpath: ["packet-capture"]
+    - name: mlav-engine-filebased-enabled
+      description: "Machine learining models."
+      codegen_overrides:
+        terraform:
+          name: machine-learning-models
+      type: list
+      profiles:
+        - xpath: ["mlav-engine-filebased-enabled"]
+          type: entry
+      spec:
+        items:
+          type: object
+          spec:
+            params:
+              # - name: name
+              #   description: "Model name."
+              #   required: true
+              #   type: string
+              #   profiles:
+              #     - xpath: ["name"]
+              #   validators:
+              #     - type: length
+              #       spec:
+              #         # min: 1
+              #         max: 128
+              - name: mlav-policy-action
+                description: "Action setting. Valid values are: `enable`, `enable(alert-only)`, `disable`."
+                codegen_overrides:
+                  terraform:
+                    name: action
+                type: enum
+                profiles:
+                  - xpath: ["mlav-policy-action"]
+                validators:
+                  - type: values
+                    spec:
+                      values: ["enable", "enable(alert-only)", "disable",]
+                spec:
+                  values:
+                    [
+                      { value: "enable" },
+                      { value: "enable(alert-only)" },
+                      { value: "disable" },
+                    ]
+    - name: decoder
+      description: "Protocol decoders."
+      codegen_overrides:
+        terraform:
+          name: decoders
+      type: list
+      profiles:
+        - xpath: ["decoder"]
+          type: entry
+      spec:
+        items:
+          type: object
+          spec:
+            params:
+              # - name: name
+              #   description: "Protocol name."
+              #   required: true
+              #   type: string
+              #   validators:
+              #     - type: length
+              #       spec:
+              #         # min: 1
+              #         max: 31
+              #     - type: regexp
+              #       spec:
+              #         expr: "^[ 0-9a-zA-Z._-]$"
+              - name: action
+                description: "Action for standard antivirus signatures. Valid values are: `default` (default), `allow`, `alert`, `drop`, `reset-client`, `reset-server`, or `reset-both`."
+                type: enum
+                profiles:
+                  - xpath: ["action"]
+                validators:
+                  - type: values
+                    spec:
+                      values:
+                        [
+                          "default",
+                          "allow",
+                          "alert",
+                          "drop",
+                          "reset-client",
+                          "reset-server",
+                          "reset-both",
+                        ]
+                spec:
+                  default: "default"
+                  values:
+                    [
+                      { value: default },
+                      { value: allow },
+                      { value: alert },
+                      { value: drop },
+                      { value: reset-client },
+                      { value: reset-server },
+                      { value: reset-both },
+                    ]
+              - name: wildfire-action
+                description: "Action for signatures generated by the WildFire system. Valid values are: `default` (default), `allow`, `alert`, `drop`, `reset-client`, `reset-server`, or `reset-both`."
+                type: enum
+                profiles:
+                  - xpath: ["wildfire-action"]
+                validators:
+                  - type: values
+                    spec:
+                      values:
+                        [
+                          "default",
+                          "allow",
+                          "alert",
+                          "drop",
+                          "reset-client",
+                          "reset-server",
+                          "reset-both",
+                        ]
+                spec:
+                  default: "default"
+                  values:
+                    [
+                      { value: default },
+                      { value: allow },
+                      { value: alert },
+                      { value: drop },
+                      { value: reset-client },
+                      { value: reset-server },
+                      { value: reset-both },
+                    ]
+              - name: mlav-action
+                description: "Action for malicious threats detected in real-time by the WildFire Inline ML models. Valid values are: `default` (default), `allow`, `alert`, `drop`, `reset-client`, `reset-server`, or `reset-both`."
+                codegen_overrides:
+                  terraform:
+                    name: ml-action
+                type: enum
+                profiles:
+                  - xpath: ["mlav-action"]
+                validators:
+                  - type: values
+                    spec:
+                      values:
+                        [
+                          "default",
+                          "allow",
+                          "alert",
+                          "drop",
+                          "reset-client",
+                          "reset-server",
+                          "reset-both",
+                        ]
+                spec:
+                  default: "default"
+                  values:
+                    [
+                      { value: default },
+                      { value: allow },
+                      { value: alert },
+                      { value: drop },
+                      { value: reset-client },
+                      { value: reset-server },
+                      { value: reset-both },
+                    ]
+    - name: application
+      description: "Application exceptions."
+      codegen_overrides:
+        terraform:
+          name: application-exceptions
+      type: list
+      profiles:
+        - xpath: ["application"]
+          type: entry
+      spec:
+        items:
+          type: object
+          spec:
+            params:
+              # - name: name
+              #   description: "Application name."
+              #   required: true
+              #   type: string
+              #   profiles:
+              #     - xpath: ["name"]
+              #   validators:
+              #     - type: length
+              #       spec:
+              #         # min: 1
+              #         max: 31
+              #     - type: regexp
+              #       spec:
+              #         expr: "^[ 0-9a-zA-Z._-]$"
+              - name: action
+                description: "Action for application exception. Valid values are: `default` (default), `allow`, `alert`, `drop`, `reset-client`, `reset-server`, or `reset-both`."
+                type: enum
+                profiles:
+                  - xpath: ["action"]
+                validators:
+                  - type: values
+                    spec:
+                      values:
+                        [
+                          "default",
+                          "allow",
+                          "alert",
+                          "drop",
+                          "reset-client",
+                          "reset-server",
+                          "reset-both",
+                        ]
+                spec:
+                  default: "default"
+                  values:
+                    [
+                      { value: default },
+                      { value: allow },
+                      { value: alert },
+                      { value: drop },
+                      { value: reset-client },
+                      { value: reset-server },
+                      { value: reset-both },
+                    ]
+    - name: threat-exception
+      description: "Exceptions for specific threats."
+      codegen_overrides:
+        terraform:
+          name: threat-exceptions
+      type: list
+      profiles:
+        - xpath: ["threat-exception"]
+          type: entry
+      validators:
+        - type: count
+          spec:
+            max: 99
+      spec:
+        items:
+          type: string
+          validators:
+            - type: regexp
+              spec:
+                expr: "^[0-9]+$"
+          profiles:
+            - type: member
+              xpath: ["name"]
+    - name: mlav-exception
+      description: "Exceptions for ML based"
+      codegen_overrides:
+        terraform:
+          name: machine-learning-exceptions
+      type: list
+      profiles:
+        - xpath: ["mlav-exception"]
+          type: entry
+      validators:
+        - type: count
+          spec:
+            max: 999
+      spec:
+        items:
+          type: object
+          spec:
+            params:
+              # - name: name
+              #   description: "Partial hash."
+              #   required: true
+              #   type: string
+              - name: filename
+                description: "Name of the file."
+                type: string
+                validators:
+                  - type: length
+                    spec:
+                      min: 0
+                      max: 255
+                profiles:
+                  - xpath: ["filename"]
+              - name: description
+                description: "Exception description."
+                type: string
+                validators:
+                  - type: length
+                    spec:
+                      min: 0
+                      max: 255
+                profiles:
+                  - xpath: ["description"]
