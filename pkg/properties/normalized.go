@@ -415,6 +415,8 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 			if err != nil {
 				return nil, err
 			}
+		} else if spec.Items.Type == "enum" {
+			itemsSpec.Type = "string"
 		} else {
 			itemsSpec.Type = spec.Items.Type
 		}

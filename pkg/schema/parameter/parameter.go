@@ -142,7 +142,7 @@ func (p *Parameter) UnmarshalYAML(n *yaml.Node) error {
 		p.Spec = new(EnumSpec)
 	case "nil":
 		p.Spec = new(NilSpec)
-	case "string", "bool", "int64":
+	case "string", "bool", "int64", "float64":
 		p.Spec = new(SimpleSpec)
 	default:
 		return errors.NewSchemaError(fmt.Sprintf("unsupported parameter type: '%s'", p.Type))
