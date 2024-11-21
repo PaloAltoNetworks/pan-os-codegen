@@ -46,6 +46,8 @@ func specMatchFunctionName(parent []string, param *properties.SpecParam) string 
 		return "util.IntsMatch"
 	} else if param.Type == "int64" {
 		return "util.Ints64Match"
+	} else if param.Type == "float64" {
+		return "util.FloatsMatch"
 	} else {
 		return fmt.Sprintf("match%s%s", strings.Join(parent, ""), param.Name.CamelCase)
 	}
