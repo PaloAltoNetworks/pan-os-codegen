@@ -43,6 +43,9 @@ func checkNestedSpecs(parent []string, spec *properties.Spec, nestedSpecs map[st
 	}
 	for _, param := range spec.OneOf {
 		updateNestedSpecs(append(parent, param.Name.CamelCase), param, nestedSpecs)
+		if len(param.Profiles) > 0 && param.Profiles[0].Type == "entry" && param.Items != nil && param.Items.Type == "entry" {
+			addNameAsParamForNestedSpec(append(parent, param.Name.CamelCase), nestedSpecs)
+		}
 	}
 }
 
