@@ -133,24 +133,27 @@ func defineNestedObject(parent []*properties.SpecParam, param, parentParam *prop
 	}
 }
 
-func startIfBlockForParamNotNil(parent []*properties.SpecParam, param *properties.SpecParam, parentParam *properties.SpecParam, builder *strings.Builder) {
-	if len(parent) == 2 && parent[0].Type == "list" && parent[0].Items.Type == "entry" {
+func startIfBlockForParamNotNil(parents []*properties.SpecParam, param *properties.SpecParam, parentParam *properties.SpecParam, builder *strings.Builder) {
+	grandparent := parents[0]
+
+	if grandparent != param && grandparent.Type == "list" && grandparent.Items.Type == "entry" {
 		if isParamName(param) {
 			builder.WriteString(fmt.Sprintf("if o%s != \"\" {\n",
-				renderNestedVariableName(parent, true, true, false)))
+				renderNestedVariableName(parents, true, true, false)))
 		} else {
 			builder.WriteString(fmt.Sprintf("if o%s != nil {\n",
-				renderNestedVariableName(parent, true, true, false)))
+				renderNestedVariableName(parents, true, true, false)))
 		}
 	} else {
 		if isParamName(param) {
 			builder.WriteString(fmt.Sprintf("if o%s != \"\" {\n",
-				renderNestedVariableName(parent, true, true, true)))
+				renderNestedVariableName(parents, true, true, true)))
 		} else {
 			builder.WriteString(fmt.Sprintf("if o%s != nil {\n",
-				renderNestedVariableName(parent, true, true, true)))
+				renderNestedVariableName(parents, true, true, true)))
 		}
 	}
+
 }
 
 func finishNestedObjectIfBlock(parent []*properties.SpecParam, param *properties.SpecParam, builder *strings.Builder) {
@@ -193,8 +196,8 @@ func declareRootOfNestedObject(parent []*properties.SpecParam, builder *strings.
 
 func assignEmptyStructForNestedObject(parent []*properties.SpecParam, builder *strings.Builder, param *properties.SpecParam, objectType, version, prefix, suffix string) {
 	if isParamListAndProfileTypeIsExtendedEntry(param) {
-		createListAndLoopForNestedEntry(parent, builder, prefix, suffix, version)
-		miscForUnknownXmlWithExtendedEntry(parent, builder, suffix)
+		createListAndLoopForNestedEntry(parent, param, builder, prefix, suffix, version)
+		miscForUnknownXmlWithExtendedEntry(parent, objectType, builder, suffix)
 	} else {
 		createStructForParamWithSpec(parent, builder, prefix, suffix, version)
 		miscForUnknownXmlWithSpec(parent, builder, suffix, objectType)
@@ -209,7 +212,7 @@ func createStructForParamWithSpec(parent []*properties.SpecParam, builder *strin
 		CreateGoSuffixFromVersion(version)))
 }
 
-func createListAndLoopForNestedEntry(parent []*properties.SpecParam, builder *strings.Builder, prefix string, suffix string, version string) {
+func createListAndLoopForNestedEntry(parent []*properties.SpecParam, param *properties.SpecParam, builder *strings.Builder, prefix string, suffix string, version string) {
 	if len(parent) == 1 && parent[0].Type == "list" && parent[0].Items.Type == "entry" {
 		builder.WriteString(fmt.Sprintf("nested%sCol = []%s%s%s%s{}\n",
 			renderNestedVariableName(parent, true, true, false), prefix,
@@ -222,9 +225,14 @@ func createListAndLoopForNestedEntry(parent []*properties.SpecParam, builder *st
 			CreateGoSuffixFromVersion(version)))
 	}
 
-	builder.WriteString(fmt.Sprintf("for _, o%s := range o%s {\n",
+	startFromDot := true
+	if len(parent) == 2 && parent[0].Type == "list" && parent[0].Items.Type == "entry" {
+		startFromDot = false
+	}
+
+	builder.WriteString(fmt.Sprintf("for _, o%s := range o%s { \n",
 		renderNestedVariableName(parent, false, false, false),
-		renderNestedVariableName(parent, true, true, true)))
+		renderNestedVariableName(parent, true, true, startFromDot)))
 	builder.WriteString(fmt.Sprintf("nested%s := %s%s%s%s{}\n",
 		renderNestedVariableName(parent, false, false, false),
 		prefix, renderNestedVariableName(parent, false, false, false), suffix,
@@ -240,16 +248,21 @@ func miscForUnknownXmlWithSpec(parent []*properties.SpecParam, builder *strings.
 			renderNestedVariableName(parent, false, false, false),
 		))
 	} else {
+		startsWithDot := true
+		if parent[0].Type == "list" && parent[0].Items.Type == "entry" {
+			startsWithDot = false
+		}
+
 		builder.WriteString(fmt.Sprintf("if o%s.Misc != nil {\n",
-			renderNestedVariableName(parent, true, true, true)))
+			renderNestedVariableName(parent, true, true, startsWithDot)))
 		builder.WriteString(fmt.Sprintf("%s.Misc[\"%s\"] = o%s.Misc\n",
 			objectType, renderNestedVariableName(parent, false, false, false),
-			renderNestedVariableName(parent, true, true, true),
+			renderNestedVariableName(parent, true, true, startsWithDot),
 		))
 	}
 }
 
-func miscForUnknownXmlWithExtendedEntry(parent []*properties.SpecParam, builder *strings.Builder, suffix string) {
+func miscForUnknownXmlWithExtendedEntry(parent []*properties.SpecParam, objectType string, builder *strings.Builder, suffix string) {
 	if suffix == "Xml" {
 		builder.WriteString(fmt.Sprintf("if _, ok := o.Misc[\"%s\"]; ok {\n",
 			renderNestedVariableName(parent, false, false, false)))
@@ -260,7 +273,8 @@ func miscForUnknownXmlWithExtendedEntry(parent []*properties.SpecParam, builder 
 	} else {
 		builder.WriteString(fmt.Sprintf("if o%s.Misc != nil {\n",
 			renderNestedVariableName(parent, false, false, false)))
-		builder.WriteString(fmt.Sprintf("entry.Misc[\"%s\"] = o%s.Misc\n",
+		builder.WriteString(fmt.Sprintf("%s.Misc[\"%s\"] = o%s.Misc\n",
+			objectType,
 			renderNestedVariableName(parent, false, false, false),
 			renderNestedVariableName(parent, false, false, false),
 		))
@@ -270,7 +284,7 @@ func miscForUnknownXmlWithExtendedEntry(parent []*properties.SpecParam, builder 
 var _ = log.Printf
 
 func assignValueForNestedObject(parent []*properties.SpecParam, builder *strings.Builder, param, parentParam *properties.SpecParam) {
-	if len(parent) == 2 && parent[0].Type == "list" && parent[0].Items.Type == "entry" {
+	if parent[0] != param && parent[0].Type == "list" && parent[0].Items.Type == "entry" {
 		builder.WriteString(fmt.Sprintf("nested%s = o%s\n",
 			renderNestedVariableName(parent, true, true, false),
 			renderNestedVariableName(parent, true, true, false)))
@@ -282,8 +296,9 @@ func assignValueForNestedObject(parent []*properties.SpecParam, builder *strings
 }
 
 func assignFunctionForNestedObject(parent []*properties.SpecParam, functionName, additionalArguments string, builder *strings.Builder, param, parentParam *properties.SpecParam) {
+
 	var startWithDot bool
-	if len(parent) == 2 && parent[0].Type == "list" && parent[0].Items.Type == "entry" {
+	if parent[0] != param && parent[0].Type == "list" && parent[0].Items.Type == "entry" {
 		startWithDot = false
 	} else {
 		startWithDot = true

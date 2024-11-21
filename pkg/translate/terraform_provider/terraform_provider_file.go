@@ -465,7 +465,10 @@ func conditionallyAddValidators(manager *imports.Manager, spec *properties.Norma
 }
 
 func conditionallyAddModifiers(manager *imports.Manager, spec *properties.Normalization) {
-	manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier", "")
+	if len(spec.Locations) > 0 {
+		manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier", "")
+	}
+
 	for _, loc := range spec.Locations {
 		if len(loc.Vars) == 0 {
 			manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier", "")
