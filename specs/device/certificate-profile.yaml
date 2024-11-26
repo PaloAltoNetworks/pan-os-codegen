@@ -1,0 +1,333 @@
+name: Certificate profile
+terraform_provider_config:
+  suffix: certificate_profile
+go_sdk_config:
+  package:
+    - "device"
+    - "profile"
+    - "certificate"
+xpath_suffix:
+  - "certificate-profile"
+locations:
+  - name: "panorama"
+    description: "Located in a panorama."
+    devices:
+      - panorama
+    xpath:
+      path:
+        - "config"
+        - "panorama"
+  - name: "template"
+    description: "Located in a specific template."
+    devices:
+      - panorama
+      - ngfw
+    xpath:
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+        - "template"
+        - "$template"
+        - "config"
+        - "shared"
+      vars:
+        - name: "panorama_device"
+          description: "The panorama device."
+          default: "localhost.localdomain"
+        - name: "template"
+          description: "The template."
+          required: true
+  - name: "template_vsys"
+    description: "Located in a specific template, device and vsys."
+    devices:
+      - panorama
+      - ngfw
+    xpath:
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+        - "template"
+        - "$template"
+        - "config"
+        - "devices"
+        - "$ngfw_device"
+        - "vsys"
+        - "$vsys"
+      vars:
+        - name: "panorama_device"
+          description: "The panorama device."
+          default: "localhost.localdomain"
+        - name: "template"
+          description: "The template."
+          required: true
+        - name: "ngfw_device"
+          description: "The NGFW device."
+          default: "localhost.localdomain"
+        - name: "vsys"
+          description: "The vsys."
+          default: "vsys1"
+          validators:
+            - type: not-values
+              spec:
+                values:
+                  - value: "shared"
+                    error: 'The vsys cannot be "shared". Use the "shared" path instead.'
+  - name: "template_stack"
+    description: "Located in a specific template stack."
+    devices:
+      - panorama
+      - ngfw
+    xpath:
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+        - "template-stack"
+        - "$template_stack"
+        - "config"
+        - "shared"
+      vars:
+        - name: "panorama_device"
+          description: "The panorama device."
+          default: "localhost.localdomain"
+        - name: "template_stack"
+          description: "The template stack."
+          required: true
+  - name: "template_stack_vsys"
+    description: "Located in a specific template stack, device and vsys."
+    devices:
+      - panorama
+      - ngfw
+    xpath:
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+        - "template-stack"
+        - "$template_stack"
+        - "config"
+        - "devices"
+        - "$ngfw_device"
+        - "vsys"
+        - "$vsys"
+      vars:
+        - name: "panorama_device"
+          description: "The panorama device."
+          default: "localhost.localdomain"
+        - name: "template"
+          description: "The template."
+          required: true
+        - name: "ngfw_device"
+          description: "The NGFW device."
+          default: "localhost.localdomain"
+        - name: "vsys"
+          description: "The vsys."
+          default: "vsys1"
+          validators:
+            - type: not-values
+              spec:
+                values:
+                  - value: "shared"
+                    error: 'The vsys cannot be "shared". Use the "shared" path instead.'
+  - name: "shared"
+    description: "Located in shared."
+    devices:
+      - ngfw
+    xpath:
+      path:
+        - "config"
+        - "shared"
+entries:
+  - name: name
+    description: "The name of the certificate profile."
+    validators:
+      - type: length
+        spec:
+          min: 1
+          max: 63
+version: "10.1.0"
+spec:
+  params:
+    - name: certificates
+      description: "List of CA certificates to assign to the profile"
+      profiles:
+        - type: entry
+          xpath: ["CA", "entry"]
+      required: true
+      type: list
+      spec:
+        items:
+          type: object
+          spec:
+            params:
+              - name: name
+                description: "The name of a certificate" 
+                profiles:
+                  - xpath: ["name"]
+                type: string
+                validators:
+                  - type: length
+                    spec:
+                      max: 63
+              - name: default_ocsp_url
+                description: "Default URL for ocsp verification."
+                profiles:
+                  - xpath: ["default-ocsp-url"]
+                type: string
+                validators:
+                  - type: length
+                    spec:
+                      min: 1
+                      max: 255
+                  - type: regexp
+                    spec:
+                      expr: "^http(s)?://.+$"
+              - name: ocsp_verify_cert
+                description: "Certificate to verify signature in OCSP response."
+                profiles:
+                  - xpath: ["ocsp-verify-cert"]
+                type: string
+                validators:
+                  - type: length
+                    spec:
+                      max: 63
+              - name: template_name
+                description: "Certificate Template Name / OID for the certificate."
+                profiles:
+                  - xpath: ["template-name"]
+                type: string
+                validators:
+                  - type: length
+                    spec:
+                      min: 1
+                      max: 255
+    - name: username_field
+      description: "The certificate field that matches to the IP address for the User-ID service."
+      profiles:
+        - xpath: ["username-field"]
+      type: object
+      spec:
+        variants:
+          - name: subject
+            description: "Get user name from subject"
+            profiles:
+              - xpath: ["subject"]
+            type: enum
+            spec:
+              values:
+                - { value: "common-name" }
+            validators:
+              - type: values
+                spec:
+                  values: [ "common-name" ]
+          - name:  subject_alt
+            description: "Get user name from subject alternative name."
+            profiles:
+              - xpath: ["subject-alt"]
+            type: enum
+            spec:
+              values:
+                - { value: "email" }
+                - { value: "principal-name" }
+            validators:
+              - type: values
+                spec:
+                  values: ["email", "principal-name"]
+    - name: domain
+      description: "User domain: NetBIOS domain so the PAN-OS software can map users through User-ID."
+      profiles:
+        - xpath: ["domain"]
+      type: string
+      validators:
+        - type: length
+          spec:
+            max: 63
+        - type: regexp
+          spec:
+            expr: "[0-9a-zA-Z._-]"
+    - name: cert_status_timeout
+      description: "Certificate status query timeout value in seconds."
+      profiles:
+        - xpath: ["cert-status-timeout"]
+      type: int64
+      spec:
+        default: 5
+      validators:
+        - type: range
+          spec:
+            min: 0
+            max: 60
+    - name: crl_receive_timeout
+      description: "Sets CRL receive timeout value in seconds."
+      profiles:
+        - xpath: ["crl-receive-timeout"]
+      type: int64
+      spec:
+        default: 5
+      validators:
+        - type: range
+          spec:
+            min: 0
+            max: 60
+    - name: ocsp_receive_timeout
+      description: "Sets OCSP receive timeout value in seconds."
+      profiles:
+        - xpath: ["ocsp-receive-timeout"]
+      type: int64
+      spec:
+        default: 5
+      validators:
+        - type: range
+          spec:
+            min: 0
+            max: 60
+    - name: use_crl
+      description: "Use a certificate revocation list (CRL) to verify the revocation status of certificates."
+      profiles:
+        - xpath: ["use-crl"]
+      type: bool
+      spec:
+        default: false
+    - name: use_ocsp
+      description: "Use OCSP to verify the revocation status of certificates."
+      profiles:
+        - xpath: ["use-ocsp"]
+      type: bool
+      spec:
+        default: false
+    - name: ocsp_exclude_nonce
+      description: "OCSP exclude nonce"
+      profiles:
+        - xpath: ["ocsp-exclude-nonce"]
+      type: bool
+      spec:
+        default: false
+    - name: block_unknown_cert
+      description: "Block sessions when the OCSP or CRL service returns a certificate revocation status of unknown."
+      profiles:
+        - xpath: ["block-unknown-cert"]
+      type: bool
+      spec:
+        default: false
+    - name: block_timeout_cert
+      description: "Block sessions after it registers an OCSP or CRL request timeout."
+      profiles:
+        - xpath: ["block-timeout-cert"]
+      type: bool
+      spec:
+        default: false
+    - name: block_unauthenticated_cert
+      description: "Block session if the certificate was not issued to the authenticating device."
+      profiles:
+        - xpath: ["block-unauthenticated-cert"]
+      spec:
+        default: false
+    - name: block_expired_cert
+      description: "Block sessions with expired certificates."
+      profiles:
+        - xpath: ["block-expired-cert"]
+      type: bool
+      spec:
+        default: false
