@@ -116,8 +116,8 @@ locations:
         - name: "panorama_device"
           description: "The panorama device."
           default: "localhost.localdomain"
-        - name: "template"
-          description: "The template."
+        - name: "template_stack"
+          description: "The template stack."
           required: true
         - name: "ngfw_device"
           description: "The NGFW device."
@@ -322,6 +322,7 @@ spec:
       description: "Block session if the certificate was not issued to the authenticating device."
       profiles:
         - xpath: ["block-unauthenticated-cert"]
+      type: bool
       spec:
         default: false
     - name: block_expired_cert
