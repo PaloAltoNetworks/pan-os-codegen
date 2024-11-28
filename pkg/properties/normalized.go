@@ -6,6 +6,7 @@ import (
 	"log"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/content"
@@ -439,6 +440,8 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 	case *parameter.SimpleSpec:
 		if typed, ok := spec.Default.(string); ok {
 			defaultVal = typed
+		} else if typed, ok := spec.Default.(int); ok {
+			defaultVal = strconv.Itoa(typed)
 		}
 	}
 
