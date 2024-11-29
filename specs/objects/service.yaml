@@ -220,21 +220,11 @@ spec:
                   type: object
                   description: "Override session timeout."
                   profiles:
-                    - xpath: ["override"]
+                    - xpath: ["override", "yes"]
                   spec:
-                    variants:
-                      - name: yes
-                        type: object
+                    params:
+                      - name: "timeout"
+                        type: int64
+                        description: "UDP session timeout value (in second)"
                         profiles:
-                          - xpath: ["yes"]
-                        spec:
-                          params:
-                            - name: "timeout"
-                              type: int64
-                              description: "UDP session timeout value (in second)"
-                              profiles:
-                                - xpath: ["timeout"]
-                      - name: no
-                        type: nil
-                        profiles:
-                          - xpath: ["no"]
+                          - xpath: ["timeout"]
