@@ -34,21 +34,21 @@ var (
 	DanglingObjectsError = errors.New("some objects were not deleted by the provider")
 )
 
-type expectServerRulesOrder struct {
+type expectServerNatRulesOrder struct {
 	Location  nat.Location
 	Prefix    string
 	RuleNames []string
 }
 
-func ExpectServerRulesOrder(prefix string, location nat.Location, ruleNames []string) *expectServerRulesOrder {
-	return &expectServerRulesOrder{
+func ExpectServerNatRulesOrder(prefix string, location nat.Location, ruleNames []string) *expectServerNatRulesOrder {
+	return &expectServerNatRulesOrder{
 		Location:  location,
 		Prefix:    prefix,
 		RuleNames: ruleNames,
 	}
 }
 
-func (o *expectServerRulesOrder) CheckState(ctx context.Context, req statecheck.CheckStateRequest, resp *statecheck.CheckStateResponse) {
+func (o *expectServerNatRulesOrder) CheckState(ctx context.Context, req statecheck.CheckStateRequest, resp *statecheck.CheckStateResponse) {
 	service := nat.NewService(sdkClient)
 
 	objects, err := service.List(ctx, o.Location, "get", "", "")
@@ -105,21 +105,21 @@ func (o *expectServerRulesOrder) CheckState(ctx context.Context, req statecheck.
 	}
 }
 
-type expectServerRulesCount struct {
+type expectServerNatRulesCount struct {
 	Prefix   string
 	Location nat.Location
 	Count    int
 }
 
-func ExpectServerRulesCount(prefix string, location nat.Location, count int) *expectServerRulesCount {
-	return &expectServerRulesCount{
+func ExpectServerNatRulesCount(prefix string, location nat.Location, count int) *expectServerNatRulesCount {
+	return &expectServerNatRulesCount{
 		Prefix:   prefix,
 		Location: location,
 		Count:    count,
 	}
 }
 
-func (o *expectServerRulesCount) CheckState(ctx context.Context, req statecheck.CheckStateRequest, resp *statecheck.CheckStateResponse) {
+func (o *expectServerNatRulesCount) CheckState(ctx context.Context, req statecheck.CheckStateRequest, resp *statecheck.CheckStateResponse) {
 	service := nat.NewService(sdkClient)
 
 	objects, err := service.List(ctx, o.Location, "get", "", "")
@@ -141,7 +141,487 @@ func (o *expectServerRulesCount) CheckState(ctx context.Context, req statecheck.
 	}
 }
 
-func TestAccPanosNatPolicy(t *testing.T) {
+const natPolicyExtendedResource1Tmpl = `
+variable "prefix" { type = string }
+variable "location" { type = map }
+
+resource "panos_nat_policy" "policy" {
+  location = var.location
+
+  rules = [{
+      name = format("%s-rule1", var.prefix)
+      source_zones = ["any"]
+      source_addresses = ["any"]
+      destination_zone = ["external"]
+      destination_addresses = ["any"]
+
+      source_translation = {
+        dynamic_ip_and_port = {
+          translated_address = ["1.1.1.1"]
+        }
+      }
+
+      destination_translation = {
+        translated_address = "1.1.1.1"
+        translated_port = 443
+        dns_rewrite = { direction = "reverse"}
+      }
+  }]
+}
+`
+
+const natPolicyExtendedResource2Tmpl = `
+variable "prefix" { type = string }
+
+resource "panos_template" "template" {
+  location = { panorama = {} }
+
+  name = format("%s-tmpl2", var.prefix)
+}
+
+resource "panos_device_group" "dg" {
+  location = { panorama = {} }
+
+  name = format("%s-dg2", var.prefix)
+  templates = [ resource.panos_template.template.name ]
+}
+
+resource "panos_ethernet_interface" "interface" {
+  location = { template = { name = resource.panos_template.template.name, vsys = "vsys1" } }
+
+  name = "ethernet1/1"
+
+  layer3 = {
+    ips = [{ name = "1.1.1.1" }]
+  }
+}
+
+resource "panos_nat_policy" "policy" {
+  location = { device_group = { name = resource.panos_device_group.dg.name }}
+
+  rules = [{
+      name = format("%s-rule2", var.prefix)
+      source_zones = ["any"]
+      source_addresses = ["any"]
+      destination_zone = ["external"]
+      destination_addresses = ["any"]
+
+      source_translation = {
+        dynamic_ip_and_port = {
+          interface_address = {
+            interface = resource.panos_ethernet_interface.interface.name
+            ip        = "1.1.1.1"
+          }
+        }
+      }
+
+      dynamic_destination_translation = {
+        translated_address = "1.1.1.1"
+        translated_port = 443
+        distribution = "least-sessions"
+      }
+
+      active_active_device_binding = "primary"
+  }]
+}
+`
+
+const natPolicyExtendedResource3Tmpl = `
+variable "prefix" { type = string }
+
+resource "panos_template" "template" {
+  location = { panorama = {} }
+
+  name = format("%s-tmpl3", var.prefix)
+}
+
+resource "panos_device_group" "dg" {
+  location = { panorama = {} }
+
+  name = format("%s-dg3", var.prefix)
+  templates = [ resource.panos_template.template.name ]
+}
+
+resource "panos_ethernet_interface" "interface" {
+  location = { template = { name = resource.panos_template.template.name, vsys = "vsys1" } }
+
+  name = "ethernet1/1"
+
+  layer3 = {
+    ips = [{ name = "1.1.1.1" }]
+  }
+}
+
+resource "panos_nat_policy" "policy" {
+  location = { device_group = { name = resource.panos_device_group.dg.name }}
+
+  rules = [{
+      name = format("%s-rule3", var.prefix)
+      source_zones = ["any"]
+      source_addresses = ["any"]
+      destination_zone = ["external"]
+      destination_addresses = ["any"]
+
+      source_translation = {
+        dynamic_ip = {
+          translated_address = ["172.16.0.1"]
+          fallback = {
+            translated_address = ["192.168.0.1"]
+          }
+        }
+      }
+  }]
+}
+`
+
+const natPolicyExtendedResource4Tmpl = `
+variable "prefix" { type = string }
+
+resource "panos_template" "template" {
+  location = { panorama = {} }
+
+  name = format("%s-tmpl5", var.prefix)
+}
+
+resource "panos_device_group" "dg" {
+  location = { panorama = {} }
+
+  name = format("%s-dg5", var.prefix)
+  templates = [ resource.panos_template.template.name ]
+}
+
+resource "panos_ethernet_interface" "interface" {
+  location = { template = { name = resource.panos_template.template.name, vsys = "vsys1" } }
+
+  name = "ethernet1/1"
+
+  layer3 = {
+    ips = [{ name = "192.168.0.1" }]
+  }
+}
+
+resource "panos_nat_policy" "policy" {
+  location = { device_group = { name = resource.panos_device_group.dg.name }}
+
+  rules = [{
+      name = format("%s-rule5", var.prefix)
+      source_zones = ["any"]
+      source_addresses = ["any"]
+      destination_zone = ["external"]
+      destination_addresses = ["any"]
+
+      source_translation = {
+        dynamic_ip = {
+          translated_address = ["172.16.0.1"]
+          fallback = {
+            interface_address = {
+              interface = resource.panos_ethernet_interface.interface.name
+              ip = "192.168.0.1"
+            }
+          }
+        }
+      }
+  }]
+}
+`
+
+func TestAccNatPolicyExtended(t *testing.T) {
+	t.Parallel()
+
+	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
+	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
+
+	device := devicePanorama
+	sdkLocation, cfgLocation := natPolicyLocationByDeviceType(device, "post-rulebase")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProviders,
+		CheckDestroy:             natPolicyCheckDestroy(prefix, sdkLocation),
+		Steps: []resource.TestStep{
+			{
+				Config: natPolicyExtendedResource1Tmpl,
+				ConfigVariables: map[string]config.Variable{
+					"prefix":   config.StringVariable(prefix),
+					"location": cfgLocation,
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue(
+						"panos_nat_policy.policy",
+						tfjsonpath.New("rules").
+							AtSliceIndex(0).
+							AtMapKey("name"),
+						knownvalue.StringExact(fmt.Sprintf("%s-rule1", prefix)),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_nat_policy.policy",
+						tfjsonpath.New("rules").
+							AtSliceIndex(0).
+							AtMapKey("source_zones"),
+						knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact("any"),
+						}),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_nat_policy.policy",
+						tfjsonpath.New("rules").
+							AtSliceIndex(0).
+							AtMapKey("source_addresses"),
+						knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact("any"),
+						}),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_nat_policy.policy",
+						tfjsonpath.New("rules").
+							AtSliceIndex(0).
+							AtMapKey("destination_zone"),
+						knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact("external"),
+						}),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_nat_policy.policy",
+						tfjsonpath.New("rules").
+							AtSliceIndex(0).
+							AtMapKey("destination_addresses"),
+						knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact("any"),
+						}),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_nat_policy.policy",
+						tfjsonpath.New("rules").
+							AtSliceIndex(0).
+							AtMapKey("source_translation").
+							AtMapKey("dynamic_ip_and_port").
+							AtMapKey("translated_address"),
+						knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact("1.1.1.1"),
+						}),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_nat_policy.policy",
+						tfjsonpath.New("rules").
+							AtSliceIndex(0).
+							AtMapKey("destination_translation").
+							AtMapKey("translated_address"),
+						knownvalue.StringExact("1.1.1.1"),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_nat_policy.policy",
+						tfjsonpath.New("rules").
+							AtSliceIndex(0).
+							AtMapKey("destination_translation").
+							AtMapKey("translated_port"),
+						knownvalue.Int64Exact(443),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_nat_policy.policy",
+						tfjsonpath.New("rules").
+							AtSliceIndex(0).
+							AtMapKey("destination_translation").
+							AtMapKey("dns_rewrite").
+							AtMapKey("direction"),
+						knownvalue.StringExact("reverse"),
+					),
+				},
+			},
+		},
+	})
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProviders,
+		CheckDestroy:             natPolicyCheckDestroy(prefix, sdkLocation),
+		Steps: []resource.TestStep{
+			{
+				Config: natPolicyExtendedResource2Tmpl,
+				ConfigVariables: map[string]config.Variable{
+					"prefix":   config.StringVariable(prefix),
+					"location": cfgLocation,
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue(
+						"panos_nat_policy.policy",
+						tfjsonpath.New("rules").
+							AtSliceIndex(0).
+							AtMapKey("source_translation").
+							AtMapKey("dynamic_ip_and_port").
+							AtMapKey("translated_address"),
+						knownvalue.Null(),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_nat_policy.policy",
+						tfjsonpath.New("rules").
+							AtSliceIndex(0).
+							AtMapKey("source_translation").
+							AtMapKey("dynamic_ip_and_port").
+							AtMapKey("interface_address").
+							AtMapKey("interface"),
+						knownvalue.StringExact("ethernet1/1"),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_nat_policy.policy",
+						tfjsonpath.New("rules").
+							AtSliceIndex(0).
+							AtMapKey("source_translation").
+							AtMapKey("dynamic_ip_and_port").
+							AtMapKey("interface_address").
+							AtMapKey("ip"),
+						knownvalue.StringExact("1.1.1.1"),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_nat_policy.policy",
+						tfjsonpath.New("rules").
+							AtSliceIndex(0).
+							AtMapKey("destination_translation"),
+						knownvalue.Null(),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_nat_policy.policy",
+						tfjsonpath.New("rules").
+							AtSliceIndex(0).
+							AtMapKey("dynamic_destination_translation").
+							AtMapKey("translated_address"),
+						knownvalue.StringExact("1.1.1.1"),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_nat_policy.policy",
+						tfjsonpath.New("rules").
+							AtSliceIndex(0).
+							AtMapKey("dynamic_destination_translation").
+							AtMapKey("translated_port"),
+						knownvalue.Int64Exact(443),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_nat_policy.policy",
+						tfjsonpath.New("rules").
+							AtSliceIndex(0).
+							AtMapKey("dynamic_destination_translation").
+							AtMapKey("distribution"),
+						knownvalue.StringExact("least-sessions"),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_nat_policy.policy",
+						tfjsonpath.New("rules").
+							AtSliceIndex(0).
+							AtMapKey("active_active_device_binding"),
+						knownvalue.StringExact("primary"),
+					),
+				},
+			},
+		},
+	})
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProviders,
+		CheckDestroy:             natPolicyCheckDestroy(prefix, sdkLocation),
+		Steps: []resource.TestStep{
+			{
+				Config: natPolicyExtendedResource3Tmpl,
+				ConfigVariables: map[string]config.Variable{
+					"prefix":   config.StringVariable(prefix),
+					"location": cfgLocation,
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue(
+						"panos_nat_policy.policy",
+						tfjsonpath.New("rules").
+							AtSliceIndex(0).
+							AtMapKey("source_translation").
+							AtMapKey("dynamic_ip_and_port"),
+						knownvalue.Null(),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_nat_policy.policy",
+						tfjsonpath.New("rules").
+							AtSliceIndex(0).
+							AtMapKey("source_translation").
+							AtMapKey("dynamic_ip").
+							AtMapKey("translated_address"),
+						knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact("172.16.0.1"),
+						}),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_nat_policy.policy",
+						tfjsonpath.New("rules").
+							AtSliceIndex(0).
+							AtMapKey("source_translation").
+							AtMapKey("dynamic_ip").
+							AtMapKey("fallback").
+							AtMapKey("translated_address"),
+						knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact("192.168.0.1"),
+						}),
+					),
+				},
+			},
+		},
+	})
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProviders,
+		CheckDestroy:             natPolicyCheckDestroy(prefix, sdkLocation),
+		Steps: []resource.TestStep{
+			{
+				Config: natPolicyExtendedResource4Tmpl,
+				ConfigVariables: map[string]config.Variable{
+					"prefix":   config.StringVariable(prefix),
+					"location": cfgLocation,
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue(
+						"panos_nat_policy.policy",
+						tfjsonpath.New("rules").
+							AtSliceIndex(0).
+							AtMapKey("source_translation").
+							AtMapKey("dynamic_ip_and_port"),
+						knownvalue.Null(),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_nat_policy.policy",
+						tfjsonpath.New("rules").
+							AtSliceIndex(0).
+							AtMapKey("source_translation").
+							AtMapKey("dynamic_ip").
+							AtMapKey("translated_address"),
+						knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact("172.16.0.1"),
+						}),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_nat_policy.policy",
+						tfjsonpath.New("rules").
+							AtSliceIndex(0).
+							AtMapKey("source_translation").
+							AtMapKey("dynamic_ip").
+							AtMapKey("fallback").
+							AtMapKey("interface_address").
+							AtMapKey("interface"),
+						knownvalue.StringExact("ethernet1/1"),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_nat_policy.policy",
+						tfjsonpath.New("rules").
+							AtSliceIndex(0).
+							AtMapKey("source_translation").
+							AtMapKey("dynamic_ip").
+							AtMapKey("fallback").
+							AtMapKey("interface_address").
+							AtMapKey("ip"),
+						knownvalue.StringExact("192.168.0.1"),
+					),
+				},
+			},
+		},
+	})
+}
+
+func TestAccPanosNatPolicyOrdering(t *testing.T) {
 	t.Parallel()
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -165,7 +645,7 @@ func TestAccPanosNatPolicy(t *testing.T) {
 
 	device := devicePanorama
 
-	sdkLocation, cfgLocation := natPolicyLocationByDeviceType(device)
+	sdkLocation, cfgLocation := natPolicyLocationByDeviceType(device, "pre-rulebase")
 
 	stateExpectedRuleName := func(idx int, value string) statecheck.StateCheck {
 		return statecheck.ExpectKnownValue(
@@ -202,8 +682,8 @@ func TestAccPanosNatPolicy(t *testing.T) {
 					stateExpectedRuleName(0, "rule-1"),
 					stateExpectedRuleName(1, "rule-2"),
 					stateExpectedRuleName(2, "rule-3"),
-					ExpectServerRulesCount(prefix, sdkLocation, len(rulesInitial)),
-					ExpectServerRulesOrder(prefix, sdkLocation, rulesInitial),
+					ExpectServerNatRulesCount(prefix, sdkLocation, len(rulesInitial)),
+					ExpectServerNatRulesOrder(prefix, sdkLocation, rulesInitial),
 				},
 			},
 			{
@@ -235,7 +715,7 @@ func TestAccPanosNatPolicy(t *testing.T) {
 					stateExpectedRuleName(0, "rule-2"),
 					stateExpectedRuleName(1, "rule-1"),
 					stateExpectedRuleName(2, "rule-3"),
-					ExpectServerRulesOrder(prefix, sdkLocation, rulesReordered),
+					ExpectServerNatRulesOrder(prefix, sdkLocation, rulesReordered),
 				},
 			},
 		},
@@ -283,19 +763,19 @@ func makeNatPolicyConfig(prefix string) string {
 	return buf.String()
 }
 
-func natPolicyLocationByDeviceType(typ deviceType) (nat.Location, config.Variable) {
+func natPolicyLocationByDeviceType(typ deviceType, rulebase string) (nat.Location, config.Variable) {
 	var sdkLocation nat.Location
 	var cfgLocation config.Variable
 	switch typ {
 	case devicePanorama:
 		sdkLocation = nat.Location{
 			Shared: &nat.SharedLocation{
-				Rulebase: "pre-rulebase",
+				Rulebase: rulebase,
 			},
 		}
 		cfgLocation = config.ObjectVariable(map[string]config.Variable{
 			"shared": config.ObjectVariable(map[string]config.Variable{
-				"rulebase": config.StringVariable("pre-rulebase"),
+				"rulebase": config.StringVariable(rulebase),
 			}),
 		})
 	case deviceFirewall:
@@ -359,10 +839,21 @@ func natPolicyCheckDestroy(prefix string, location nat.Location) func(s *terrafo
 			return err
 		}
 
+		var danglingNames []string
 		for _, elt := range rules {
 			if strings.HasPrefix(elt.Name, prefix) {
-				return DanglingObjectsError
+				danglingNames = append(danglingNames, elt.Name)
 			}
+		}
+
+		if len(danglingNames) > 0 {
+			err := DanglingObjectsError
+			delErr := service.Delete(ctx, location, danglingNames...)
+			if delErr != nil {
+				err = errors.Join(err, delErr)
+			}
+
+			return err
 		}
 
 		return nil
@@ -385,24 +876,26 @@ func init() {
 				panic("invalid device type")
 			}
 
-			location, _ := natPolicyLocationByDeviceType(deviceTyp)
-			ctx := context.TODO()
-			objects, err := service.List(ctx, location, "get", "", "")
-			if err != nil && !sdkerrors.IsObjectNotFound(err) {
-				return fmt.Errorf("Failed to list NAT rules during sweep: %w", err)
-			}
-
-			var names []string
-			for _, elt := range objects {
-				if strings.HasPrefix(elt.Name, "test-acc") {
-					names = append(names, elt.Name)
+			for _, rulebase := range []string{"pre-rulebase", "post-rulebase"} {
+				location, _ := natPolicyLocationByDeviceType(deviceTyp, rulebase)
+				ctx := context.TODO()
+				objects, err := service.List(ctx, location, "get", "", "")
+				if err != nil && !sdkerrors.IsObjectNotFound(err) {
+					return fmt.Errorf("Failed to list NAT rules during sweep: %w", err)
 				}
-			}
 
-			if len(names) > 0 {
-				err = service.Delete(ctx, location, names...)
-				if err != nil {
-					return fmt.Errorf("Failed to delete NAT rules during sweep: %w", err)
+				var names []string
+				for _, elt := range objects {
+					if strings.HasPrefix(elt.Name, "test-acc") {
+						names = append(names, elt.Name)
+					}
+				}
+
+				if len(names) > 0 {
+					err = service.Delete(ctx, location, names...)
+					if err != nil {
+						return fmt.Errorf("Failed to delete NAT rules during sweep: %w", err)
+					}
 				}
 			}
 
