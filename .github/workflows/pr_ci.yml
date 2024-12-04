@@ -58,33 +58,40 @@ jobs:
     name: Generate code
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4
+      - uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5
+        uses: actions/setup-go@v5
         with:
           go-version: "1.22"
 
       - name: Download Go dependencies
         run: go get  ./... && go mod tidy
 
+      - name: Test codegen
+        run: go test -v ./...
+
       - name: Build codegen
         run: go build -v ./...
 
-      - name: Execute codegen for PANGO SDK
-        run: go run cmd/codegen/main.go -t mksdk
+      - name: Execute codegen for all targets
+        run: go run cmd/codegen/main.go
 
-      - name: List generated PANGO SDK files
+      - name: Test generated code
         run: |
-          echo "Generated Files:"
-          ls ../generated/pango
+          for dir in $(ls ../generated); do
+            echo "Run tests for ${dir}"
+            cd ../generated/${dir}
+            go test -v ./...
+            cd -
+          done
 
       - name: Workaround actions/upload-artifact#176
         run: |
           echo "artifacts_path=$(realpath ../generated/pango)" >> $GITHUB_ENV
 
-      - name: Upload generated files for PANGO SDK
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+      - name: Upload generated files for pango SDK
+        uses: actions/upload-artifact@v4
         with:
           name: generated-pango
           path: |

@@ -3,47 +3,21 @@ package terraform_provider
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"strings"
 	"text/template"
 
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/imports"
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 )
 
-// NameProvider encapsulates naming conventions for Terraform resources.
-type NameProvider struct {
-	TfName               string
-	MetaName             string
-	StructName           string
-	DataSourceStructName string
-	ResourceStructName   string
-	PackageName          string
-}
+var _ = slog.Debug
+
+type NameProvider = properties.TerraformNameProvider
 
 // NewNameProvider creates a new NameProvider based on given specifications.
 func NewNameProvider(spec *properties.Normalization, resourceTyp properties.ResourceType) *NameProvider {
-	var tfName string
-	switch resourceTyp {
-	case properties.ResourceEntry, properties.ResourceCustom:
-		tfName = spec.TerraformProviderConfig.Suffix
-	case properties.ResourceEntryPlural:
-		tfName = spec.TerraformProviderConfig.PluralSuffix
-	case properties.ResourceUuid:
-		tfName = spec.TerraformProviderConfig.Suffix
-	case properties.ResourceUuidPlural:
-		suffix := spec.TerraformProviderConfig.Suffix
-		pluralName := spec.TerraformProviderConfig.PluralName
-		tfName = fmt.Sprintf("%s_%s", suffix, pluralName)
-	}
-	objectName := tfName
-
-	metaName := fmt.Sprintf("_%s", naming.Underscore("", strings.ToLower(objectName), ""))
-	structName := naming.CamelCase("", tfName, "", true)
-	dataSourceStructName := naming.CamelCase("", tfName, "DataSource", true)
-	resourceStructName := naming.CamelCase("", tfName, "Resource", true)
-	packageName := spec.GoSdkPath[len(spec.GoSdkPath)-1]
-	return &NameProvider{tfName, metaName, structName, dataSourceStructName, resourceStructName, packageName}
+	return properties.NewTerraformNameProvider(spec, resourceTyp)
 }
 
 // GenerateTerraformProvider handles the generation of Terraform resources and data sources.
@@ -56,57 +30,85 @@ func (g *GenerateTerraformProvider) createTemplate(resourceType string, spec *pr
 }
 
 // executeTemplate executes the provided resource template using the given spec and returns an error if it fails.
-func (g *GenerateTerraformProvider) executeTemplate(template *template.Template, spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, resourceType string, names *NameProvider) error {
+func (g *GenerateTerraformProvider) executeTemplate(template *template.Template, spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider) error {
 	var renderedTemplate strings.Builder
 	if err := template.Execute(&renderedTemplate, spec); err != nil {
-		return fmt.Errorf("error executing %s template: %v", resourceType, err)
+		return fmt.Errorf("error executing %v template: %v", resourceTyp, err)
 	}
 	renderedTemplate.WriteString("\n")
-	return g.updateProviderFile(&renderedTemplate, terraformProvider, resourceType, names)
+	return g.updateProviderFile(&renderedTemplate, terraformProvider, resourceTyp, schemaTyp, names)
 }
 
 // updateProviderFile updates the Terraform provider file by appending the rendered template
 // to the appropriate slice in the TerraformProviderFile based on the provided resourceType.
-func (g *GenerateTerraformProvider) updateProviderFile(renderedTemplate *strings.Builder, terraformProvider *properties.TerraformProviderFile, resourceType string, names *NameProvider) error {
-	switch resourceType {
-	case "ProviderFile":
+func (g *GenerateTerraformProvider) updateProviderFile(renderedTemplate *strings.Builder, terraformProvider *properties.TerraformProviderFile, resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider) error {
+	if schemaTyp == properties.SchemaProvider {
 		terraformProvider.Code = renderedTemplate
-	default:
+	} else {
+		log.Printf("updateProviderFile() renderedTemplate: %d", renderedTemplate.Len())
 		if _, err := terraformProvider.Code.WriteString(renderedTemplate.String()); err != nil {
-			return fmt.Errorf("error writing %s template: %v", resourceType, err)
+			return fmt.Errorf("error writing %v template: %v", resourceTyp, err)
 		}
 	}
-	return g.appendResourceType(terraformProvider, resourceType, names)
+	return g.appendResourceType(terraformProvider, resourceTyp, schemaTyp, names)
 }
 
 // appendResourceType appends the given struct name to the appropriate slice in the TerraformProviderFile
 // based on the provided resourceType.
-func (g *GenerateTerraformProvider) appendResourceType(terraformProvider *properties.TerraformProviderFile, resourceType string, names *NameProvider) error {
-	switch resourceType {
-	case "DataSource", "DataSourceList":
+func (g *GenerateTerraformProvider) appendResourceType(terraformProvider *properties.TerraformProviderFile, resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider) error {
+	var flags properties.TerraformSpecFlags
+	switch schemaTyp {
+	case properties.SchemaDataSource:
+		flags |= properties.TerraformSpecDatasource
 		terraformProvider.DataSources = append(terraformProvider.DataSources, names.DataSourceStructName)
-	case "Resource":
+	case properties.SchemaResource:
+		flags |= properties.TerraformSpecResource
 		terraformProvider.Resources = append(terraformProvider.Resources, names.ResourceStructName)
+	case properties.SchemaProvider, properties.SchemaCommon:
+	}
+
+	switch resourceTyp {
+	case properties.ResourceEntry:
+		flags |= properties.TerraformSpecImportable
+	case properties.ResourceCustom, properties.ResourceEntryPlural, properties.ResourceUuid, properties.ResourceUuidPlural:
+	}
+
+	terraformProvider.SpecMetadata[names.MetaName] = properties.TerraformProviderSpecMetadata{
+		ResourceSuffix: names.MetaName,
+		StructName:     names.StructName,
+		Flags:          flags,
 	}
 	return nil
 }
 
 // generateTerraformEntityTemplate is the common logic for generating Terraform resources and data sources.
-func (g *GenerateTerraformProvider) generateTerraformEntityTemplate(resourceType string, names *NameProvider, spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, templateStr string, funcMap template.FuncMap) error {
+func (g *GenerateTerraformProvider) generateTerraformEntityTemplate(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider, spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, templateStr string, funcMap template.FuncMap) error {
 	if templateStr == "" {
 		return nil
 	}
+
+	var resourceType string
+	switch schemaTyp {
+	case properties.SchemaDataSource:
+		resourceType = "DataSource"
+	case properties.SchemaResource:
+		resourceType = "Resource"
+	case properties.SchemaCommon:
+		resourceType = "Common"
+	case properties.SchemaProvider:
+		resourceType = "ProviderFile"
+	}
+
 	template, err := g.createTemplate(resourceType, spec, templateStr, funcMap)
 	if err != nil {
 		log.Fatalf("Error creating template: %v", err)
 		return err
 	}
-	return g.executeTemplate(template, spec, terraformProvider, resourceType, names)
+	return g.executeTemplate(template, spec, terraformProvider, resourceTyp, schemaTyp, names)
 }
 
 // GenerateTerraformResource generates a Terraform resource template.
 func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp properties.ResourceType, spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile) error {
-	resourceType := "Resource"
 	names := NewNameProvider(spec, resourceTyp)
 
 	var structType string
@@ -131,6 +133,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 		"IsCustom":                func() bool { return spec.TerraformProviderConfig.ResourceType == properties.TerraformResourceCustom },
 		"IsUuid":                  func() bool { return spec.HasEntryUuid() },
 		"IsConfig":                func() bool { return !spec.HasEntryName() && !spec.HasEntryUuid() },
+		"IsImportable":            func() bool { return resourceTyp == properties.ResourceEntry },
 		"resourceSDKName":         func() string { return names.PackageName },
 		"HasPosition":             func() bool { return hasPosition },
 		"metaName":                func() string { return names.MetaName },
@@ -161,6 +164,15 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 		},
 		"ResourceDeleteFunction": func(structName string, serviceName string) (string, error) {
 			return ResourceDeleteFunction(resourceTyp, names, serviceName, spec, names.PackageName)
+		},
+		"RenderImportStateStructs": func() (string, error) {
+			return RenderImportStateStructs(resourceTyp, names, spec)
+		},
+		"RenderImportStateCreator": func() (string, error) {
+			return RenderImportStateCreator(resourceTyp, names, spec)
+		},
+		"ResourceImportStateFunction": func() (string, error) {
+			return ResourceImportStateFunction(resourceTyp, names, spec)
 		},
 		"ParamToModelResource": ParamToModelResource,
 		"ModelNestedStruct":    ModelNestedStruct,
@@ -207,7 +219,6 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 			conditionallyAddModifiers(terraformProvider.ImportManager, spec)
 			conditionallyAddDefaults(terraformProvider.ImportManager, spec.Spec)
 
-			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/diag", "")
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/attr", "")
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource", "")
@@ -216,7 +227,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types", "")
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
 
-			err := g.generateTerraformEntityTemplate(resourceType, names, spec, terraformProvider, resourceObj, funcMap)
+			err := g.generateTerraformEntityTemplate(resourceTyp, properties.SchemaResource, names, spec, terraformProvider, resourceObj, funcMap)
 			if err != nil {
 				return err
 			}
@@ -239,7 +250,6 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 			conditionallyAddModifiers(terraformProvider.ImportManager, spec)
 			conditionallyAddDefaults(terraformProvider.ImportManager, spec.Spec)
 
-			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/diag", "")
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/attr", "")
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource", "")
@@ -248,7 +258,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types", "")
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
 
-			err := g.generateTerraformEntityTemplate(resourceType, names, spec, terraformProvider, resourceObj, funcMap)
+			err := g.generateTerraformEntityTemplate(resourceTyp, properties.SchemaResource, names, spec, terraformProvider, resourceObj, funcMap)
 			if err != nil {
 				return err
 			}
@@ -279,7 +289,6 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault", "")
 
-		resourceType := "DataSource"
 		names := NewNameProvider(spec, resourceTyp)
 		funcMap := template.FuncMap{
 			"GoSDKSkipped":         func() bool { return spec.GoSdkSkip },
@@ -308,7 +317,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 				return RenderDataSourceSchema(resourceTyp, names, spec, terraformProvider.ImportManager)
 			},
 		}
-		err := g.generateTerraformEntityTemplate(resourceType, names, spec, terraformProvider, dataSourceSingletonObj, funcMap)
+		err := g.generateTerraformEntityTemplate(resourceTyp, properties.SchemaDataSource, names, spec, terraformProvider, dataSourceSingletonObj, funcMap)
 		if err != nil {
 			return err
 		}
@@ -334,15 +343,23 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 }
 
 func (g *GenerateTerraformProvider) GenerateCommonCode(resourceTyp properties.ResourceType, spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile) error {
+	terraformProvider.ImportManager.AddStandardImport("encoding/json", "")
+	// Imports required by resources that can be imported into state
+	if resourceTyp == properties.ResourceEntry {
+		terraformProvider.ImportManager.AddStandardImport("encoding/base64", "")
+		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types/basetypes", "")
+		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
+	}
 	names := NewNameProvider(spec, resourceTyp)
 	funcMap := template.FuncMap{
 		"RenderLocationStructs": func() (string, error) { return RenderLocationStructs(resourceTyp, names, spec) },
 		"RenderLocationSchemaGetter": func() (string, error) {
 			return RenderLocationSchemaGetter(names, spec, terraformProvider.ImportManager)
 		},
-		"RenderCustomCommonCode": func() string { return RenderCustomCommonCode(names, spec) },
+		"RenderLocationMarshallers": func() (string, error) { return RenderLocationMarshallers(names, spec) },
+		"RenderCustomCommonCode":    func() string { return RenderCustomCommonCode(names, spec) },
 	}
-	return g.generateTerraformEntityTemplate("Common", names, spec, terraformProvider, commonTemplate, funcMap)
+	return g.generateTerraformEntityTemplate(resourceTyp, properties.SchemaCommon, names, spec, terraformProvider, commonTemplate, funcMap)
 }
 
 // GenerateTerraformProviderFile generates the entire provider file.
@@ -355,7 +372,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformProviderFile(spec *properti
 		"renderCustomImports": func() string { return RenderCustomImports(spec) },
 		"renderCode":          func() string { return terraformProvider.Code.String() },
 	}
-	return g.generateTerraformEntityTemplate("ProviderFile", &NameProvider{}, spec, terraformProvider, providerFile, funcMap)
+	return g.generateTerraformEntityTemplate(properties.ResourceCustom, properties.SchemaProvider, &NameProvider{}, spec, terraformProvider, providerFile, funcMap)
 }
 
 func (g *GenerateTerraformProvider) GenerateTerraformProvider(terraformProvider *properties.TerraformProviderFile, spec *properties.Normalization, providerConfig properties.TerraformProvider) error {
@@ -373,10 +390,11 @@ func (g *GenerateTerraformProvider) GenerateTerraformProvider(terraformProvider 
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
 
 	funcMap := template.FuncMap{
-		"RenderImports":  func() (string, error) { return terraformProvider.ImportManager.RenderImports() },
-		"DataSources":    func() []string { return terraformProvider.DataSources },
-		"Resources":      func() []string { return terraformProvider.Resources },
-		"ProviderParams": func() map[string]properties.TerraformProviderParams { return providerConfig.TerraformProviderParams },
+		"RenderImports":         func() (string, error) { return terraformProvider.ImportManager.RenderImports() },
+		"DataSources":           func() []string { return terraformProvider.DataSources },
+		"Resources":             func() []string { return terraformProvider.Resources },
+		"RenderResourceFuncMap": func() (string, error) { return RenderResourceFuncMap(terraformProvider.SpecMetadata) },
+		"ProviderParams":        func() map[string]properties.TerraformProviderParams { return providerConfig.TerraformProviderParams },
 		"ParamToModelBasic": func(paramName string, paramProp properties.TerraformProviderParams) (string, error) {
 			return ParamToModelBasic(paramName, paramProp)
 		},
@@ -384,7 +402,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformProvider(terraformProvider 
 			return ParamToSchemaProvider(paramName, paramProp)
 		},
 	}
-	return g.generateTerraformEntityTemplate("ProviderFile", &NameProvider{}, spec, terraformProvider, provider, funcMap)
+	return g.generateTerraformEntityTemplate(properties.ResourceCustom, properties.SchemaProvider, &NameProvider{}, spec, terraformProvider, provider, funcMap)
 }
 
 func sdkPkgPath(spec *properties.Normalization) string {

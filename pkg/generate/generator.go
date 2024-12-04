@@ -58,7 +58,7 @@ func (c *Creator) RenderTemplate() error {
 }
 
 // RenderTerraformProviderFile generates a Go file for a Terraform provider based on the provided TerraformProviderFile and Normalization arguments.
-func (c *Creator) RenderTerraformProviderFile(spec *properties.Normalization, typ properties.ResourceType) ([]string, []string, error) {
+func (c *Creator) RenderTerraformProviderFile(spec *properties.Normalization, typ properties.ResourceType) ([]string, []string, map[string]properties.TerraformProviderSpecMetadata, error) {
 	var name string
 	switch typ {
 	case properties.ResourceUuidPlural:
@@ -73,19 +73,19 @@ func (c *Creator) RenderTerraformProviderFile(spec *properties.Normalization, ty
 	tfp := terraform_provider.GenerateTerraformProvider{}
 
 	if err := tfp.GenerateTerraformDataSource(typ, spec, terraformProvider); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	if err := tfp.GenerateTerraformResource(typ, spec, terraformProvider); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	if err := tfp.GenerateCommonCode(typ, spec, terraformProvider); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	if err := tfp.GenerateTerraformProviderFile(spec, terraformProvider); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	var filePath string
@@ -101,10 +101,10 @@ func (c *Creator) RenderTerraformProviderFile(spec *properties.Normalization, ty
 	}
 
 	if err := c.writeFormattedContentToFile(filePath, terraformProvider.Code.String()); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return terraformProvider.DataSources, terraformProvider.Resources, nil
+	return terraformProvider.DataSources, terraformProvider.Resources, terraformProvider.SpecMetadata, nil
 }
 
 // RenderTerraformProvider generates and writes a Terraform provider file.

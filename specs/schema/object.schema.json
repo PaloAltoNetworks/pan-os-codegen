@@ -47,7 +47,8 @@
           "type": "string"
         },
         "plural_suffix": { "type": "string" },
-        "plural_name": { "type": "string" }
+        "plural_name": { "type": "string" },
+        "plural_description": { "type": "string" }
       }
     },
     "go_sdk_config": {

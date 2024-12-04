@@ -75,6 +75,7 @@ type TerraformProviderConfig struct {
 	Suffix                string                     `json:"suffix" yaml:"suffix"`
 	PluralSuffix          string                     `json:"plural_suffix" yaml:"plural_suffix"`
 	PluralName            string                     `json:"plural_name" yaml:"plural_name"`
+	PluralDescription     string                     `json:"plural_description" yaml:"plural_description"`
 }
 
 type NameVariant struct {
@@ -556,6 +557,7 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 			Suffix:                object.TerraformConfig.Suffix,
 			PluralSuffix:          object.TerraformConfig.PluralSuffix,
 			PluralName:            object.TerraformConfig.PluralName,
+			PluralDescription:     object.TerraformConfig.PluralDescription,
 		},
 		Locations:   make(map[string]*Location),
 		GoSdkSkip:   object.GoSdkConfig.Skip,
