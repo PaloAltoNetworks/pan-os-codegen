@@ -456,8 +456,6 @@ var {{ .TerraformName.LowerCamelCase }}_list types.List
 		(*encrypted)["{{ .Encryption.EncryptedPath }}"] = types.StringValue(*obj.{{ .TerraformName.CamelCase }})
 		if value, ok := (*encrypted)["{{ .Encryption.PlaintextPath }}"]; ok {
 			{{ .TerraformName.LowerCamelCase }}_value = value
-		} else {
-			panic("{{ .Encryption.PlaintextPath }}")
 		}
 {{- else }}
 		{{ .TerraformName.LowerCamelCase }}_value = types.{{ .Type | PascalCase }}Value(*obj.{{ .PangoName.CamelCase }})
