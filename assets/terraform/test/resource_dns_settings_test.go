@@ -32,12 +32,12 @@ func TestAccDnsSettings(t *testing.T) {
 					),
 					statecheck.ExpectKnownValue(
 						"panos_dns_settings.settings",
-						tfjsonpath.New("dns_setting").AtMapKey("servers").AtMapKey("primary"),
+						tfjsonpath.New("dns_settings").AtMapKey("servers").AtMapKey("primary"),
 						knownvalue.StringExact("172.16.0.1"),
 					),
 					statecheck.ExpectKnownValue(
 						"panos_dns_settings.settings",
-						tfjsonpath.New("dns_setting").AtMapKey("servers").AtMapKey("secondary"),
+						tfjsonpath.New("dns_settings").AtMapKey("servers").AtMapKey("secondary"),
 						knownvalue.StringExact("172.16.0.2"),
 					),
 				},
@@ -55,7 +55,7 @@ func TestAccDnsSettings(t *testing.T) {
 					),
 					statecheck.ExpectKnownValue(
 						"panos_dns_settings.settings",
-						tfjsonpath.New("dns_setting").AtMapKey("servers").AtMapKey("primary"),
+						tfjsonpath.New("dns_settings").AtMapKey("servers").AtMapKey("primary"),
 						knownvalue.StringExact("172.16.0.3"),
 					),
 				},
@@ -73,7 +73,7 @@ func TestAccDnsSettings(t *testing.T) {
 					),
 					statecheck.ExpectKnownValue(
 						"panos_dns_settings.settings",
-						tfjsonpath.New("dns_setting").AtMapKey("servers").AtMapKey("secondary"),
+						tfjsonpath.New("dns_settings").AtMapKey("servers").AtMapKey("secondary"),
 						knownvalue.StringExact("172.16.0.4"),
 					),
 				},
@@ -88,7 +88,7 @@ variable "location" { type = map }
 resource "panos_dns_settings" "settings" {
   location = var.location
 
-  dns_setting = {
+  dns_settings = {
     servers = {
       primary = "172.16.0.1"
       secondary = "172.16.0.2"
@@ -104,7 +104,7 @@ resource "panos_dns_settings" "settings" {
   location = var.location
 
   fqdn_refresh_time = 3600
-  dns_setting = {
+  dns_settings = {
     servers = {
       primary = "172.16.0.3"
     }
@@ -118,7 +118,7 @@ variable "location" { type = map }
 resource "panos_dns_settings" "settings" {
   location = var.location
 
-  dns_setting = {
+  dns_settings = {
     servers = {
       secondary = "172.16.0.4"
     }

@@ -123,7 +123,7 @@ func (c *Command) Execute() error {
 				case properties.TerraformResourceCustom:
 					resourceTyp = properties.ResourceCustom
 				case properties.TerraformResourceConfig:
-					panic("missing implementation for config type resources")
+					resourceTyp = properties.ResourceConfig
 				}
 
 				terraformGenerator := generate.NewCreator(config.Output.TerraformProvider, c.templatePath, spec)

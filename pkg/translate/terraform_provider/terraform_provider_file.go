@@ -241,7 +241,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 			}
 
 			switch resourceTyp {
-			case properties.ResourceEntry:
+			case properties.ResourceEntry, properties.ResourceConfig:
 				terraformProvider.ImportManager.AddStandardImport("errors", "")
 			case properties.ResourceEntryPlural, properties.ResourceUuid:
 			case properties.ResourceUuidPlural, properties.ResourceCustom:
@@ -465,7 +465,10 @@ func conditionallyAddValidators(manager *imports.Manager, spec *properties.Norma
 }
 
 func conditionallyAddModifiers(manager *imports.Manager, spec *properties.Normalization) {
-	manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier", "")
+	if len(spec.Locations) > 0 {
+		manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier", "")
+	}
+
 	for _, loc := range spec.Locations {
 		if len(loc.Vars) == 0 {
 			manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier", "")

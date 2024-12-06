@@ -3,6 +3,7 @@ package properties
 import (
 	"fmt"
 	"io/fs"
+	"log"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -175,11 +176,13 @@ type SpecParam struct {
 }
 
 type SpecParamTerraformProviderConfig struct {
-	Name      string `json:"name" yaml:"name"`
-	Type      string `json:"type" yaml:"type"`
-	Private   bool   `json:"ignored" yaml:"private"`
-	Sensitive bool   `json:"sensitive" yaml:"sensitive"`
-	Computed  bool   `json:"computed" yaml:"computed"`
+	Name         *string `json:"name" yaml:"name"`
+	Type         *string `json:"type" yaml:"type"`
+	Private      *bool   `json:"ignored" yaml:"private"`
+	Sensitive    *bool   `json:"sensitive" yaml:"sensitive"`
+	Computed     *bool   `json:"computed" yaml:"computed"`
+	Required     *bool   `json:"required" yaml:"required"`
+	VariantCheck *string `json:"variant_check" yaml:"variant_check"`
 }
 
 type SpecParamLength struct {
@@ -215,11 +218,31 @@ type SpecParamProfile struct {
 }
 
 func (o *SpecParam) NameVariant() *NameVariant {
-	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.Name != "" {
-		return NewNameVariant(o.TerraformProviderConfig.Name)
+	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.Name != nil {
+		return NewNameVariant(*o.TerraformProviderConfig.Name)
 	}
 
 	return o.Name
+}
+
+func (o *SpecParam) FinalComputed() bool {
+	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.Computed != nil {
+		return *o.TerraformProviderConfig.Computed
+	}
+
+	if o.Default != "" {
+		return true
+	}
+
+	return false
+}
+
+func (o *SpecParam) FinalRequired() bool {
+	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.Required != nil {
+		return *o.TerraformProviderConfig.Required
+	}
+
+	return o.Required
 }
 
 func hasChildEncryptedResources(param *SpecParam) bool {
@@ -291,8 +314,8 @@ func (o *SpecParam) HasEncryptedResources() bool {
 }
 
 func (o *SpecParam) HasPrivateParameters() bool {
-	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.Private {
-		return true
+	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.Private != nil {
+		return *o.TerraformProviderConfig.Private
 	}
 
 	for _, elt := range o.Spec.Params {
@@ -311,8 +334,8 @@ func (o *SpecParam) HasPrivateParameters() bool {
 }
 
 func (o *SpecParam) IsPrivateParameter() bool {
-	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.Private {
-		return true
+	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.Private != nil {
+		return *o.TerraformProviderConfig.Private
 	}
 
 	return false
@@ -405,6 +428,8 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 			if err != nil {
 				return nil, err
 			}
+		} else if spec.Items.Type == "enum" {
+			itemsSpec.Type = "string"
 		} else {
 			itemsSpec.Type = spec.Items.Type
 		}
@@ -459,16 +484,30 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 
 	var sensitive bool
 	var terraformProviderConfig *SpecParamTerraformProviderConfig
+
 	if schemaSpec.CodegenOverrides != nil {
-		sensitive = schemaSpec.CodegenOverrides.Terraform.Sensitive
-		terraformProviderConfig = &SpecParamTerraformProviderConfig{
-			Name:      schemaSpec.CodegenOverrides.Terraform.Name,
-			Type:      schemaSpec.CodegenOverrides.Terraform.Type,
-			Private:   schemaSpec.CodegenOverrides.Terraform.Private,
-			Sensitive: schemaSpec.CodegenOverrides.Terraform.Sensitive,
-			Computed:  schemaSpec.CodegenOverrides.Terraform.Computed,
+		var variantCheck *string
+		if schemaSpec.CodegenOverrides.Terraform.VariantCheck != nil {
+			variantCheckStr := string(*schemaSpec.CodegenOverrides.Terraform.VariantCheck)
+			variantCheck = &variantCheckStr
 		}
+
+		if schemaSpec.CodegenOverrides.Terraform.Sensitive != nil {
+			sensitive = *schemaSpec.CodegenOverrides.Terraform.Sensitive
+		}
+
+		terraformProviderConfig = &SpecParamTerraformProviderConfig{
+			Name:         schemaSpec.CodegenOverrides.Terraform.Name,
+			Type:         schemaSpec.CodegenOverrides.Terraform.Type,
+			Private:      schemaSpec.CodegenOverrides.Terraform.Private,
+			Sensitive:    schemaSpec.CodegenOverrides.Terraform.Sensitive,
+			Computed:     schemaSpec.CodegenOverrides.Terraform.Computed,
+			Required:     schemaSpec.CodegenOverrides.Terraform.Required,
+			VariantCheck: variantCheck,
+		}
+		log.Printf("terraformProviderConfig: %s VariantCheck: '%s'\n", schemaSpec.Name, terraformProviderConfig.VariantCheck)
 	}
+
 	specParameter := &SpecParam{
 		Description:             schemaSpec.Description,
 		Type:                    specType,

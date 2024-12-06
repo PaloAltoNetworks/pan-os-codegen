@@ -46,7 +46,7 @@ func TestAccNtpSettings(t *testing.T) {
 					statecheck.ExpectKnownValue(
 						"panos_ntp_settings.settings",
 						tfjsonpath.New("ntp_servers").AtMapKey("primary_ntp_server").AtMapKey("authentication_type").AtMapKey("autokey"),
-						knownvalue.StringExact(""),
+						knownvalue.NotNull(),
 					),
 				},
 			},
@@ -71,6 +71,7 @@ func TestAccNtpSettings(t *testing.T) {
 							AtMapKey("primary_ntp_server").
 							AtMapKey("authentication_type").
 							AtMapKey("symmetric_key").
+							AtMapKey("algorithm").
 							AtMapKey("sha1").
 							AtMapKey("authentication_key"),
 						knownvalue.StringExact("da39a3ee5e6b4b0d3255bfef95601890afd80709"),
@@ -90,6 +91,7 @@ func TestAccNtpSettings(t *testing.T) {
 							AtMapKey("secondary_ntp_server").
 							AtMapKey("authentication_type").
 							AtMapKey("symmetric_key").
+							AtMapKey("algorithm").
 							AtMapKey("md5").
 							AtMapKey("authentication_key"),
 						knownvalue.StringExact("d41d8cd98f00b204e9800998ecf8427e"),
@@ -127,7 +129,7 @@ resource "panos_ntp_settings" "settings" {
     primary_ntp_server = {
       ntp_server_address = "172.16.0.1"
       authentication_type = {
-        autokey = ""
+        autokey = {}
       }
     }
     secondary_ntp_server = {
@@ -149,8 +151,10 @@ resource "panos_ntp_settings" "settings" {
       authentication_type = {
         symmetric_key = {
           key_id = 1
-          sha1 = {
-            authentication_key = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+          algorithm = {
+            sha1 = {
+              authentication_key = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+            }
           }
         }
       }
@@ -161,8 +165,10 @@ resource "panos_ntp_settings" "settings" {
       authentication_type = {
         symmetric_key = {
           key_id = 1
-          md5 = {
-            authentication_key = "d41d8cd98f00b204e9800998ecf8427e"
+          algorithm = {
+            md5 = {
+              authentication_key = "d41d8cd98f00b204e9800998ecf8427e"
+            }
           }
         }
       }

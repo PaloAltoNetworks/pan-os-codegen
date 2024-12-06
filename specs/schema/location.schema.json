@@ -14,6 +14,13 @@
     "read_only": {
       "type": "boolean"
     },
+    "required": { "type": "boolean" },
+    "validators": {
+      "type": "array",
+      "items": {
+        "$ref": "validator.schema.json"
+      }
+    },
     "devices": {
       "type": "array",
       "items": {

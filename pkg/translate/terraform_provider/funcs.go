@@ -103,6 +103,7 @@ func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix st
 	if paramSpec.Type == "list" && paramSpec.Items.Type == "entry" {
 		hasEntryName = true
 	}
+
 	element := spec{
 		PangoType:              pangoType,
 		PangoReturnType:        pangoReturnType,
@@ -121,7 +122,7 @@ func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix st
 				continue
 			}
 
-			terraformPrefix := fmt.Sprintf("%s%s", terraformPrefix, paramSpec.Name.CamelCase)
+			terraformPrefix := fmt.Sprintf("%s%s", terraformPrefix, paramSpec.NameVariant().CamelCase)
 			specs = append(specs, generateFromTerraformToPangoSpec(pangoType, terraformPrefix, elt, parentNames)...)
 		}
 	}
@@ -147,7 +148,7 @@ func generateFromTerraformToPangoParameter(resourceTyp properties.ResourceType, 
 	oneofSpecs := renderSpecsForParams(prop.Spec.OneOf, []string{parentName})
 
 	switch resourceTyp {
-	case properties.ResourceEntry:
+	case properties.ResourceEntry, properties.ResourceConfig:
 		specs = append(specs, spec{
 			HasEntryName:    prop.Entry != nil,
 			PangoType:       pangoPrefix,
@@ -220,7 +221,7 @@ const copyToPangoTmpl = `
 
 {{- define "terraformListElementsAs" }}
   {{- with .Parameter }}
-    {{- $pangoType := printf "%s%s" $.Spec.PangoType .TerraformName.CamelCase }}
+    {{- $pangoType := printf "%s%s" $.Spec.PangoType .PangoName.CamelCase }}
     {{- $terraformType := printf "%s%sObject" $.Spec.TerraformType .TerraformName.CamelCase }}
     {{- $pangoEntries := printf "%s_pango_entries" .TerraformName.LowerCamelCase }}
     {{- $tfEntries := printf "%s_tf_entries" .TerraformName.LowerCamelCase }}
@@ -380,7 +381,7 @@ var {{ .TerraformName.LowerCamelCase }}_list types.List
 	var {{ $terraformList }} types.List
 	{
 		var {{ $tfEntries }} []{{ $terraformType }}
-		for _, elt := range obj.{{ .TerraformName.CamelCase }} {
+		for _, elt := range obj.{{ .PangoName.CamelCase }} {
 			var entry {{ $terraformType }}
 			entry_diags := entry.CopyFromPango(ctx, &elt, encrypted)
 			diags.Append(entry_diags...)
@@ -1046,15 +1047,17 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		})
 	}
 
-	validatorFn := "ExactlyOneOf"
+	var validatorFn string
+	if param.Required {
+		validatorFn = "ExactlyOneOf"
+	} else {
+		validatorFn = "ConflictsWith"
+	}
+
 	var expressions []string
 	for _, elt := range param.Spec.OneOf {
 		if elt.IsPrivateParameter() {
 			continue
-		}
-
-		if elt.IsNil {
-			validatorFn = "ConflictsWith"
 		}
 
 		expressions = append(expressions, fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, elt.Name.Underscore))
@@ -1104,9 +1107,8 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		computed = true
 		required = false
 	case properties.SchemaResource:
-		if param.TerraformProviderConfig != nil {
-			computed = param.TerraformProviderConfig.Computed
-		}
+		computed = param.FinalComputed()
+		required = param.FinalRequired()
 	case properties.SchemaCommon, properties.SchemaProvider:
 		panic("unreachable")
 	}
@@ -1197,11 +1199,8 @@ func createSchemaAttributeForParameter(schemaTyp properties.SchemaType, manager 
 		required = false
 		computed = true
 	case properties.SchemaResource:
-		if param.TerraformProviderConfig != nil {
-			computed = param.TerraformProviderConfig.Computed
-		} else if param.Default != "" {
-			computed = true
-		}
+		computed = param.FinalComputed()
+		required = param.FinalRequired()
 	case properties.SchemaCommon, properties.SchemaProvider:
 		panic("unreachable")
 	}
@@ -1437,7 +1436,7 @@ func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp pro
 	}
 
 	switch resourceTyp {
-	case properties.ResourceEntry, properties.ResourceCustom:
+	case properties.ResourceEntry, properties.ResourceCustom, properties.ResourceConfig:
 		return createSchemaSpecForEntrySingularModel(resourceTyp, schemaTyp, spec, packageName, structName, manager)
 	case properties.ResourceEntryPlural:
 		return createSchemaSpecForEntryListModel(resourceTyp, schemaTyp, spec, packageName, structName, manager)
@@ -1507,9 +1506,10 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 			continue
 		}
 
-		if elt.IsNil {
-			validatorFn = "ConflictsWith"
+		if elt.TerraformProviderConfig != nil && elt.TerraformProviderConfig.VariantCheck != nil {
+			validatorFn = *elt.TerraformProviderConfig.VariantCheck
 		}
+
 		expressions = append(expressions, fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, elt.Name.Underscore))
 	}
 
@@ -2238,7 +2238,7 @@ func createStructSpecForModel(resourceTyp properties.ResourceType, schemaTyp pro
 	}
 
 	switch resourceTyp {
-	case properties.ResourceEntry, properties.ResourceCustom:
+	case properties.ResourceEntry, properties.ResourceCustom, properties.ResourceConfig:
 		return createStructSpecForEntryModel(resourceTyp, schemaTyp, spec, names)
 	case properties.ResourceEntryPlural:
 		return createStructSpecForEntryListModel(resourceTyp, schemaTyp, spec, names)
@@ -2357,7 +2357,7 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 	var listAttribute string
 	var exhaustive bool
 	switch resourceTyp {
-	case properties.ResourceEntry:
+	case properties.ResourceEntry, properties.ResourceConfig:
 		exhaustive = true
 		tmpl = resourceCreateFunction
 	case properties.ResourceEntryPlural:
@@ -2416,7 +2416,7 @@ func DataSourceReadFunction(resourceTyp properties.ResourceType, names *NameProv
 	var tmpl string
 	var listAttribute string
 	switch resourceTyp {
-	case properties.ResourceEntry:
+	case properties.ResourceEntry, properties.ResourceConfig:
 		tmpl = resourceReadFunction
 	case properties.ResourceEntryPlural:
 		tmpl = resourceReadEntryListFunction
@@ -2545,7 +2545,7 @@ func ResourceUpdateFunction(resourceTyp properties.ResourceType, names *NameProv
 	var listAttribute string
 	var exhaustive bool
 	switch resourceTyp {
-	case properties.ResourceEntry:
+	case properties.ResourceEntry, properties.ResourceConfig:
 		tmpl = resourceUpdateFunction
 	case properties.ResourceEntryPlural:
 		tmpl = resourceUpdateEntryListFunction
@@ -2612,7 +2612,7 @@ func ResourceDeleteFunction(resourceTyp properties.ResourceType, names *NameProv
 	var listAttribute string
 	var exhaustive bool
 	switch resourceTyp {
-	case properties.ResourceEntry:
+	case properties.ResourceEntry, properties.ResourceConfig:
 		tmpl = resourceDeleteFunction
 	case properties.ResourceEntryPlural:
 		tmpl = resourceDeleteManyFunction
