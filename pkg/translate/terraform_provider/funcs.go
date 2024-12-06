@@ -457,8 +457,6 @@ var {{ .TerraformName.LowerCamelCase }}_list types.List
 		(*encrypted)["{{ .Encryption.EncryptedPath }}"] = types.StringValue(*obj.{{ .TerraformName.CamelCase }})
 		if value, ok := (*encrypted)["{{ .Encryption.PlaintextPath }}"]; ok {
 			{{ .TerraformName.LowerCamelCase }}_value = value
-		} else {
-			panic("{{ .Encryption.PlaintextPath }}")
 		}
 {{- else }}
 		{{ .TerraformName.LowerCamelCase }}_value = types.{{ .Type | PascalCase }}Value(*obj.{{ .PangoName.CamelCase }})
@@ -1109,9 +1107,7 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		computed = true
 		required = false
 	case properties.SchemaResource:
-		if param.TerraformProviderConfig != nil {
-			computed = param.TerraformProviderConfig.Computed
-		}
+		computed = param.FinalComputed()
 		required = param.FinalRequired()
 	case properties.SchemaCommon, properties.SchemaProvider:
 		panic("unreachable")
@@ -1203,11 +1199,7 @@ func createSchemaAttributeForParameter(schemaTyp properties.SchemaType, manager 
 		required = false
 		computed = true
 	case properties.SchemaResource:
-		if param.TerraformProviderConfig != nil {
-			computed = param.TerraformProviderConfig.Computed
-		} else if param.Default != "" {
-			computed = true
-		}
+		computed = param.FinalComputed()
 		required = param.FinalRequired()
 	case properties.SchemaCommon, properties.SchemaProvider:
 		panic("unreachable")
@@ -1514,8 +1506,8 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 			continue
 		}
 
-		if elt.TerraformProviderConfig != nil && elt.TerraformProviderConfig.VariantCheck != "" {
-			validatorFn = elt.TerraformProviderConfig.VariantCheck
+		if elt.TerraformProviderConfig != nil && elt.TerraformProviderConfig.VariantCheck != nil {
+			validatorFn = *elt.TerraformProviderConfig.VariantCheck
 		}
 
 		expressions = append(expressions, fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, elt.Name.Underscore))
