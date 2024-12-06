@@ -137,9 +137,17 @@ spec:
         items:
           type: string
     - name: type
-      type: string
+      type: enum
       profiles:
         - xpath: ["type"]
+      validators:
+        - type: values
+          spec:
+            values: ["URL List", "Category Match"]
+      spec:
+        values:
+          - value: URL List
+          - value: Category Match
     - name: disable-override
       type: bool
       profiles:
