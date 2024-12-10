@@ -220,7 +220,7 @@ const copyToPangoTmpl = `
 
 {{- define "terraformListElementsAs" }}
   {{- with .Parameter }}
-    {{- $pangoType := printf "%s%s" $.Spec.PangoType .TerraformName.CamelCase }}
+    {{- $pangoType := printf "%s%s" $.Spec.PangoType .PangoName.CamelCase }}
     {{- $terraformType := printf "%s%sObject" $.Spec.TerraformType .TerraformName.CamelCase }}
     {{- $pangoEntries := printf "%s_pango_entries" .TerraformName.LowerCamelCase }}
     {{- $tfEntries := printf "%s_tf_entries" .TerraformName.LowerCamelCase }}
@@ -380,7 +380,7 @@ var {{ .TerraformName.LowerCamelCase }}_list types.List
 	var {{ $terraformList }} types.List
 	{
 		var {{ $tfEntries }} []{{ $terraformType }}
-		for _, elt := range obj.{{ .TerraformName.CamelCase }} {
+		for _, elt := range obj.{{ .PangoName.CamelCase }} {
 			var entry {{ $terraformType }}
 			entry_diags := entry.CopyFromPango(ctx, &elt, encrypted)
 			diags.Append(entry_diags...)
