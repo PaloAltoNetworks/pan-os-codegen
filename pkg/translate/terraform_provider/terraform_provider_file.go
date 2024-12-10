@@ -413,6 +413,10 @@ func sdkPkgPath(spec *properties.Normalization) string {
 
 func hasVariantsImpl(props []*properties.SpecParam) bool {
 	for _, elt := range props {
+		if len(elt.EnumValues) > 0 {
+			return true
+		}
+
 		if elt.Spec == nil {
 			continue
 		}
@@ -442,7 +446,7 @@ func conditionallyAddValidators(manager *imports.Manager, spec *properties.Norma
 		return
 	}
 
-	hasVariants := func() bool {
+	validatorRequired := func() bool {
 		if len(spec.Spec.OneOf) > 0 {
 			return true
 		}
@@ -457,7 +461,7 @@ func conditionallyAddValidators(manager *imports.Manager, spec *properties.Norma
 		return hasVariantsImpl(params)
 	}
 
-	if hasVariants() || len(spec.Locations) > 1 {
+	if validatorRequired() || len(spec.Locations) > 1 {
 		manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
 		manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/schema/validator", "")
 	}
