@@ -621,7 +621,6 @@ spec:
         spec: {}
         description: ''
         required: false
-      variants:
       - name: dns-rewrite
         type: object
         profiles:
@@ -651,6 +650,7 @@ spec:
           variants: []
         description: ''
         required: false
+      variants: []
     description: ''
     required: false
     codegen_overrides:
