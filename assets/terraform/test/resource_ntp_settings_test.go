@@ -115,8 +115,8 @@ resource "panos_ntp_settings" "settings" {
     }
     secondary_ntp_server = {
       ntp_server_address = "172.16.0.2"
+      authentication_type = { none = {}}
     }
-    authentication_type = { none = {}}
   }
 }
 `

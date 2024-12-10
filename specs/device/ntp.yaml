@@ -262,6 +262,9 @@ spec:
                 required: false
             description: NTP Authentication
             required: false
+            codegen_overrides:
+              terraform:
+                required: true
           - name: ntp-server-address
             type: string
             profiles:

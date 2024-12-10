@@ -1152,7 +1152,7 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		ReturnType:    returnType,
 		Description:   "",
 		Required:      required,
-		Optional:      !param.Required,
+		Optional:      !param.FinalRequired(),
 		Computed:      computed,
 		Sensitive:     param.FinalSensitive(),
 		Attributes:    attributes,
