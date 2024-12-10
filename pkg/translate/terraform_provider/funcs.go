@@ -1237,6 +1237,9 @@ func createSchemaAttributeForParameter(schemaTyp properties.SchemaType, manager 
 
 	var defaultValue *defaultCtx
 	if schemaTyp == properties.SchemaResource && param.Default != "" {
+		defaultImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework/resource/schema/%sdefault", param.DefaultType())
+		manager.AddHashicorpImport(defaultImport, "")
+
 		var value string
 		switch param.Type {
 		case "string":

@@ -291,6 +291,10 @@ func (o *SpecParam) HasEntryName() bool {
 	return o.Items.Type == "entry"
 }
 
+func (o *SpecParam) DefaultType() string {
+	return o.Type
+}
+
 func (o *SpecParam) ValidatorType() string {
 	if o.Type == "" {
 		return "object"
