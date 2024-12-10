@@ -1,0 +1,1198 @@
+name: ipsec-tunnel
+terraform_provider_config:
+  description: IPSec Tunnel
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: ipsec_tunnel
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - network
+  - tunnel
+  - ipsec
+xpath_suffix:
+- network
+- tunnel
+- ipsec
+locations:
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: anti-replay
+    type: bool
+    profiles:
+    - xpath:
+      - anti-replay
+    validators: []
+    spec: {}
+    description: Enable Anti-Replay check on this tunnel
+    required: false
+  - name: anti-replay-window
+    type: enum
+    profiles:
+    - xpath:
+      - anti-replay-window
+    validators:
+    - type: values
+      spec:
+        values:
+        - '64'
+        - '128'
+        - '256'
+        - '512'
+        - '1024'
+        - '2048'
+        - '4096'
+    spec:
+      default: '1024'
+      values:
+      - value: '64'
+      - value: '128'
+      - value: '256'
+      - value: '512'
+      - value: '1024'
+      - value: '2048'
+      - value: '4096'
+    description: 64,128,256,512,1024,2048,4096
+    required: false
+  - name: comment
+    type: string
+    profiles:
+    - xpath:
+      - comment
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 1023
+    spec: {}
+    description: ''
+    required: false
+  - name: copy-flow-label
+    type: bool
+    profiles:
+    - xpath:
+      - copy-flow-label
+    validators: []
+    spec: {}
+    description: Copy IPv6 flow label for 6in6 tunnel from inner packet to IPSec packet
+      (not recommended)
+    required: false
+  - name: copy-tos
+    type: bool
+    profiles:
+    - xpath:
+      - copy-tos
+    validators: []
+    spec: {}
+    description: Copy IP TOS bits from inner packet to IPSec packet (not recommended)
+    required: false
+  - name: disabled
+    type: bool
+    profiles:
+    - xpath:
+      - disabled
+    validators: []
+    spec: {}
+    description: Disable the IPSec tunnel
+    required: false
+  - name: enable-gre-encapsulation
+    type: bool
+    profiles:
+    - xpath:
+      - enable-gre-encapsulation
+    validators: []
+    spec: {}
+    description: allow GRE over IPSec
+    required: false
+  - name: ipv6
+    type: bool
+    profiles:
+    - xpath:
+      - ipv6
+    validators: []
+    spec: {}
+    description: use IPv6 for the IPSec tunnel
+    required: false
+  - name: tunnel-interface
+    type: string
+    profiles:
+    - xpath:
+      - tunnel-interface
+    validators: []
+    spec: {}
+    description: to apply IPSec VPN tunnels to tunnel interface
+    required: false
+  - name: tunnel-monitor
+    type: object
+    profiles:
+    - xpath:
+      - tunnel-monitor
+    validators: []
+    spec:
+      params:
+      - name: destination-ip
+        type: string
+        profiles:
+        - xpath:
+          - destination-ip
+        validators: []
+        spec: {}
+        description: Destination IP to send ICMP probe
+        required: false
+      - name: enable
+        type: bool
+        profiles:
+        - xpath:
+          - enable
+        validators: []
+        spec: {}
+        description: Enable tunnel monitoring on this tunnel
+        required: false
+      - name: proxy-id
+        type: string
+        profiles:
+        - xpath:
+          - proxy-id
+        validators: []
+        spec: {}
+        description: Which proxy-id (or proxy-id-v6) the monitoring traffic will use
+        required: false
+      - name: tunnel-monitor-profile
+        type: string
+        profiles:
+        - xpath:
+          - tunnel-monitor-profile
+        validators: []
+        spec: {}
+        description: monitoring action
+        required: false
+      variants: []
+    description: Monitor tunnel status
+    required: false
+  - name: ipsec-mode
+    type: enum
+    profiles:
+    - xpath:
+      - ipsec-mode
+      min_version: 11.0.2
+      max_version: 11.0.3
+    validators:
+    - type: values
+      spec:
+        values:
+        - tunnel
+        - transport
+    spec:
+      default: tunnel
+      values:
+      - value: tunnel
+      - value: transport
+    description: ''
+    required: false
+  variants:
+  - name: auto-key
+    type: object
+    profiles:
+    - xpath:
+      - auto-key
+    validators: []
+    spec:
+      params:
+      - name: ike-gateway
+        type: list
+        profiles:
+        - xpath:
+          - ike-gateway
+          - entry
+          type: entry
+        validators: []
+        spec:
+          type: object
+          items:
+            type: object
+            spec:
+              params: []
+              variants: []
+        description: ''
+        required: false
+      - name: ipsec-crypto-profile
+        type: string
+        profiles:
+        - xpath:
+          - ipsec-crypto-profile
+        validators: []
+        spec:
+          default: default
+        description: IPSec crypto profile name
+        required: false
+      - name: proxy-id
+        type: list
+        profiles:
+        - xpath:
+          - proxy-id
+          - entry
+          type: entry
+        validators: []
+        spec:
+          type: object
+          items:
+            type: object
+            spec:
+              params:
+              - name: local
+                type: string
+                profiles:
+                - xpath:
+                  - local
+                validators: []
+                spec: {}
+                description: IP subnet or IP address represents local network
+                required: false
+              - name: remote
+                type: string
+                profiles:
+                - xpath:
+                  - remote
+                validators: []
+                spec: {}
+                description: IP subnet or IP address represents remote network
+                required: false
+              - name: protocol
+                type: object
+                profiles:
+                - xpath:
+                  - protocol
+                validators: []
+                spec:
+                  params: []
+                  variants:
+                  - name: number
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - number
+                    validators:
+                    - type: length
+                      spec:
+                        min: 1
+                        max: 254
+                    spec: {}
+                    description: IP protocol number
+                    required: false
+                  - name: any
+                    type: object
+                    profiles:
+                    - xpath:
+                      - any
+                    validators: []
+                    spec:
+                      params: []
+                      variants: []
+                    description: any IP protocol
+                    required: false
+                  - name: tcp
+                    type: object
+                    profiles:
+                    - xpath:
+                      - tcp
+                    validators: []
+                    spec:
+                      params:
+                      - name: local-port
+                        type: int64
+                        profiles:
+                        - xpath:
+                          - local-port
+                        validators:
+                        - type: length
+                          spec:
+                            min: 0
+                            max: 65535
+                        spec:
+                          default: 0
+                        description: ''
+                        required: false
+                      - name: remote-port
+                        type: int64
+                        profiles:
+                        - xpath:
+                          - remote-port
+                        validators:
+                        - type: length
+                          spec:
+                            min: 0
+                            max: 65535
+                        spec:
+                          default: 0
+                        description: ''
+                        required: false
+                      variants: []
+                    description: TCP protocol
+                    required: false
+                  - name: udp
+                    type: object
+                    profiles:
+                    - xpath:
+                      - udp
+                    validators: []
+                    spec:
+                      params:
+                      - name: local-port
+                        type: int64
+                        profiles:
+                        - xpath:
+                          - local-port
+                        validators:
+                        - type: length
+                          spec:
+                            min: 0
+                            max: 65535
+                        spec:
+                          default: 0
+                        description: ''
+                        required: false
+                      - name: remote-port
+                        type: int64
+                        profiles:
+                        - xpath:
+                          - remote-port
+                        validators:
+                        - type: length
+                          spec:
+                            min: 0
+                            max: 65535
+                        spec:
+                          default: 0
+                        description: ''
+                        required: false
+                      variants: []
+                    description: UDP protocol
+                    required: false
+                description: specify protocol and port number for proxy-id
+                required: false
+              variants: []
+        description: ''
+        required: false
+      - name: proxy-id-v6
+        type: list
+        profiles:
+        - xpath:
+          - proxy-id-v6
+          - entry
+          type: entry
+        validators: []
+        spec:
+          type: object
+          items:
+            type: object
+            spec:
+              params:
+              - name: local
+                type: string
+                profiles:
+                - xpath:
+                  - local
+                validators: []
+                spec: {}
+                description: IP subnet or IP address represents local network
+                required: false
+              - name: remote
+                type: string
+                profiles:
+                - xpath:
+                  - remote
+                validators: []
+                spec: {}
+                description: IP subnet or IP address represents remote network
+                required: false
+              - name: protocol
+                type: object
+                profiles:
+                - xpath:
+                  - protocol
+                validators: []
+                spec:
+                  params: []
+                  variants:
+                  - name: number
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - number
+                    validators:
+                    - type: length
+                      spec:
+                        min: 1
+                        max: 254
+                    spec: {}
+                    description: IP protocol number
+                    required: false
+                  - name: any
+                    type: object
+                    profiles:
+                    - xpath:
+                      - any
+                    validators: []
+                    spec:
+                      params: []
+                      variants: []
+                    description: any IP protocol
+                    required: false
+                  - name: tcp
+                    type: object
+                    profiles:
+                    - xpath:
+                      - tcp
+                    validators: []
+                    spec:
+                      params:
+                      - name: local-port
+                        type: int64
+                        profiles:
+                        - xpath:
+                          - local-port
+                        validators:
+                        - type: length
+                          spec:
+                            min: 0
+                            max: 65535
+                        spec:
+                          default: 0
+                        description: ''
+                        required: false
+                      - name: remote-port
+                        type: int64
+                        profiles:
+                        - xpath:
+                          - remote-port
+                        validators:
+                        - type: length
+                          spec:
+                            min: 0
+                            max: 65535
+                        spec:
+                          default: 0
+                        description: ''
+                        required: false
+                      variants: []
+                    description: TCP protocol
+                    required: false
+                  - name: udp
+                    type: object
+                    profiles:
+                    - xpath:
+                      - udp
+                    validators: []
+                    spec:
+                      params:
+                      - name: local-port
+                        type: int64
+                        profiles:
+                        - xpath:
+                          - local-port
+                        validators:
+                        - type: length
+                          spec:
+                            min: 0
+                            max: 65535
+                        spec:
+                          default: 0
+                        description: ''
+                        required: false
+                      - name: remote-port
+                        type: int64
+                        profiles:
+                        - xpath:
+                          - remote-port
+                        validators:
+                        - type: length
+                          spec:
+                            min: 0
+                            max: 65535
+                        spec:
+                          default: 0
+                        description: ''
+                        required: false
+                      variants: []
+                    description: UDP protocol
+                    required: false
+                description: specify protocol and port number for proxy-id
+                required: false
+              variants: []
+        description: ''
+        required: false
+      variants: []
+    description: IKE VPN options
+    required: false
+  - name: global-protect-satellite
+    type: object
+    profiles:
+    - xpath:
+      - global-protect-satellite
+    validators: []
+    spec:
+      params:
+      - name: external-ca
+        type: object
+        profiles:
+        - xpath:
+          - external-ca
+        validators: []
+        spec:
+          params:
+          - name: certificate-profile
+            type: string
+            profiles:
+            - xpath:
+              - certificate-profile
+            validators: []
+            spec: {}
+            description: Profile for authenticating GlobalProtect gateway certificates
+            required: false
+          - name: local-certificate
+            type: string
+            profiles:
+            - xpath:
+              - local-certificate
+            validators:
+            - type: length
+              spec:
+                max: 255
+            spec: {}
+            description: GlobalProtect satellite certificate file name
+            required: false
+          variants: []
+        description: GlobalProtect satellite external ca configuration
+        required: false
+      - name: ipv6-preferred
+        type: bool
+        profiles:
+        - xpath:
+          - ipv6-preferred
+        validators: []
+        spec: {}
+        description: Prefer to register to portal in ipv6. Only applicable to fqdn
+          portal-address
+        required: false
+      - name: local-address
+        type: object
+        profiles:
+        - xpath:
+          - local-address
+        validators: []
+        spec:
+          params:
+          - name: interface
+            type: string
+            profiles:
+            - xpath:
+              - interface
+            validators: []
+            spec: {}
+            description: Interface to communicate with Portal
+            required: false
+          variants:
+          - name: floating-ip
+            type: object
+            profiles:
+            - xpath:
+              - floating-ip
+            validators: []
+            spec:
+              params:
+              - name: ipv4
+                type: string
+                profiles:
+                - xpath:
+                  - ipv4
+                validators: []
+                spec: {}
+                description: Floating IP address in HA Active-Active configuration
+                required: false
+              - name: ipv6
+                type: string
+                profiles:
+                - xpath:
+                  - ipv6
+                validators: []
+                spec: {}
+                description: Floating IPv6 address in HA Active-Active configuration
+                required: false
+              variants: []
+            description: Floating IP address in HA Active-Active configuration
+            required: false
+          - name: ip
+            type: object
+            profiles:
+            - xpath:
+              - ip
+            validators: []
+            spec:
+              params:
+              - name: ipv4
+                type: string
+                profiles:
+                - xpath:
+                  - ipv4
+                validators: []
+                spec: {}
+                description: specify exact IP address if interface has multiple addresses
+                required: false
+              - name: ipv6
+                type: string
+                profiles:
+                - xpath:
+                  - ipv6
+                validators: []
+                spec: {}
+                description: specify exact local IPv6 address if interface has multiple
+                  addresses
+                required: false
+              variants: []
+            description: specify exact IP address if interface has multiple addresses
+            required: false
+        description: Satellite outgoing interface configuration
+        required: false
+      - name: portal-address
+        type: string
+        profiles:
+        - xpath:
+          - portal-address
+        validators:
+        - type: length
+          spec:
+            max: 255
+        spec: {}
+        description: GlobalProtect portal address
+        required: false
+      - name: publish-connected-routes
+        type: object
+        profiles:
+        - xpath:
+          - publish-connected-routes
+        validators: []
+        spec:
+          params:
+          - name: enable
+            type: bool
+            profiles:
+            - xpath:
+              - enable
+            validators: []
+            spec: {}
+            description: Enable publishing of connected and static routes
+            required: false
+          variants: []
+        description: Knob to publish connected and static routes
+        required: false
+      - name: publish-routes
+        type: list
+        profiles:
+        - xpath:
+          - publish-routes
+          type: member
+        validators: []
+        spec:
+          type: string
+          items:
+            type: string
+        description: ''
+        required: false
+      variants: []
+    description: Satellite side of Global Protect Satellite tunnel
+    required: false
+  - name: manual-key
+    type: object
+    profiles:
+    - xpath:
+      - manual-key
+    validators: []
+    spec:
+      params:
+      - name: local-address
+        type: object
+        profiles:
+        - xpath:
+          - local-address
+        validators: []
+        spec:
+          params:
+          - name: interface
+            type: string
+            profiles:
+            - xpath:
+              - interface
+            validators: []
+            spec: {}
+            description: Interface to termate tunnel
+            required: false
+          variants:
+          - name: floating-ip
+            type: string
+            profiles:
+            - xpath:
+              - floating-ip
+            validators: []
+            spec: {}
+            description: Floating IP address in HA Active-Active configuration
+            required: false
+          - name: ip
+            type: string
+            profiles:
+            - xpath:
+              - ip
+            validators:
+            - type: length
+              spec:
+                max: 63
+            spec: {}
+            description: specify exact IP address if interface has multiple addresses
+            required: false
+        description: Tunnel local IP configuration
+        required: false
+      - name: local-spi
+        type: string
+        profiles:
+        - xpath:
+          - local-spi
+        validators: []
+        spec: {}
+        description: Outbound SPI, hex format xxxxxxxx. range 00001000 to 1FFFFFFF
+        required: false
+      - name: peer-address
+        type: object
+        profiles:
+        - xpath:
+          - peer-address
+        validators: []
+        spec:
+          params:
+          - name: ip
+            type: string
+            profiles:
+            - xpath:
+              - ip
+            validators: []
+            spec: {}
+            description: Tunnel peer IP address
+            required: false
+          variants: []
+        description: Tunnel peer address
+        required: false
+      - name: remote-spi
+        type: string
+        profiles:
+        - xpath:
+          - remote-spi
+        validators: []
+        spec: {}
+        description: Inbound SPI, hex format xxxxxxxx.
+        required: false
+      variants:
+      - name: ah
+        type: object
+        profiles:
+        - xpath:
+          - ah
+        validators: []
+        spec:
+          params: []
+          variants:
+          - name: md5
+            type: object
+            profiles:
+            - xpath:
+              - md5
+            validators: []
+            spec:
+              params:
+              - name: key
+                type: string
+                profiles:
+                - xpath:
+                  - key
+                validators:
+                - type: length
+                  spec:
+                    max: 255
+                spec: {}
+                description: hex format xxxxxxxx[-xxxxxxxx]... total 4 sections
+                required: false
+              variants: []
+            description: key is 128 bit
+            required: false
+          - name: sha1
+            type: object
+            profiles:
+            - xpath:
+              - sha1
+            validators: []
+            spec:
+              params:
+              - name: key
+                type: string
+                profiles:
+                - xpath:
+                  - key
+                validators:
+                - type: length
+                  spec:
+                    max: 255
+                spec: {}
+                description: hex format xxxxxxxx[-xxxxxxxx]... total 5 sections
+                required: false
+              variants: []
+            description: key is 160 bit
+            required: false
+          - name: sha256
+            type: object
+            profiles:
+            - xpath:
+              - sha256
+            validators: []
+            spec:
+              params:
+              - name: key
+                type: string
+                profiles:
+                - xpath:
+                  - key
+                validators:
+                - type: length
+                  spec:
+                    max: 255
+                spec: {}
+                description: hex format xxxxxxxx[-xxxxxxxx]... total 8 sections
+                required: false
+              variants: []
+            description: key is 256 bit
+            required: false
+          - name: sha384
+            type: object
+            profiles:
+            - xpath:
+              - sha384
+            validators: []
+            spec:
+              params:
+              - name: key
+                type: string
+                profiles:
+                - xpath:
+                  - key
+                validators:
+                - type: length
+                  spec:
+                    max: 255
+                spec: {}
+                description: hex format xxxxxxxx[-xxxxxxxx]... total 12 sections
+                required: false
+              variants: []
+            description: key is 384 bit
+            required: false
+          - name: sha512
+            type: object
+            profiles:
+            - xpath:
+              - sha512
+            validators: []
+            spec:
+              params:
+              - name: key
+                type: string
+                profiles:
+                - xpath:
+                  - key
+                validators:
+                - type: length
+                  spec:
+                    max: 255
+                spec: {}
+                description: hex format xxxxxxxx[-xxxxxxxx]... total 16 sections
+                required: false
+              variants: []
+            description: key is 512 bit
+            required: false
+        description: AH options
+        required: false
+      - name: esp
+        type: object
+        profiles:
+        - xpath:
+          - esp
+        validators: []
+        spec:
+          params:
+          - name: authentication
+            type: object
+            profiles:
+            - xpath:
+              - authentication
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: md5
+                type: object
+                profiles:
+                - xpath:
+                  - md5
+                validators: []
+                spec:
+                  params:
+                  - name: key
+                    type: string
+                    profiles:
+                    - xpath:
+                      - key
+                    validators:
+                    - type: length
+                      spec:
+                        max: 255
+                    spec: {}
+                    description: hex format xxxxxxxx[-xxxxxxxx]... total 4 sections
+                    required: false
+                  variants: []
+                description: key is 128 bit
+                required: false
+              - name: none
+                type: object
+                profiles:
+                - xpath:
+                  - none
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: no authentication
+                required: false
+              - name: sha1
+                type: object
+                profiles:
+                - xpath:
+                  - sha1
+                validators: []
+                spec:
+                  params:
+                  - name: key
+                    type: string
+                    profiles:
+                    - xpath:
+                      - key
+                    validators:
+                    - type: length
+                      spec:
+                        max: 255
+                    spec: {}
+                    description: hex format xxxxxxxx[-xxxxxxxx]... total 5 sections
+                    required: false
+                  variants: []
+                description: key is 160 bit
+                required: false
+              - name: sha256
+                type: object
+                profiles:
+                - xpath:
+                  - sha256
+                validators: []
+                spec:
+                  params:
+                  - name: key
+                    type: string
+                    profiles:
+                    - xpath:
+                      - key
+                    validators:
+                    - type: length
+                      spec:
+                        max: 255
+                    spec: {}
+                    description: hex format xxxxxxxx[-xxxxxxxx]... total 8 sections
+                    required: false
+                  variants: []
+                description: key is 256 bit
+                required: false
+              - name: sha384
+                type: object
+                profiles:
+                - xpath:
+                  - sha384
+                validators: []
+                spec:
+                  params:
+                  - name: key
+                    type: string
+                    profiles:
+                    - xpath:
+                      - key
+                    validators:
+                    - type: length
+                      spec:
+                        max: 255
+                    spec: {}
+                    description: hex format xxxxxxxx[-xxxxxxxx]... total 12 sections
+                    required: false
+                  variants: []
+                description: key is 384 bit
+                required: false
+              - name: sha512
+                type: object
+                profiles:
+                - xpath:
+                  - sha512
+                validators: []
+                spec:
+                  params:
+                  - name: key
+                    type: string
+                    profiles:
+                    - xpath:
+                      - key
+                    validators:
+                    - type: length
+                      spec:
+                        max: 255
+                    spec: {}
+                    description: hex format xxxxxxxx[-xxxxxxxx]... total 16 sections
+                    required: false
+                  variants: []
+                description: key is 512 bit
+                required: false
+            description: authentication algorithm
+            required: false
+          - name: encryption
+            type: object
+            profiles:
+            - xpath:
+              - encryption
+            validators: []
+            spec:
+              params:
+              - name: algorithm
+                type: enum
+                profiles:
+                - xpath:
+                  - algorithm
+                validators:
+                - type: values
+                  spec:
+                    values:
+                    - des
+                    - 3des
+                    - aes-128-cbc
+                    - aes-192-cbc
+                    - aes-256-cbc
+                    - 'null'
+                spec:
+                  default: aes-128-cbc
+                  values:
+                  - value: des
+                  - value: 3des
+                  - value: aes-128-cbc
+                  - value: aes-192-cbc
+                  - value: aes-256-cbc
+                  - value: 'null'
+                description: ''
+                required: false
+              - name: key
+                type: string
+                profiles:
+                - xpath:
+                  - key
+                validators:
+                - type: length
+                  spec:
+                    max: 255
+                spec: {}
+                description: 'hex format xxxxxxxx[-xxxxxxxx]... total number of sections:
+                  des: 2, 3des: 6, aes-128-cbc: 4, aes-192-cbc: 6, aes-256-cbc: 8'
+                required: false
+              variants: []
+            description: encryption algorithm
+            required: false
+          variants: []
+        description: ESP options
+        required: false
+    description: Manual-key options
+    required: false
