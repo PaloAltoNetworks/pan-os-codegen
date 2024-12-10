@@ -44,8 +44,12 @@ func TestAccInterfaceManagementProfile(t *testing.T) {
 					"template_name": config.StringVariable(templateName),
 					"name":          config.StringVariable(prefix),
 					"permitted_ips": config.ListVariable(
-						config.StringVariable("172.16.0.1"),
-						config.StringVariable("172.16.0.2"),
+						config.ObjectVariable(map[string]config.Variable{
+							"name": config.StringVariable("172.16.0.1"),
+						}),
+						config.ObjectVariable(map[string]config.Variable{
+							"name": config.StringVariable("172.16.0.2"),
+						}),
 					),
 				},
 				ConfigStateChecks: []statecheck.StateCheck{
@@ -108,8 +112,12 @@ func TestAccInterfaceManagementProfile(t *testing.T) {
 						"panos_interface_management_profile.profile",
 						tfjsonpath.New("permitted_ips"),
 						knownvalue.ListExact([]knownvalue.Check{
-							knownvalue.StringExact("172.16.0.1"),
-							knownvalue.StringExact("172.16.0.2"),
+							knownvalue.ObjectExact(map[string]knownvalue.Check{
+								"name": knownvalue.StringExact("172.16.0.1"),
+							}),
+							knownvalue.ObjectExact(map[string]knownvalue.Check{
+								"name": knownvalue.StringExact("172.16.0.2"),
+							}),
 						}),
 					),
 				},
@@ -123,7 +131,7 @@ variable "location" { type = map }
 variable "template_name" { type = string }
 variable "name" { type = string }
 variable "permitted_ips" {
-  type = list(string)
+  type = list(map(string))
   default = []
 }
 

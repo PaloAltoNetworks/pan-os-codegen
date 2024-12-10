@@ -179,7 +179,7 @@ resource "panos_security_policy" "policy" {
 
     qos = {
       marking = {
-        ip-dscp = "af11"
+        ip_dscp = "af11"
       }
     }
 
@@ -563,22 +563,22 @@ func securityPolicyPreCheck(prefix string, location security.Location) {
 
 	rules := []security.Entry{
 		{
-			Name:                 fmt.Sprintf("%s-rule0", prefix),
-			Description:          stringPointer("Rule 0"),
-			SourceZones:          []string{"any"},
-			DestinationZones:     []string{"any"},
-			SourceAddresses:      []string{"any"},
-			DestinationAddresses: []string{"any"},
-			Services:             []string{"any"},
+			Name:        fmt.Sprintf("%s-rule0", prefix),
+			Description: stringPointer("Rule 0"),
+			Source:      []string{"any"},
+			Destination: []string{"any"},
+			From:        []string{"any"},
+			To:          []string{"any"},
+			Service:     []string{"any"},
 		},
 		{
-			Name:                 fmt.Sprintf("%s-rule99", prefix),
-			Description:          stringPointer("Rule 99"),
-			SourceZones:          []string{"any"},
-			DestinationZones:     []string{"any"},
-			SourceAddresses:      []string{"any"},
-			DestinationAddresses: []string{"any"},
-			Services:             []string{"any"},
+			Name:        fmt.Sprintf("%s-rule99", prefix),
+			Description: stringPointer("Rule 99"),
+			Source:      []string{"any"},
+			Destination: []string{"any"},
+			From:        []string{"any"},
+			To:          []string{"any"},
+			Service:     []string{"any"},
 		},
 	}
 

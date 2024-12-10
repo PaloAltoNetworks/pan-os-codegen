@@ -46,7 +46,7 @@ func TestAccNtpSettings(t *testing.T) {
 					statecheck.ExpectKnownValue(
 						"panos_ntp_settings.settings",
 						tfjsonpath.New("ntp_servers").AtMapKey("primary_ntp_server").AtMapKey("authentication_type").AtMapKey("autokey"),
-						knownvalue.StringExact(""),
+						knownvalue.ObjectExact(map[string]knownvalue.Check{}),
 					),
 				},
 			},
@@ -127,7 +127,7 @@ resource "panos_ntp_settings" "settings" {
     primary_ntp_server = {
       ntp_server_address = "172.16.0.1"
       authentication_type = {
-        autokey = ""
+        autokey = {}
       }
     }
     secondary_ntp_server = {

@@ -40,16 +40,16 @@ func TestAccService(t *testing.T) {
 							"tags":        config.ListVariable(config.StringVariable(fmt.Sprintf("%s-tag", prefix))),
 							"protocol": config.ObjectVariable(map[string]config.Variable{
 								"tcp": config.ObjectVariable(map[string]config.Variable{
-									"destination_port": config.IntegerVariable(8080),
-									"source_port":      config.IntegerVariable(40000),
+									"destination_port": config.StringVariable("8080-9000"),
+									"source_port":      config.StringVariable("40000"),
 								}),
 							}),
 						}),
 						"svc2": config.ObjectVariable(map[string]config.Variable{
 							"protocol": config.ObjectVariable(map[string]config.Variable{
 								"tcp": config.ObjectVariable(map[string]config.Variable{
-									"destination_port": config.IntegerVariable(443),
-									"source_port":      config.IntegerVariable(20000),
+									"destination_port": config.StringVariable("443"),
+									"source_port":      config.StringVariable("20000-30000"),
 									"override": config.ObjectVariable(map[string]config.Variable{
 										"timeout":           config.IntegerVariable(600),
 										"halfclose_timeout": config.IntegerVariable(300),
@@ -62,8 +62,8 @@ func TestAccService(t *testing.T) {
 							"name": config.StringVariable(fmt.Sprintf("%s-svc3", prefix)),
 							"protocol": config.ObjectVariable(map[string]config.Variable{
 								"udp": config.ObjectVariable(map[string]config.Variable{
-									"destination_port": config.IntegerVariable(443),
-									"source_port":      config.IntegerVariable(20000),
+									"destination_port": config.StringVariable("443"),
+									"source_port":      config.StringVariable("20000"),
 									"override": config.ObjectVariable(map[string]config.Variable{
 										"timeout": config.IntegerVariable(600),
 									}),
@@ -74,8 +74,8 @@ func TestAccService(t *testing.T) {
 							"name": config.StringVariable(fmt.Sprintf("%s-svc4", prefix)),
 							"protocol": config.ObjectVariable(map[string]config.Variable{
 								"udp": config.ObjectVariable(map[string]config.Variable{
-									"destination_port": config.IntegerVariable(443),
-									"source_port":      config.IntegerVariable(20000),
+									"destination_port": config.StringVariable("443"),
+									"source_port":      config.StringVariable("20000"),
 								}),
 							}),
 						}),
@@ -99,28 +99,28 @@ func TestAccService(t *testing.T) {
 						tfjsonpath.New("protocol").
 							AtMapKey("tcp").
 							AtMapKey("source_port"),
-						knownvalue.Int64Exact(40000),
+						knownvalue.StringExact("40000"),
 					),
 					statecheck.ExpectKnownValue(
 						"panos_service.svc1",
 						tfjsonpath.New("protocol").
 							AtMapKey("tcp").
 							AtMapKey("destination_port"),
-						knownvalue.Int64Exact(8080),
+						knownvalue.StringExact("8080-9000"),
 					),
 					statecheck.ExpectKnownValue(
 						"panos_service.svc2",
 						tfjsonpath.New("protocol").
 							AtMapKey("tcp").
 							AtMapKey("source_port"),
-						knownvalue.Int64Exact(20000),
+						knownvalue.StringExact("20000-30000"),
 					),
 					statecheck.ExpectKnownValue(
 						"panos_service.svc2",
 						tfjsonpath.New("protocol").
 							AtMapKey("tcp").
 							AtMapKey("destination_port"),
-						knownvalue.Int64Exact(443),
+						knownvalue.StringExact("443"),
 					),
 					statecheck.ExpectKnownValue(
 						"panos_service.svc2",
@@ -151,14 +151,14 @@ func TestAccService(t *testing.T) {
 						tfjsonpath.New("protocol").
 							AtMapKey("udp").
 							AtMapKey("source_port"),
-						knownvalue.Int64Exact(20000),
+						knownvalue.StringExact("20000"),
 					),
 					statecheck.ExpectKnownValue(
 						"panos_service.svc3",
 						tfjsonpath.New("protocol").
 							AtMapKey("udp").
 							AtMapKey("destination_port"),
-						knownvalue.Int64Exact(443),
+						knownvalue.StringExact("443"),
 					),
 					statecheck.ExpectKnownValue(
 						"panos_service.svc3",
@@ -173,14 +173,14 @@ func TestAccService(t *testing.T) {
 						tfjsonpath.New("protocol").
 							AtMapKey("udp").
 							AtMapKey("source_port"),
-						knownvalue.Int64Exact(20000),
+						knownvalue.StringExact("20000"),
 					),
 					statecheck.ExpectKnownValue(
 						"panos_service.svc4",
 						tfjsonpath.New("protocol").
 							AtMapKey("udp").
 							AtMapKey("destination_port"),
-						knownvalue.Int64Exact(443),
+						knownvalue.StringExact("443"),
 					),
 					statecheck.ExpectKnownValue(
 						"panos_service.svc4",
@@ -203,8 +203,8 @@ variable "services" {
     tags = optional(list(string)),
     protocol = object({
       tcp = optional(object({
-        destination_port = optional(number),
-        source_port = optional(number),
+        destination_port = optional(string),
+        source_port = optional(string),
         override = optional(object({
           timeout = optional(number),
           halfclose_timeout = optional(number),
@@ -212,8 +212,8 @@ variable "services" {
         })),
       })),
       udp = optional(object({
-        destination_port = optional(number),
-        source_port = optional(number),
+        destination_port = optional(string),
+        source_port = optional(string),
         override = optional(object({
           timeout = optional(number),
         })),
