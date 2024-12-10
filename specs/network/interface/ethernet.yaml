@@ -73,7 +73,112 @@ entries:
 - name: name
   description: ''
   validators: []
-imports: []
+imports:
+- variant: layer3
+  type: template
+  locations:
+  - name: virtual-router
+    xpath:
+      path:
+      - network
+      - virtual-router
+      - $router
+      - interface
+      vars:
+      - name: vsys
+        description: The vsys.
+        required: false
+        default: vsys1
+        validators: []
+        type: entry
+      - name: router
+        description: Virtual Router
+        required: false
+        validators: []
+        type: entry
+    description: ''
+    validators: []
+    required: false
+    read_only: false
+  - name: logical-router
+    xpath:
+      path:
+      - network
+      - logical-router
+      - $router
+      - vrf
+      - $vrf
+      - interface
+      vars:
+      - name: vsys
+        description: The vsys.
+        required: false
+        default: vsys1
+        validators: []
+        type: entry
+      - name: router
+        description: Logical Router Name
+        required: false
+        validators: []
+        type: entry
+      - name: vrf
+        description: Logical Router VRF
+        required: false
+        validators: []
+        type: entry
+    description: ''
+    validators: []
+    required: false
+    read_only: false
+  - name: vsys
+    xpath:
+      path:
+      - vsys
+      - $vsys
+      - import
+      - network
+      - interface
+      vars:
+      - name: vsys
+        description: The vsys.
+        required: false
+        default: vsys1
+        validators: []
+        type: entry
+    description: ''
+    validators: []
+    required: true
+    read_only: false
+  - name: zone
+    xpath:
+      path:
+      - vsys
+      - $vsys
+      - zone
+      - $zone
+      - network
+      - layer3
+      vars:
+      - name: vsys
+        description: The vsys.
+        required: false
+        default: vsys1
+        validators: []
+        type: entry
+      - name: vsys
+        description: Security Zone
+        required: false
+        validators: []
+        type: entry
+      - name: zone
+        description: Security Zone Identifier
+        required: false
+        validators: []
+        type: entry
+    description: ''
+    validators: []
+    required: false
+    read_only: false
 spec:
   params:
   - name: comment
