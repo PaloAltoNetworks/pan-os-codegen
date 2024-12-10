@@ -168,6 +168,7 @@ type SpecParam struct {
 	Default                 string                            `json:"default" yaml:"default"`
 	Required                bool                              `json:"required" yaml:"required"`
 	Length                  *SpecParamLength                  `json:"length" yaml:"length,omitempty"`
+	EnumValues              map[string]*string                `json:"enum_values" yaml:"enum_values,omitempty"`
 	Count                   *SpecParamCount                   `json:"count" yaml:"count,omitempty"`
 	Hashing                 *SpecParamHashing                 `json:"hashing" yaml:"hashing,omitempty"`
 	Items                   *SpecParamItems                   `json:"items" yaml:"items,omitempty"`
@@ -738,16 +739,24 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 		if err != nil {
 			return nil, err
 		}
-
+		enumValues := make(map[string]*string)
 		switch spec := param.Spec.(type) {
 		case *parameter.EnumSpec:
 			constValues := make(map[string]*ConstValue)
 			for _, elt := range spec.Values {
+				var constValue *string
 				if elt.Const == "" {
-					continue
+					constValue = nil
+				} else {
+					constValue = &elt.Const
 				}
-				constValues[elt.Const] = &ConstValue{
-					Value: elt.Value,
+
+				enumValues[elt.Value] = constValue
+
+				if constValue != nil {
+					constValues[*constValue] = &ConstValue{
+						Value: elt.Value,
+					}
 				}
 			}
 			if len(constValues) > 0 {
@@ -755,8 +764,8 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 					Values: constValues,
 				}
 			}
-
 		}
+		specParam.EnumValues = enumValues
 		spec.Spec.Params[param.Name] = specParam
 	}
 

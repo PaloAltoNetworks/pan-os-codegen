@@ -740,8 +740,10 @@ type modifierCtx struct {
 }
 
 type validatorFunctionCtx struct {
+	Type        string
 	Function    string
 	Expressions []string
+	Values      []string
 }
 
 type validatorCtx struct {
@@ -1047,13 +1049,44 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		})
 	}
 
-	var validatorFn string
-	if param.Required {
-		validatorFn = "ExactlyOneOf"
-	} else {
-		validatorFn = "ConflictsWith"
+	for _, elt := range param.Spec.Params {
+		if elt.IsPrivateParameter() {
+			continue
+		}
+
+		var functions []validatorFunctionCtx
+		if len(elt.EnumValues) > 0 && schemaTyp == properties.SchemaResource {
+			var values []string
+			for value := range elt.EnumValues {
+				values = append(values, value)
+			}
+
+			functions = append(functions, validatorFunctionCtx{
+				Type:     "Values",
+				Function: "OneOf",
+				Values:   values,
+			})
+		}
+
+		var validators *validatorCtx
+		if len(functions) > 0 {
+			typ := elt.ValidatorType()
+			validatorImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework-validators/%svalidator", typ)
+			manager.AddHashicorpImport(validatorImport, "")
+			validators = &validatorCtx{
+				ListType:  pascalCase(typ),
+				Package:   fmt.Sprintf("%svalidator", typ),
+				Functions: functions,
+			}
+		}
+
+		attributes = append(attributes, createSchemaAttributeForParameter(schemaTyp, manager, packageName, elt, validators))
 	}
 
+	// Generating schema validation for variants. By default, ExactlyOneOf validation
+	// is performed, unless XML API allows for no variant to be provided, in which case
+	// validation is performed by ConflictsWith.
+	validatorFn := "ExactlyOneOf"
 	var expressions []string
 	for _, elt := range param.Spec.OneOf {
 		if elt.IsPrivateParameter() {
@@ -1063,17 +1096,14 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		expressions = append(expressions, fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, elt.Name.Underscore))
 	}
 
-	for _, elt := range param.Spec.Params {
-		if elt.IsPrivateParameter() {
-			continue
-		}
-		attributes = append(attributes, createSchemaAttributeForParameter(schemaTyp, manager, packageName, elt, nil))
+	var variantFns []validatorFunctionCtx
+	if len(expressions) > 0 {
+		variantFns = append(variantFns, validatorFunctionCtx{
+			Type:        "Expressions",
+			Function:    validatorFn,
+			Expressions: expressions,
+		})
 	}
-
-	functions := []validatorFunctionCtx{{
-		Function:    validatorFn,
-		Expressions: expressions,
-	}}
 
 	var idx int
 	for _, elt := range param.Spec.OneOf {
@@ -1082,14 +1112,15 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		}
 
 		var validators *validatorCtx
-		if schemaTyp == properties.SchemaResource && idx == 0 {
+		if idx == 0 && schemaTyp == properties.SchemaResource && len(variantFns) > 0 {
+			log.Printf("variantFns: %v, Name: %s", variantFns, elt.Name)
 			typ := elt.ValidatorType()
 			validatorImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework-validators/%svalidator", typ)
 			manager.AddHashicorpImport(validatorImport, "")
 			validators = &validatorCtx{
 				ListType:  pascalCase(typ),
 				Package:   fmt.Sprintf("%svalidator", typ),
-				Functions: functions,
+				Functions: variantFns,
 			}
 		}
 		attributes = append(attributes, createSchemaAttributeForParameter(schemaTyp, manager, packageName, elt, validators))
@@ -1133,8 +1164,34 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 			continue
 		}
 
+		var functions []validatorFunctionCtx
+		if len(elt.EnumValues) > 0 && schemaTyp == properties.SchemaResource {
+			var values []string
+			for value := range elt.EnumValues {
+				values = append(values, value)
+			}
+
+			functions = append(functions, validatorFunctionCtx{
+				Type:     "Values",
+				Function: "OneOf",
+				Values:   values,
+			})
+		}
+
+		var validators *validatorCtx
+		if len(functions) > 0 {
+			typ := elt.ValidatorType()
+			validatorImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework-validators/%svalidator", typ)
+			manager.AddHashicorpImport(validatorImport, "")
+			validators = &validatorCtx{
+				ListType:  pascalCase(typ),
+				Package:   fmt.Sprintf("%svalidator", typ),
+				Functions: functions,
+			}
+		}
+
 		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
-			schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, manager, structName, packageName, elt, nil)...)
+			schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, manager, structName, packageName, elt, validators)...)
 		}
 	}
 
@@ -1149,7 +1206,7 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 			validators := &validatorCtx{
 				ListType:  "Object",
 				Package:   "objectvalidator",
-				Functions: functions,
+				Functions: variantFns,
 			}
 			schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, manager, structName, packageName, elt, validators)...)
 		}
@@ -1495,7 +1552,34 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 		if elt.IsPrivateParameter() {
 			continue
 		}
-		attributes = append(attributes, createSchemaAttributeForParameter(schemaTyp, manager, packageName, elt, nil))
+
+		var functions []validatorFunctionCtx
+		if len(elt.EnumValues) > 0 && schemaTyp == properties.SchemaResource {
+			var values []string
+			for value := range elt.EnumValues {
+				values = append(values, value)
+			}
+
+			functions = append(functions, validatorFunctionCtx{
+				Type:     "Values",
+				Function: "OneOf",
+				Values:   values,
+			})
+		}
+
+		var validators *validatorCtx
+		if len(functions) > 0 {
+			typ := elt.ValidatorType()
+			validatorImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework-validators/%svalidator", typ)
+			manager.AddHashicorpImport(validatorImport, "")
+			validators = &validatorCtx{
+				ListType:  pascalCase(typ),
+				Package:   fmt.Sprintf("%svalidator", typ),
+				Functions: functions,
+			}
+		}
+
+		attributes = append(attributes, createSchemaAttributeForParameter(schemaTyp, manager, packageName, elt, validators))
 		schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, manager, structName, packageName, elt, nil)...)
 	}
 
@@ -1513,18 +1597,24 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 		expressions = append(expressions, fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, elt.Name.Underscore))
 	}
 
-	functions := []validatorFunctionCtx{{
-		Function:    validatorFn,
-		Expressions: expressions,
-	}}
+	var functions []validatorFunctionCtx
+
+	if len(expressions) > 0 {
+		functions = append(functions, validatorFunctionCtx{
+			Type:        "Expressions",
+			Function:    validatorFn,
+			Expressions: expressions,
+		})
+	}
 
 	var idx int
 	for _, elt := range spec.Spec.OneOf {
 		if elt.IsPrivateParameter() {
 			continue
 		}
+
 		var validators *validatorCtx
-		if schemaTyp == properties.SchemaResource && idx == 0 {
+		if idx == 0 && schemaTyp == properties.SchemaResource && len(functions) > 0 {
 			typ := elt.ValidatorType()
 			validatorImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework-validators/%svalidator", typ)
 			manager.AddHashicorpImport(validatorImport, "")
@@ -1557,11 +1647,20 @@ const renderSchemaTemplate = `
     {{ $package := .Package }}
 		Validators: []validator.{{ .ListType }}{
     {{- range .Functions }}
+      {{- if eq .Type "Expressions" }}
 			{{ $package }}.{{ .Function }}(path.Expressions{
-      {{- range .Expressions }}
+        {{- range .Expressions }}
 				{{ . }},
-      {{- end }}
+        {{- end }}
 			}...),
+
+      {{- else if eq .Type "Values" }}
+			{{ $package }}.{{ .Function }}([]string{
+          {{- range .Values }}
+				{{ . }},
+          {{- end }}
+			}...),
+      {{- end }}
     {{- end }}
 		},
   {{- end }}
@@ -1631,11 +1730,19 @@ const renderSchemaTemplate = `
     {{ $package := .Package }}
 		Validators: []validator.{{ .ListType }}{
     {{- range .Functions }}
+      {{- if eq .Type "Expressions" }}
 			{{ $package }}.{{ .Function }}(path.Expressions{
-      {{- range .Expressions }}
+        {{- range .Expressions }}
 				{{ . }},
-      {{- end }}
+        {{- end }}
 			}...),
+      {{- else if eq .Type "Values" }}
+			{{ $package }}.{{ .Function }}([]string{
+        {{- range .Values }}
+				"{{ . }}",
+        {{- end }}
+			}...),
+      {{- end }}
     {{- end }}
 		},
   {{- end }}
