@@ -1107,9 +1107,7 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		computed = true
 		required = false
 	case properties.SchemaResource:
-		if param.TerraformProviderConfig != nil {
-			computed = param.TerraformProviderConfig.Computed
-		}
+		computed = param.FinalComputed()
 		required = param.FinalRequired()
 	case properties.SchemaCommon, properties.SchemaProvider:
 		panic("unreachable")
@@ -1125,7 +1123,7 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		Required:      required,
 		Optional:      !param.Required,
 		Computed:      computed,
-		Sensitive:     param.Sensitive,
+		Sensitive:     param.FinalSensitive(),
 		Attributes:    attributes,
 		Validators:    validators,
 	})
@@ -1201,11 +1199,7 @@ func createSchemaAttributeForParameter(schemaTyp properties.SchemaType, manager 
 		required = false
 		computed = true
 	case properties.SchemaResource:
-		if param.TerraformProviderConfig != nil {
-			computed = param.TerraformProviderConfig.Computed
-		} else if param.Default != "" {
-			computed = true
-		}
+		computed = param.FinalComputed()
 		required = param.FinalRequired()
 	case properties.SchemaCommon, properties.SchemaProvider:
 		panic("unreachable")
@@ -1219,7 +1213,7 @@ func createSchemaAttributeForParameter(schemaTyp properties.SchemaType, manager 
 		Description: param.Description,
 		Required:    required,
 		Optional:    !required,
-		Sensitive:   param.Sensitive,
+		Sensitive:   param.FinalSensitive(),
 		Default:     defaultValue,
 		Computed:    computed,
 		Validators:  validators,
@@ -1512,8 +1506,8 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 			continue
 		}
 
-		if elt.TerraformProviderConfig != nil && elt.TerraformProviderConfig.VariantCheck != "" {
-			validatorFn = elt.TerraformProviderConfig.VariantCheck
+		if elt.TerraformProviderConfig != nil && elt.TerraformProviderConfig.VariantCheck != nil {
+			validatorFn = *elt.TerraformProviderConfig.VariantCheck
 		}
 
 		expressions = append(expressions, fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, elt.Name.Underscore))

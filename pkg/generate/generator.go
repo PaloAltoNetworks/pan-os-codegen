@@ -14,6 +14,7 @@ import (
 
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
+	codegentmpl "github.com/paloaltonetworks/pan-os-codegen/pkg/template"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate/terraform_provider"
 )
@@ -246,6 +247,7 @@ func writeContentToFile(content *bytes.Buffer, file *os.File) error {
 func (c *Creator) parseTemplate(templateName string) (*template.Template, error) {
 	templatePath := filepath.Join(c.TemplatesDir, templateName)
 	funcMap := template.FuncMap{
+		"Map":                       codegentmpl.TemplateMap,
 		"renderImports":             translate.RenderImports,
 		"RenderEntryImportStructs":  func() (string, error) { return translate.RenderEntryImportStructs(c.Spec) },
 		"packageName":               translate.PackageName,
@@ -254,8 +256,8 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		"xmlParamType":              translate.XmlParamType,
 		"xmlName":                   translate.XmlName,
 		"xmlTag":                    translate.XmlTag,
-		"specifyEntryAssignment":    translate.SpecifyEntryAssignment,
-		"normalizeAssignment":       translate.NormalizeAssignment,
+		"specifyEntryAssignment":    translate.SpecifyEntryAssignmentTmpl,
+		"normalizeAssignment":       translate.NormalizeAssignmentTmpl,
 		"specMatchesFunction":       translate.SpecMatchesFunction,
 		"nestedSpecMatchesFunction": translate.NestedSpecMatchesFunction,
 		"omitEmpty":                 translate.OmitEmpty,
@@ -268,8 +270,8 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		},
 		"generateEntryXpath":        translate.GenerateEntryXpath,
 		"nestedSpecs":               translate.NestedSpecs,
-		"createGoSuffixFromVersion": translate.CreateGoSuffixFromVersion,
-		"paramSupportedInVersion":   translate.ParamSupportedInVersion,
+		"createGoSuffixFromVersion": translate.CreateGoSuffixFromVersionTmpl,
+		"paramSupportedInVersion":   translate.ParamSupportedInVersionTmpl,
 		"xmlPathSuffixes":           translate.XmlPathSuffixes,
 		"underscore":                naming.Underscore,
 		"camelCase":                 naming.CamelCase,

@@ -37,8 +37,8 @@ func TestSpecifyEntryAssignmentForFlatStructure(t *testing.T) {
 	}
 
 	// when
-	calculatedAssignmentString := SpecifyEntryAssignment("entry", &paramTypeString, "")
-	calculatedAssignmentListString := SpecifyEntryAssignment("entry", &paramTypeListString, "")
+	calculatedAssignmentString := SpecifyEntryAssignment("entry", &paramTypeString, nil)
+	calculatedAssignmentListString := SpecifyEntryAssignment("entry", &paramTypeListString, nil)
 
 	// then
 	assert.Equal(t, "entry.Description = o.Description", calculatedAssignmentString)
@@ -96,7 +96,7 @@ nestedA.B.C = o.A.B.C
 entry.A = nestedA
 `
 	// when
-	calculatedAssignmentString := SpecifyEntryAssignment("entry", spec.Params["a"], "")
+	calculatedAssignmentString := SpecifyEntryAssignment("entry", spec.Params["a"], nil)
 
 	// then
 	assert.Equal(t, expectedAssignmentString, calculatedAssignmentString)
@@ -153,7 +153,7 @@ nestedA.B.C = o.A.B.C
 entry.A = nestedA
 `
 	// when
-	calculatedAssignmentString := NormalizeAssignment("entry", spec.Params["a"], "")
+	calculatedAssignmentString := NormalizeAssignment("entry", spec.Params["a"], nil)
 
 	// then
 	assert.Equal(t, expectedAssignmentString, calculatedAssignmentString)
@@ -183,12 +183,11 @@ func TestPrepareAssignment(t *testing.T) {
 	boolFunction := "util.Bool"
 	prefix := ""
 	suffix := "Xml"
-	version := ""
 
 	expectedAssignment := `entry.Description = util.StrToMem(o.Description)`
 
 	// when
-	calculatedAssignment := prepareAssignment(objectType, param, listFunction, entryFunction, boolFunction, prefix, suffix, version)
+	calculatedAssignment := prepareAssignment(objectType, param, listFunction, entryFunction, boolFunction, prefix, suffix, nil)
 
 	// then
 	assert.Equal(t, expectedAssignment, calculatedAssignment)

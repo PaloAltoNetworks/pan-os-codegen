@@ -50,13 +50,13 @@ const (
 )
 
 type CodegenOverridesTerraform struct {
-	Name         string           `yaml:"name"`
-	Type         string           `yaml:"type"`
-	Private      bool             `yaml:"private"`
-	Sensitive    bool             `yaml:"sensitive"`
-	Computed     bool             `yaml:"computed"`
-	Required     *bool            `yaml:"required"`
-	VariantCheck VariantCheckType `yaml:"variant_check"`
+	Name         *string           `yaml:"name"`
+	Type         *string           `yaml:"type"`
+	Private      *bool             `yaml:"private"`
+	Sensitive    *bool             `yaml:"sensitive"`
+	Computed     *bool             `yaml:"computed"`
+	Required     *bool             `yaml:"required"`
+	VariantCheck *VariantCheckType `yaml:"variant_check"`
 }
 
 type CodegenOverrides struct {
