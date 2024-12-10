@@ -2585,7 +2585,7 @@ func ResourceReadFunction(resourceTyp properties.ResourceType, names *NameProvid
 	var listAttribute string
 	var exhaustive bool
 	switch resourceTyp {
-	case properties.ResourceEntry:
+	case properties.ResourceEntry, properties.ResourceConfig:
 		tmpl = resourceReadFunction
 	case properties.ResourceEntryPlural:
 		tmpl = resourceReadEntryListFunction
@@ -2822,8 +2822,10 @@ func createImportStateStructSpecs(resourceTyp properties.ResourceType, names *Na
 				Tags: "`json:\"position\"`",
 			},
 		}...)
+
 	case properties.ResourceCustom:
 		panic("unreachable")
+	case properties.ResourceConfig:
 	}
 
 	specs = append(specs, importStateStructSpec{
@@ -2880,6 +2882,8 @@ func ResourceImportStateFunction(resourceTyp properties.ResourceType, names *Nam
 		data.ListAttribute = properties.NewNameVariant(spec.TerraformProviderConfig.PluralName)
 	case properties.ResourceCustom:
 		panic("unreachable")
+	case properties.ResourceConfig:
+		data.HasEntryName = false
 	}
 
 	return processTemplate(resourceImportStateFunctionTmpl, "resource-import-state-function", data, nil)

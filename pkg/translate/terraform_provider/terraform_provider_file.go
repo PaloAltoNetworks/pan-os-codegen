@@ -70,7 +70,7 @@ func (g *GenerateTerraformProvider) appendResourceType(terraformProvider *proper
 	switch resourceTyp {
 	case properties.ResourceEntry:
 		flags |= properties.TerraformSpecImportable
-	case properties.ResourceCustom, properties.ResourceEntryPlural, properties.ResourceUuid, properties.ResourceUuidPlural:
+	case properties.ResourceCustom, properties.ResourceEntryPlural, properties.ResourceUuid, properties.ResourceUuidPlural, properties.ResourceConfig:
 	}
 
 	terraformProvider.SpecMetadata[names.MetaName] = properties.TerraformProviderSpecMetadata{
@@ -122,7 +122,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 	switch resourceTyp {
 	case properties.ResourceUuidPlural:
 		hasPosition = true
-	case properties.ResourceEntry, properties.ResourceEntryPlural, properties.ResourceUuid, properties.ResourceCustom:
+	case properties.ResourceEntry, properties.ResourceEntryPlural, properties.ResourceUuid, properties.ResourceCustom, properties.ResourceConfig:
 		hasPosition = false
 	}
 
@@ -205,7 +205,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/errors", "sdkerrors")
 			case properties.ResourceEntryPlural:
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/errors", "sdkerrors")
-			case properties.ResourceCustom:
+			case properties.ResourceCustom, properties.ResourceConfig:
 			}
 
 			// Generate Resource with entry style

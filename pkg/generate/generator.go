@@ -68,6 +68,7 @@ func (c *Creator) RenderTerraformProviderFile(spec *properties.Normalization, ty
 		name = spec.TerraformProviderConfig.PluralSuffix
 	case properties.ResourceEntry, properties.ResourceUuid, properties.ResourceCustom:
 		name = spec.Name
+	case properties.ResourceConfig:
 	}
 
 	terraformProvider := properties.NewTerraformProviderFile(name)
