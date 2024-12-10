@@ -43,6 +43,9 @@ func checkNestedSpecs(parent []string, spec *properties.Spec, nestedSpecs map[st
 	}
 	for _, param := range spec.OneOf {
 		updateNestedSpecs(append(parent, param.Name.CamelCase), param, nestedSpecs)
+		if len(param.Profiles) > 0 && param.Profiles[0].Type == "entry" && param.Items != nil && param.Items.Type == "entry" {
+			addNameAsParamForNestedSpec(append(parent, param.Name.CamelCase), nestedSpecs)
+		}
 	}
 }
 
@@ -436,70 +439,61 @@ func OmitEmpty(location *properties.Location) string {
 	}
 }
 
-// CreateGoSuffixFromVersion convert version into Go suffix e.g. 10.1.1 into _10_1_1
-func CreateGoSuffixFromVersion(version string) string {
-	if len(version) > 0 {
-		return fmt.Sprintf("_%s", strings.ReplaceAll(version, ".", "_"))
-	} else {
-		return version
+func CreateGoSuffixFromVersionTmpl(v any) (string, error) {
+	if v != nil {
+		typed, ok := v.(version.Version)
+		if !ok {
+			return "", fmt.Errorf("Failed to cast version to *version.Version: '%T'", v)
+		}
+		return CreateGoSuffixFromVersion(&typed), nil
 	}
+
+	return "", nil
+}
+
+// CreateGoSuffixFromVersion convert version into Go suffix e.g. 10.1.1 into _10_1_1
+func CreateGoSuffixFromVersion(v *version.Version) string {
+	if v == nil {
+		return ""
+	}
+
+	return fmt.Sprintf("_%s", strings.ReplaceAll(v.String(), ".", "_"))
+}
+
+func ParamSupportedInVersionTmpl(param *properties.SpecParam, deviceVersion any) (bool, error) {
+	if deviceVersion == nil {
+		return true, nil
+	}
+
+	typed, ok := deviceVersion.(version.Version)
+	if !ok {
+		return false, fmt.Errorf("Failed to cast deviceVersion to version.Version, received '%T'", deviceVersion)
+	}
+
+	return ParamSupportedInVersion(param, &typed), nil
 }
 
 // ParamSupportedInVersion checks if param is supported in specific PAN-OS version
-func ParamSupportedInVersion(param *properties.SpecParam, deviceVersionStr string) bool {
-	var supported []bool
-	if deviceVersionStr == "" {
-		supported = listOfProfileSupportForNotDefinedDeviceVersion(param, supported)
-	} else {
-		deviceVersion, err := version.NewVersionFromString(deviceVersionStr)
-		if err != nil {
-			return false
-		}
-
-		supported, err = listOfProfileSupportForDefinedDeviceVersion(param, supported, deviceVersion)
-		if err != nil {
-			return false
-		}
+func ParamSupportedInVersion(param *properties.SpecParam, deviceVersion *version.Version) bool {
+	if deviceVersion == nil {
+		return true
 	}
-	return allTrue(supported)
+
+	result := checkIfDeviceVersionSupportedByProfile(param, *deviceVersion)
+	return result
 }
 
-func listOfProfileSupportForNotDefinedDeviceVersion(param *properties.SpecParam, supported []bool) []bool {
+func checkIfDeviceVersionSupportedByProfile(param *properties.SpecParam, deviceVersion version.Version) bool {
 	for _, profile := range param.Profiles {
-		if profile.FromVersion != "" {
-			supported = append(supported, profile.NotPresent)
-		} else {
-			supported = append(supported, true)
+		if profile.MinVersion == nil && profile.MaxVersion == nil {
+			return true
+		}
+
+		log.Printf("Param: %s, Version: %s, MinVersion: %s, MaxVersion: %s", param.Name.CamelCase, deviceVersion, profile.MinVersion.String(), profile.MaxVersion.String())
+
+		if deviceVersion.GreaterThanOrEqualTo(*profile.MinVersion) && deviceVersion.LesserThan(*profile.MaxVersion) {
+			return true
 		}
 	}
-	return supported
-}
-
-func listOfProfileSupportForDefinedDeviceVersion(param *properties.SpecParam, supported []bool, deviceVersion version.Version) ([]bool, error) {
-	for _, profile := range param.Profiles {
-		if profile.FromVersion != "" {
-			paramProfileVersion, err := version.NewVersionFromString(profile.FromVersion)
-			if err != nil {
-				return nil, err
-			}
-
-			if deviceVersion.GreaterThanOrEqualTo(paramProfileVersion) {
-				supported = append(supported, !profile.NotPresent)
-			} else {
-				supported = append(supported, profile.NotPresent)
-			}
-		} else {
-			supported = append(supported, !profile.NotPresent)
-		}
-	}
-	return supported, nil
-}
-
-func allTrue(values []bool) bool {
-	for _, value := range values {
-		if !value {
-			return false
-		}
-	}
-	return true
+	return false
 }

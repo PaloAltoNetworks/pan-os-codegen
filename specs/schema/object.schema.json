@@ -10,7 +10,6 @@
     "terraform_provider_config",
     "go_sdk_config",
     "locations",
-    "version",
     "spec"
   ],
   "properties": {
@@ -20,6 +19,8 @@
       "additionalProperties": false,
       "required": ["suffix"],
       "properties": {
+        "skip_datasource": { "type": "boolean" },
+        "skip_resource": { "type": "boolean" },
         "description": { "type": "string" },
         "resource_type": {
           "type": "string",

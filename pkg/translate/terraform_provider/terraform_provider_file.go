@@ -70,7 +70,7 @@ func (g *GenerateTerraformProvider) appendResourceType(terraformProvider *proper
 	switch resourceTyp {
 	case properties.ResourceEntry:
 		flags |= properties.TerraformSpecImportable
-	case properties.ResourceCustom, properties.ResourceEntryPlural, properties.ResourceUuid, properties.ResourceUuidPlural:
+	case properties.ResourceCustom, properties.ResourceEntryPlural, properties.ResourceUuid, properties.ResourceUuidPlural, properties.ResourceConfig:
 	}
 
 	terraformProvider.SpecMetadata[names.MetaName] = properties.TerraformProviderSpecMetadata{
@@ -122,7 +122,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 	switch resourceTyp {
 	case properties.ResourceUuidPlural:
 		hasPosition = true
-	case properties.ResourceEntry, properties.ResourceEntryPlural, properties.ResourceUuid, properties.ResourceCustom:
+	case properties.ResourceEntry, properties.ResourceEntryPlural, properties.ResourceUuid, properties.ResourceCustom, properties.ResourceConfig:
 		hasPosition = false
 	}
 
@@ -205,7 +205,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/errors", "sdkerrors")
 			case properties.ResourceEntryPlural:
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/errors", "sdkerrors")
-			case properties.ResourceCustom:
+			case properties.ResourceCustom, properties.ResourceConfig:
 			}
 
 			// Generate Resource with entry style
@@ -241,7 +241,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 			}
 
 			switch resourceTyp {
-			case properties.ResourceEntry:
+			case properties.ResourceEntry, properties.ResourceConfig:
 				terraformProvider.ImportManager.AddStandardImport("errors", "")
 			case properties.ResourceEntryPlural, properties.ResourceUuid:
 			case properties.ResourceUuidPlural, properties.ResourceCustom:
@@ -413,6 +413,10 @@ func sdkPkgPath(spec *properties.Normalization) string {
 
 func hasVariantsImpl(props []*properties.SpecParam) bool {
 	for _, elt := range props {
+		if len(elt.EnumValues) > 0 {
+			return true
+		}
+
 		if elt.Spec == nil {
 			continue
 		}
@@ -442,7 +446,7 @@ func conditionallyAddValidators(manager *imports.Manager, spec *properties.Norma
 		return
 	}
 
-	hasVariants := func() bool {
+	validatorRequired := func() bool {
 		if len(spec.Spec.OneOf) > 0 {
 			return true
 		}
@@ -457,7 +461,7 @@ func conditionallyAddValidators(manager *imports.Manager, spec *properties.Norma
 		return hasVariantsImpl(params)
 	}
 
-	if hasVariants() || len(spec.Locations) > 1 {
+	if validatorRequired() || len(spec.Locations) > 1 {
 		manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
 		manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/schema/validator", "")
 	}
@@ -465,7 +469,10 @@ func conditionallyAddValidators(manager *imports.Manager, spec *properties.Norma
 }
 
 func conditionallyAddModifiers(manager *imports.Manager, spec *properties.Normalization) {
-	manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier", "")
+	if len(spec.Locations) > 0 {
+		manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier", "")
+	}
+
 	for _, loc := range spec.Locations {
 		if len(loc.Vars) == 0 {
 			manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier", "")

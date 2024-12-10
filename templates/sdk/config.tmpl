@@ -1,9 +1,112 @@
+{{- define "configXmlContainerStructTmpl" }}
+type configXmlContainer{{createGoSuffixFromVersion $.Version }} struct {
+	XMLName xml.Name `xml:"result"`
+	Answer []configXml{{createGoSuffixFromVersion $.Version }} `xml:"system"`
+}
+{{- end }}
+
+{{- define "configXmlStructTmpl" }}
+type configXml{{createGoSuffixFromVersion $.Version}} struct {
+	XMLName xml.Name `xml:"system"`
+  {{- range $_, $param := $.Spec.Params}}
+    {{- if paramSupportedInVersion $param $.Version}}
+      {{- if $param.Spec}}
+        {{$param.Name.CamelCase}} {{xmlParamType "" $param}}{{createGoSuffixFromVersion $.Version}} {{xmlTag $param}}
+      {{- else}}
+        {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
+      {{- end}}
+    {{- end}}
+  {{- end}}
+
+  {{- range $_, $param := $.Spec.OneOf}}
+    {{- if paramSupportedInVersion $param $.Version}}
+      {{- if $param.Spec}}
+        {{$param.Name.CamelCase}} {{xmlParamType "" $param}}{{createGoSuffixFromVersion $.Version}} {{xmlTag $param}}
+      {{- else}}
+        {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
+      {{- end}}
+    {{- end}}
+  {{- end}}
+
+	Misc []generic.Xml `xml:",any"`
+}
+{{- end }}
+
+{{- define "configXmlChildStructTmpl" }}
+type {{ $.Name }}Xml{{ createGoSuffixFromVersion $.Version }} struct {
+{{- range $_, $param := $.Spec.Params}}
+  {{- if paramSupportedInVersion $param $.Version}}
+    {{- if $param.Spec}}
+	{{$param.Name.CamelCase}} {{xmlParamType $.Name $param}}{{createGoSuffixFromVersion $.Version}} {{xmlTag $param}}
+    {{- else}}
+	{{$param.Name.CamelCase}} {{xmlParamType $.Name $param}} {{xmlTag $param}}
+    {{- end}}
+  {{- end}}
+{{- end}}
+
+{{- range $_, $param := $.Spec.OneOf}}
+  {{- if paramSupportedInVersion $param $.Version}}
+    {{- if $param.Spec}}
+	{{$param.Name.CamelCase}} {{xmlParamType $.Name $param}}{{createGoSuffixFromVersion $.Version}} {{xmlTag $param}}
+    {{- else}}
+	{{$param.Name.CamelCase}} {{xmlParamType $.Name $param}} {{xmlTag $param}}
+    {{- end}}
+  {{- end}}
+{{- end}}
+
+	Misc []generic.Xml `xml:",any"`
+}
+{{- end }}
+
+{{- define "SpecifyConfigTmpl" }}
+func specifyConfig{{createGoSuffixFromVersion $.Version}}(o *Config) (any, error) {
+	config := configXml{{createGoSuffixFromVersion $.Version}}{}
+
+  {{- range $_, $param := $.Spec.Params}}
+    {{ specifyEntryAssignment "config" $param $.Version }}
+  {{- end}}
+
+  {{- range $_, $param := $.Spec.OneOf}}
+    {{ specifyEntryAssignment "config" $param $.Version }}
+  {{- end}}
+
+	config.Misc = o.Misc["Config"]
+
+	return config, nil
+}
+{{- end }}
+
+{{- define "NormalizeTmpl" }}
+func (c *configXmlContainer{{createGoSuffixFromVersion $.Version }}) Normalize() ([]*Config, error) {
+	configList := make([]*Config, 0, len(c.Answer))
+	for _, o := range c.Answer {
+		config := &Config{
+			Misc: make(map[string][]generic.Xml),
+		}
+
+  {{- range $_, $param := $.Spec.Params}}
+    {{normalizeAssignment "config" $param $.Version}}
+  {{- end}}
+
+  {{- range $_, $param := $.Spec.OneOf}}
+    {{normalizeAssignment "config" $param $.Version}}
+  {{- end}}
+
+	config.Misc["Config"] = o.Misc
+
+	configList = append(configList, config)
+}
+
+return configList, nil
+}
+{{- end }}
+
 {{- if not .Entry}}
     package {{packageName .GoSdkPath}}
 
     {{renderImports "config"}}
 
-    type Config{{createGoSuffixFromVersion ""}} struct {
+    type Config{{createGoSuffixFromVersion nil}} struct {
     {{- range $_, $param := $.Spec.Params}}
         {{$param.Name.CamelCase}} {{specParamType "" $param}}
     {{- end}}
@@ -15,7 +118,7 @@
     }
 
     {{- range $name, $spec := nestedSpecs $.Spec }}
-        type {{$name}}{{createGoSuffixFromVersion ""}} struct {
+        type {{$name}}{{createGoSuffixFromVersion nil}} struct {
         {{- range $_, $param := $spec.Params}}
             {{$param.Name.CamelCase}} {{specParamType $name $param}}
         {{- end}}
@@ -25,64 +128,25 @@
         }
     {{- end}}
 
-    {{- range $version := .SupportedVersions }}
-        type configXmlContainer{{createGoSuffixFromVersion $version}} struct {
-        XMLName xml.Name `xml:"result"`
-        Answer []configXml{{createGoSuffixFromVersion $version}} `xml:"system"`
-        }
+    {{- template "configXmlContainerStructTmpl" Map "Version" nil }}
+
+    {{- range $version := .SupportedVersionRanges }}
+      {{- template "configXmlContainerStructTmpl" Map "Version" $version.Minimum }}
     {{- end}}
 
-    {{- range $version := .SupportedVersions }}
-        type configXml{{createGoSuffixFromVersion $version}} struct {
-        XMLName xml.Name `xml:"system"`
-        {{- range $_, $param := $.Spec.Params}}
-            {{- if paramSupportedInVersion $param $version}}
-                {{- if $param.Spec}}
-                    {{$param.Name.CamelCase}} {{xmlParamType "" $param}}{{createGoSuffixFromVersion $version}} {{xmlTag $param}}
-                {{- else}}
-                    {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
-                {{- end}}
-            {{- end}}
-        {{- end}}
-        {{- range $_, $param := $.Spec.OneOf}}
-            {{- if paramSupportedInVersion $param $version}}
-                {{- if $param.Spec}}
-                    {{$param.Name.CamelCase}} {{xmlParamType "" $param}}{{createGoSuffixFromVersion $version}} {{xmlTag $param}}
-                {{- else}}
-                    {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
-                {{- end}}
-            {{- end}}
-        {{- end}}
-
-        Misc []generic.Xml `xml:",any"`
-        }
+    {{- template "configXmlStructTmpl" Map "Spec" $.Spec "Version" nil }}
+    {{- range $version := .SupportedVersionRanges }}
+      {{- template "configXmlStructTmpl" Map "Version" $version.Minimum }}
     {{- end}}
 
-    {{- range $version := .SupportedVersions }}
-        {{- range $name, $spec := nestedSpecs $.Spec }}
-            type {{$name}}Xml{{createGoSuffixFromVersion $version}} struct {
-            {{- range $_, $param := $spec.Params}}
-                {{- if paramSupportedInVersion $param $version}}
-                    {{- if $param.Spec}}
-                        {{$param.Name.CamelCase}} {{xmlParamType $name $param}}{{createGoSuffixFromVersion $version}} {{xmlTag $param}}
-                    {{- else}}
-                        {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
-                    {{- end}}
-                {{- end}}
-            {{- end}}
-            {{- range $_, $param := $spec.OneOf}}
-                {{- if paramSupportedInVersion $param $version}}
-                    {{- if $param.Spec}}
-                        {{$param.Name.CamelCase}} {{xmlParamType $name $param}}{{createGoSuffixFromVersion $version}} {{xmlTag $param}}
-                    {{- else}}
-                        {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
-                    {{- end}}
-                {{- end}}
-            {{- end}}
+    {{- range $name, $spec := nestedSpecs $.Spec }}
+      {{- template "configXmlChildStructTmpl" Map "Name" $name "Spec" $spec "Version" nil }}
+    {{- end }}
 
-            Misc []generic.Xml `xml:",any"`
-            }
-        {{- end}}
+    {{- range $version := .SupportedVersionRanges }}
+      {{- range $name, $spec := nestedSpecs $.Spec }}
+        {{- template "configXmlChildStructTmpl" Map "Name" $name "Spec" $spec "Version" $version.Minimum }}
+      {{- end}}
     {{- end}}
 
     func Versioning(vn version.Number) (Specifier, Normalizer, error) {
@@ -115,44 +179,15 @@
     {{- end}}
     }
 
-    {{- range $version := .SupportedVersions }}
-        func specifyConfig{{createGoSuffixFromVersion $version}}(o *Config) (any, error) {
-        config := configXml{{createGoSuffixFromVersion $version}}{}
+    {{- template "SpecifyConfigTmpl" Map "Spec" $.Spec "Version" nil }}
 
-        {{- range $_, $param := $.Spec.Params}}
-            {{specifyEntryAssignment "config" $param $version}}
-        {{- end}}
-        {{- range $_, $param := $.Spec.OneOf}}
-            {{specifyEntryAssignment "config" $param $version}}
-        {{- end}}
+    {{- range $version := .SupportedVersionRanges }}
+      {{- template "SpecifyConfigTmpl" Map "Spec" $.Spec "Version" nil }}
+    {{- end }}
 
-        config.Misc = o.Misc["Config"]
-
-        return config, nil
-        }
-    {{- end}}
-
-    {{- range $version := .SupportedVersions }}
-        func (c *configXmlContainer{{createGoSuffixFromVersion $version}}) Normalize() ([]*Config, error) {
-        configList := make([]*Config, 0, len(c.Answer))
-        for _, o := range c.Answer {
-        config := &Config{
-        Misc: make(map[string][]generic.Xml),
-        }
-        {{- range $_, $param := $.Spec.Params}}
-            {{normalizeAssignment "config" $param $version}}
-        {{- end}}
-        {{- range $_, $param := $.Spec.OneOf}}
-            {{normalizeAssignment "config" $param $version}}
-        {{- end}}
-
-        config.Misc["Config"] = o.Misc
-
-        configList = append(configList, config)
-        }
-
-        return configList, nil
-        }
+    {{- template "NormalizeTmpl" Map "Spec" $.Spec "Version" nil }}
+    {{- range $version := .SupportedVersionRanges }}
+      {{- template "NormalizeTmpl" Map "Spec" $.Spec "Version" $version.Minimum }}
     {{- end}}
 
     func SpecMatches(a, b *Config) bool {

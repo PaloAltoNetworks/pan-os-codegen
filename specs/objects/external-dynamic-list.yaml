@@ -1,0 +1,1426 @@
+name: external-dynamic-list
+terraform_provider_config:
+  description: External Dynamic List
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: external_dynamic_list
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - objects
+  - extdynlist
+xpath_suffix:
+- address
+locations:
+- name: shared
+  xpath:
+    path:
+    - config
+    - shared
+    vars: []
+  description: Location in Shared Panorama
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: device-group
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - device-group
+    - $device_group
+    vars:
+    - name: panorama_device
+      description: Panorama device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: device_group
+      description: Device Group name
+      required: true
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The device group name cannot be "shared". Use the "shared" location
+              instead
+      type: entry
+  description: Located in a specific Device Group
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: disable-override
+    type: enum
+    profiles:
+    - xpath:
+      - disable-override
+    validators:
+    - type: values
+      spec:
+        values:
+        - 'no'
+    spec:
+      default: 'no'
+      values:
+      - value: 'no'
+    description: disable object override in child device groups
+    required: false
+  - name: type
+    type: object
+    profiles:
+    - xpath:
+      - type
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: domain
+        type: object
+        profiles:
+        - xpath:
+          - domain
+        validators: []
+        spec:
+          params:
+          - name: auth
+            type: object
+            profiles:
+            - xpath:
+              - auth
+            validators: []
+            spec:
+              params:
+              - name: password
+                type: string
+                profiles:
+                - xpath:
+                  - password
+                validators:
+                - type: length
+                  spec:
+                    max: 255
+                spec: {}
+                description: ''
+                required: false
+              - name: username
+                type: string
+                profiles:
+                - xpath:
+                  - username
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 255
+                spec: {}
+                description: ''
+                required: false
+              variants: []
+            description: ''
+            required: false
+          - name: certificate-profile
+            type: string
+            profiles:
+            - xpath:
+              - certificate-profile
+            validators: []
+            spec:
+              default: None
+            description: Profile for authenticating client certificates
+            required: false
+          - name: description
+            type: string
+            profiles:
+            - xpath:
+              - description
+            validators:
+            - type: length
+              spec:
+                min: 0
+                max: 255
+            spec: {}
+            description: ''
+            required: false
+          - name: exception-list
+            type: list
+            profiles:
+            - xpath:
+              - exception-list
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          - name: expand-domain
+            type: bool
+            profiles:
+            - xpath:
+              - expand-domain
+            validators: []
+            spec: {}
+            description: Enable/Disable expand domain
+            required: false
+          - name: recurring
+            type: object
+            profiles:
+            - xpath:
+              - recurring
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: daily
+                type: object
+                profiles:
+                - xpath:
+                  - daily
+                validators: []
+                spec:
+                  params:
+                  - name: at
+                    type: string
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 2
+                        max: 2
+                    spec:
+                      default: '00'
+                    description: Time specification hh (e.g. 20)
+                    required: false
+                  variants: []
+                description: Everyday
+                required: false
+              - name: five-minute
+                type: object
+                profiles:
+                - xpath:
+                  - five-minute
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Every five minutes
+                required: false
+              - name: hourly
+                type: object
+                profiles:
+                - xpath:
+                  - hourly
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Everyhour
+                required: false
+              - name: monthly
+                type: object
+                profiles:
+                - xpath:
+                  - monthly
+                validators: []
+                spec:
+                  params:
+                  - name: at
+                    type: string
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 2
+                        max: 2
+                    spec:
+                      default: '00'
+                    description: Time specification hh (e.g. 20)
+                    required: false
+                  - name: day-of-month
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - day-of-month
+                    validators:
+                    - type: length
+                      spec:
+                        min: 1
+                        max: 31
+                    spec: {}
+                    description: ''
+                    required: false
+                  variants: []
+                description: Monthly
+                required: false
+              - name: weekly
+                type: object
+                profiles:
+                - xpath:
+                  - weekly
+                validators: []
+                spec:
+                  params:
+                  - name: at
+                    type: string
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 2
+                        max: 2
+                    spec:
+                      default: '00'
+                    description: Time specification hh (e.g. 20)
+                    required: false
+                  - name: day-of-week
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - day-of-week
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - sunday
+                        - monday
+                        - tuesday
+                        - wednesday
+                        - thursday
+                        - friday
+                        - saturday
+                    spec:
+                      values:
+                      - value: sunday
+                      - value: monday
+                      - value: tuesday
+                      - value: wednesday
+                      - value: thursday
+                      - value: friday
+                      - value: saturday
+                    description: ''
+                    required: false
+                  variants: []
+                description: Once a week
+                required: false
+            description: ''
+            required: false
+          - name: url
+            type: string
+            profiles:
+            - xpath:
+              - url
+            validators:
+            - type: length
+              spec:
+                min: 0
+                max: 255
+            spec:
+              default: http://
+            description: ''
+            required: false
+          variants: []
+        description: Domain List
+        required: false
+      - name: imei
+        type: object
+        profiles:
+        - xpath:
+          - imei
+        validators: []
+        spec:
+          params:
+          - name: auth
+            type: object
+            profiles:
+            - xpath:
+              - auth
+            validators: []
+            spec:
+              params:
+              - name: password
+                type: string
+                profiles:
+                - xpath:
+                  - password
+                validators:
+                - type: length
+                  spec:
+                    max: 255
+                spec: {}
+                description: ''
+                required: false
+              - name: username
+                type: string
+                profiles:
+                - xpath:
+                  - username
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 255
+                spec: {}
+                description: ''
+                required: false
+              variants: []
+            description: ''
+            required: false
+          - name: certificate-profile
+            type: string
+            profiles:
+            - xpath:
+              - certificate-profile
+            validators: []
+            spec:
+              default: None
+            description: Profile for authenticating client certificates
+            required: false
+          - name: description
+            type: string
+            profiles:
+            - xpath:
+              - description
+            validators:
+            - type: length
+              spec:
+                min: 0
+                max: 255
+            spec: {}
+            description: ''
+            required: false
+          - name: exception-list
+            type: list
+            profiles:
+            - xpath:
+              - exception-list
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          - name: recurring
+            type: object
+            profiles:
+            - xpath:
+              - recurring
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: daily
+                type: object
+                profiles:
+                - xpath:
+                  - daily
+                validators: []
+                spec:
+                  params:
+                  - name: at
+                    type: string
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 2
+                        max: 2
+                    spec:
+                      default: '00'
+                    description: Time specification hh (e.g. 20)
+                    required: false
+                  variants: []
+                description: Everyday
+                required: false
+              - name: five-minute
+                type: object
+                profiles:
+                - xpath:
+                  - five-minute
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Every five minutes
+                required: false
+              - name: hourly
+                type: object
+                profiles:
+                - xpath:
+                  - hourly
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Everyhour
+                required: false
+              - name: monthly
+                type: object
+                profiles:
+                - xpath:
+                  - monthly
+                validators: []
+                spec:
+                  params:
+                  - name: at
+                    type: string
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 2
+                        max: 2
+                    spec:
+                      default: '00'
+                    description: Time specification hh (e.g. 20)
+                    required: false
+                  - name: day-of-month
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - day-of-month
+                    validators:
+                    - type: length
+                      spec:
+                        min: 1
+                        max: 31
+                    spec: {}
+                    description: ''
+                    required: false
+                  variants: []
+                description: Monthly
+                required: false
+              - name: weekly
+                type: object
+                profiles:
+                - xpath:
+                  - weekly
+                validators: []
+                spec:
+                  params:
+                  - name: at
+                    type: string
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 2
+                        max: 2
+                    spec:
+                      default: '00'
+                    description: Time specification hh (e.g. 20)
+                    required: false
+                  - name: day-of-week
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - day-of-week
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - sunday
+                        - monday
+                        - tuesday
+                        - wednesday
+                        - thursday
+                        - friday
+                        - saturday
+                    spec:
+                      values:
+                      - value: sunday
+                      - value: monday
+                      - value: tuesday
+                      - value: wednesday
+                      - value: thursday
+                      - value: friday
+                      - value: saturday
+                    description: ''
+                    required: false
+                  variants: []
+                description: Once a week
+                required: false
+            description: ''
+            required: false
+          - name: url
+            type: string
+            profiles:
+            - xpath:
+              - url
+            validators:
+            - type: length
+              spec:
+                min: 0
+                max: 255
+            spec:
+              default: http://
+            description: ''
+            required: false
+          variants: []
+        description: Equipment Identity List
+        required: false
+      - name: imsi
+        type: object
+        profiles:
+        - xpath:
+          - imsi
+        validators: []
+        spec:
+          params:
+          - name: auth
+            type: object
+            profiles:
+            - xpath:
+              - auth
+            validators: []
+            spec:
+              params:
+              - name: password
+                type: string
+                profiles:
+                - xpath:
+                  - password
+                validators:
+                - type: length
+                  spec:
+                    max: 255
+                spec: {}
+                description: ''
+                required: false
+              - name: username
+                type: string
+                profiles:
+                - xpath:
+                  - username
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 255
+                spec: {}
+                description: ''
+                required: false
+              variants: []
+            description: ''
+            required: false
+          - name: certificate-profile
+            type: string
+            profiles:
+            - xpath:
+              - certificate-profile
+            validators: []
+            spec:
+              default: None
+            description: Profile for authenticating client certificates
+            required: false
+          - name: description
+            type: string
+            profiles:
+            - xpath:
+              - description
+            validators:
+            - type: length
+              spec:
+                min: 0
+                max: 255
+            spec: {}
+            description: ''
+            required: false
+          - name: exception-list
+            type: list
+            profiles:
+            - xpath:
+              - exception-list
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          - name: recurring
+            type: object
+            profiles:
+            - xpath:
+              - recurring
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: daily
+                type: object
+                profiles:
+                - xpath:
+                  - daily
+                validators: []
+                spec:
+                  params:
+                  - name: at
+                    type: string
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 2
+                        max: 2
+                    spec:
+                      default: '00'
+                    description: Time specification hh (e.g. 20)
+                    required: false
+                  variants: []
+                description: Everyday
+                required: false
+              - name: five-minute
+                type: object
+                profiles:
+                - xpath:
+                  - five-minute
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Every five minutes
+                required: false
+              - name: hourly
+                type: object
+                profiles:
+                - xpath:
+                  - hourly
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Everyhour
+                required: false
+              - name: monthly
+                type: object
+                profiles:
+                - xpath:
+                  - monthly
+                validators: []
+                spec:
+                  params:
+                  - name: at
+                    type: string
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 2
+                        max: 2
+                    spec:
+                      default: '00'
+                    description: Time specification hh (e.g. 20)
+                    required: false
+                  - name: day-of-month
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - day-of-month
+                    validators:
+                    - type: length
+                      spec:
+                        min: 1
+                        max: 31
+                    spec: {}
+                    description: ''
+                    required: false
+                  variants: []
+                description: Monthly
+                required: false
+              - name: weekly
+                type: object
+                profiles:
+                - xpath:
+                  - weekly
+                validators: []
+                spec:
+                  params:
+                  - name: at
+                    type: string
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 2
+                        max: 2
+                    spec:
+                      default: '00'
+                    description: Time specification hh (e.g. 20)
+                    required: false
+                  - name: day-of-week
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - day-of-week
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - sunday
+                        - monday
+                        - tuesday
+                        - wednesday
+                        - thursday
+                        - friday
+                        - saturday
+                    spec:
+                      values:
+                      - value: sunday
+                      - value: monday
+                      - value: tuesday
+                      - value: wednesday
+                      - value: thursday
+                      - value: friday
+                      - value: saturday
+                    description: ''
+                    required: false
+                  variants: []
+                description: Once a week
+                required: false
+            description: ''
+            required: false
+          - name: url
+            type: string
+            profiles:
+            - xpath:
+              - url
+            validators:
+            - type: length
+              spec:
+                min: 0
+                max: 255
+            spec:
+              default: http://
+            description: ''
+            required: false
+          variants: []
+        description: Subscriber Identity List
+        required: false
+      - name: ip
+        type: object
+        profiles:
+        - xpath:
+          - ip
+        validators: []
+        spec:
+          params:
+          - name: auth
+            type: object
+            profiles:
+            - xpath:
+              - auth
+            validators: []
+            spec:
+              params:
+              - name: password
+                type: string
+                profiles:
+                - xpath:
+                  - password
+                validators:
+                - type: length
+                  spec:
+                    max: 255
+                spec: {}
+                description: ''
+                required: false
+              - name: username
+                type: string
+                profiles:
+                - xpath:
+                  - username
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 255
+                spec: {}
+                description: ''
+                required: false
+              variants: []
+            description: ''
+            required: false
+          - name: certificate-profile
+            type: string
+            profiles:
+            - xpath:
+              - certificate-profile
+            validators: []
+            spec:
+              default: None
+            description: Profile for authenticating client certificates
+            required: false
+          - name: description
+            type: string
+            profiles:
+            - xpath:
+              - description
+            validators:
+            - type: length
+              spec:
+                min: 0
+                max: 255
+            spec: {}
+            description: ''
+            required: false
+          - name: exception-list
+            type: list
+            profiles:
+            - xpath:
+              - exception-list
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          - name: recurring
+            type: object
+            profiles:
+            - xpath:
+              - recurring
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: daily
+                type: object
+                profiles:
+                - xpath:
+                  - daily
+                validators: []
+                spec:
+                  params:
+                  - name: at
+                    type: string
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 2
+                        max: 2
+                    spec:
+                      default: '00'
+                    description: Time specification hh (e.g. 20)
+                    required: false
+                  variants: []
+                description: Everyday
+                required: false
+              - name: five-minute
+                type: object
+                profiles:
+                - xpath:
+                  - five-minute
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Every five minutes
+                required: false
+              - name: hourly
+                type: object
+                profiles:
+                - xpath:
+                  - hourly
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Everyhour
+                required: false
+              - name: monthly
+                type: object
+                profiles:
+                - xpath:
+                  - monthly
+                validators: []
+                spec:
+                  params:
+                  - name: at
+                    type: string
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 2
+                        max: 2
+                    spec:
+                      default: '00'
+                    description: Time specification hh (e.g. 20)
+                    required: false
+                  - name: day-of-month
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - day-of-month
+                    validators:
+                    - type: length
+                      spec:
+                        min: 1
+                        max: 31
+                    spec: {}
+                    description: ''
+                    required: false
+                  variants: []
+                description: Monthly
+                required: false
+              - name: weekly
+                type: object
+                profiles:
+                - xpath:
+                  - weekly
+                validators: []
+                spec:
+                  params:
+                  - name: at
+                    type: string
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 2
+                        max: 2
+                    spec:
+                      default: '00'
+                    description: Time specification hh (e.g. 20)
+                    required: false
+                  - name: day-of-week
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - day-of-week
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - sunday
+                        - monday
+                        - tuesday
+                        - wednesday
+                        - thursday
+                        - friday
+                        - saturday
+                    spec:
+                      values:
+                      - value: sunday
+                      - value: monday
+                      - value: tuesday
+                      - value: wednesday
+                      - value: thursday
+                      - value: friday
+                      - value: saturday
+                    description: ''
+                    required: false
+                  variants: []
+                description: Once a week
+                required: false
+            description: ''
+            required: false
+          - name: url
+            type: string
+            profiles:
+            - xpath:
+              - url
+            validators:
+            - type: length
+              spec:
+                min: 0
+                max: 255
+            spec:
+              default: http://
+            description: ''
+            required: false
+          variants: []
+        description: IP List
+        required: false
+      - name: predefined-ip
+        type: object
+        profiles:
+        - xpath:
+          - predefined-ip
+        validators: []
+        spec:
+          params:
+          - name: description
+            type: string
+            profiles:
+            - xpath:
+              - description
+            validators:
+            - type: length
+              spec:
+                min: 0
+                max: 255
+            spec: {}
+            description: ''
+            required: false
+          - name: exception-list
+            type: list
+            profiles:
+            - xpath:
+              - exception-list
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          - name: url
+            type: string
+            profiles:
+            - xpath:
+              - url
+            validators: []
+            spec: {}
+            description: ''
+            required: false
+          variants: []
+        description: Predefined IP List
+        required: false
+      - name: predefined-url
+        type: object
+        profiles:
+        - xpath:
+          - predefined-url
+        validators: []
+        spec:
+          params:
+          - name: description
+            type: string
+            profiles:
+            - xpath:
+              - description
+            validators:
+            - type: length
+              spec:
+                min: 0
+                max: 255
+            spec: {}
+            description: ''
+            required: false
+          - name: exception-list
+            type: list
+            profiles:
+            - xpath:
+              - exception-list
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          - name: url
+            type: string
+            profiles:
+            - xpath:
+              - url
+            validators: []
+            spec: {}
+            description: ''
+            required: false
+          variants: []
+        description: Predefined URL List
+        required: false
+      - name: url
+        type: object
+        profiles:
+        - xpath:
+          - url
+        validators: []
+        spec:
+          params:
+          - name: auth
+            type: object
+            profiles:
+            - xpath:
+              - auth
+            validators: []
+            spec:
+              params:
+              - name: password
+                type: string
+                profiles:
+                - xpath:
+                  - password
+                validators:
+                - type: length
+                  spec:
+                    max: 255
+                spec: {}
+                description: ''
+                required: false
+              - name: username
+                type: string
+                profiles:
+                - xpath:
+                  - username
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 255
+                spec: {}
+                description: ''
+                required: false
+              variants: []
+            description: ''
+            required: false
+          - name: certificate-profile
+            type: string
+            profiles:
+            - xpath:
+              - certificate-profile
+            validators: []
+            spec:
+              default: None
+            description: Profile for authenticating client certificates
+            required: false
+          - name: description
+            type: string
+            profiles:
+            - xpath:
+              - description
+            validators:
+            - type: length
+              spec:
+                min: 0
+                max: 255
+            spec: {}
+            description: ''
+            required: false
+          - name: exception-list
+            type: list
+            profiles:
+            - xpath:
+              - exception-list
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          - name: recurring
+            type: object
+            profiles:
+            - xpath:
+              - recurring
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: daily
+                type: object
+                profiles:
+                - xpath:
+                  - daily
+                validators: []
+                spec:
+                  params:
+                  - name: at
+                    type: string
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 2
+                        max: 2
+                    spec:
+                      default: '00'
+                    description: Time specification hh (e.g. 20)
+                    required: false
+                  variants: []
+                description: Everyday
+                required: false
+              - name: five-minute
+                type: object
+                profiles:
+                - xpath:
+                  - five-minute
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Every five minutes
+                required: false
+              - name: hourly
+                type: object
+                profiles:
+                - xpath:
+                  - hourly
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Everyhour
+                required: false
+              - name: monthly
+                type: object
+                profiles:
+                - xpath:
+                  - monthly
+                validators: []
+                spec:
+                  params:
+                  - name: at
+                    type: string
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 2
+                        max: 2
+                    spec:
+                      default: '00'
+                    description: Time specification hh (e.g. 20)
+                    required: false
+                  - name: day-of-month
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - day-of-month
+                    validators:
+                    - type: length
+                      spec:
+                        min: 1
+                        max: 31
+                    spec: {}
+                    description: ''
+                    required: false
+                  variants: []
+                description: Monthly
+                required: false
+              - name: weekly
+                type: object
+                profiles:
+                - xpath:
+                  - weekly
+                validators: []
+                spec:
+                  params:
+                  - name: at
+                    type: string
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 2
+                        max: 2
+                    spec:
+                      default: '00'
+                    description: Time specification hh (e.g. 20)
+                    required: false
+                  - name: day-of-week
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - day-of-week
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - sunday
+                        - monday
+                        - tuesday
+                        - wednesday
+                        - thursday
+                        - friday
+                        - saturday
+                    spec:
+                      values:
+                      - value: sunday
+                      - value: monday
+                      - value: tuesday
+                      - value: wednesday
+                      - value: thursday
+                      - value: friday
+                      - value: saturday
+                    description: ''
+                    required: false
+                  variants: []
+                description: Once a week
+                required: false
+            description: ''
+            required: false
+          - name: url
+            type: string
+            profiles:
+            - xpath:
+              - url
+            validators:
+            - type: length
+              spec:
+                min: 0
+                max: 255
+            spec:
+              default: http://
+            description: ''
+            required: false
+          variants: []
+        description: URL List
+        required: false
+    description: ''
+    required: false
+  variants: []

@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "additionalProperties": false,
+  "required": ["params", "variants"],
   "properties": {
     "params": {
       "type": "array",
@@ -29,9 +30,11 @@
               "additionalProperties": false,
               "properties": {
                 "name": { "type": "string" },
-                "private": { "type": "booleanf" },
+                "type": { "type": "string" },
+                "private": { "type": "boolean" },
                 "computed": { "type": "boolean" },
-                "sensitive": { "type": "boolean" }
+                "sensitive": { "type": "boolean" },
+                "variant_check": { "type": "string" }
               }
             }
           }
@@ -98,8 +101,9 @@
     "list": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["items"],
+      "required": ["type", "items"],
       "properties": {
+        "type": { "type": "string" },
         "items": {
           "type": "object",
           "additionalProperties": false,

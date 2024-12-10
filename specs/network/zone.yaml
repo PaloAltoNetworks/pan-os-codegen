@@ -1,245 +1,364 @@
-name: "Zone"
+name: Zone
 terraform_provider_config:
-  suffix: "zone"
+  description: Zone
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: zone
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
 go_sdk_config:
+  skip: false
   package:
-    - "network"
-    - "zone"
+  - network
+  - zone
 xpath_suffix:
-  - "zone"
+- zone
 locations:
-  - name: "vsys"
-    description: "Located in a specific vsys."
-    devices:
-      - panorama
-      - ngfw
-    xpath:
-      path:
-        - "config"
-        - "devices"
-        - "$ngfw_device"
-        - "vsys"
-        - "$vsys"
-      vars:
-        - name: "ngfw_device"
-          description: "The NGFW device."
-          default: "localhost.localdomain"
-        - name: "vsys"
-          description: "The vsys."
-          default: "vsys1"
-          validators:
-            - type: not-values
-              spec:
-                values:
-                  - value: shared
-                    error: 'The vsys cannot be "shared". Use the "shared" path instead.'
-  - name: "from_panorama_vsys"
-    description: "Located in a specific vsys in the config pushed from Panorama."
-    read_only: true
-    devices:
-      - ngfw
-    xpath:
-      path:
-        - "config"
-        - "panorama"
-        - "vsys"
-        - "$vsys"
-      vars:
-        - name: "vsys"
-          description: "The vsys."
-          default: "vsys1"
-          validators:
-            - type: not-values
-              spec:
-                values:
-                  - value: "shared"
-                    error: 'The vsys cannot be "shared". Use the "shared" path instead.'
-  - name: "template"
-    description: "Located in a specific template."
-    devices:
-      - panorama
-    xpath:
-      path:
-        - "config"
-        - "devices"
-        - "$panorama_device"
-        - "template"
-        - "$template"
-        - "config"
-        - "devices"
-        - "$ngfw_device"
-        - "vsys"
-        - "$vsys"
-      vars:
-        - name: "panorama_device"
-          description: "The panorama device."
-          default: "localhost.localdomain"
-        - name: "template"
-          description: "The template."
-          required: true
-        - name: "ngfw_device"
-          description: "The NGFW device."
-          default: "localhost.localdomain"
-        - name: "vsys"
-          description: "The vsys."
-          default: "vsys1"
-          validators:
-            - type: not-values
-              spec:
-                values:
-                  - value: "shared"
-                    error: 'The vsys cannot be "shared". Use the "shared" path instead.'
-  - name: "template-stack"
-    description: "Located in a specific template stack."
-    devices:
-      - panorama
-    xpath:
-      path:
-        - "config"
-        - "devices"
-        - "$panorama_device"
-        - "template-stack"
-        - "$template_stack"
-        - "config"
-        - "devices"
-        - "$ngfw_device"
-        - "vsys"
-        - "$vsys"
-      vars:
-        - name: "panorama_device"
-          description: "The panorama device."
-          default: "localhost.localdomain"
-        - name: "template_stack"
-          description: "The template stack."
-          required: true
-        - name: "ngfw_device"
-          description: "The NGFW device."
-          default: "localhost.localdomain"
-        - name: "vsys"
-          description: "The vsys."
-          default: "vsys1"
-          validators:
-            - type: not-values
-              spec:
-                values:
-                  - value: "shared"
-                    error: 'The vsys cannot be "shared". Use the "shared" path instead.'
+- name: vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: ngfw_device
+      description: The NGFW device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The Virtual System name
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys name cannot be "shared". Use the "shared" location instead
+      type: entry
+  description: Located in a specific Virtual System
+  devices:
+  - ngfw
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared". Use the "shared" location instead.
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
 entries:
-  - name: name
-    description: "The name of the zone."
-version: "10.1.0"
+- name: name
+  description: ''
+  validators: []
+imports: []
 spec:
   params:
-    - name: enable-user-identification
-      type: bool
-      profiles:
-        - xpath: ["enable-user-identification"]
-    - name: enable-device-identification
-      type: bool
-      profiles:
-        - xpath: ["enable-device-identification"]
-    - name: user-acl
-      type: object
-      profiles:
-        - xpath: ["user-acl"]
-      spec:
-        params:
-          - name: include-list
-            type: list
-            spec:
-              items:
-                type: string
-            profiles:
-              - xpath: ["include-list"]
-                type: member
-          - name: exclude-list
-            type: list
-            spec:
-              items:
-                type: string
-            profiles:
-              - xpath: ["exclude-list"]
-                type: member
-    - name: device-acl
-      type: object
-      profiles:
-        - xpath: ["device-acl"]
-      spec:
-        params:
-          - name: include-list
-            type: list
-            spec:
-              items:
-                type: string
-            profiles:
-              - xpath: ["include-list"]
-                type: member
-          - name: exclude-list
-            type: list
-            spec:
-              items:
-                type: string
-            profiles:
-              - xpath: ["exclude-list"]
-                type: member
-    - name: network
-      type: object
-      profiles:
-        - xpath: ["network"]
-      spec:
-        params:
-          - name: enable-packet-buffer-protection
-            type: bool
-            spec:
-              default: true
-            profiles:
-              - xpath: ["enable-packet-buffer-protection"]
-          - name: zone-protection-profile
-            type: list
-            spec:
-              items:
-                type: string
-            profiles:
-              - xpath: ["zone-protection-profile"]
-                type: member
-          - name: log-setting
-            type: list
-            spec:
-              items:
-                type: string
-            profiles:
-              - xpath: ["log-setting"]
-                type: member
-        variants:
-          - name: layer3
-            type: list
-            spec:
-              items:
-                type: string
-            profiles:
-              - xpath: ["layer3"]
-                type: member
-          - name: layer2
-            type: list
-            spec:
-              items:
-                type: string
-            profiles:
-              - xpath: ["layer2"]
-                type: member
-          - name: virtual-wire
-            type: list
-            spec:
-              items:
-                type: string
-            profiles:
-              - xpath: ["virtual-wire"]
-                type: member
-          - name: tap
-            type: list
-            spec:
-              items:
-                type: string
-            profiles:
-              - xpath: ["tap"]
-                type: member
+  - name: device-acl
+    type: object
+    profiles:
+    - xpath:
+      - device-acl
+    validators: []
+    spec:
+      params:
+      - name: exclude-list
+        type: list
+        profiles:
+        - xpath:
+          - exclude-list
+          type: member
+        validators: []
+        spec:
+          type: string
+          items:
+            type: string
+        description: ''
+        required: false
+      - name: include-list
+        type: list
+        profiles:
+        - xpath:
+          - include-list
+          type: member
+        validators: []
+        spec:
+          type: string
+          items:
+            type: string
+        description: ''
+        required: false
+      variants: []
+    description: Device Identification ACL configuration
+    required: false
+  - name: enable-device-identification
+    type: bool
+    profiles:
+    - xpath:
+      - enable-device-identification
+    validators: []
+    spec: {}
+    description: ''
+    required: false
+  - name: enable-user-identification
+    type: bool
+    profiles:
+    - xpath:
+      - enable-user-identification
+    validators: []
+    spec: {}
+    description: ''
+    required: false
+  - name: network
+    type: object
+    profiles:
+    - xpath:
+      - network
+    validators: []
+    spec:
+      params:
+      - name: enable-packet-buffer-protection
+        type: bool
+        profiles:
+        - xpath:
+          - enable-packet-buffer-protection
+        validators: []
+        spec: {}
+        description: ''
+        required: false
+      - name: log-setting
+        type: string
+        profiles:
+        - xpath:
+          - log-setting
+        validators:
+        - type: length
+          spec:
+            max: 63
+        spec: {}
+        description: Log setting for forwarding scan logs
+        required: false
+      - name: zone-protection-profile
+        type: string
+        profiles:
+        - xpath:
+          - zone-protection-profile
+        validators: []
+        spec: {}
+        description: Zone protection profile
+        required: false
+      - name: net-inspection
+        type: bool
+        profiles:
+        - xpath:
+          - net-inspection
+          min_version: 11.0.2
+          max_version: 11.0.3
+        validators: []
+        spec: {}
+        description: ''
+        required: false
+      variants:
+      - name: external
+        type: list
+        profiles:
+        - xpath:
+          - external
+          type: member
+        validators: []
+        spec:
+          type: string
+          items:
+            type: string
+        description: ''
+        required: false
+      - name: layer2
+        type: list
+        profiles:
+        - xpath:
+          - layer2
+          type: member
+        validators: []
+        spec:
+          type: string
+          items:
+            type: string
+        description: ''
+        required: false
+      - name: layer3
+        type: list
+        profiles:
+        - xpath:
+          - layer3
+          type: member
+        validators: []
+        spec:
+          type: string
+          items:
+            type: string
+        description: ''
+        required: false
+      - name: tap
+        type: list
+        profiles:
+        - xpath:
+          - tap
+          type: member
+        validators: []
+        spec:
+          type: string
+          items:
+            type: string
+        description: ''
+        required: false
+      - name: tunnel
+        type: object
+        profiles:
+        - xpath:
+          - tunnel
+        validators: []
+        spec:
+          params: []
+          variants: []
+        description: Tunnel inspection zone
+        required: false
+      - name: virtual-wire
+        type: list
+        profiles:
+        - xpath:
+          - virtual-wire
+          type: member
+        validators: []
+        spec:
+          type: string
+          items:
+            type: string
+        description: ''
+        required: false
+    description: Zone network configuration
+    required: false
+  - name: user-acl
+    type: object
+    profiles:
+    - xpath:
+      - user-acl
+    validators: []
+    spec:
+      params:
+      - name: exclude-list
+        type: list
+        profiles:
+        - xpath:
+          - exclude-list
+          type: member
+        validators: []
+        spec:
+          type: string
+          items:
+            type: string
+        description: ''
+        required: false
+      - name: include-list
+        type: list
+        profiles:
+        - xpath:
+          - include-list
+          type: member
+        validators: []
+        spec:
+          type: string
+          items:
+            type: string
+        description: ''
+        required: false
+      variants: []
+    description: User ACL configuration
+    required: false
+  variants: []

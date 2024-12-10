@@ -1,3 +1,105 @@
+{{- define "entryXmlStructTmpl" }}
+type entryXml{{createGoSuffixFromVersion $.Version}} struct {
+	XMLName xml.Name `xml:"entry"`
+	Name string `xml:"name,attr"`
+  {{- range $_, $param := $.Spec.Params}}
+    {{- if paramSupportedInVersion $param $.Version}}
+      {{- if $param.Spec}}
+        {{$param.Name.CamelCase}} {{xmlParamType "" $param}}{{createGoSuffixFromVersion $.Version}} {{xmlTag $param}}
+      {{- else}}
+        {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
+      {{- end}}
+    {{- end}}
+  {{- end}}
+
+  {{- range $_, $param := $.Spec.OneOf}}
+    {{- if paramSupportedInVersion $param $.Version}}
+      {{- if $param.Spec}}
+        {{$param.Name.CamelCase}} {{xmlParamType "" $param}}{{createGoSuffixFromVersion $.Version}} {{xmlTag $param}}
+      {{- else}}
+        {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
+      {{- end}}
+    {{- end}}
+  {{- end}}
+
+	Misc []generic.Xml `xml:",any"`
+}
+{{- end }}
+
+{{- define "entryXmlChildStructTmpl" }}
+type {{ .Name }}Xml{{createGoSuffixFromVersion $.Version}} struct {
+  {{- range $_, $param := $.Spec.Params}}
+    {{- if eq $param.Name.CamelCase "Name"}}
+	XMLName xml.Name `xml:"entry"`
+    {{- end}}
+    {{- if paramSupportedInVersion $param $.Version}}
+      {{- if $param.Spec}}
+	{{$param.Name.CamelCase}} {{xmlParamType $.Name $param}}{{createGoSuffixFromVersion $.Version}} {{xmlTag $param}}
+      {{- else}}
+	{{$param.Name.CamelCase}} {{xmlParamType $.Name $param}} {{xmlTag $param}}
+      {{- end}}
+    {{- end}}
+  {{- end}}
+
+  {{- range $_, $param := $.Spec.OneOf}}
+    {{- if paramSupportedInVersion $param $.Version}}
+      {{- if $param.Spec}}
+	{{$param.Name.CamelCase}} {{xmlParamType $.Name $param}}{{createGoSuffixFromVersion $.Version}} {{xmlTag $param}}
+      {{- else}}
+	{{$param.Name.CamelCase}} {{xmlParamType $.Name $param}} {{xmlTag $param}}
+      {{- end}}
+    {{- end}}
+  {{- end}}
+
+	Misc []generic.Xml `xml:",any"`
+}
+{{- end }}
+
+{{- define "SpecifyEntryTmpl" }}
+func specifyEntry{{ createGoSuffixFromVersion $.Version }}(o *Entry) (any, error) {
+	entry := entryXml{{ createGoSuffixFromVersion $.Version }}{}
+	entry.Name = o.Name
+
+  {{- range $_, $param := $.Spec.Params}}
+    {{ specifyEntryAssignment "entry" $param $.Version }}
+  {{- end}}
+
+  {{- range $_, $param := $.Spec.OneOf}}
+    {{ specifyEntryAssignment "entry" $param $.Version }}
+  {{- end}}
+
+	entry.Misc = o.Misc["Entry"]
+
+	return entry, nil
+}
+
+{{- end }}
+
+{{- define "NormalizeTmpl" }}
+func (c *entryXmlContainer{{ createGoSuffixFromVersion $.Version }}) Normalize() ([]*Entry, error) {
+	entryList := make([]*Entry, 0, len(c.Answer))
+	for _, o := range c.Answer {
+		entry := &Entry{
+		Misc: make(map[string][]generic.Xml),
+	}
+	entry.Name = o.Name
+  {{- range $_, $param := $.Spec.Params}}
+	{{normalizeAssignment "entry" $param $.Version }}
+  {{- end}}
+
+  {{- range $_, $param := $.Spec.OneOf}}
+	{{normalizeAssignment "entry" $param $.Version }}
+  {{- end}}
+
+	entry.Misc["Entry"] = o.Misc
+
+	entryList = append(entryList, entry)
+}
+
+return entryList, nil
+}
+{{- end }}
+
 {{- if .Entry}}
     package {{packageName .GoSdkPath}}
 
@@ -15,7 +117,7 @@
     {{- end}}}
     )
 
-    type Entry{{createGoSuffixFromVersion ""}} struct {
+    type Entry{{createGoSuffixFromVersion nil}} struct {
     Name string
     {{- range $_, $param := $.Spec.Params}}
         {{$param.Name.CamelCase}} {{specParamType "" $param}}
@@ -28,7 +130,7 @@
     }
 
     {{ range $name, $spec := nestedSpecs $.Spec }}
-        type {{$name}}{{createGoSuffixFromVersion ""}} struct {
+        type {{$name}}{{createGoSuffixFromVersion nil}} struct {
         {{- range $_, $param := $spec.Params}}
             {{$param.Name.CamelCase}} {{specParamType $name $param}}
         {{- end}}
@@ -38,67 +140,29 @@
         }
     {{- end}}
 
-    {{ range $version := .SupportedVersions }}
-        type entryXmlContainer{{createGoSuffixFromVersion $version}} struct {
-        Answer []entryXml{{createGoSuffixFromVersion $version}} `xml:"entry"`
+	type entryXmlContainer{{createGoSuffixFromVersion nil}} struct {
+		        Answer []entryXml{{createGoSuffixFromVersion nil}} `xml:"entry"`
+	}
+
+    {{ range $version := .SupportedVersionRanges }}
+        type entryXmlContainer{{createGoSuffixFromVersion $version.Minimum}} struct {
+        Answer []entryXml{{createGoSuffixFromVersion $version.Minimum}} `xml:"entry"`
         }
     {{- end}}
 
-    {{ range $version := .SupportedVersions }}
-        type entryXml{{createGoSuffixFromVersion $version}} struct {
-        XMLName xml.Name `xml:"entry"`
-        Name string `xml:"name,attr"`
-        {{- range $_, $param := $.Spec.Params}}
-            {{- if paramSupportedInVersion $param $version}}
-                {{- if $param.Spec}}
-                    {{$param.Name.CamelCase}} {{xmlParamType "" $param}}{{createGoSuffixFromVersion $version}} {{xmlTag $param}}
-                {{- else}}
-                    {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
-                {{- end}}
-            {{- end}}
-        {{- end}}
-        {{- range $_, $param := $.Spec.OneOf}}
-            {{- if paramSupportedInVersion $param $version}}
-                {{- if $param.Spec}}
-                    {{$param.Name.CamelCase}} {{xmlParamType "" $param}}{{createGoSuffixFromVersion $version}} {{xmlTag $param}}
-                {{- else}}
-                    {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
-                {{- end}}
-            {{- end}}
-        {{- end}}
-
-        Misc []generic.Xml `xml:",any"`
-        }
+    {{- template "entryXmlStructTmpl" Map "Spec" $.Spec "Version" nil }}
+    {{- range $version := .SupportedVersionRanges }}
+        {{- template "entryXmlStructTmpl" Map "Spec" $.Spec "Version" $version.Minimum }}
     {{- end}}
 
-    {{ range $version := .SupportedVersions }}
-        {{- range $name, $spec := nestedSpecs $.Spec }}
-            type {{$name}}Xml{{createGoSuffixFromVersion $version}} struct {
-            {{- range $_, $param := $spec.Params}}
-                {{- if eq $param.Name.CamelCase "Name"}}
-                    XMLName xml.Name `xml:"entry"`
-                {{- end}}
-                {{- if paramSupportedInVersion $param $version}}
-                    {{- if $param.Spec}}
-                        {{$param.Name.CamelCase}} {{xmlParamType $name $param}}{{createGoSuffixFromVersion $version}} {{xmlTag $param}}
-                    {{- else}}
-                        {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
-                    {{- end}}
-                {{- end}}
-            {{- end}}
-            {{- range $_, $param := $spec.OneOf}}
-                {{- if paramSupportedInVersion $param $version}}
-                    {{- if $param.Spec}}
-                        {{$param.Name.CamelCase}} {{xmlParamType $name $param}}{{createGoSuffixFromVersion $version}} {{xmlTag $param}}
-                    {{- else}}
-                        {{$param.Name.CamelCase}} {{xmlParamType $name $param}} {{xmlTag $param}}
-                    {{- end}}
-                {{- end}}
-            {{- end}}
+    {{- range $name, $spec := nestedSpecs $.Spec }}
+      {{- template "entryXmlChildStructTmpl" Map "Name" $name "Spec" $spec "Version" nil }}
+    {{- end }}
 
-            Misc []generic.Xml `xml:",any"`
-            }
-        {{- end}}
+    {{- range $version := .SupportedVersionRanges }}
+      {{- range $name, $spec := nestedSpecs $.Spec }}
+        {{- template "entryXmlChildStructTmpl" Map "Name" $name "Spec" $spec "Version" $version.Minimum }}
+      {{- end }}
     {{- end}}
 
     {{ range $name, $const := .Const}}
@@ -134,75 +198,29 @@
     }
 
     func Versioning(vn version.Number) (Specifier, Normalizer, error) {
-    {{- $numberOfVersions := len .SupportedVersions }}
-    {{- if gt $numberOfVersions 1}}
-        {{- range $index, $version := .SupportedVersions }}
-            {{- if ne $version ""}}
-                version{{createGoSuffixFromVersion $version}}, err := version.New("{{$version}}")
-                if err != nil {
-                return nil, nil, err
-                }
-            {{- end}}
-        {{- end}}
-        {{- range $index, $version := .SupportedVersions }}
-            {{- if ne $version ""}}
-                {{- if eq $index 1}}
-                    if vn.Gte(version{{createGoSuffixFromVersion $version}}) {
-                    return specifyEntry{{createGoSuffixFromVersion $version}}, &entryXmlContainer{{createGoSuffixFromVersion $version}}{}, nil
-                {{- else}}
-                    } else if vn.Gte(version{{createGoSuffixFromVersion $version}}) {
-                    return specifyEntry{{createGoSuffixFromVersion $version}}, &entryXmlContainer{{createGoSuffixFromVersion $version}}{}, nil
-                {{- end}}
-            {{- end}}
-        {{- end}}
-        } else {
-    {{- end}}
+    {{- range $variable, $version := .SupportedVersionDefinitions }}
+        {{ $variable }}, _ := version.New("{{ $version }}")
+    {{- end }}
+
+    {{- range $versionDef := .SupportedVersionRanges }}
+	if vn.Gte({{ $versionDef.MinimumVariable }}) && vn.Lt({{ $versionDef.MaximumVariable }}) {
+		return {{ $versionDef.SpecifierFunc }}, &{{ $versionDef.EntryXmlContainer }}{}, nil
+	}
+    {{- end }}
+
     return specifyEntry, &entryXmlContainer{}, nil
-    {{- if gt $numberOfVersions 1}}
-        }
-    {{- end}}
     }
 
-    {{ range $version := .SupportedVersions }}
-        func specifyEntry{{createGoSuffixFromVersion $version}}(o *Entry) (any, error) {
-        entry := entryXml{{createGoSuffixFromVersion $version}}{}
 
-        entry.Name = o.Name
-        {{- range $_, $param := $.Spec.Params}}
-            {{specifyEntryAssignment "entry" $param $version}}
-        {{- end}}
-        {{- range $_, $param := $.Spec.OneOf}}
-            {{specifyEntryAssignment "entry" $param $version}}
-        {{- end}}
+    {{- template "SpecifyEntryTmpl" Map "Spec" $.Spec "Version" nil }}
 
-        entry.Misc = o.Misc["Entry"]
-
-        return entry, nil
-        }
+    {{ range $version := .SupportedVersionRanges }}
+      	{{- template "SpecifyEntryTmpl" Map "Spec" $.Spec "Version" $version.Minimum }}
     {{- end}}
 
-    {{- range $version := .SupportedVersions }}
-        func (c *entryXmlContainer{{createGoSuffixFromVersion $version}}) Normalize() ([]*Entry, error) {
-        entryList := make([]*Entry, 0, len(c.Answer))
-        for _, o := range c.Answer {
-        entry := &Entry{
-        Misc: make(map[string][]generic.Xml),
-        }
-        entry.Name = o.Name
-        {{- range $_, $param := $.Spec.Params}}
-            {{normalizeAssignment "entry" $param $version}}
-        {{- end}}
-        {{- range $_, $param := $.Spec.OneOf}}
-            {{normalizeAssignment "entry" $param $version}}
-        {{- end}}
-
-        entry.Misc["Entry"] = o.Misc
-
-        entryList = append(entryList, entry)
-        }
-
-        return entryList, nil
-        }
+    {{- template "NormalizeTmpl" Map "Spec" $.Spec "Version" nil }}
+    {{- range $version := .SupportedVersionRanges }}
+      {{- template "NormalizeTmpl" Map "Spec" $.Spec "Version" $version.Minimum }}
     {{- end}}
 
     func SpecMatches(a, b *Entry) bool {

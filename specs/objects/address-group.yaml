@@ -1,158 +1,185 @@
-name: "Address group"
+name: address-group
 terraform_provider_config:
-  suffix: "address_group"
+  description: Address Group
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: address_group
+  plural_suffix: ''
+  plural_name: addresses
+  plural_description: ''
 go_sdk_config:
+  skip: false
   package:
-    - "objects"
-    - "address"
-    - "group"
+  - objects
+  - address
+  - group
 xpath_suffix:
-  - "address-group"
+- address-group
 locations:
-  - name: "shared"
-    description: "Located in shared."
-    devices:
-      - panorama
-      - ngfw
-    xpath:
-      path: ["config", "shared"]
-  - name: "vsys"
-    description: "Located in a specific vsys."
-    devices:
-      - panorama
-      - ngfw
-    xpath:
-      path:
-        - "config"
-        - "devices"
-        - "$ngfw_device"
-        - "vsys"
-        - "$vsys"
-      vars:
-        - name: "ngfw_device"
-          description: "The NGFW device."
-          default: "localhost.localdomain"
-        - name: "vsys"
-          description: "The vsys."
-          default: "vsys1"
-          validators:
-            - type: not-values
-              spec:
-                values:
-                  - value: "shared"
-                    error: 'The vsys cannot be "shared". Use the "shared" path instead.'
-  - name: "from_panorama_shared"
-    description: "Located in shared in the config pushed from Panorama."
-    read_only: true
-    devices:
-      - ngfw
-    xpath:
-      path:
-        - "config"
-        - "panorama"
-        - "shared"
-  - name: "from_panorama_vsys"
-    description: "Located in a specific vsys in the config pushed from Panorama."
-    read_only: true
-    devices:
-      - ngfw
-    xpath:
-      path:
-        - "config"
-        - "panorama"
-        - "vsys"
-        - "$vsys"
-      vars:
-        - name: "vsys"
-          description: "The vsys."
-          default: "vsys1"
-          validators:
-            - type: not-values
-              spec:
-                values:
-                  - value: "shared"
-                    error: 'The vsys cannot be "shared". Use the "shared" path instead.'
-  - name: "device_group"
-    description: "Located in a specific device group."
-    devices:
-      - panorama
-    xpath:
-      path:
-        - "config"
-        - "devices"
-        - "$panorama_device"
-        - "device-group"
-        - "$device_group"
-      vars:
-        - name: "panorama_device"
-          description: "The panorama device."
-          default: "localhost.localdomain"
-        - name: "device_group"
-          description: "The device group."
-          required: true
-          validators:
-            - type: not-values
-              spec:
-                values:
-                  - value: "shared"
-                    error: 'The device group cannot be "shared". Use the "shared" path instead.'
-entries:
-  - name: name
-    description: "The name of the address group."
-    validators:
-      - type: length
+- name: shared
+  xpath:
+    path:
+    - config
+    - shared
+    vars: []
+  description: Location in Shared Panorama
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: ngfw_device
+      description: The NGFW device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The Virtual System name
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
         spec:
-          min: 1
-          max: 63
-version: "10.1.0"
+          values:
+          - value: shared
+            error: The vsys name cannot be "shared". Use the "shared" location instead
+      type: entry
+  description: Located in a specific Virtual System
+  devices:
+  - ngfw
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: device-group
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - device-group
+    - $device_group
+    vars:
+    - name: panorama_device
+      description: Panorama device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: device_group
+      description: Device Group name
+      required: true
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The device group name cannot be "shared". Use the "shared" location
+              instead
+      type: entry
+  description: Located in a specific Device Group
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
 spec:
   params:
-    - name: description
-      description: "The description."
+  - name: description
+    type: string
+    profiles:
+    - xpath:
+      - description
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 1023
+    spec: {}
+    description: ''
+    required: false
+  - name: disable-override
+    type: enum
+    profiles:
+    - xpath:
+      - disable-override
+    validators:
+    - type: values
+      spec:
+        values:
+        - 'no'
+    spec:
+      default: 'no'
+      values:
+      - value: 'no'
+    description: disable object override in child device groups
+    required: false
+  - name: tag
+    type: list
+    profiles:
+    - xpath:
+      - tag
+      type: member
+    validators: []
+    spec:
       type: string
-      profiles:
-        - xpath: ["description"]
-      validators:
-        - type: length
-          spec:
-            min: 0
-            max: 1023
-    - name: tags
-      description: "The administrative tags."
-      type: list
-      profiles:
-        - type: member
-          xpath: ["tag"]
-      validators:
-        - type: count
-          spec:
-            max: 64
-      spec:
-        items:
-          type: string
-          validators:
-            - type: length
-              spec:
-                max: 127
+      items:
+        type: string
+    description: ''
+    required: false
   variants:
-    - name: "static"
-      type: list
-      profiles:
-        - xpath: ["static"]
-          type: member
-      validators:
-        - type: count
-          spec:
-            min: 1
-      spec:
-        items:
-          type: string
-    - name: "dynamic"
-      type: string # FIXME: the original spec made no sense
-      validators:
+  - name: dynamic
+    type: object
+    profiles:
+    - xpath:
+      - dynamic
+    validators: []
+    spec:
+      params:
+      - name: filter
+        type: string
+        profiles:
+        - xpath:
+          - filter
+        validators:
         - type: length
           spec:
-            min: 1
             max: 2047
-      profiles:
-        - xpath: ["dynamic", "filter"] # FIXME: original xpath dynamic/filter made no sense
+        spec: {}
+        description: tag-based filter
+        required: false
+      variants: []
+    description: ''
+    required: false
+  - name: static
+    type: list
+    profiles:
+    - xpath:
+      - static
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false

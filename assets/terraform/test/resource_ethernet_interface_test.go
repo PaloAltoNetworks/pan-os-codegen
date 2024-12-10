@@ -105,7 +105,7 @@ func makePanosEthernetInterface_Layer3(label string) string {
             {
               advertise = {
                 enable         = true
-                valid_lifetime = "10000"
+                valid_lifetime = "1000000"
               },
               name                = "::1",
               enable_on_interface = true

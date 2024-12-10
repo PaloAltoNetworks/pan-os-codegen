@@ -4,7 +4,7 @@ terraform_provider_config:
 go_sdk_config:
   package:
     - "panorama"
-    - "device_group"
+    - "devicegroup"
 xpath_suffix:
   - "device-group"
 locations:
