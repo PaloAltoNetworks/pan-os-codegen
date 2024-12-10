@@ -125,10 +125,12 @@ spec:
     - type: values
       spec:
         values:
+        - 'yes'
         - 'no'
     spec:
       default: 'no'
       values:
+      - value: 'yes'
       - value: 'no'
     description: disable object override in child device groups
     required: false
