@@ -752,7 +752,8 @@ spec:
     required: false
     codegen_overrides:
       terraform:
-        name: destination_zones
+        name: destination_zone
+        type: string
   - name: uuid
     type: string
     profiles:

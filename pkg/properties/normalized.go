@@ -227,6 +227,27 @@ func (o *SpecParam) NameVariant() *NameVariant {
 	return o.Name
 }
 
+func (o *SpecParam) ComplexType() string {
+	var terraformType *string
+	if o.TerraformProviderConfig != nil {
+		terraformType = o.TerraformProviderConfig.Type
+	}
+
+	if terraformType != nil && o.Type == "list" && o.Items.Type == "string" {
+		return "string-as-member"
+	}
+
+	return ""
+}
+
+func (o *SpecParam) FinalType() string {
+	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.Type != nil {
+		return *o.TerraformProviderConfig.Type
+	}
+
+	return o.Type
+}
+
 func (o *SpecParam) FinalSensitive() bool {
 	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.Sensitive != nil {
 		return *o.TerraformProviderConfig.Sensitive
