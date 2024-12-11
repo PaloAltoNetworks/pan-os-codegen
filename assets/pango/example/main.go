@@ -16,10 +16,10 @@ import (
 	"github.com/PaloAltoNetworks/pango/network/zone"
 	"github.com/PaloAltoNetworks/pango/objects/address"
 	address_group "github.com/PaloAltoNetworks/pango/objects/address/group"
+	tag "github.com/PaloAltoNetworks/pango/objects/admintag"
 	"github.com/PaloAltoNetworks/pango/objects/service"
 	service_group "github.com/PaloAltoNetworks/pango/objects/service/group"
-	"github.com/PaloAltoNetworks/pango/objects/tag"
-	"github.com/PaloAltoNetworks/pango/panorama/device_group"
+	"github.com/PaloAltoNetworks/pango/panorama/devicegroup"
 	"github.com/PaloAltoNetworks/pango/panorama/template"
 	"github.com/PaloAltoNetworks/pango/panorama/template_stack"
 	"github.com/PaloAltoNetworks/pango/policies/rules/security"
@@ -134,14 +134,14 @@ func checkTemplateStack(c *pango.Client, ctx context.Context) {
 }
 
 func checkDeviceGroup(c *pango.Client, ctx context.Context) {
-	entry := &device_group.Entry{
+	entry := &devicegroup.Entry{
 		Name:        "codegen_device_group",
 		Description: util.String("This is a device group created by codegen."),
 		Templates:   []string{"codegen_template"},
 	}
 
-	location := device_group.NewPanoramaLocation()
-	api := device_group.NewService(c)
+	location := devicegroup.NewPanoramaLocation()
+	api := devicegroup.NewService(c)
 
 	reply, err := api.Create(ctx, *location, entry)
 	if err != nil {
@@ -164,7 +164,7 @@ func checkSharedObjects(c *pango.Client, ctx context.Context) {
 		}
 
 		addressApi := address.NewService(c)
-		
+
 		addressReply, err := addressApi.Create(ctx, addressLocation, addressObject)
 		if err != nil {
 			log.Printf("Failed to create object: %s", err)
@@ -230,7 +230,7 @@ func checkVr(c *pango.Client, ctx context.Context) {
 		Ecmp: &virtual_router.Ecmp{
 			Enable:          util.Bool(true),
 			SymmetricReturn: util.Bool(true),
-			MaxPaths:        util.Int(3),
+			MaxPath:         util.Int(3),
 			Algorithm:       &virtual_router.EcmpAlgorithm{
 				// IpHash: &virtual_router.EcmpAlgorithmIpHash{
 				// 	HashSeed: util.Int(1234),
@@ -251,7 +251,7 @@ func checkVr(c *pango.Client, ctx context.Context) {
 				// },
 			},
 		},
-		AdministrativeDistances: &virtual_router.AdministrativeDistances{
+		AdminDists: &virtual_router.AdminDists{
 			OspfInt: util.Int(77),
 			OspfExt: util.Int(88),
 		},
@@ -280,7 +280,9 @@ func checkEthernetLayer3Static(c *pango.Client, ctx context.Context) {
 		Name:    "ethernet1/2",
 		Comment: util.String("This is a ethernet1/2"),
 		Layer3: &ethernet.Layer3{
-			NdpProxy: util.Bool(true),
+			NdpProxy: &ethernet.Layer3NdpProxy{
+				Enabled: util.Bool(true),
+			},
 			Lldp: &ethernet.Layer3Lldp{
 				Enable: util.Bool(true),
 			},
@@ -290,7 +292,7 @@ func checkEthernetLayer3Static(c *pango.Client, ctx context.Context) {
 				Ipv6MssAdjustment: util.Int(250),
 			},
 			Mtu: util.Int(1280),
-			Ips: []ethernet.Layer3Ips{
+			Ip: []ethernet.Layer3Ip{
 				{
 					Name: "11.11.11.11",
 				},
@@ -299,7 +301,7 @@ func checkEthernetLayer3Static(c *pango.Client, ctx context.Context) {
 				},
 			},
 			Ipv6: &ethernet.Layer3Ipv6{
-				Addresses: []ethernet.Layer3Ipv6Addresses{
+				Address: []ethernet.Layer3Ipv6Address{
 					{
 						EnableOnInterface: util.Bool(false),
 						Name:              "2001:0000:130F:0000:0000:09C0:876A:230B",
@@ -476,10 +478,13 @@ func checkZone(c *pango.Client, ctx context.Context) {
 
 func checkInterfaceMgmtProfile(c *pango.Client, ctx context.Context) {
 	entry := &interface_management.Entry{
-		Name:         "codegen_mgmt_profile",
-		Http:         util.Bool(true),
-		Ping:         util.Bool(true),
-		PermittedIps: []string{"1.1.1.1", "2.2.2.2"},
+		Name: "codegen_mgmt_profile",
+		Http: util.Bool(true),
+		Ping: util.Bool(true),
+		PermittedIp: []interface_management.PermittedIp{
+			{Name: "1.1.1.1"},
+			{Name: "2.2.2.2"},
+		},
 	}
 
 	var location *interface_management.Location
@@ -519,14 +524,14 @@ func checkVrZoneWithEthernet(c *pango.Client, ctx context.Context) {
 	}
 	log.Printf("VR %s read\n", replyVr.Name)
 
-	replyVr.Interfaces = []string{"ethernet1/2", "ethernet1/3"}
+	replyVr.Interface = []string{"ethernet1/2", "ethernet1/3"}
 
 	replyVr, err = apiVr.Update(ctx, *locationVr, replyVr, "codegen_vr")
 	if err != nil {
 		log.Printf("Failed to update VR: %s", err)
 		return
 	}
-	log.Printf("VR %s updated with %s\n", replyVr.Name, replyVr.Interfaces)
+	log.Printf("VR %s updated with %s\n", replyVr.Name, replyVr.Interface)
 
 	// UPDATE ZONE ABOUT INTERFACES
 	var locationZone *zone.Location
@@ -559,14 +564,14 @@ func checkVrZoneWithEthernet(c *pango.Client, ctx context.Context) {
 	log.Printf("Zone %s updated with %s\n", replyZone.Name, replyZone.Network.Layer3)
 
 	// DELETE INTERFACES FROM VR
-	replyVr.Interfaces = []string{}
+	replyVr.Interface = []string{}
 
 	replyVr, err = apiVr.Update(ctx, *locationVr, replyVr, "codegen_vr")
 	if err != nil {
 		log.Printf("Failed to update VR: %s", err)
 		return
 	}
-	log.Printf("VR %s updated with %s\n", replyVr.Name, replyVr.Interfaces)
+	log.Printf("VR %s updated with %s\n", replyVr.Name, replyVr.Interface)
 
 	// DELETE INTERFACES FROM ZONE
 	replyZone.Network = &zone.Network{
@@ -607,15 +612,15 @@ func checkVrZoneWithEthernet(c *pango.Client, ctx context.Context) {
 func checkSecurityPolicyRules(c *pango.Client, ctx context.Context) {
 	// SECURITY POLICY RULE - ADD
 	securityPolicyRuleEntry := &security.Entry{
-		Name:                 "codegen_rule",
-		Description:          util.String("initial description"),
-		Action:               util.String("allow"),
-		SourceZones:          []string{"any"},
-		SourceAddresses:      []string{"any"},
-		DestinationZones:     []string{"any"},
-		DestinationAddresses: []string{"any"},
-		Applications:         []string{"any"},
-		Services:             []string{"application-default"},
+		Name:        "codegen_rule",
+		Description: util.String("initial description"),
+		Action:      util.String("allow"),
+		From:        []string{"any"},
+		To:          []string{"any"},
+		Source:      []string{"any"},
+		Destination: []string{"any"},
+		Application: []string{"any"},
+		Service:     []string{"application-default"},
 	}
 
 	var securityPolicyRuleLocation *security.Location
@@ -627,7 +632,7 @@ func checkSecurityPolicyRules(c *pango.Client, ctx context.Context) {
 	}
 
 	securityPolicyRuleApi := security.NewService(c)
-	
+
 	securityPolicyRuleReply, err := securityPolicyRuleApi.Create(ctx, *securityPolicyRuleLocation, securityPolicyRuleEntry)
 	if err != nil {
 		log.Printf("Failed to create security policy rule: %s", err)
@@ -742,15 +747,15 @@ func checkSecurityPolicyRulesMove(c *pango.Client, ctx context.Context) {
 	for i := 0; i < 10; i++ {
 		securityPolicyRulesNames[i] = fmt.Sprintf("codegen_rule%d", i)
 		securityPolicyRuleItem := &security.Entry{
-			Name:                 securityPolicyRulesNames[i],
-			Description:          util.String("initial description"),
-			Action:               util.String("allow"),
-			SourceZones:          []string{"any"},
-			SourceAddresses:      []string{"any"},
-			DestinationZones:     []string{"any"},
-			DestinationAddresses: []string{"any"},
-			Applications:         []string{"any"},
-			Services:             []string{"application-default"},
+			Name:        securityPolicyRulesNames[i],
+			Description: util.String("initial description"),
+			Action:      util.String("allow"),
+			From:        []string{"any"},
+			To:          []string{"any"},
+			Source:      []string{"any"},
+			Destination: []string{"any"},
+			Application: []string{"any"},
+			Service:     []string{"application-default"},
 		}
 		securityPolicyRulesEntries = append(securityPolicyRulesEntries, securityPolicyRuleItem)
 		securityPolicyRuleItemReply, err := securityPolicyRuleApi.Create(ctx, *securityPolicyRuleLocation, securityPolicyRuleItem)
@@ -781,7 +786,7 @@ func checkSecurityPolicyRulesMove(c *pango.Client, ctx context.Context) {
 	var securityPolicyRulesEntriesToMove []*security.Entry
 	securityPolicyRulesEntriesToMove = append(securityPolicyRulesEntriesToMove, securityPolicyRulesEntries[3])
 	securityPolicyRulesEntriesToMove = append(securityPolicyRulesEntriesToMove, securityPolicyRulesEntries[5])
-	
+
 	for _, securityPolicyRuleItemToMove := range securityPolicyRulesEntriesToMove {
 		log.Printf("Security policy rule '%s' is going to be moved", securityPolicyRuleItemToMove.Name)
 	}
@@ -922,7 +927,7 @@ func checkService(c *pango.Client, ctx context.Context) {
 		Description: util.String("test description"),
 		Protocol: &service.Protocol{
 			Tcp: &service.ProtocolTcp{
-				DestinationPort: util.Int(8642),
+				Port: util.String("8642"),
 				Override: &service.ProtocolTcpOverride{
 					HalfcloseTimeout: util.Int(124),
 					Timeout:          util.Int(125),
@@ -947,7 +952,7 @@ func checkService(c *pango.Client, ctx context.Context) {
 		log.Printf("Failed to create object: %s", err)
 		return
 	}
-	log.Printf("Service '%s=%d' created", serviceReply.Name, *serviceReply.Protocol.Tcp.DestinationPort)
+	log.Printf("Service '%s=%s' created", serviceReply.Name, *serviceReply.Protocol.Tcp.Port)
 
 	// SERVICE - UPDATE 1
 	serviceObject.Description = util.String("changed description")
@@ -956,16 +961,16 @@ func checkService(c *pango.Client, ctx context.Context) {
 		log.Printf("Failed to update object: %s", err)
 		return
 	}
-	log.Printf("Service '%s=%d' updated", serviceReply.Name, *serviceReply.Protocol.Tcp.DestinationPort)
+	log.Printf("Service '%s=%s' updated", serviceReply.Name, *serviceReply.Protocol.Tcp.Port)
 
 	// SERVICE - UPDATE 2
-	serviceObject.Protocol.Tcp.DestinationPort = util.Int(1234)
+	serviceObject.Protocol.Tcp.Port = util.String("1234")
 	serviceReply, err = serviceApi.Update(ctx, *serviceLocation, serviceObject, serviceReply.Name)
 	if err != nil {
 		log.Printf("Failed to update object: %s", err)
 		return
 	}
-	log.Printf("Service '%s=%d' updated", serviceReply.Name, *serviceReply.Protocol.Tcp.DestinationPort)
+	log.Printf("Service '%s=%s' updated", serviceReply.Name, *serviceReply.Protocol.Tcp.Port)
 
 	// SERVICE - RENAME
 	newServiceName := "codegen_service_test2"
@@ -976,7 +981,7 @@ func checkService(c *pango.Client, ctx context.Context) {
 		log.Printf("Failed to update object: %s", err)
 		return
 	}
-	log.Printf("Service '%s=%d' renamed", serviceReply.Name, *serviceReply.Protocol.Tcp.DestinationPort)
+	log.Printf("Service '%s=%s' renamed", serviceReply.Name, *serviceReply.Protocol.Tcp.Port)
 
 	// SERVICE GROUP ADD
 	serviceGroupEntry := &service_group.Entry{
@@ -1051,8 +1056,8 @@ func checkService(c *pango.Client, ctx context.Context) {
 		data, _ := xml.Marshal(serviceReply.Misc[key])
 		xmls = append(xmls, string(data))
 	}
-	log.Printf("Service '%s=%d, description: %s misc XML: %s, misc keys: %s' read",
-		serviceReply.Name, *serviceReply.Protocol.Tcp.DestinationPort, readDescription, xmls, keys)
+	log.Printf("Service '%s=%s, description: %s misc XML: %s, misc keys: %s' read",
+		serviceReply.Name, *serviceReply.Protocol.Tcp.Port, readDescription, xmls, keys)
 
 	// SERVICE - UPDATE 3
 	serviceReply.Description = util.String("some text changed now")
@@ -1067,7 +1072,7 @@ func checkService(c *pango.Client, ctx context.Context) {
 	if serviceReply.Description != nil {
 		readDescription = *serviceReply.Description
 	}
-	
+
 	keys = make([]string, 0, len(serviceReply.Misc))
 	xmls = make([]string, 0, len(serviceReply.Misc))
 	for key := range serviceReply.Misc {
@@ -1075,8 +1080,8 @@ func checkService(c *pango.Client, ctx context.Context) {
 		data, _ := xml.Marshal(serviceReply.Misc[key])
 		xmls = append(xmls, string(data))
 	}
-	log.Printf("Service '%s=%d, description: %s misc XML: %s, misc keys: %s' update",
-		serviceReply.Name, *serviceReply.Protocol.Tcp.DestinationPort, readDescription, xmls, keys)
+	log.Printf("Service '%s=%s, description: %s misc XML: %s, misc keys: %s' update",
+		serviceReply.Name, *serviceReply.Protocol.Tcp.Port, readDescription, xmls, keys)
 }
 
 func checkNtp(c *pango.Client, ctx context.Context) {
@@ -1137,7 +1142,7 @@ func checkDns(c *pango.Client, ctx context.Context) {
 	}
 
 	dnsApi := dns.NewService(c)
-	
+
 	dnsReply, err := dnsApi.Create(ctx, *dnsLocation, dnsConfig)
 	if err != nil {
 		log.Printf("Failed to create DNS: %s", err)

@@ -610,9 +610,9 @@ return err
         {{- end}}
         }
     {{- else}}
-        {{- range $version := .SupportedVersions }}
+        {{- range $version := .SupportedVersionRanges }}
             {{- range $_, $param := $.Spec.Params}}
-                {{- if paramSupportedInVersion $param $version}}
+                {{- if paramSupportedInVersion $param $version.Minimum}}
                     {{- range $_, $profile := $param.Profiles}}
                         {{- range $_, $xpath := xmlPathSuffixes $param}}
                             deleteSuffixes = append(deleteSuffixes, "{{$xpath}}")

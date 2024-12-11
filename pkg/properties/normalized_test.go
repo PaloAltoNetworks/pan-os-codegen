@@ -20,7 +20,7 @@ func TestUnmarshallAddressSpecFile(t *testing.T) {
 
 	// then
 	assert.NotNilf(t, yamlParsedData, "Unmarshalled data cannot be nil")
-	assert.Equal(t, "Address", yamlParsedData.Name, "Unmarshalled data should contain `name`")
+	assert.Equal(t, "address", yamlParsedData.Name, "Unmarshalled data should contain `name`")
 	assert.NotNilf(t, yamlParsedData.TerraformProviderConfig.Suffix, "Unmarshalled data should contain `suffix`")
 	assert.NotNilf(t, yamlParsedData.GoSdkPath, "Unmarshalled data should contain `go_sdk_path`")
 	assert.NotNilf(t, yamlParsedData.XpathSuffix, "Unmarshalled data should contain `xpath_suffix`")

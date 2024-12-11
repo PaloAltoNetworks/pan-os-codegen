@@ -3,8 +3,11 @@ package properties
 import (
 	"fmt"
 	"io/fs"
+	"maps"
 	"path/filepath"
 	"runtime"
+	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/content"
@@ -13,6 +16,7 @@ import (
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/parameter"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/validator"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/xpath"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/version"
 )
 
 type Normalization struct {
@@ -163,7 +167,6 @@ type SpecParam struct {
 	Type                    string                            `json:"type" yaml:"type"`
 	Default                 string                            `json:"default" yaml:"default"`
 	Required                bool                              `json:"required" yaml:"required"`
-	Sensitive               bool                              `json:"sensitive" yaml:"sensitive"`
 	Length                  *SpecParamLength                  `json:"length" yaml:"length,omitempty"`
 	EnumValues              map[string]*string                `json:"enum_values" yaml:"enum_values,omitempty"`
 	Count                   *SpecParamCount                   `json:"count" yaml:"count,omitempty"`
@@ -175,11 +178,13 @@ type SpecParam struct {
 }
 
 type SpecParamTerraformProviderConfig struct {
-	Name      string `json:"name" yaml:"name"`
-	Type      string `json:"type" yaml:"type"`
-	Private   bool   `json:"ignored" yaml:"private"`
-	Sensitive bool   `json:"sensitive" yaml:"sensitive"`
-	Computed  bool   `json:"computed" yaml:"computed"`
+	Name         *string `json:"name" yaml:"name"`
+	Type         *string `json:"type" yaml:"type"`
+	Private      *bool   `json:"ignored" yaml:"private"`
+	Sensitive    *bool   `json:"sensitive" yaml:"sensitive"`
+	Computed     *bool   `json:"computed" yaml:"computed"`
+	Required     *bool   `json:"required" yaml:"required"`
+	VariantCheck *string `json:"variant_check" yaml:"variant_check"`
 }
 
 type SpecParamLength struct {
@@ -208,18 +213,50 @@ type SpecParamItemsLength struct {
 }
 
 type SpecParamProfile struct {
-	Xpath       []string `json:"xpath" yaml:"xpath"`
-	Type        string   `json:"type" yaml:"type,omitempty"`
-	NotPresent  bool     `json:"not_present" yaml:"not_present"`
-	FromVersion string   `json:"from_version" yaml:"from_version"`
+	Xpath      []string         `json:"xpath" yaml:"xpath"`
+	Type       string           `json:"type" yaml:"type,omitempty"`
+	MinVersion *version.Version `json:"not_present" yaml:"min_version"`
+	MaxVersion *version.Version `json:"max_version" yaml:"max_version"`
 }
 
 func (o *SpecParam) NameVariant() *NameVariant {
-	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.Name != "" {
-		return NewNameVariant(o.TerraformProviderConfig.Name)
+	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.Name != nil {
+		return NewNameVariant(*o.TerraformProviderConfig.Name)
 	}
 
 	return o.Name
+}
+
+func (o *SpecParam) FinalSensitive() bool {
+	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.Sensitive != nil {
+		return *o.TerraformProviderConfig.Sensitive
+	}
+
+	if o.Hashing != nil {
+		return true
+	}
+
+	return false
+}
+
+func (o *SpecParam) FinalComputed() bool {
+	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.Computed != nil {
+		return *o.TerraformProviderConfig.Computed
+	}
+
+	if o.Default != "" {
+		return true
+	}
+
+	return false
+}
+
+func (o *SpecParam) FinalRequired() bool {
+	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.Required != nil {
+		return *o.TerraformProviderConfig.Required
+	}
+
+	return o.Required
 }
 
 func hasChildEncryptedResources(param *SpecParam) bool {
@@ -291,8 +328,8 @@ func (o *SpecParam) HasEncryptedResources() bool {
 }
 
 func (o *SpecParam) HasPrivateParameters() bool {
-	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.Private {
-		return true
+	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.Private != nil {
+		return *o.TerraformProviderConfig.Private
 	}
 
 	for _, elt := range o.Spec.Params {
@@ -311,8 +348,8 @@ func (o *SpecParam) HasPrivateParameters() bool {
 }
 
 func (o *SpecParam) IsPrivateParameter() bool {
-	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.Private {
-		return true
+	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.Private != nil {
+		return *o.TerraformProviderConfig.Private
 	}
 
 	return false
@@ -405,6 +442,8 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 			if err != nil {
 				return nil, err
 			}
+		} else if spec.Items.Type == "enum" {
+			itemsSpec.Type = "string"
 		} else {
 			itemsSpec.Type = spec.Items.Type
 		}
@@ -427,24 +466,18 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 	case *parameter.SimpleSpec:
 		if typed, ok := spec.Default.(string); ok {
 			defaultVal = typed
+		} else if typed, ok := spec.Default.(int); ok {
+			defaultVal = strconv.Itoa(typed)
 		}
 	}
 
 	var profiles []*SpecParamProfile
 	for _, profile := range schemaSpec.Profiles {
-		var notPresent bool
-		var version string
-		if profile.MaximumVersion != nil {
-			notPresent = true
-			version = profile.MaximumVersion.String()
-		} else if profile.MinimumVersion != nil {
-			version = profile.MinimumVersion.String()
-		}
 		profiles = append(profiles, &SpecParamProfile{
-			Xpath:       profile.Xpath,
-			Type:        profile.Type,
-			NotPresent:  notPresent,
-			FromVersion: version,
+			Xpath:      profile.Xpath,
+			Type:       profile.Type,
+			MinVersion: profile.MinimumVersion,
+			MaxVersion: profile.MaximumVersion,
 		})
 	}
 
@@ -455,16 +488,22 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 		}
 	}
 
-	var sensitive bool
 	var terraformProviderConfig *SpecParamTerraformProviderConfig
 	if schemaSpec.CodegenOverrides != nil {
-		sensitive = schemaSpec.CodegenOverrides.Terraform.Sensitive
+		var variantCheck *string
+		if schemaSpec.CodegenOverrides.Terraform.VariantCheck != nil {
+			converted := string(*schemaSpec.CodegenOverrides.Terraform.VariantCheck)
+			variantCheck = &converted
+		}
+
 		terraformProviderConfig = &SpecParamTerraformProviderConfig{
-			Name:      schemaSpec.CodegenOverrides.Terraform.Name,
-			Type:      schemaSpec.CodegenOverrides.Terraform.Type,
-			Private:   schemaSpec.CodegenOverrides.Terraform.Private,
-			Sensitive: schemaSpec.CodegenOverrides.Terraform.Sensitive,
-			Computed:  schemaSpec.CodegenOverrides.Terraform.Computed,
+			Name:         schemaSpec.CodegenOverrides.Terraform.Name,
+			Type:         schemaSpec.CodegenOverrides.Terraform.Type,
+			Private:      schemaSpec.CodegenOverrides.Terraform.Private,
+			Sensitive:    schemaSpec.CodegenOverrides.Terraform.Sensitive,
+			Computed:     schemaSpec.CodegenOverrides.Terraform.Computed,
+			Required:     schemaSpec.CodegenOverrides.Terraform.Required,
+			VariantCheck: variantCheck,
 		}
 	}
 	specParameter := &SpecParam{
@@ -473,7 +512,6 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 		IsNil:                   paramTypeIsNil,
 		Default:                 defaultVal,
 		Required:                schemaSpec.Required,
-		Sensitive:               sensitive,
 		TerraformProviderConfig: terraformProviderConfig,
 		Hashing:                 specHashing,
 		Profiles:                profiles,
@@ -945,6 +983,170 @@ func (spec *Normalization) SupportedVersions() []string {
 	return nil
 }
 
+// SupportedVersionDefinitions returns a map of versions keyed by their variable name.
+//
+// For example, for versions "10.1.0" and "11.0.2" it will return:
+// {"version_10_1_0": "10.1.0", "version_11_0_2": "11.0.2"}
+func (spec *Normalization) SupportedVersionDefinitions() map[string]string {
+	versions := make(map[string]string)
+
+	for _, elt := range spec.Spec.Params {
+		maps.Copy(versions, supportedVersionDefinitions(elt))
+	}
+
+	for _, elt := range spec.Spec.OneOf {
+		maps.Copy(versions, supportedVersionDefinitions(elt))
+	}
+
+	return versions
+}
+
+func supportedVersionDefinitions(param *SpecParam) map[string]string {
+	versionsFromProfile := func(profiles []*SpecParamProfile) map[string]string {
+		versions := make(map[string]string)
+		for _, elt := range profiles {
+			if elt.MinVersion != nil {
+				minVer := elt.MinVersion
+				minVerKey := fmt.Sprintf("version_%d_%d_%d", minVer.Major, minVer.Minor, minVer.Patch)
+				versions[minVerKey] = elt.MinVersion.String()
+
+				maxVer := version.Version{Major: minVer.Major, Minor: minVer.Minor + 1, Patch: 0, Hotfix: ""}
+				maxVerKey := fmt.Sprintf("version_%d_%d_%d", maxVer.Major, maxVer.Minor, maxVer.Patch)
+				versions[maxVerKey] = maxVer.String()
+			}
+
+			// if elt.MaxVersion != nil {
+			// 	maxVer := strings.ReplaceAll(elt.MaxVersion.String(), ".", "_")
+			// 	maxVerKey := fmt.Sprintf("version_%s", maxVer)
+			// 	versions[maxVerKey] = elt.MaxVersion.String()
+			// }
+		}
+
+		return versions
+	}
+
+	versions := versionsFromProfile(param.Profiles)
+	if param.Spec != nil {
+		if param.Spec.Params != nil {
+			for _, elt := range param.Spec.Params {
+				maps.Copy(versions, supportedVersionDefinitions(elt))
+			}
+		}
+
+		if param.Spec.OneOf != nil {
+			for _, elt := range param.Spec.OneOf {
+				maps.Copy(versions, supportedVersionDefinitions(elt))
+			}
+		}
+	}
+
+	return versions
+}
+
+type SupportedVersion struct {
+	Minimum version.Version
+	Maximum version.Version
+}
+
+func (o *SupportedVersion) MinimumVariable() string {
+	return fmt.Sprintf("version_%s", o.MinimumSuffix())
+}
+
+func (o *SupportedVersion) MaximumVariable() string {
+	return fmt.Sprintf("version_%s", o.MaximumSuffix())
+}
+
+func (o *SupportedVersion) MinimumSuffix() string {
+	return fmt.Sprintf("%d_%d_%d", o.Minimum.Major, o.Minimum.Minor, o.Minimum.Patch)
+}
+
+func (o *SupportedVersion) MaximumSuffix() string {
+	return fmt.Sprintf("%d_%d_%d", o.Maximum.Major, o.Maximum.Minor, o.Maximum.Patch)
+}
+
+func (o *SupportedVersion) SpecifierFunc() string {
+	return fmt.Sprintf("specifyEntry_%s", o.MinimumSuffix())
+}
+
+func (o *SupportedVersion) EntryXmlContainer() string {
+	return fmt.Sprintf("entryXmlContainer_%s", o.MinimumSuffix())
+}
+
+// SupportedVersionRanges returns a list of SupportedVersion objects for entry Versioning()
+//
+// SupportedVersion contains values required by a template render logic used to select
+// a correct specifier function and entry xml structure for a given server version.
+// Returned list is sorted in a descending order by minimum version.
+func (spec *Normalization) SupportedVersionRanges() []SupportedVersion {
+	var minimums []version.Version
+
+	minimumsMap := make(map[version.Version]struct{})
+	for _, elt := range spec.Spec.Params {
+		maps.Copy(minimumsMap, supportedVersionRanges(elt))
+	}
+
+	for _, elt := range spec.Spec.OneOf {
+		maps.Copy(minimumsMap, supportedVersionRanges(elt))
+	}
+
+	for key := range minimumsMap {
+		minimums = append(minimums, key)
+	}
+
+	slices.SortFunc(minimums, func(a, b version.Version) int {
+		if a.LesserThan(b) {
+			return -1
+		} else if a.GreaterThan(b) {
+			return 1
+		}
+
+		return 0
+	})
+
+	slices.Reverse(minimums)
+
+	var supported []SupportedVersion
+	for _, elt := range minimums {
+		maxVersion := version.Version{Major: elt.Major, Minor: elt.Minor + 1, Patch: 0}
+
+		supported = append(supported, SupportedVersion{
+			Minimum: elt,
+			Maximum: maxVersion,
+		})
+
+	}
+
+	return supported
+}
+
+func supportedVersionRanges(param *SpecParam) map[version.Version]struct{} {
+	versions := make(map[version.Version]struct{})
+
+	for _, elt := range param.Profiles {
+		if elt.MinVersion == nil {
+			continue
+		}
+
+		versions[*elt.MinVersion] = struct{}{}
+	}
+
+	if param.Spec != nil {
+		if param.Spec.Params != nil {
+			for _, elt := range param.Spec.Params {
+				maps.Copy(versions, supportedVersionRanges(elt))
+			}
+		}
+
+		if param.Spec.OneOf != nil {
+			for _, elt := range param.Spec.OneOf {
+				maps.Copy(versions, supportedVersionRanges(elt))
+			}
+		}
+	}
+
+	return versions
+}
+
 func (spec *Normalization) EntryOrConfig() string {
 	if spec.Entry == nil {
 		return "Config"
@@ -997,9 +1199,16 @@ func (spec *Normalization) HasPrivateParameters() bool {
 func supportedVersions(params map[string]*SpecParam, versions []string) []string {
 	for _, param := range params {
 		for _, profile := range param.Profiles {
-			if profile.FromVersion != "" {
-				if notExist := listContains(versions, profile.FromVersion); notExist {
-					versions = append(versions, profile.FromVersion)
+			if profile.MinVersion != nil && profile.MaxVersion != nil {
+				profile_versions, err := version.SupportedPatchVersionRange(*profile.MinVersion, *profile.MaxVersion)
+				if err != nil {
+					panic(fmt.Sprintf("Failed to create a range of supported versions: %s", err))
+				}
+
+				for _, ver := range profile_versions {
+					if notExist := listContains(versions, ver.String()); notExist {
+						versions = append(versions, ver.String())
+					}
 				}
 			}
 		}

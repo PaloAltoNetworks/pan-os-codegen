@@ -14,6 +14,7 @@ import (
 
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
+	codegentmpl "github.com/paloaltonetworks/pan-os-codegen/pkg/template"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate/terraform_provider"
 )
@@ -67,6 +68,7 @@ func (c *Creator) RenderTerraformProviderFile(spec *properties.Normalization, ty
 		name = spec.TerraformProviderConfig.PluralSuffix
 	case properties.ResourceEntry, properties.ResourceUuid, properties.ResourceCustom:
 		name = spec.Name
+	case properties.ResourceConfig:
 	}
 
 	terraformProvider := properties.NewTerraformProviderFile(name)
@@ -96,7 +98,7 @@ func (c *Creator) RenderTerraformProviderFile(spec *properties.Normalization, ty
 	case properties.ResourceEntryPlural:
 		name = spec.TerraformProviderConfig.PluralSuffix
 		filePath = c.createTerraformProviderFilePath(name)
-	case properties.ResourceEntry, properties.ResourceUuid, properties.ResourceCustom:
+	case properties.ResourceEntry, properties.ResourceUuid, properties.ResourceCustom, properties.ResourceConfig:
 		filePath = c.createTerraformProviderFilePath(spec.TerraformProviderConfig.Suffix)
 	}
 
@@ -141,8 +143,9 @@ func (c *Creator) processTemplate(templateName, filePath string) error {
 		}
 		formattedBuf := bytes.NewBuffer(formattedCode)
 
-		if writeErr := c.createAndWriteFile(filePath, formattedBuf); writeErr != nil {
-			return fmt.Errorf("error creating and writing to file %s: %w", filePath, err)
+		writeErr := c.createAndWriteFile(filePath, formattedBuf)
+		if writeErr != nil {
+			return errors.Join(err, writeErr)
 		}
 	}
 	return err
@@ -247,6 +250,7 @@ func writeContentToFile(content *bytes.Buffer, file *os.File) error {
 func (c *Creator) parseTemplate(templateName string) (*template.Template, error) {
 	templatePath := filepath.Join(c.TemplatesDir, templateName)
 	funcMap := template.FuncMap{
+		"Map":                       codegentmpl.TemplateMap,
 		"renderImports":             translate.RenderImports,
 		"RenderEntryImportStructs":  func() (string, error) { return translate.RenderEntryImportStructs(c.Spec) },
 		"packageName":               translate.PackageName,
@@ -255,8 +259,8 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		"xmlParamType":              translate.XmlParamType,
 		"xmlName":                   translate.XmlName,
 		"xmlTag":                    translate.XmlTag,
-		"specifyEntryAssignment":    translate.SpecifyEntryAssignment,
-		"normalizeAssignment":       translate.NormalizeAssignment,
+		"specifyEntryAssignment":    translate.SpecifyEntryAssignmentTmpl,
+		"normalizeAssignment":       translate.NormalizeAssignmentTmpl,
 		"specMatchesFunction":       translate.SpecMatchesFunction,
 		"nestedSpecMatchesFunction": translate.NestedSpecMatchesFunction,
 		"omitEmpty":                 translate.OmitEmpty,
@@ -269,8 +273,8 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		},
 		"generateEntryXpath":        translate.GenerateEntryXpath,
 		"nestedSpecs":               translate.NestedSpecs,
-		"createGoSuffixFromVersion": translate.CreateGoSuffixFromVersion,
-		"paramSupportedInVersion":   translate.ParamSupportedInVersion,
+		"createGoSuffixFromVersion": translate.CreateGoSuffixFromVersionTmpl,
+		"paramSupportedInVersion":   translate.ParamSupportedInVersionTmpl,
 		"xmlPathSuffixes":           translate.XmlPathSuffixes,
 		"underscore":                naming.Underscore,
 		"camelCase":                 naming.CamelCase,

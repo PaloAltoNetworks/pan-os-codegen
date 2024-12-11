@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/version"
 )
 
 const addressSpecPath = "../../specs/objects/address.yaml"
@@ -17,7 +18,7 @@ func TestLocationType(t *testing.T) {
 	// given
 	yamlParsedData, _ := properties.ParseSpec([]byte(sampleSpec))
 
-	locationKeys := []string{"device_group", "shared"}
+	locationKeys := []string{"device-group", "shared"}
 	locations := yamlParsedData.Locations
 	var locationTypes []string
 
@@ -66,7 +67,7 @@ func TestOmitEmpty(t *testing.T) {
 
 	// given
 	yamlParsedData, _ := properties.ParseSpec([]byte(sampleSpec))
-	locationKeys := []string{"device_group", "shared"}
+	locationKeys := []string{"device-group", "shared"}
 	locations := yamlParsedData.Locations
 	var omitEmptyLocations []string
 
@@ -211,7 +212,8 @@ func TestCreateGoSuffixFromVersion(t *testing.T) {
 	// given
 
 	// when
-	suffix := CreateGoSuffixFromVersion("10.1.1")
+	version, _ := version.NewVersionFromString("10.1.1")
+	suffix := CreateGoSuffixFromVersion(&version)
 
 	// then
 	assert.Equal(t, "_10_1_1", suffix)
@@ -219,8 +221,9 @@ func TestCreateGoSuffixFromVersion(t *testing.T) {
 
 func TestParamSupportedInVersion(t *testing.T) {
 	// given
-	deviceVersion101 := "10.1.1"
-	deviceVersion90 := "9.0.0"
+	deviceVersion110, _ := version.NewVersionFromString("11.0.0")
+	deviceVersion101, _ := version.NewVersionFromString("10.1.1")
+	deviceVersion90, _ := version.NewVersionFromString("9.0.3")
 
 	paramName := properties.NameVariant{
 		CamelCase:  "test",
@@ -230,14 +233,29 @@ func TestParamSupportedInVersion(t *testing.T) {
 	profileAlwaysPresent := properties.SpecParamProfile{
 		Xpath: []string{"test"},
 	}
+
+	minVersion1010, _ := version.NewVersionFromString("10.1.0")
+	maxVersion1013, _ := version.NewVersionFromString("10.1.3")
 	profilePresentFrom10 := properties.SpecParamProfile{
-		Xpath:       []string{"test"},
-		FromVersion: "10.0.0",
+		Xpath:      []string{"test"},
+		MinVersion: &minVersion1010,
+		MaxVersion: &maxVersion1013,
 	}
+
+	minVersion1100, _ := version.NewVersionFromString("11.0.0")
+	maxVersion1110, _ := version.NewVersionFromString("11.1.0")
+	profilePresentFrom11 := properties.SpecParamProfile{
+		Xpath:      []string{"test"},
+		MinVersion: &minVersion1100,
+		MaxVersion: &maxVersion1110,
+	}
+
+	minVersion901, _ := version.NewVersionFromString("9.0.1")
+	maxVersion910, _ := version.NewVersionFromString("9.1.0")
 	profileNotPresentFrom10 := properties.SpecParamProfile{
-		Xpath:       []string{"test"},
-		FromVersion: "10.0.0",
-		NotPresent:  true,
+		Xpath:      []string{"test"},
+		MinVersion: &minVersion901,
+		MaxVersion: &maxVersion910,
 	}
 
 	paramPresentFrom10 := &properties.SpecParam{
@@ -262,15 +280,25 @@ func TestParamSupportedInVersion(t *testing.T) {
 		},
 	}
 
+	paramPresentFrom10And11 := &properties.SpecParam{
+		Type: "string",
+		Name: &paramName,
+		Profiles: []*properties.SpecParamProfile{
+			&profilePresentFrom10,
+			&profilePresentFrom11,
+		},
+	}
+
 	// when
-	noVersionAndParamAlwaysPresent := ParamSupportedInVersion(paramAlwaysPresent, "")
-	noVersionAndParamNotPresentFrom10 := ParamSupportedInVersion(paramNotPresentFrom10, "")
-	device10AndParamPresentFrom10 := ParamSupportedInVersion(paramPresentFrom10, deviceVersion101)
-	device10AndParamAlwaysPresent := ParamSupportedInVersion(paramAlwaysPresent, deviceVersion101)
-	device10AndParamNotPresentFrom10 := ParamSupportedInVersion(paramNotPresentFrom10, deviceVersion101)
-	device9AndParamPresentFrom10 := ParamSupportedInVersion(paramPresentFrom10, deviceVersion90)
-	device9AndParamAlwaysPresent := ParamSupportedInVersion(paramAlwaysPresent, deviceVersion90)
-	device9AndParamNotPresentFrom10 := ParamSupportedInVersion(paramNotPresentFrom10, deviceVersion90)
+	noVersionAndParamAlwaysPresent := ParamSupportedInVersion(paramAlwaysPresent, nil)
+	noVersionAndParamNotPresentFrom10 := ParamSupportedInVersion(paramNotPresentFrom10, nil)
+	device10AndParamPresentFrom10 := ParamSupportedInVersion(paramPresentFrom10, &deviceVersion101)
+	device10AndParamAlwaysPresent := ParamSupportedInVersion(paramAlwaysPresent, &deviceVersion101)
+	device10AndParamNotPresentFrom10 := ParamSupportedInVersion(paramNotPresentFrom10, &deviceVersion101)
+	device9AndParamPresentFrom10 := ParamSupportedInVersion(paramPresentFrom10, &deviceVersion90)
+	device9AndParamAlwaysPresent := ParamSupportedInVersion(paramAlwaysPresent, &deviceVersion90)
+	device9AndParamNotPresentFrom10 := ParamSupportedInVersion(paramNotPresentFrom10, &deviceVersion90)
+	assert.True(t, ParamSupportedInVersion(paramPresentFrom10And11, &deviceVersion110))
 
 	// then
 	assert.True(t, noVersionAndParamAlwaysPresent)

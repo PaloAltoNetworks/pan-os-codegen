@@ -1,14 +1,14 @@
-name: Security Policy
+name: Decryption Policy
 terraform_provider_config:
-  description: Security policy rule
+  description: Decryption policy rule
   skip_resource: false
   skip_datasource: false
   resource_type: uuid
   resource_variants:
   - singular
   - plural
-  suffix: security_policy
-  plural_suffix: security_policy_rules
+  suffix: decryption_policy
+  plural_suffix: decryption_policy_rules
   plural_name: rules
   plural_description: ''
 go_sdk_config:
@@ -16,9 +16,9 @@ go_sdk_config:
   package:
   - policies
   - rules
-  - security
+  - decryption
 xpath_suffix:
-- security
+- decryption
 - rules
 locations:
 - name: shared
@@ -134,39 +134,17 @@ spec:
     - type: values
       spec:
         values:
-        - deny
-        - allow
-        - drop
-        - reset-client
-        - reset-server
-        - reset-both
+        - no-decrypt
+        - decrypt
+        - decrypt-and-forward
     spec:
-      default: allow
+      default: no-decrypt
       values:
-      - value: deny
-      - value: allow
-      - value: drop
-      - value: reset-client
-      - value: reset-server
-      - value: reset-both
+      - value: no-decrypt
+      - value: decrypt
+      - value: decrypt-and-forward
     description: ''
     required: false
-  - name: application
-    type: list
-    profiles:
-    - xpath:
-      - application
-      type: member
-    validators: []
-    spec:
-      type: string
-      items:
-        type: string
-    description: ''
-    required: false
-    codegen_overrides:
-      terraform:
-        name: applications
   - name: category
     type: list
     profiles:
@@ -222,15 +200,6 @@ spec:
         type: string
     description: ''
     required: false
-  - name: disable-inspect
-    type: bool
-    profiles:
-    - xpath:
-      - disable-inspect
-    validators: []
-    spec: {}
-    description: ''
-    required: false
   - name: disabled
     type: bool
     profiles:
@@ -268,23 +237,14 @@ spec:
     spec: {}
     description: ''
     required: false
-  - name: icmp-unreachable
+  - name: log-fail
     type: bool
     profiles:
     - xpath:
-      - icmp-unreachable
+      - log-fail
     validators: []
     spec: {}
-    description: Send ICMP unreachable error when action is drop or reset
-    required: false
-  - name: log-end
-    type: bool
-    profiles:
-    - xpath:
-      - log-end
-    validators: []
-    spec: {}
-    description: Log at session end (required for certain ACC tables)
+    description: Log unsuccessful TLS handshakes
     required: false
   - name: log-setting
     type: string
@@ -298,14 +258,14 @@ spec:
     spec: {}
     description: ''
     required: false
-  - name: log-start
+  - name: log-success
     type: bool
     profiles:
     - xpath:
-      - log-start
+      - log-success
     validators: []
     spec: {}
-    description: Log at session start
+    description: Log successful TLS handshakes
     required: false
   - name: negate-destination
     type: bool
@@ -325,237 +285,31 @@ spec:
     spec: {}
     description: ''
     required: false
-  - name: profile-setting
-    type: object
-    profiles:
-    - xpath:
-      - profile-setting
-    validators: []
-    spec:
-      params: []
-      variants:
-      - name: group
-        type: list
-        profiles:
-        - xpath:
-          - group
-          type: member
-        validators: []
-        spec:
-          type: string
-          items:
-            type: string
-        description: ''
-        required: false
-      - name: profiles
-        type: object
-        profiles:
-        - xpath:
-          - profiles
-        validators: []
-        spec:
-          params:
-          - name: data-filtering
-            type: list
-            profiles:
-            - xpath:
-              - data-filtering
-              type: member
-            validators: []
-            spec:
-              type: string
-              items:
-                type: string
-            description: ''
-            required: false
-          - name: file-blocking
-            type: list
-            profiles:
-            - xpath:
-              - file-blocking
-              type: member
-            validators: []
-            spec:
-              type: string
-              items:
-                type: string
-            description: ''
-            required: false
-          - name: gtp
-            type: list
-            profiles:
-            - xpath:
-              - gtp
-              type: member
-            validators: []
-            spec:
-              type: string
-              items:
-                type: string
-            description: ''
-            required: false
-          - name: sctp
-            type: list
-            profiles:
-            - xpath:
-              - sctp
-              type: member
-            validators: []
-            spec:
-              type: string
-              items:
-                type: string
-            description: ''
-            required: false
-          - name: spyware
-            type: list
-            profiles:
-            - xpath:
-              - spyware
-              type: member
-            validators: []
-            spec:
-              type: string
-              items:
-                type: string
-            description: ''
-            required: false
-          - name: url-filtering
-            type: list
-            profiles:
-            - xpath:
-              - url-filtering
-              type: member
-            validators: []
-            spec:
-              type: string
-              items:
-                type: string
-            description: ''
-            required: false
-          - name: virus
-            type: list
-            profiles:
-            - xpath:
-              - virus
-              type: member
-            validators: []
-            spec:
-              type: string
-              items:
-                type: string
-            description: ''
-            required: false
-          - name: vulnerability
-            type: list
-            profiles:
-            - xpath:
-              - vulnerability
-              type: member
-            validators: []
-            spec:
-              type: string
-              items:
-                type: string
-            description: ''
-            required: false
-          - name: wildfire-analysis
-            type: list
-            profiles:
-            - xpath:
-              - wildfire-analysis
-              type: member
-            validators: []
-            spec:
-              type: string
-              items:
-                type: string
-            description: ''
-            required: false
-          variants: []
-        description: ''
-        required: false
-    description: ''
-    required: false
-  - name: qos
-    type: object
-    profiles:
-    - xpath:
-      - qos
-    validators: []
-    spec:
-      params:
-      - name: marking
-        type: object
-        profiles:
-        - xpath:
-          - marking
-        validators: []
-        spec:
-          params: []
-          variants:
-          - name: follow-c2s-flow
-            type: object
-            profiles:
-            - xpath:
-              - follow-c2s-flow
-            validators: []
-            spec:
-              params: []
-              variants: []
-            description: Follow Client-to-Server Flow
-            required: false
-          - name: ip-dscp
-            type: string
-            profiles:
-            - xpath:
-              - ip-dscp
-            validators: []
-            spec: {}
-            description: IP DSCP
-            required: false
-          - name: ip-precedence
-            type: string
-            profiles:
-            - xpath:
-              - ip-precedence
-            validators: []
-            spec: {}
-            description: IP Precedence
-            required: false
-        description: ''
-        required: false
-      variants: []
-    description: ''
-    required: false
-  - name: rule-type
-    type: enum
-    profiles:
-    - xpath:
-      - rule-type
-    validators:
-    - type: values
-      spec:
-        values:
-        - universal
-        - intrazone
-        - interzone
-    spec:
-      default: universal
-      values:
-      - value: universal
-      - value: intrazone
-      - value: interzone
-    description: ''
-    required: false
-  - name: schedule
+  - name: packet-broker-profile
     type: string
     profiles:
     - xpath:
-      - schedule
-    validators: []
+      - packet-broker-profile
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 255
     spec: {}
-    description: ''
+    description: packet-broker profile
+    required: false
+  - name: profile
+    type: string
+    profiles:
+    - xpath:
+      - profile
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 255
+    spec: {}
+    description: decryption profile
     required: false
   - name: service
     type: list
@@ -602,45 +356,6 @@ spec:
         type: string
     description: ''
     required: false
-  - name: source-imei
-    type: list
-    profiles:
-    - xpath:
-      - source-imei
-      type: member
-    validators: []
-    spec:
-      type: string
-      items:
-        type: string
-    description: ''
-    required: false
-  - name: source-imsi
-    type: list
-    profiles:
-    - xpath:
-      - source-imsi
-      type: member
-    validators: []
-    spec:
-      type: string
-      items:
-        type: string
-    description: ''
-    required: false
-  - name: source-nw-slice
-    type: list
-    profiles:
-    - xpath:
-      - source-nw-slice
-      type: member
-    validators: []
-    spec:
-      type: string
-      items:
-        type: string
-    description: ''
-    required: false
   - name: source-user
     type: list
     profiles:
@@ -654,9 +369,6 @@ spec:
         type: string
     description: ''
     required: false
-    codegen_overrides:
-      terraform:
-        name: source-users
   - name: tag
     type: list
     profiles:
@@ -753,6 +465,63 @@ spec:
     codegen_overrides:
       terraform:
         name: destination_zones
+  - name: type
+    type: object
+    profiles:
+    - xpath:
+      - type
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: ssh-proxy
+        type: object
+        profiles:
+        - xpath:
+          - ssh-proxy
+        validators: []
+        spec:
+          params: []
+          variants: []
+        description: SSH Proxy
+        required: false
+      - name: ssl-forward-proxy
+        type: object
+        profiles:
+        - xpath:
+          - ssl-forward-proxy
+        validators: []
+        spec:
+          params: []
+          variants: []
+        description: SSL Forward Proxy
+        required: false
+      - name: ssl-inbound-inspection
+        type: object
+        profiles:
+        - xpath:
+          - ssl-inbound-inspection
+        validators: []
+        spec:
+          params:
+          - name: certificates
+            type: list
+            profiles:
+            - xpath:
+              - certificates
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          variants: []
+        description: SSL Inbound Inspection
+        required: false
+    description: decryption type
+    required: false
   - name: uuid
     type: string
     profiles:
@@ -771,14 +540,4 @@ spec:
     codegen_overrides:
       terraform:
         computed: true
-  - name: disable-server-response-inspection
-    type: bool
-    profiles:
-    - xpath:
-      - option
-      - disable-server-response-inspection
-    validators: []
-    spec: {}
-    description: Disable inspection of server side traffic
-    required: false
   variants: []

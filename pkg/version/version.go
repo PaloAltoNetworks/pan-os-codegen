@@ -142,3 +142,25 @@ func (v Version) GreaterThanOrEqualTo(o Version) bool {
 func (v Version) LesserThanOrEqualTo(o Version) bool {
 	return v.EqualTo(o) || v.LesserThan(o)
 }
+
+// SupportedVersionRange calculates a range of supported minor versions
+//
+// Calculate a range of supported minor versions between min (inclusive) and max (exclusive)
+// arguments.
+func SupportedPatchVersionRange(minV Version, maxV Version) ([]Version, error) {
+	if minV.Major != maxV.Major || minV.Minor != maxV.Minor {
+		return nil, fmt.Errorf("minimum and maximum versions must have the same major and minor components")
+	}
+
+	if minV.Patch >= maxV.Patch {
+		return nil, fmt.Errorf("minimum patch version cannot be equal or higher than maximum")
+	}
+
+	var versions []Version
+	for i := minV.Patch; i < maxV.Patch; i++ {
+		v, _ := NewVersionFromString(fmt.Sprintf("%d.%d.%d", minV.Major, minV.Minor, i))
+		versions = append(versions, v)
+	}
+
+	return versions, nil
+}
