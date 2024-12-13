@@ -32,6 +32,7 @@ type parameterEncryptionSpec struct {
 type parameterSpec struct {
 	PangoName     *properties.NameVariant
 	TerraformName *properties.NameVariant
+	ComplexType   string
 	Type          string
 	Required      bool
 	ItemsType     string
@@ -73,7 +74,8 @@ func renderSpecsForParams(params map[string]*properties.SpecParam, parentNames [
 		specs = append(specs, parameterSpec{
 			PangoName:     elt.Name,
 			TerraformName: elt.NameVariant(),
-			Type:          elt.Type,
+			ComplexType:   elt.ComplexType(),
+			Type:          elt.FinalType(),
 			ItemsType:     itemsType,
 			Encryption:    encryptionSpec,
 		})
@@ -253,6 +255,14 @@ const copyToPangoTmpl = `
   {{- end }}
 {{- end }}
 
+{{- define "renderStringAsMemberAssignment" }}
+  {{- with .Parameter }}
+    {{- $pangoType := printf "%s%s" $.Spec.PangoType .PangoName.CamelCase }}
+    {{- $pangoEntries := printf "%s_pango_entries" .TerraformName.LowerCamelCase }}
+    {{ $pangoEntries }} := []string{o.{{ .TerraformName.CamelCase }}.ValueString()}
+  {{- end }}
+{{- end }}
+
 {{- define "renderSimpleAssignment" }}
   {{- if .Encryption }}
 	(*encrypted)["{{ .Encryption.PlaintextPath }}"] = o.{{ .TerraformName.CamelCase }}
@@ -266,7 +276,9 @@ func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Conte
 	var diags diag.Diagnostics
   {{- range .Params }}
     {{- $terraformType := printf "%s%s" $spec.TerraformType .TerraformName.CamelCase }}
-    {{- if eq .Type "" }}
+    {{- if eq .ComplexType "string-as-member" }}
+      {{- template "renderStringAsMemberAssignment" Map "Parameter" . "Spec" $spec }}
+    {{- else if eq .Type "" }}
       {{- $pangoType := printf "%sObject" $spec.PangoType }}
 	{{- template "terraformNestedElementsAssign" Map "Parameter" . "Spec" $spec }}
     {{- else if eq .Type "list" }}
@@ -278,7 +290,9 @@ func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Conte
   {{- end }}
 
   {{- range .OneOf }}
-    {{- if eq .Type "" }}
+    {{- if eq .ComplexType "string-as-member" }}
+      {{- template "renderStringAsMemberAssignment" Map "Parameter" . "Spec" $spec }}
+    {{- else if eq .Type "" }}
       {{- $pangoType := printf "%sObject" $spec.PangoType }}
 	{{- template "terraformNestedElementsAssign" Map "Parameter" . "Spec" $spec }}
     {{- else if eq .Type "list" }}
@@ -295,7 +309,9 @@ func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Conte
 	(*obj).Name = o.Name.ValueString()
   {{- end }}
   {{- range .Params }}
-    {{- if eq .Type "" }}
+    {{- if eq .ComplexType "string-as-member" }}
+	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_pango_entries
+    {{- else if eq .Type "" }}
 	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_entry
     {{- else if eq .Type "list" }}
 	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_pango_entries
@@ -305,7 +321,9 @@ func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Conte
   {{- end }}
 
   {{- range .OneOf }}
-    {{- if eq .Type "" }}
+    {{- if eq .ComplexType "string-as-member" }}
+	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_pango_entries
+    {{- else if eq .Type "" }}
 	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_entry
     {{- else if eq .Type "list" }}
 	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_pango_entries
@@ -447,10 +465,26 @@ var {{ .TerraformName.LowerCamelCase }}_list types.List
   {{- end }}
 {{- end }}
 
+{{- define "terraformCreateStringAsMemberValues" }}
+  {{- range .Params }}
+    {{ if not (eq .ComplexType "string-as-member") }}
+      {{- continue }}
+    {{- end }}
+    {{ .TerraformName.LowerCamelCase }}_value := types.StringValue(obj.{{ .PangoName.CamelCase }}[0])
+  {{- end }}
+
+  {{- range .OneOf }}
+    {{ if not (eq .ComplexType "string-as-member") }}
+      {{- continue }}
+    {{- end }}
+    {{ .TerraformName.LowerCamelCase }}_value := types.StringValue(*obj.{{ .PangoName.CamelCase }}[0])
+  {{- end }}
+{{- end }}
+
 {{- define "terraformCreateSimpleValues" }}
   {{- range .Params }}
     {{- $terraformType := printf "types.%s" (.Type | PascalCase) }}
-    {{- if (not (or (eq .Type "") (eq .Type "list"))) }}
+    {{- if (not (or (eq .Type "") (eq .Type "list") (eq .ComplexType "string-as-member"))) }}
 	var {{ .TerraformName.LowerCamelCase }}_value {{ $terraformType }}
 	if obj.{{ .PangoName.CamelCase }} != nil {
 {{- if .Encryption }}
@@ -467,7 +501,7 @@ var {{ .TerraformName.LowerCamelCase }}_list types.List
 
   {{- range .OneOf }}
     {{- $terraformType := printf "types.%s" (.Type | PascalCase) }}
-    {{- if (not (or (eq .Type "") (eq .Type "list"))) }}
+    {{- if (not (or (eq .Type "") (eq .Type "list") (eq .ComplexType "string-as-member"))) }}
 	var {{ .TerraformName.LowerCamelCase }}_value {{ $terraformType }}
 	if obj.{{ .PangoName.CamelCase }} != nil {
 		{{ .TerraformName.LowerCamelCase }}_value = types.{{ .Type | PascalCase }}Value(*obj.{{ .PangoName.CamelCase }})
@@ -478,7 +512,9 @@ var {{ .TerraformName.LowerCamelCase }}_list types.List
 
 {{- define "assignFromPangoToTerraform" }}
   {{- with .Parameter }}
-  {{- if eq .Type "" }}
+  {{- if eq .ComplexType "string-as-member" }}
+	o.{{ .TerraformName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_value
+  {{- else if eq .Type "" }}
 	o.{{ .TerraformName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_object
   {{- else if eq .Type "list" }}
 	o.{{ .TerraformName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_list
@@ -496,6 +532,7 @@ func (o *{{ $terraformType }}) CopyFromPango(ctx context.Context, obj *{{ .Pango
 
   {{- template "terraformListElementsAs" $spec }}
   {{- template "terraformCreateEntryAssignment" $spec }}
+  {{- template "terraformCreateStringAsMemberValues" $spec }}
   {{- template "terraformCreateSimpleValues" $spec }}
 
   {{- if .HasEntryName }}
@@ -1217,22 +1254,28 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 
 func createSchemaAttributeForParameter(schemaTyp properties.SchemaType, manager *imports.Manager, packageName string, param *properties.SpecParam, validators *validatorCtx) attributeCtx {
 	var schemaType, elementType string
-	switch param.Type {
-	case "":
-		schemaType = "SingleNestedAttribute"
-	case "list":
-		switch param.Items.Type {
-		case "entry":
-			schemaType = "ListNestedAttribute"
-		case "member":
-			schemaType = "ListAttribute"
-			elementType = "types.StringType"
-		default:
-			schemaType = "ListAttribute"
-			elementType = fmt.Sprintf("types.%sType", pascalCase(param.Items.Type))
-		}
+
+	switch param.ComplexType() {
+	case "string-as-member":
+		schemaType = "StringAttribute"
 	default:
-		schemaType = fmt.Sprintf("%sAttribute", pascalCase(param.Type))
+		switch param.Type {
+		case "":
+			schemaType = "SingleNestedAttribute"
+		case "list":
+			switch param.Items.Type {
+			case "entry":
+				schemaType = "ListNestedAttribute"
+			case "member":
+				schemaType = "ListAttribute"
+				elementType = "types.StringType"
+			default:
+				schemaType = "ListAttribute"
+				elementType = fmt.Sprintf("types.%sType", pascalCase(param.Items.Type))
+			}
+		default:
+			schemaType = fmt.Sprintf("%sAttribute", pascalCase(param.Type))
+		}
 	}
 
 	var defaultValue *defaultCtx
@@ -2099,6 +2142,11 @@ type datasourceStructSpec struct {
 func terraformTypeForProperty(structPrefix string, prop *properties.SpecParam) string {
 	if prop.Type == "" {
 		return fmt.Sprintf("*%s%sObject", structPrefix, prop.NameVariant().CamelCase)
+	}
+
+	switch prop.ComplexType() {
+	case "string-as-member":
+		return "types.String"
 	}
 
 	if prop.Type == "list" && prop.Items.Type == "entry" {
