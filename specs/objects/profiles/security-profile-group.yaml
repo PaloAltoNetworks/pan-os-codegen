@@ -1,0 +1,208 @@
+name: security-profile-group
+terraform_provider_config:
+  description: Security Profile Group
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants: []
+  suffix: security_profile_group
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - objects
+  - profiles
+  - secgroup
+xpath_suffix:
+- profile-group
+locations:
+- name: shared
+  xpath:
+    path:
+    - config
+    - shared
+    vars: []
+  description: Location in Shared Panorama
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: device-group
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - device-group
+    - $device_group
+    vars:
+    - name: panorama_device
+      description: Panorama device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: device_group
+      description: Device Group name
+      required: true
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The device group name cannot be "shared". Use the "shared" location
+              instead
+      type: entry
+  description: Located in a specific Device Group
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: data-filtering
+    type: list
+    profiles:
+    - xpath:
+      - data-filtering
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: disable-override
+    type: enum
+    profiles:
+    - xpath:
+      - disable-override
+    validators:
+    - type: values
+      spec:
+        values:
+        - 'yes'
+        - 'no'
+    spec:
+      default: 'no'
+      values:
+      - value: 'yes'
+      - value: 'no'
+    description: disable object override in child device groups
+    required: false
+  - name: file-blocking
+    type: list
+    profiles:
+    - xpath:
+      - file-blocking
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: gtp
+    type: list
+    profiles:
+    - xpath:
+      - gtp
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: sctp
+    type: list
+    profiles:
+    - xpath:
+      - sctp
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: spyware
+    type: list
+    profiles:
+    - xpath:
+      - spyware
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: url-filtering
+    type: list
+    profiles:
+    - xpath:
+      - url-filtering
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: virus
+    type: list
+    profiles:
+    - xpath:
+      - virus
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: vulnerability
+    type: list
+    profiles:
+    - xpath:
+      - vulnerability
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: wildfire-analysis
+    type: list
+    profiles:
+    - xpath:
+      - wildfire-analysis
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  variants: []
