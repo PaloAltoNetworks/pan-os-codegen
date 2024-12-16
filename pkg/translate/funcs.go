@@ -35,7 +35,7 @@ func specMatchFunctionName(parent []string, param *properties.SpecParam) string 
 	if param.Type == "list" && param.Items != nil && param.Items.Type == "string" {
 		return "util.OrderedListsMatch"
 	} else if param.Type == "string" {
-		if param.Name != nil && param.Name.CamelCase == "Name" {
+		if param.Name != nil && param.Required && param.Name.CamelCase == "Name" {
 			return "util.StringsEqual"
 		} else {
 			return "util.StringsMatch"
