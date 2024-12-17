@@ -1,0 +1,192 @@
+name: VLAN interface
+terraform_provider_config:
+  description: VLAN Interface
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: vlan_interface
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - network
+  - interface
+  - vlan
+xpath_suffix:
+- network
+- interface
+- vlan
+locations:
+- name: shared
+  xpath:
+    path:
+    - config
+    - shared
+    vars: []
+  description: Location in Shared Panorama
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: ngfw
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific NGFW device
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: interface
+    type: list
+    profiles:
+    - xpath:
+      - interface
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: mac
+    type: list
+    profiles:
+    - xpath:
+      - mac
+      - entry
+      type: entry
+    validators: []
+    spec:
+      type: object
+      items:
+        type: object
+        spec:
+          params:
+          - name: interface
+            type: string
+            profiles:
+            - xpath:
+              - interface
+            validators: []
+            spec: {}
+            description: Interface name
+            required: false
+          variants: []
+    description: ''
+    required: false
+  - name: virtual-interface
+    type: object
+    profiles:
+    - xpath:
+      - virtual-interface
+    validators: []
+    spec:
+      params:
+      - name: interface
+        type: string
+        profiles:
+        - xpath:
+          - interface
+        validators: []
+        spec: {}
+        description: Virtual interface
+        required: false
+      variants: []
+    description: Virtual interface for this VLAN
+    required: false
+  variants: []
