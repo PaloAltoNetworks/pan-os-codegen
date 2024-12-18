@@ -1,170 +1,316 @@
-name: "Loopback interface"
+name: Loopback interface
 terraform_provider_config:
-  suffix: "loopback_interface"
+  description: Loopback Interface
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: loopback_interface
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
 go_sdk_config:
+  skip: false
   package:
-    - "network"
-    - "interface"
-    - "loopback"
+  - network
+  - interface
+  - loopback
 xpath_suffix:
-  - "network"
-  - "interface"
-  - "loopback"
-  - "units"
+- network
+- interface
+- loopback
+- units
 locations:
-  - name: "ngfw"
-    description: "Located in a specific NGFW."
-    devices:
-      - panorama
-      - ngfw
-    xpath:
-      path:
-        - "config"
-        - "devices"
-        - "$ngfw_device"
-      vars:
-        - name: "ngfw_device"
-          description: "The NGFW device."
-          default: "localhost.localdomain"
-  - name: "template"
-    description: "Located in a specific template."
-    devices:
-      - panorama
-    xpath:
-      path:
-        - "config"
-        - "devices"
-        - "$panorama_device"
-        - "template"
-        - "$template"
-        - "config"
-        - "devices"
-        - "$ngfw_device"
-      vars:
-        - name: "panorama_device"
-          description: "The panorama device."
-          default: "localhost.localdomain"
-        - name: "template"
-          description: "The template."
-          required: true
-        - name: "ngfw_device"
-          description: "The NGFW device."
-          default: "localhost.localdomain"
-  - name: "template-stack"
-    description: "Located in a specific template stack."
-    devices:
-      - panorama
-    xpath:
-      path:
-        - "config"
-        - "devices"
-        - "$panorama_device"
-        - "template-stack"
-        - "$template_stack"
-        - "config"
-        - "devices"
-        - "$ngfw_device"
-      vars:
-        - name: "panorama_device"
-          description: "The panorama device."
-          default: "localhost.localdomain"
-        - name: "template_stack"
-          description: "The template stack."
-          required: true
-        - name: "ngfw_device"
-          description: "The NGFW device."
-          default: "localhost.localdomain"
+- name: ngfw
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific NGFW device
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
 entries:
-  - name: name
-    description: "The name of the loopback interface."
-version: "10.1.0"
+- name: name
+  description: ''
+  validators: []
+imports: []
 spec:
   params:
-    - name: comment
-      type: string
-      validators:
+  - name: adjust-tcp-mss
+    type: object
+    profiles:
+    - xpath:
+      - adjust-tcp-mss
+    validators: []
+    spec:
+      params:
+      - name: enable
+        type: bool
+        profiles:
+        - xpath:
+          - enable
+        validators: []
+        spec: {}
+        description: Set if TCP MSS value should be reduced based on mtu
+        required: false
+      - name: ipv4-mss-adjustment
+        type: int64
+        profiles:
+        - xpath:
+          - ipv4-mss-adjustment
+        validators:
         - type: length
           spec:
-            min: 0
-            max: 1023
-      profiles:
-        - xpath: ["comment"]
-    - name: mtu
-      type: int64
-      description: "Maximum Transfer Unit, up to 9216 in Jumbo-Frame mode, up to 1500 otherwise"
-      validators:
-        - type: range
+            min: 40
+            max: 300
+        spec:
+          default: 40
+        description: IPv4 MSS adjustment size (in bytes)
+        required: false
+      - name: ipv6-mss-adjustment
+        type: int64
+        profiles:
+        - xpath:
+          - ipv6-mss-adjustment
+        validators:
+        - type: length
           spec:
-            min: 576
-            max: 9216
-      profiles:
-        - xpath: ["mtu"]
-    - name: ips
-      type: list
-      description: "IP addresses or address objects names(netmask is not allowed for loopback)"
+            min: 60
+            max: 300
+        spec:
+          default: 60
+        description: IPv6 MSS adjustment size (in bytes)
+        required: false
+      variants: []
+    description: TCP MSS adjustment configuration
+    required: false
+  - name: comment
+    type: string
+    profiles:
+    - xpath:
+      - comment
+    validators:
+    - type: length
       spec:
-        items:
-          type: string
-      profiles:
-        - type: entry
-          xpath: ["ip"]
-    - name: ipv6
+        min: 0
+        max: 1023
+    spec: {}
+    description: ''
+    required: false
+  - name: interface-management-profile
+    type: string
+    profiles:
+    - xpath:
+      - interface-management-profile
+    validators:
+    - type: length
+      spec:
+        max: 31
+    spec: {}
+    description: Interface management profile
+    required: false
+  - name: ip
+    type: list
+    profiles:
+    - xpath:
+      - ip
+      - entry
+      type: entry
+    validators: []
+    spec:
       type: object
-      profiles:
-        - xpath: ["ipv6"]
-      spec:
-        params:
-          - name: enabled
-            type: bool
-            profiles:
-              - xpath: ["enabled"]
-          - name: addresses
-            type: list
-            profiles:
-              - type: entry
-                xpath: ["address", "entry"]
+      items:
+        type: object
+        spec:
+          params: []
+          variants: []
+    description: ''
+    required: false
+  - name: ipv6
+    type: object
+    profiles:
+    - xpath:
+      - ipv6
+    validators: []
+    spec:
+      params:
+      - name: address
+        type: list
+        profiles:
+        - xpath:
+          - address
+          - entry
+          type: entry
+        validators: []
+        spec:
+          type: object
+          items:
+            type: object
             spec:
-              items:
+              params:
+              - name: enable-on-interface
+                type: bool
+                profiles:
+                - xpath:
+                  - enable-on-interface
+                validators: []
+                spec: {}
+                description: configure this address on interface
+                required: false
+              - name: prefix
                 type: object
+                profiles:
+                - xpath:
+                  - prefix
+                validators: []
                 spec:
-                  params:
-                    - name: enable-on-interface
-                      type: bool
-                      profiles:
-                        - xpath: ["enable-on-interface"]
-    - name: interface-management-profile
-      type: string
-      profiles:
-        - xpath: ["interface-management-profile"]
-    - name: netflow-profile
-      type: string
-      profiles:
-        - xpath: ["netflow-profile"]
-    - name: adjust-tcp-mss
-      type: object
-      profiles:
-        - xpath: ["adjust-tcp-mss"]
+                  params: []
+                  variants: []
+                description: use this as prefix to form full address with interface
+                  id/EUI-64
+                required: false
+              - name: anycast
+                type: object
+                profiles:
+                - xpath:
+                  - anycast
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: anycast address
+                required: false
+              variants: []
+        description: ''
+        required: false
+      - name: enabled
+        type: bool
+        profiles:
+        - xpath:
+          - enabled
+        validators: []
+        spec: {}
+        description: Enable IPv6 on the interface
+        required: false
+      - name: interface-id
+        type: string
+        profiles:
+        - xpath:
+          - interface-id
+        validators: []
+        spec:
+          default: EUI-64
+        description: ''
+        required: false
+      variants: []
+    description: Interface IPv6 configuration
+    required: false
+  - name: mtu
+    type: int64
+    profiles:
+    - xpath:
+      - mtu
+    validators:
+    - type: length
       spec:
-        params:
-          - name: enable
-            type: bool
-            profiles:
-              - xpath: ["enable"]
-          - name: ipv4-mss-adjustment
-            type: int64
-            validators:
-              - type: range
-                spec:
-                  min: 40
-                  max: 300
-            profiles:
-              - xpath: ["ipv4-mss-adjustment"]
-          - name: ipv6-mss-adjustment
-            type: int64
-            validators:
-              - type: range
-                spec:
-                  min: 40
-                  max: 300
-            profiles:
-              - xpath: ["ipv6-mss-adjustment"]
+        min: 576
+        max: 9216
+    spec: {}
+    description: Maximum Transfer Unit, up to 9216 in Jumbo-Frame mode, up to 1500
+      otherwise
+    required: false
+  - name: netflow-profile
+    type: string
+    profiles:
+    - xpath:
+      - netflow-profile
+    validators:
+    - type: length
+      spec:
+        max: 63
+    spec: {}
+    description: Netflow Server Profile
+    required: false
+  variants: []
