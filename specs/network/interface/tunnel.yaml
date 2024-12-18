@@ -1,0 +1,345 @@
+name: Tunnel interface
+terraform_provider_config:
+  description: Tunnel Interface
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: tunnel_interface
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - network
+  - interface
+  - tunnel
+xpath_suffix:
+- network
+- interface
+- tunnel
+- units
+locations:
+- name: shared
+  xpath:
+    path:
+    - config
+    - shared
+    vars: []
+  description: Location in Shared Panorama
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: ngfw
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific NGFW device
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: bonjour
+    type: object
+    profiles:
+    - xpath:
+      - bonjour
+    validators: []
+    spec:
+      params:
+      - name: enable
+        type: bool
+        profiles:
+        - xpath:
+          - enable
+        validators: []
+        spec: {}
+        description: Set to support Bonjour service
+        required: false
+      - name: group-id
+        type: int64
+        profiles:
+        - xpath:
+          - group-id
+        validators:
+        - type: length
+          spec:
+            min: 0
+            max: 16
+        spec:
+          default: 40
+        description: 'default 0: NO-Group'
+        required: false
+      - name: ttl-check
+        type: bool
+        profiles:
+        - xpath:
+          - ttl-check
+        validators: []
+        spec: {}
+        description: Set to check and update TTL
+        required: false
+      variants: []
+    description: Bonjour configuration
+    required: false
+  - name: comment
+    type: string
+    profiles:
+    - xpath:
+      - comment
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 1023
+    spec: {}
+    description: ''
+    required: false
+  - name: df-ignore
+    type: bool
+    profiles:
+    - xpath:
+      - df-ignore
+    validators: []
+    spec: {}
+    description: ''
+    required: false
+  - name: interface-management-profile
+    type: string
+    profiles:
+    - xpath:
+      - interface-management-profile
+    validators:
+    - type: length
+      spec:
+        max: 31
+    spec: {}
+    description: Interface management profile
+    required: false
+  - name: ip
+    type: list
+    profiles:
+    - xpath:
+      - ip
+      - entry
+      type: entry
+    validators: []
+    spec:
+      type: object
+      items:
+        type: object
+        spec:
+          params: []
+          variants: []
+    description: ''
+    required: false
+  - name: ipv6
+    type: object
+    profiles:
+    - xpath:
+      - ipv6
+    validators: []
+    spec:
+      params:
+      - name: address
+        type: list
+        profiles:
+        - xpath:
+          - address
+          - entry
+          type: entry
+        validators: []
+        spec:
+          type: object
+          items:
+            type: object
+            spec:
+              params:
+              - name: enable-on-interface
+                type: bool
+                profiles:
+                - xpath:
+                  - enable-on-interface
+                validators: []
+                spec: {}
+                description: configure this address on interface
+                required: false
+              - name: prefix
+                type: object
+                profiles:
+                - xpath:
+                  - prefix
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: use this as prefix to form full address with interface
+                  id/EUI-64
+                required: false
+              - name: anycast
+                type: object
+                profiles:
+                - xpath:
+                  - anycast
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: anycast address
+                required: false
+              variants: []
+        description: ''
+        required: false
+      - name: enabled
+        type: bool
+        profiles:
+        - xpath:
+          - enabled
+        validators: []
+        spec: {}
+        description: Enable IPv6 on the interface
+        required: false
+      - name: interface-id
+        type: string
+        profiles:
+        - xpath:
+          - interface-id
+        validators: []
+        spec:
+          default: EUI-64
+        description: ''
+        required: false
+      variants: []
+    description: Interface IPv6 configuration
+    required: false
+  - name: link-tag
+    type: string
+    profiles:
+    - xpath:
+      - link-tag
+    validators:
+    - type: length
+      spec:
+        max: 127
+    spec: {}
+    description: ''
+    required: false
+  - name: mtu
+    type: int64
+    profiles:
+    - xpath:
+      - mtu
+    validators:
+    - type: length
+      spec:
+        min: 576
+        max: 9216
+    spec: {}
+    description: Maximum Transfer Unit, up to 9216 in Jumbo-Frame mode, up to 1500
+      otherwise
+    required: false
+  - name: netflow-profile
+    type: string
+    profiles:
+    - xpath:
+      - netflow-profile
+    validators:
+    - type: length
+      spec:
+        max: 63
+    spec: {}
+    description: Netflow Server Profile
+    required: false
+  variants: []
