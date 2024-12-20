@@ -1,0 +1,293 @@
+name: ike-crypto-profile
+terraform_provider_config:
+  description: IKE Crypto Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants: []
+  suffix: ike_crypto_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - objects
+  - profiles
+  - ikecrypto
+xpath_suffix:
+- network
+- ike
+- crypto-profiles
+- ike-crypto-profiles
+locations:
+- name: ngfw
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific NGFW device
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: authentication-multiple
+    type: int64
+    profiles:
+    - xpath:
+      - authentication-multiple
+    validators:
+    - type: length
+      spec:
+        max: 50
+    spec:
+      default: 0
+    description: IKEv2 SA reauthentication interval equals authetication-multiple
+      * rekey-lifetime; 0 means reauthentication disabled
+    required: false
+  - name: dh-group
+    type: list
+    profiles:
+    - xpath:
+      - dh-group
+      type: member
+    validators:
+    - type: values
+      spec:
+        values:
+        - group1
+        - group2
+        - group5
+        - group14
+        - group15
+        - group16
+        - group19
+        - group20
+        - group21
+    spec:
+      type: enum
+      items:
+        type: enum
+        spec:
+          values:
+          - value: group1
+          - value: group2
+          - value: group5
+          - value: group14
+          - value: group15
+          - value: group16
+          - value: group19
+          - value: group20
+          - value: group21
+    description: ''
+    required: false
+  - name: encryption
+    type: list
+    profiles:
+    - xpath:
+      - encryption
+      type: member
+    validators:
+    - type: values
+      spec:
+        values:
+        - 3des
+        - aes-128-cbc
+        - aes-192-cbc
+        - aes-256-cbc
+        - aes-128-gcm
+        - aes-256-gcm
+    spec:
+      type: enum
+      items:
+        type: enum
+        spec:
+          values:
+          - value: 3des
+          - value: aes-128-cbc
+          - value: aes-192-cbc
+          - value: aes-256-cbc
+          - value: aes-128-gcm
+          - value: aes-256-gcm
+    description: ''
+    required: false
+  - name: hash
+    type: list
+    profiles:
+    - xpath:
+      - hash
+      type: member
+    validators:
+    - type: values
+      spec:
+        values:
+        - non-auth
+        - md5
+        - sha1
+        - sha256
+        - sha384
+        - sha512
+    spec:
+      type: enum
+      items:
+        type: enum
+        spec:
+          values:
+          - value: non-auth
+          - value: md5
+          - value: sha1
+          - value: sha256
+          - value: sha384
+          - value: sha512
+    description: ''
+    required: false
+  - name: lifetime
+    type: object
+    profiles:
+    - xpath:
+      - lifetime
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: days
+        type: int64
+        profiles:
+        - xpath:
+          - days
+        validators:
+        - type: length
+          spec:
+            min: 1
+            max: 365
+        spec: {}
+        description: specify lifetime in days
+        required: false
+      - name: hours
+        type: int64
+        profiles:
+        - xpath:
+          - hours
+        validators:
+        - type: length
+          spec:
+            min: 1
+            max: 65535
+        spec: {}
+        description: specify lifetime in hours
+        required: false
+      - name: minutes
+        type: int64
+        profiles:
+        - xpath:
+          - minutes
+        validators:
+        - type: length
+          spec:
+            min: 3
+            max: 65535
+        spec: {}
+        description: specify lifetime in minutes
+        required: false
+      - name: seconds
+        type: int64
+        profiles:
+        - xpath:
+          - seconds
+        validators:
+        - type: length
+          spec:
+            min: 180
+            max: 65535
+        spec: {}
+        description: specify lifetime in seconds
+        required: false
+    description: IKE SA lifetime
+    required: false
+  variants: []
