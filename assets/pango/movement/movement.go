@@ -11,8 +11,8 @@ var _ = slog.LevelDebug
 type ActionWhereType string
 
 const (
-	ActionWhereFirst  ActionWhereType = "first"
-	ActionWhereLast   ActionWhereType = "last"
+	ActionWhereFirst  ActionWhereType = "top"
+	ActionWhereLast   ActionWhereType = "bottom"
 	ActionWhereBefore ActionWhereType = "before"
 	ActionWhereAfter  ActionWhereType = "after"
 )

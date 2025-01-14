@@ -494,8 +494,7 @@ if err != nil {
 	return
 }
 {{- else if .Exhaustive }}
-trueVal := true
-processed, err := r.manager.CreateMany(ctx, location, entries, sdkmanager.Exhaustive, rule.Position{First: &trueVal})
+processed, err := r.manager.CreateMany(ctx, location, entries, sdkmanager.Exhaustive, movement.PositionFirst{})
 if err != nil {
 	resp.Diagnostics.AddError("Error during CreateMany() call", err.Error())
 	return
@@ -1037,8 +1036,7 @@ for idx, elt := range elements {
 {{ $exhaustive := "sdkmanager.NonExhaustive" }}
 {{- if .Exhaustive }}
   {{ $exhaustive = "sdkmanager.Exhaustive" }}
-trueValue := true
-position := rule.Position{First: &trueValue}
+position := movement.PositionFirst{}
 {{- else }}
 position := state.Position.CopyToPango()
 {{- end }}
