@@ -36,6 +36,7 @@ type TerraformConfig struct {
 	Suffix                string                     `yaml:"suffix"`
 	PluralSuffix          string                     `yaml:"plural_suffix"`
 	PluralName            string                     `yaml:"plural_name"`
+	PluralDescription     string                     `yaml:"plural_description"`
 }
 
 type GoSdkConfig struct {

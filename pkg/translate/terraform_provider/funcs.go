@@ -30,11 +30,13 @@ type parameterEncryptionSpec struct {
 }
 
 type parameterSpec struct {
-	Name       *properties.NameVariant
-	Type       string
-	Required   bool
-	ItemsType  string
-	Encryption *parameterEncryptionSpec
+	PangoName     *properties.NameVariant
+	TerraformName *properties.NameVariant
+	ComplexType   string
+	Type          string
+	Required      bool
+	ItemsType     string
+	Encryption    *parameterEncryptionSpec
 }
 
 type spec struct {
@@ -70,10 +72,12 @@ func renderSpecsForParams(params map[string]*properties.SpecParam, parentNames [
 		}
 
 		specs = append(specs, parameterSpec{
-			Name:       elt.Name,
-			Type:       elt.Type,
-			ItemsType:  itemsType,
-			Encryption: encryptionSpec,
+			PangoName:     elt.Name,
+			TerraformName: elt.NameVariant(),
+			ComplexType:   elt.ComplexType(),
+			Type:          elt.FinalType(),
+			ItemsType:     itemsType,
+			Encryption:    encryptionSpec,
 		})
 
 	}
@@ -90,7 +94,7 @@ func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix st
 	pangoType := fmt.Sprintf("%s%s", pangoTypePrefix, paramSpec.Name.CamelCase)
 
 	pangoReturnType := fmt.Sprintf("%s%s", pangoTypePrefix, paramSpec.Name.CamelCase)
-	terraformType := fmt.Sprintf("%s%s", terraformPrefix, paramSpec.Name.CamelCase)
+	terraformType := fmt.Sprintf("%s%s", terraformPrefix, paramSpec.NameVariant().CamelCase)
 
 	parentNames = append(parentNames, paramSpec.Name.Underscore)
 
@@ -101,6 +105,7 @@ func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix st
 	if paramSpec.Type == "list" && paramSpec.Items.Type == "entry" {
 		hasEntryName = true
 	}
+
 	element := spec{
 		PangoType:              pangoType,
 		PangoReturnType:        pangoReturnType,
@@ -119,7 +124,7 @@ func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix st
 				continue
 			}
 
-			terraformPrefix := fmt.Sprintf("%s%s", terraformPrefix, paramSpec.Name.CamelCase)
+			terraformPrefix := fmt.Sprintf("%s%s", terraformPrefix, paramSpec.NameVariant().CamelCase)
 			specs = append(specs, generateFromTerraformToPangoSpec(pangoType, terraformPrefix, elt, parentNames)...)
 		}
 	}
@@ -145,7 +150,7 @@ func generateFromTerraformToPangoParameter(resourceTyp properties.ResourceType, 
 	oneofSpecs := renderSpecsForParams(prop.Spec.OneOf, []string{parentName})
 
 	switch resourceTyp {
-	case properties.ResourceEntry:
+	case properties.ResourceEntry, properties.ResourceConfig:
 		specs = append(specs, spec{
 			HasEntryName:    prop.Entry != nil,
 			PangoType:       pangoPrefix,
@@ -197,17 +202,17 @@ const copyToPangoTmpl = `
 {{- define "terraformNestedElementsAssign" }}
   {{- with .Parameter }}
 
-  {{- $result := .Name.LowerCamelCase }}
-  {{- $diag := .Name.LowerCamelCase | printf "%s_diags" }}
-	var {{ $result }}_entry *{{ $.Spec.PangoType }}{{ .Name.CamelCase }}
-	if o.{{ .Name.CamelCase }} != nil {
-		if *obj != nil && (*obj).{{ .Name.CamelCase }} != nil {
-			{{ $result }}_entry = (*obj).{{ .Name.CamelCase }}
+  {{- $result := .TerraformName.LowerCamelCase }}
+  {{- $diag := .TerraformName.LowerCamelCase | printf "%s_diags" }}
+	var {{ $result }}_entry *{{ $.Spec.PangoType }}{{ .PangoName.CamelCase }}
+	if o.{{ .TerraformName.CamelCase }} != nil {
+		if *obj != nil && (*obj).{{ .PangoName.CamelCase }} != nil {
+			{{ $result }}_entry = (*obj).{{ .PangoName.CamelCase }}
 		} else {
-			{{ $result }}_entry = new({{ $.Spec.PangoType }}{{ .Name.CamelCase }})
+			{{ $result }}_entry = new({{ $.Spec.PangoType }}{{ .PangoName.CamelCase }})
 		}
 
-		diags.Append(o.{{ .Name.CamelCase }}.CopyToPango(ctx, &{{ $result }}_entry, encrypted)...)
+		diags.Append(o.{{ .TerraformName.CamelCase }}.CopyToPango(ctx, &{{ $result }}_entry, encrypted)...)
 		if diags.HasError() {
 			return diags
 		}
@@ -218,15 +223,15 @@ const copyToPangoTmpl = `
 
 {{- define "terraformListElementsAs" }}
   {{- with .Parameter }}
-    {{- $pangoType := printf "%s%s" $.Spec.PangoType .Name.CamelCase }}
-    {{- $terraformType := printf "%s%sObject" $.Spec.TerraformType .Name.CamelCase }}
-    {{- $pangoEntries := printf "%s_pango_entries" .Name.LowerCamelCase }}
-    {{- $tfEntries := printf "%s_tf_entries" .Name.LowerCamelCase }}
+    {{- $pangoType := printf "%s%s" $.Spec.PangoType .PangoName.CamelCase }}
+    {{- $terraformType := printf "%s%sObject" $.Spec.TerraformType .TerraformName.CamelCase }}
+    {{- $pangoEntries := printf "%s_pango_entries" .TerraformName.LowerCamelCase }}
+    {{- $tfEntries := printf "%s_tf_entries" .TerraformName.LowerCamelCase }}
     {{- if eq .ItemsType "entry" }}
 		var {{ $tfEntries }} []{{ $terraformType }}
 		var {{ $pangoEntries }} []{{ $pangoType }}
 	{
-		d := o.{{ .Name.CamelCase }}.ElementsAs(ctx, &{{ $tfEntries }}, false)
+		d := o.{{ .TerraformName.CamelCase }}.ElementsAs(ctx, &{{ $tfEntries }}, false)
 		diags.Append(d...)
 		if diags.HasError() {
 			return diags
@@ -242,7 +247,7 @@ const copyToPangoTmpl = `
 	}
     {{- else }}
 	{{ $pangoEntries }} := make([]{{ .ItemsType }}, 0)
-	diags.Append(o.{{ .Name.CamelCase }}.ElementsAs(ctx, &{{ $pangoEntries }}, false)...)
+	diags.Append(o.{{ .TerraformName.CamelCase }}.ElementsAs(ctx, &{{ $pangoEntries }}, false)...)
 	if diags.HasError() {
 		return diags
 	}
@@ -250,11 +255,19 @@ const copyToPangoTmpl = `
   {{- end }}
 {{- end }}
 
+{{- define "renderStringAsMemberAssignment" }}
+  {{- with .Parameter }}
+    {{- $pangoType := printf "%s%s" $.Spec.PangoType .PangoName.CamelCase }}
+    {{- $pangoEntries := printf "%s_pango_entries" .TerraformName.LowerCamelCase }}
+    {{ $pangoEntries }} := []string{o.{{ .TerraformName.CamelCase }}.ValueString()}
+  {{- end }}
+{{- end }}
+
 {{- define "renderSimpleAssignment" }}
   {{- if .Encryption }}
-	(*encrypted)["{{ .Encryption.PlaintextPath }}"] = o.{{ .Name.CamelCase }}
+	(*encrypted)["{{ .Encryption.PlaintextPath }}"] = o.{{ .TerraformName.CamelCase }}
   {{- end }}
-	{{ .Name.LowerCamelCase }}_value := o.{{ .Name.CamelCase }}.Value{{ CamelCaseType .Type }}Pointer()
+	{{ .TerraformName.LowerCamelCase }}_value := o.{{ .TerraformName.CamelCase }}.Value{{ CamelCaseType .Type }}Pointer()
 {{- end }}
 
 {{- range .Specs }}
@@ -262,12 +275,14 @@ const copyToPangoTmpl = `
 func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Context, obj **{{ .PangoReturnType }}, encrypted *map[string]types.String) diag.Diagnostics {
 	var diags diag.Diagnostics
   {{- range .Params }}
-    {{- $terraformType := printf "%s%s" $spec.TerraformType .Name.CamelCase }}
-    {{- if eq .Type "" }}
+    {{- $terraformType := printf "%s%s" $spec.TerraformType .TerraformName.CamelCase }}
+    {{- if eq .ComplexType "string-as-member" }}
+      {{- template "renderStringAsMemberAssignment" Map "Parameter" . "Spec" $spec }}
+    {{- else if eq .Type "" }}
       {{- $pangoType := printf "%sObject" $spec.PangoType }}
 	{{- template "terraformNestedElementsAssign" Map "Parameter" . "Spec" $spec }}
     {{- else if eq .Type "list" }}
-      {{- $pangoType := printf "%s%s" $spec.PangoType .Name.CamelCase }}
+      {{- $pangoType := printf "%s%s" $spec.PangoType .TerraformName.CamelCase }}
 	{{- template "terraformListElementsAs" Map "Parameter" . "Spec" $spec }}
     {{- else }}
         {{- template "renderSimpleAssignment" . }}
@@ -275,7 +290,9 @@ func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Conte
   {{- end }}
 
   {{- range .OneOf }}
-    {{- if eq .Type "" }}
+    {{- if eq .ComplexType "string-as-member" }}
+      {{- template "renderStringAsMemberAssignment" Map "Parameter" . "Spec" $spec }}
+    {{- else if eq .Type "" }}
       {{- $pangoType := printf "%sObject" $spec.PangoType }}
 	{{- template "terraformNestedElementsAssign" Map "Parameter" . "Spec" $spec }}
     {{- else if eq .Type "list" }}
@@ -292,22 +309,26 @@ func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Conte
 	(*obj).Name = o.Name.ValueString()
   {{- end }}
   {{- range .Params }}
-    {{- if eq .Type "" }}
-	(*obj).{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_entry
+    {{- if eq .ComplexType "string-as-member" }}
+	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_pango_entries
+    {{- else if eq .Type "" }}
+	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_entry
     {{- else if eq .Type "list" }}
-	(*obj).{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_pango_entries
+	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_pango_entries
     {{- else }}
-	(*obj).{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_value
+	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_value
     {{- end }}
   {{- end }}
 
   {{- range .OneOf }}
-    {{- if eq .Type "" }}
-	(*obj).{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_entry
+    {{- if eq .ComplexType "string-as-member" }}
+	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_pango_entries
+    {{- else if eq .Type "" }}
+	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_entry
     {{- else if eq .Type "list" }}
-	(*obj).{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_pango_entries
+	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_pango_entries
     {{- else }}
-	(*obj).{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_value
+	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_value
     {{- end }}
   {{- end }}
 
@@ -321,37 +342,37 @@ const copyFromPangoTmpl = `
   {{- if eq .Type "" }}
 	// TODO: Missing implementation
   {{- else if eq .Type "list" }}
-	{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_list,
+	{{ .TerraformName.CamelCase }}: {{ .TerraformName.LowerCamelCase }}_list,
   {{- end }}
 {{- end }}
 
 {{- define "renderListValueSimple" }}
-var {{ .Name.LowerCamelCase }}_list types.List
+var {{ .TerraformName.LowerCamelCase }}_list types.List
 {
 	schema := rsschema.{{ .Type | PascalCase }}Attribute{}
-	{{ .Name.LowerCamelCase }}_list, {{ .Name.LowerCamelCase }}_diags := types.ListValueFrom(ctx, obj.{{ .Name.CamelCase }}, schema.GetType())
-	diags.Append({{ .Name.LowerCamelCase }}_diags...)
+	{{ .TerraformName.LowerCamelCase }}_list, {{ .TerraformName.LowerCamelCase }}_diags := types.ListValueFrom(ctx, obj.{{ .PangoName.CamelCase }}, schema.GetType())
+	diags.Append({{ .TerraformName.LowerCamelCase }}_diags...)
 }
 {{- end }}
 
 {{- define "renderNestedValues" }}
   {{- range .Spec.Params }}
-    {{- $terraformType := printf "%s%s" $.TerraformType (.Name.CamelCase) }}
+    {{- $terraformType := printf "%s%s" $.TerraformType (.TerraformName.CamelCase) }}
     {{- if eq .Type "" }}
-	// TODO {{ .Name.CamelCase }} {{ .Type }}
+	// TODO {{ .TerraformName.CamelCase }} {{ .Type }}
     {{- else if (and (eq .Type "list") (eq .ItemsType "entry")) }}
-	{{- template "renderListValueEntry" Map "Name" .Name "Type" $terraformType }}
+	{{- template "renderListValueEntry" Map "Name" .TerraformName "Type" $terraformType }}
     {{- else if (and (eq .Type "list") (eq .ItemsType "member")) }}
-	// TODO: {{ .Name.CamelCase }} {{ .ItemsType }}
+	// TODO: {{ .TerraformName.CamelCase }} {{ .ItemsType }}
     {{- else if (eq .Type "list") }}
-	{{- template "renderListValueSimple" Map "Name" .Name "Type" .ItemsType }}
+	{{- template "renderListValueSimple" Map "Name" .TerraformName "Type" .ItemsType }}
     {{- else }}
-	// TODO: {{ .Name.CamelCase }} {{ .Type }}
+	// TODO: {{ .TerraformName.CamelCase }} {{ .Type }}
     {{- end }}
   {{- end }}
 
   {{- range .Spec.OneOf }}
-	// TODO: .Spec.OneOf {{ .Name.CamelCase }}
+	// TODO: .Spec.OneOf {{ .TerraformName.CamelCase }}
   {{- end }}
 {{- end }}
 
@@ -369,31 +390,31 @@ var {{ .Name.LowerCamelCase }}_list types.List
 
 {{- define "terraformListElementsAsParam" }}
   {{- with .Parameter }}
-    {{- $pangoType := printf "%s%s" $.Spec.PangoType .Name.CamelCase }}
-    {{- $terraformType := printf "%s%sObject" $.Spec.TerraformType .Name.CamelCase }}
-    {{- $terraformList := printf "%s_list" .Name.LowerCamelCase }}
-    {{- $pangoEntries := printf "%s_pango_entries" .Name.LowerCamelCase }}
-    {{- $tfEntries := printf "%s_tf_entries" .Name.LowerCamelCase }}
+    {{- $pangoType := printf "%s%s" $.Spec.PangoType .TerraformName.CamelCase }}
+    {{- $terraformType := printf "%s%sObject" $.Spec.TerraformType .TerraformName.CamelCase }}
+    {{- $terraformList := printf "%s_list" .TerraformName.LowerCamelCase }}
+    {{- $pangoEntries := printf "%s_pango_entries" .TerraformName.LowerCamelCase }}
+    {{- $tfEntries := printf "%s_tf_entries" .TerraformName.LowerCamelCase }}
     {{- if eq .ItemsType "entry" }}
 	var {{ $terraformList }} types.List
 	{
 		var {{ $tfEntries }} []{{ $terraformType }}
-		for _, elt := range obj.{{ .Name.CamelCase }} {
+		for _, elt := range obj.{{ .PangoName.CamelCase }} {
 			var entry {{ $terraformType }}
 			entry_diags := entry.CopyFromPango(ctx, &elt, encrypted)
 			diags.Append(entry_diags...)
 			{{ $tfEntries }} = append({{ $tfEntries }}, entry)
 		}
 		var list_diags diag.Diagnostics
-		schemaType := o.getTypeFor("{{ .Name.Underscore }}")
+		schemaType := o.getTypeFor("{{ .TerraformName.Underscore }}")
 		{{ $terraformList }}, list_diags = types.ListValueFrom(ctx, schemaType, {{ $tfEntries }})
 		diags.Append(list_diags...)
 	}
     {{- else }}
-		var {{ .Name.LowerCamelCase }}_list types.List
+		var {{ .TerraformName.LowerCamelCase }}_list types.List
 		{
 			var list_diags diag.Diagnostics
-			{{ .Name.LowerCamelCase }}_list, list_diags = types.ListValueFrom(ctx, types.{{ .ItemsType | PascalCase }}Type, obj.{{ .Name.CamelCase }})
+			{{ .TerraformName.LowerCamelCase }}_list, list_diags = types.ListValueFrom(ctx, types.{{ .ItemsType | PascalCase }}Type, obj.{{ .PangoName.CamelCase }})
 			diags.Append(list_diags...)
 		}
     {{- end }}
@@ -416,13 +437,13 @@ var {{ .Name.LowerCamelCase }}_list types.List
 
 {{- define "terraformCreateEntryAssignmentForParam" }}
   {{- with .Parameter }}
-  {{- $result := .Name.LowerCamelCase }}
-  {{- $diag := .Name.LowerCamelCase | printf "%s_diags" }}
-  var {{ $result }}_object *{{ $.Spec.TerraformType }}{{ .Name.CamelCase }}Object
-  if obj.{{ .Name.CamelCase }} != nil {
-	{{ $result }}_object = new({{ $.Spec.TerraformType }}{{ .Name.CamelCase }}Object)
+  {{- $result := .TerraformName.LowerCamelCase }}
+  {{- $diag := .TerraformName.LowerCamelCase | printf "%s_diags" }}
+  var {{ $result }}_object *{{ $.Spec.TerraformType }}{{ .TerraformName.CamelCase }}Object
+  if obj.{{ .PangoName.CamelCase }} != nil {
+	{{ $result }}_object = new({{ $.Spec.TerraformType }}{{ .TerraformName.CamelCase }}Object)
 
-	diags.Append({{ $result }}_object.CopyFromPango(ctx, obj.{{ .Name.CamelCase }}, encrypted)...)
+	diags.Append({{ $result }}_object.CopyFromPango(ctx, obj.{{ .PangoName.CamelCase }}, encrypted)...)
 	if diags.HasError() {
 		return diags
 	}
@@ -444,21 +465,35 @@ var {{ .Name.LowerCamelCase }}_list types.List
   {{- end }}
 {{- end }}
 
+{{- define "terraformCreateStringAsMemberValues" }}
+  {{- range .Params }}
+    {{ if not (eq .ComplexType "string-as-member") }}
+      {{- continue }}
+    {{- end }}
+    {{ .TerraformName.LowerCamelCase }}_value := types.StringValue(obj.{{ .PangoName.CamelCase }}[0])
+  {{- end }}
+
+  {{- range .OneOf }}
+    {{ if not (eq .ComplexType "string-as-member") }}
+      {{- continue }}
+    {{- end }}
+    {{ .TerraformName.LowerCamelCase }}_value := types.StringValue(*obj.{{ .PangoName.CamelCase }}[0])
+  {{- end }}
+{{- end }}
+
 {{- define "terraformCreateSimpleValues" }}
   {{- range .Params }}
     {{- $terraformType := printf "types.%s" (.Type | PascalCase) }}
-    {{- if (not (or (eq .Type "") (eq .Type "list"))) }}
-	var {{ .Name.LowerCamelCase }}_value {{ $terraformType }}
-	if obj.{{ .Name.CamelCase }} != nil {
+    {{- if (not (or (eq .Type "") (eq .Type "list") (eq .ComplexType "string-as-member"))) }}
+	var {{ .TerraformName.LowerCamelCase }}_value {{ $terraformType }}
+	if obj.{{ .PangoName.CamelCase }} != nil {
 {{- if .Encryption }}
-		(*encrypted)["{{ .Encryption.EncryptedPath }}"] = types.StringValue(*obj.{{ .Name.CamelCase }})
+		(*encrypted)["{{ .Encryption.EncryptedPath }}"] = types.StringValue(*obj.{{ .TerraformName.CamelCase }})
 		if value, ok := (*encrypted)["{{ .Encryption.PlaintextPath }}"]; ok {
-			{{ .Name.LowerCamelCase }}_value = value
-		} else {
-			panic("{{ .Encryption.PlaintextPath }}")
+			{{ .TerraformName.LowerCamelCase }}_value = value
 		}
 {{- else }}
-		{{ .Name.LowerCamelCase }}_value = types.{{ .Type | PascalCase }}Value(*obj.{{ .Name.CamelCase }})
+		{{ .TerraformName.LowerCamelCase }}_value = types.{{ .Type | PascalCase }}Value(*obj.{{ .PangoName.CamelCase }})
 {{- end }}
 	}
     {{- end }}
@@ -466,10 +501,10 @@ var {{ .Name.LowerCamelCase }}_list types.List
 
   {{- range .OneOf }}
     {{- $terraformType := printf "types.%s" (.Type | PascalCase) }}
-    {{- if (not (or (eq .Type "") (eq .Type "list"))) }}
-	var {{ .Name.LowerCamelCase }}_value {{ $terraformType }}
-	if obj.{{ .Name.CamelCase }} != nil {
-		{{ .Name.LowerCamelCase }}_value = types.{{ .Type | PascalCase }}Value(*obj.{{ .Name.CamelCase }})
+    {{- if (not (or (eq .Type "") (eq .Type "list") (eq .ComplexType "string-as-member"))) }}
+	var {{ .TerraformName.LowerCamelCase }}_value {{ $terraformType }}
+	if obj.{{ .PangoName.CamelCase }} != nil {
+		{{ .TerraformName.LowerCamelCase }}_value = types.{{ .Type | PascalCase }}Value(*obj.{{ .PangoName.CamelCase }})
 	}
     {{- end }}
   {{- end }}
@@ -477,12 +512,14 @@ var {{ .Name.LowerCamelCase }}_list types.List
 
 {{- define "assignFromPangoToTerraform" }}
   {{- with .Parameter }}
-  {{- if eq .Type "" }}
-	o.{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_object
+  {{- if eq .ComplexType "string-as-member" }}
+	o.{{ .TerraformName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_value
+  {{- else if eq .Type "" }}
+	o.{{ .TerraformName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_object
   {{- else if eq .Type "list" }}
-	o.{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_list
+	o.{{ .TerraformName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_list
   {{- else }}
-	o.{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_value
+	o.{{ .TerraformName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_value
   {{- end }}
   {{- end }}
 {{- end }}
@@ -495,6 +532,7 @@ func (o *{{ $terraformType }}) CopyFromPango(ctx context.Context, obj *{{ .Pango
 
   {{- template "terraformListElementsAs" $spec }}
   {{- template "terraformCreateEntryAssignment" $spec }}
+  {{- template "terraformCreateStringAsMemberValues" $spec }}
   {{- template "terraformCreateSimpleValues" $spec }}
 
   {{- if .HasEntryName }}
@@ -739,8 +777,10 @@ type modifierCtx struct {
 }
 
 type validatorFunctionCtx struct {
+	Type        string
 	Function    string
 	Expressions []string
+	Values      []string
 }
 
 type validatorCtx struct {
@@ -910,6 +950,95 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 	return processTemplate(locationSchemaGetterTmpl, "render-location-schema-getter", data, commonFuncMap)
 }
 
+type marshallerFieldSpec struct {
+	Name       string
+	Type       string
+	StructName string
+	Tags       string
+}
+
+type marshallerSpec struct {
+	StructName string
+	Fields     []marshallerFieldSpec
+}
+
+func createLocationMarshallerSpecs(names *NameProvider, spec *properties.Normalization) []marshallerSpec {
+	var specs []marshallerSpec
+
+	var topFields []marshallerFieldSpec
+	for _, loc := range spec.Locations {
+		if len(loc.Vars) == 0 {
+			topFields = append(topFields, marshallerFieldSpec{
+				Name: loc.Name.CamelCase,
+				Type: "bool",
+				Tags: fmt.Sprintf("`json:\"%s\"`", loc.Name.Underscore),
+			})
+			continue
+		}
+
+		topFields = append(topFields, marshallerFieldSpec{
+			Name:       loc.Name.CamelCase,
+			Type:       "object",
+			StructName: fmt.Sprintf("%s%sLocation", names.StructName, loc.Name.CamelCase),
+			Tags:       fmt.Sprintf("`json:\"%s\"`", loc.Name.Underscore),
+		})
+
+		var fields []marshallerFieldSpec
+		for _, field := range loc.Vars {
+			name := field.Name.CamelCase
+			tag := field.Name.Underscore
+			if name == loc.Name.CamelCase {
+				name = "Name"
+				tag = "name"
+			}
+
+			fields = append(fields, marshallerFieldSpec{
+				Name: name,
+				Type: "string",
+				Tags: fmt.Sprintf("`json:\"%s\"`", tag),
+			})
+		}
+
+		// Add import location (e.g. vsys) name to location
+		for _, i := range spec.Imports {
+			if i.Type.CamelCase != loc.Name.CamelCase {
+				continue
+			}
+
+			for _, elt := range i.Locations {
+				if elt.Required {
+					fields = append(fields, marshallerFieldSpec{
+						Name: elt.Name.CamelCase,
+						Type: "string",
+						Tags: fmt.Sprintf("`tfsdk:\"%s\"`", elt.Name.Underscore),
+					})
+				}
+			}
+		}
+
+		specs = append(specs, marshallerSpec{
+			StructName: fmt.Sprintf("%s%sLocation", names.StructName, loc.Name.CamelCase),
+			Fields:     fields,
+		})
+	}
+
+	specs = append(specs, marshallerSpec{
+		StructName: fmt.Sprintf("%sLocation", names.StructName),
+		Fields:     topFields,
+	})
+
+	return specs
+}
+
+func RenderLocationMarshallers(names *NameProvider, spec *properties.Normalization) (string, error) {
+	var context struct {
+		Specs []marshallerSpec
+	}
+	context.Specs = createLocationMarshallerSpecs(names, spec)
+
+	return processTemplate(locationMarshallersTmpl, "render-location-marshallers", context, commonFuncMap)
+}
+
 func RenderCustomImports(spec *properties.Normalization) string {
 	template, _ := getCustomTemplateForFunction(spec, "Imports")
 	return template
@@ -921,7 +1050,7 @@ func RenderCustomCommonCode(names *NameProvider, spec *properties.Normalization)
 
 }
 
-func createSchemaSpecForParameter(schemaTyp schemaType, manager *imports.Manager, structPrefix string, packageName string, param *properties.SpecParam, validators *validatorCtx) []schemaCtx {
+func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *imports.Manager, structPrefix string, packageName string, param *properties.SpecParam, validators *validatorCtx) []schemaCtx {
 	var schemas []schemaCtx
 
 	if param.Spec == nil {
@@ -939,7 +1068,7 @@ func createSchemaSpecForParameter(schemaTyp schemaType, manager *imports.Manager
 		}
 	}
 
-	structName := fmt.Sprintf("%s%s", structPrefix, param.Name.CamelCase)
+	structName := fmt.Sprintf("%s%s", structPrefix, param.NameVariant().CamelCase)
 
 	var attributes []attributeCtx
 	if param.HasEntryName() {
@@ -957,34 +1086,27 @@ func createSchemaSpecForParameter(schemaTyp schemaType, manager *imports.Manager
 		})
 	}
 
-	var expressions []string
-	for _, elt := range param.Spec.OneOf {
-		if elt.IsPrivateParameter() {
-			continue
-		}
-		expressions = append(expressions, fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, elt.Name.Underscore))
-	}
-
 	for _, elt := range param.Spec.Params {
 		if elt.IsPrivateParameter() {
 			continue
 		}
-		attributes = append(attributes, createSchemaAttributeForParameter(schemaTyp, manager, packageName, elt, nil))
-	}
 
-	functions := []validatorFunctionCtx{{
-		Function:    "ExactlyOneOf",
-		Expressions: expressions,
-	}}
+		var functions []validatorFunctionCtx
+		if len(elt.EnumValues) > 0 && schemaTyp == properties.SchemaResource {
+			var values []string
+			for value := range elt.EnumValues {
+				values = append(values, value)
+			}
 
-	var idx int
-	for _, elt := range param.Spec.OneOf {
-		if elt.IsPrivateParameter() {
-			continue
+			functions = append(functions, validatorFunctionCtx{
+				Type:     "Values",
+				Function: "OneOf",
+				Values:   values,
+			})
 		}
 
 		var validators *validatorCtx
-		if idx == 0 {
+		if len(functions) > 0 {
 			typ := elt.ValidatorType()
 			validatorImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework-validators/%svalidator", typ)
 			manager.AddHashicorpImport(validatorImport, "")
@@ -994,23 +1116,69 @@ func createSchemaSpecForParameter(schemaTyp schemaType, manager *imports.Manager
 				Functions: functions,
 			}
 		}
+
+		attributes = append(attributes, createSchemaAttributeForParameter(schemaTyp, manager, packageName, elt, validators))
+	}
+
+	// Generating schema validation for variants. By default, ExactlyOneOf validation
+	// is performed, unless XML API allows for no variant to be provided, in which case
+	// validation is performed by ConflictsWith.
+	validatorFn := "ExactlyOneOf"
+	var expressions []string
+	for _, elt := range param.Spec.OneOf {
+		if elt.IsPrivateParameter() {
+			continue
+		}
+
+		expressions = append(expressions, fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, elt.Name.Underscore))
+	}
+
+	var variantFns []validatorFunctionCtx
+	if len(expressions) > 0 {
+		variantFns = append(variantFns, validatorFunctionCtx{
+			Type:        "Expressions",
+			Function:    validatorFn,
+			Expressions: expressions,
+		})
+	}
+
+	var idx int
+	for _, elt := range param.Spec.OneOf {
+		if elt.IsPrivateParameter() {
+			continue
+		}
+
+		var validators *validatorCtx
+		if idx == 0 && schemaTyp == properties.SchemaResource && len(variantFns) > 0 {
+			log.Printf("variantFns: %v, Name: %s", variantFns, elt.Name)
+			typ := elt.ValidatorType()
+			validatorImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework-validators/%svalidator", typ)
+			manager.AddHashicorpImport(validatorImport, "")
+			validators = &validatorCtx{
+				ListType:  pascalCase(typ),
+				Package:   fmt.Sprintf("%svalidator", typ),
+				Functions: variantFns,
+			}
+		}
 		attributes = append(attributes, createSchemaAttributeForParameter(schemaTyp, manager, packageName, elt, validators))
 		idx += 1
 	}
 
 	var isResource bool
-	if schemaTyp == schemaResource {
+	if schemaTyp == properties.SchemaResource {
 		isResource = true
 	}
 
-	var computed bool
+	var computed, required bool
 	switch schemaTyp {
-	case schemaDataSource:
+	case properties.SchemaDataSource:
 		computed = true
-	case schemaResource:
-		if param.TerraformProviderConfig != nil {
-			computed = param.TerraformProviderConfig.Computed
-		}
+		required = false
+	case properties.SchemaResource:
+		computed = param.FinalComputed()
+		required = param.FinalRequired()
+	case properties.SchemaCommon, properties.SchemaProvider:
+		panic("unreachable")
 	}
 
 	schemas = append(schemas, schemaCtx{
@@ -1020,10 +1188,10 @@ func createSchemaSpecForParameter(schemaTyp schemaType, manager *imports.Manager
 		StructName:    structName,
 		ReturnType:    returnType,
 		Description:   "",
-		Required:      param.Required,
-		Optional:      !param.Required,
+		Required:      required,
+		Optional:      !param.FinalRequired(),
 		Computed:      computed,
-		Sensitive:     param.Sensitive,
+		Sensitive:     param.FinalSensitive(),
 		Attributes:    attributes,
 		Validators:    validators,
 	})
@@ -1033,8 +1201,34 @@ func createSchemaSpecForParameter(schemaTyp schemaType, manager *imports.Manager
 			continue
 		}
 
+		var functions []validatorFunctionCtx
+		if len(elt.EnumValues) > 0 && schemaTyp == properties.SchemaResource {
+			var values []string
+			for value := range elt.EnumValues {
+				values = append(values, value)
+			}
+
+			functions = append(functions, validatorFunctionCtx{
+				Type:     "Values",
+				Function: "OneOf",
+				Values:   values,
+			})
+		}
+
+		var validators *validatorCtx
+		if len(functions) > 0 {
+			typ := elt.ValidatorType()
+			validatorImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework-validators/%svalidator", typ)
+			manager.AddHashicorpImport(validatorImport, "")
+			validators = &validatorCtx{
+				ListType:  pascalCase(typ),
+				Package:   fmt.Sprintf("%svalidator", typ),
+				Functions: functions,
+			}
+		}
+
 		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
-			schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, manager, structName, packageName, elt, nil)...)
+			schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, manager, structName, packageName, elt, validators)...)
 		}
 	}
 
@@ -1049,7 +1243,7 @@ func createSchemaSpecForParameter(schemaTyp schemaType, manager *imports.Manager
 			validators := &validatorCtx{
 				ListType:  "Object",
 				Package:   "objectvalidator",
-				Functions: functions,
+				Functions: variantFns,
 			}
 			schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, manager, structName, packageName, elt, validators)...)
 		}
@@ -1058,28 +1252,37 @@ func createSchemaSpecForParameter(schemaTyp schemaType, manager *imports.Manager
 	return schemas
 }
 
-func createSchemaAttributeForParameter(schemaTyp schemaType, manager *imports.Manager, packageName string, param *properties.SpecParam, validators *validatorCtx) attributeCtx {
+func createSchemaAttributeForParameter(schemaTyp properties.SchemaType, manager *imports.Manager, packageName string, param *properties.SpecParam, validators *validatorCtx) attributeCtx {
 	var schemaType, elementType string
-	switch param.Type {
-	case "":
-		schemaType = "SingleNestedAttribute"
-	case "list":
-		switch param.Items.Type {
-		case "entry":
-			schemaType = "ListNestedAttribute"
-		case "member":
-			schemaType = "ListAttribute"
-			elementType = "types.StringType"
-		default:
-			schemaType = "ListAttribute"
-			elementType = fmt.Sprintf("types.%sType", pascalCase(param.Items.Type))
-		}
+
+	switch param.ComplexType() {
+	case "string-as-member":
+		schemaType = "StringAttribute"
 	default:
-		schemaType = fmt.Sprintf("%sAttribute", pascalCase(param.Type))
+		switch param.Type {
+		case "":
+			schemaType = "SingleNestedAttribute"
+		case "list":
+			switch param.Items.Type {
+			case "entry":
+				schemaType = "ListNestedAttribute"
+			case "member":
+				schemaType = "ListAttribute"
+				elementType = "types.StringType"
+			default:
+				schemaType = "ListAttribute"
+				elementType = fmt.Sprintf("types.%sType", pascalCase(param.Items.Type))
+			}
+		default:
+			schemaType = fmt.Sprintf("%sAttribute", pascalCase(param.Type))
+		}
 	}
 
 	var defaultValue *defaultCtx
-	if schemaTyp == schemaResource && param.Default != "" {
+	if schemaTyp == properties.SchemaResource && param.Default != "" {
+		defaultImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework/resource/schema/%sdefault", param.DefaultType())
+		manager.AddHashicorpImport(defaultImport, "")
+
 		var value string
 		switch param.Type {
 		case "string":
@@ -1093,42 +1296,35 @@ func createSchemaAttributeForParameter(schemaTyp schemaType, manager *imports.Ma
 		}
 	}
 
-	var computed bool
+	var computed, required bool
 	switch schemaTyp {
-	case schemaDataSource:
+	case properties.SchemaDataSource:
+		required = false
 		computed = true
-	case schemaResource:
-		if param.TerraformProviderConfig != nil {
-			computed = param.TerraformProviderConfig.Computed
-		} else if param.Default != "" {
-			computed = true
-		}
+	case properties.SchemaResource:
+		computed = param.FinalComputed()
+		required = param.FinalRequired()
+	case properties.SchemaCommon, properties.SchemaProvider:
+		panic("unreachable")
 	}
 
 	return attributeCtx{
 		Package:     packageName,
-		Name:        param.Name,
+		Name:        param.NameVariant(),
 		SchemaType:  schemaType,
 		ElementType: elementType,
 		Description: param.Description,
-		Required:    param.Required,
-		Optional:    !param.Required,
-		Sensitive:   param.Sensitive,
+		Required:    required,
+		Optional:    !required,
+		Sensitive:   param.FinalSensitive(),
 		Default:     defaultValue,
 		Computed:    computed,
 		Validators:  validators,
 	}
 }
 
-type schemaType int
-
-const (
-	schemaDataSource schemaType = iota
-	schemaResource
-)
-
 // createSchemaSpecForUuidModel creates a schema for uuid-type resources, where top-level model describes a list of objects.
-func createSchemaSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string, manager *imports.Manager) []schemaCtx {
+func createSchemaSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, spec *properties.Normalization, packageName string, structName string, manager *imports.Manager) []schemaCtx {
 	var schemas []schemaCtx
 	var attributes []attributeCtx
 
@@ -1169,14 +1365,15 @@ func createSchemaSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 	}
 
 	attributes = append(attributes, attributeCtx{
-		Package:    packageName,
-		Name:       listName,
-		Required:   true,
-		SchemaType: "ListNestedAttribute",
+		Package:     packageName,
+		Name:        listName,
+		Required:    true,
+		Description: spec.TerraformProviderConfig.PluralDescription,
+		SchemaType:  "ListNestedAttribute",
 	})
 
 	var isResource bool
-	if schemaTyp == schemaResource {
+	if schemaTyp == properties.SchemaResource {
 		isResource = true
 	}
 	schemas = append(schemas, schemaCtx{
@@ -1208,7 +1405,7 @@ func createSchemaSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 // createSchemaSpecForEntrySingularModel creates a schema for entry-type singular resources.
 //
 // Entry-type singular resources are resources that manage a single object in PAN-OS, e.g. `resource_ethernet_interface`.
-func createSchemaSpecForEntrySingularModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string, manager *imports.Manager) []schemaCtx {
+func createSchemaSpecForEntrySingularModel(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, spec *properties.Normalization, packageName string, structName string, manager *imports.Manager) []schemaCtx {
 	var schemas []schemaCtx
 	var attributes []attributeCtx
 	location := &properties.NameVariant{
@@ -1224,25 +1421,11 @@ func createSchemaSpecForEntrySingularModel(resourceTyp properties.ResourceType, 
 		SchemaType: "SingleNestedAttribute",
 	})
 
-	tfid := &properties.NameVariant{
-		Underscore:     naming.Underscore("", "tfid", ""),
-		CamelCase:      naming.CamelCase("", "tfid", "", true),
-		LowerCamelCase: naming.CamelCase("", "tfid", "", false),
-	}
-
-	attributes = append(attributes, attributeCtx{
-		Package:     packageName,
-		Name:        tfid,
-		SchemaType:  "StringAttribute",
-		Description: "The Terraform ID.",
-		Computed:    true,
-	})
-
 	normalizationAttrs, normalizationSchemas := createSchemaSpecForNormalization(resourceTyp, schemaTyp, spec, packageName, structName, manager)
 	attributes = append(attributes, normalizationAttrs...)
 
 	var isResource bool
-	if schemaTyp == schemaResource {
+	if schemaTyp == properties.SchemaResource {
 		isResource = true
 	}
 	schemas = append(schemas, schemaCtx{
@@ -1266,7 +1449,7 @@ func createSchemaSpecForEntrySingularModel(resourceTyp properties.ResourceType, 
 // provide users with a simple way of indexing into specific objects based on their name,
 // so the terraform object represents lists as sets, where key is object name, and the value
 // is an terraform nested attribute describing the rest of object parameters.
-func createSchemaSpecForEntryListModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string, manager *imports.Manager) []schemaCtx {
+func createSchemaSpecForEntryListModel(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, spec *properties.Normalization, packageName string, structName string, manager *imports.Manager) []schemaCtx {
 	var schemas []schemaCtx
 	var attributes []attributeCtx
 	location := &properties.NameVariant{
@@ -1290,14 +1473,15 @@ func createSchemaSpecForEntryListModel(resourceTyp properties.ResourceType, sche
 	}
 
 	attributes = append(attributes, attributeCtx{
-		Package:    packageName,
-		Name:       listName,
-		Required:   true,
-		SchemaType: "MapNestedAttribute",
+		Package:     packageName,
+		Name:        listName,
+		Description: spec.TerraformProviderConfig.PluralDescription,
+		Required:    true,
+		SchemaType:  "MapNestedAttribute",
 	})
 
 	var isResource bool
-	if schemaTyp == schemaResource {
+	if schemaTyp == properties.SchemaResource {
 		isResource = true
 	}
 	schemas = append(schemas, schemaCtx{
@@ -1327,13 +1511,15 @@ func createSchemaSpecForEntryListModel(resourceTyp properties.ResourceType, sche
 }
 
 // createSchemaSpecForModel generates schema spec for the top-level object based on the ResourceType.
-func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, manager *imports.Manager) []schemaCtx {
+func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, spec *properties.Normalization, manager *imports.Manager) []schemaCtx {
 	var packageName string
 	switch schemaTyp {
-	case schemaDataSource:
+	case properties.SchemaDataSource:
 		packageName = "dsschema"
-	case schemaResource:
+	case properties.SchemaResource:
 		packageName = "rsschema"
+	case properties.SchemaCommon, properties.SchemaProvider:
+		panic("unreachable")
 	}
 
 	if spec.Spec == nil {
@@ -1344,14 +1530,16 @@ func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp sch
 
 	var structName string
 	switch schemaTyp {
-	case schemaDataSource:
+	case properties.SchemaDataSource:
 		structName = names.DataSourceStructName
-	case schemaResource:
+	case properties.SchemaResource:
 		structName = names.ResourceStructName
+	case properties.SchemaCommon, properties.SchemaProvider:
+		panic("unreachable")
 	}
 
 	switch resourceTyp {
-	case properties.ResourceEntry, properties.ResourceCustom:
+	case properties.ResourceEntry, properties.ResourceCustom, properties.ResourceConfig:
 		return createSchemaSpecForEntrySingularModel(resourceTyp, schemaTyp, spec, packageName, structName, manager)
 	case properties.ResourceEntryPlural:
 		return createSchemaSpecForEntryListModel(resourceTyp, schemaTyp, spec, packageName, structName, manager)
@@ -1362,7 +1550,7 @@ func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp sch
 	}
 }
 
-func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, packageName string, structName string, manager *imports.Manager) ([]attributeCtx, []schemaCtx) {
+func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, spec *properties.Normalization, packageName string, structName string, manager *imports.Manager) ([]attributeCtx, []schemaCtx) {
 	var schemas []schemaCtx
 	var attributes []attributeCtx
 
@@ -1410,30 +1598,69 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 		if elt.IsPrivateParameter() {
 			continue
 		}
-		attributes = append(attributes, createSchemaAttributeForParameter(schemaTyp, manager, packageName, elt, nil))
+
+		var functions []validatorFunctionCtx
+		if len(elt.EnumValues) > 0 && schemaTyp == properties.SchemaResource {
+			var values []string
+			for value := range elt.EnumValues {
+				values = append(values, value)
+			}
+
+			functions = append(functions, validatorFunctionCtx{
+				Type:     "Values",
+				Function: "OneOf",
+				Values:   values,
+			})
+		}
+
+		var validators *validatorCtx
+		if len(functions) > 0 {
+			typ := elt.ValidatorType()
+			validatorImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework-validators/%svalidator", typ)
+			manager.AddHashicorpImport(validatorImport, "")
+			validators = &validatorCtx{
+				ListType:  pascalCase(typ),
+				Package:   fmt.Sprintf("%svalidator", typ),
+				Functions: functions,
+			}
+		}
+
+		attributes = append(attributes, createSchemaAttributeForParameter(schemaTyp, manager, packageName, elt, validators))
 		schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, manager, structName, packageName, elt, nil)...)
 	}
 
+	validatorFn := "ExactlyOneOf"
 	var expressions []string
 	for _, elt := range spec.Spec.OneOf {
 		if elt.IsPrivateParameter() {
 			continue
 		}
+
+		if elt.TerraformProviderConfig != nil && elt.TerraformProviderConfig.VariantCheck != nil {
+			validatorFn = *elt.TerraformProviderConfig.VariantCheck
+		}
+
 		expressions = append(expressions, fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, elt.Name.Underscore))
 	}
 
-	functions := []validatorFunctionCtx{{
-		Function:    "ExactlyOneOf",
-		Expressions: expressions,
-	}}
+	var functions []validatorFunctionCtx
+
+	if len(expressions) > 0 {
+		functions = append(functions, validatorFunctionCtx{
+			Type:        "Expressions",
+			Function:    validatorFn,
+			Expressions: expressions,
+		})
+	}
 
 	var idx int
 	for _, elt := range spec.Spec.OneOf {
 		if elt.IsPrivateParameter() {
 			continue
 		}
+
 		var validators *validatorCtx
-		if idx == 0 {
+		if idx == 0 && schemaTyp == properties.SchemaResource && len(functions) > 0 {
 			typ := elt.ValidatorType()
 			validatorImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework-validators/%svalidator", typ)
 			manager.AddHashicorpImport(validatorImport, "")
@@ -1466,11 +1693,20 @@ const renderSchemaTemplate = `
     {{ $package := .Package }}
 		Validators: []validator.{{ .ListType }}{
     {{- range .Functions }}
+      {{- if eq .Type "Expressions" }}
 			{{ $package }}.{{ .Function }}(path.Expressions{
-      {{- range .Expressions }}
+        {{- range .Expressions }}
 				{{ . }},
-      {{- end }}
+        {{- end }}
 			}...),
+
+      {{- else if eq .Type "Values" }}
+			{{ $package }}.{{ .Function }}([]string{
+          {{- range .Values }}
+				{{ . }},
+          {{- end }}
+			}...),
+      {{- end }}
     {{- end }}
 		},
   {{- end }}
@@ -1540,11 +1776,19 @@ const renderSchemaTemplate = `
     {{ $package := .Package }}
 		Validators: []validator.{{ .ListType }}{
     {{- range .Functions }}
+      {{- if eq .Type "Expressions" }}
 			{{ $package }}.{{ .Function }}(path.Expressions{
-      {{- range .Expressions }}
+        {{- range .Expressions }}
 				{{ . }},
-      {{- end }}
+        {{- end }}
 			}...),
+      {{- else if eq .Type "Values" }}
+			{{ $package }}.{{ .Function }}([]string{
+        {{- range .Values }}
+				"{{ . }}",
+        {{- end }}
+			}...),
+      {{- end }}
     {{- end }}
 		},
   {{- end }}
@@ -1630,7 +1874,7 @@ func RenderResourceSchema(resourceTyp properties.ResourceType, names *NameProvid
 	}
 
 	data := context{
-		Schemas: createSchemaSpecForModel(resourceTyp, schemaResource, spec, manager),
+		Schemas: createSchemaSpecForModel(resourceTyp, properties.SchemaResource, spec, manager),
 	}
 
 	return processTemplate(renderSchemaTemplate, "render-resource-schema", data, commonFuncMap)
@@ -1642,23 +1886,22 @@ func RenderDataSourceSchema(resourceTyp properties.ResourceType, names *NameProv
 	}
 
 	data := context{
-		Schemas: createSchemaSpecForModel(resourceTyp, schemaDataSource, spec, manager),
+		Schemas: createSchemaSpecForModel(resourceTyp, properties.SchemaDataSource, spec, manager),
 	}
 
 	return processTemplate(renderSchemaTemplate, "render-resource-schema", data, commonFuncMap)
 }
 
 const importLocationAssignmentTmpl = `
-var location {{ $.PackageName }}.ImportLocation
 {{- range .Specs }}
 {{ $type := . }}
-if {{ $.LocationVar }}.{{ .Name.CamelCase }} != nil {
+if {{ $.Source }}.{{ .Name.CamelCase }} != nil {
   {{- range .Locations }}
     {{- $pangoStruct := GetPangoStructForLocation $.Variants $type.Name .Name }}
 	// {{ .Name.CamelCase }}
-	location = {{ $.PackageName }}.New{{ $pangoStruct }}({{ $.PackageName }}.{{ $pangoStruct }}Spec{
+	{{ $.Dest }} = {{ $.PackageName }}.New{{ $pangoStruct }}({{ $.PackageName }}.{{ $pangoStruct }}Spec{
     {{- range .Fields }}
-		{{ . }}: {{ $.LocationVar }}.{{ $type.Name.CamelCase }}.{{ . }}.ValueString(),
+		{{ . }}: {{ $.Source }}.{{ $type.Name.CamelCase }}.{{ . }}.ValueString(),
     {{- end }}
 	})
   {{- end }}
@@ -1666,7 +1909,7 @@ if {{ $.LocationVar }}.{{ .Name.CamelCase }} != nil {
 {{- end }}
 `
 
-func RenderImportLocationAssignment(names *NameProvider, spec *properties.Normalization, locationVar string) (string, error) {
+func RenderImportLocationAssignment(names *NameProvider, spec *properties.Normalization, source string, dest string) (string, error) {
 	if len(spec.Imports) == 0 {
 		return "", nil
 	}
@@ -1724,14 +1967,16 @@ func RenderImportLocationAssignment(names *NameProvider, spec *properties.Normal
 
 	type context struct {
 		PackageName string
-		LocationVar string
+		Source      string
+		Dest        string
 		Variants    map[string]importVariantSpec
 		Specs       []importSpec
 	}
 
 	data := context{
 		PackageName: names.PackageName,
-		LocationVar: locationVar,
+		Source:      source,
+		Dest:        dest,
 		Variants:    variantsByName,
 		Specs:       importSpecs,
 	}
@@ -1896,7 +2141,12 @@ type datasourceStructSpec struct {
 
 func terraformTypeForProperty(structPrefix string, prop *properties.SpecParam) string {
 	if prop.Type == "" {
-		return fmt.Sprintf("*%s%sObject", structPrefix, prop.Name.CamelCase)
+		return fmt.Sprintf("*%s%sObject", structPrefix, prop.NameVariant().CamelCase)
+	}
+
+	switch prop.ComplexType() {
+	case "string-as-member":
+		return "types.String"
 	}
 
 	if prop.Type == "list" && prop.Items.Type == "entry" {
@@ -1911,9 +2161,9 @@ func terraformTypeForProperty(structPrefix string, prop *properties.SpecParam) s
 }
 
 func structFieldSpec(param *properties.SpecParam, structPrefix string) datasourceStructFieldSpec {
-	tfTag := fmt.Sprintf("`tfsdk:\"%s\"`", param.Name.Underscore)
+	tfTag := fmt.Sprintf("`tfsdk:\"%s\"`", param.NameVariant().Underscore)
 	return datasourceStructFieldSpec{
-		Name: param.Name.CamelCase,
+		Name: param.NameVariant().CamelCase,
 		Type: terraformTypeForProperty(structPrefix, param),
 		Tags: []string{tfTag},
 	}
@@ -1922,7 +2172,7 @@ func structFieldSpec(param *properties.SpecParam, structPrefix string) datasourc
 func dataSourceStructContextForParam(structPrefix string, param *properties.SpecParam) []datasourceStructSpec {
 	var structs []datasourceStructSpec
 
-	structName := fmt.Sprintf("%s%s", structPrefix, param.Name.CamelCase)
+	structName := fmt.Sprintf("%s%s", structPrefix, param.NameVariant().CamelCase)
 
 	var fields []datasourceStructFieldSpec
 
@@ -1982,7 +2232,7 @@ func dataSourceStructContextForParam(structPrefix string, param *properties.Spec
 	return structs
 }
 
-func createStructSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
+func createStructSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
 	var structs []datasourceStructSpec
 
 	var fields []datasourceStructFieldSpec
@@ -2009,10 +2259,12 @@ func createStructSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 
 	var structName string
 	switch schemaTyp {
-	case schemaResource:
+	case properties.SchemaResource:
 		structName = names.ResourceStructName
-	case schemaDataSource:
+	case properties.SchemaDataSource:
 		structName = names.DataSourceStructName
+	case properties.SchemaCommon, properties.SchemaProvider:
+		panic("unreachable")
 	}
 
 	listNameStr := spec.TerraformProviderConfig.PluralName
@@ -2049,7 +2301,7 @@ func createStructSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 	return structs
 }
 
-func createStructSpecForEntryListModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
+func createStructSpecForEntryListModel(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
 	var structs []datasourceStructSpec
 
 	var fields []datasourceStructFieldSpec
@@ -2061,10 +2313,12 @@ func createStructSpecForEntryListModel(resourceTyp properties.ResourceType, sche
 
 	var structName string
 	switch schemaTyp {
-	case schemaResource:
+	case properties.SchemaResource:
 		structName = names.ResourceStructName
-	case schemaDataSource:
+	case properties.SchemaDataSource:
 		structName = names.DataSourceStructName
+	case properties.SchemaCommon, properties.SchemaProvider:
+		panic("unreachable")
 	}
 
 	listNameStr := spec.TerraformProviderConfig.PluralName
@@ -2101,16 +2355,10 @@ func createStructSpecForEntryListModel(resourceTyp properties.ResourceType, sche
 	return structs
 }
 
-func createStructSpecForEntryModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
+func createStructSpecForEntryModel(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
 	var structs []datasourceStructSpec
 
 	var fields []datasourceStructFieldSpec
-
-	fields = append(fields, datasourceStructFieldSpec{
-		Name: "Tfid",
-		Type: "types.String",
-		Tags: []string{"`tfsdk:\"tfid\"`"},
-	})
 
 	fields = append(fields, datasourceStructFieldSpec{
 		Name: "Location",
@@ -2120,10 +2368,12 @@ func createStructSpecForEntryModel(resourceTyp properties.ResourceType, schemaTy
 
 	var structName string
 	switch schemaTyp {
-	case schemaDataSource:
+	case properties.SchemaDataSource:
 		structName = names.DataSourceStructName
-	case schemaResource:
+	case properties.SchemaResource:
 		structName = names.ResourceStructName
+	case properties.SchemaCommon, properties.SchemaProvider:
+		panic("unreachable")
 	}
 
 	normalizationFields, normalizationStructs := createStructSpecForNormalization(resourceTyp, structName, spec)
@@ -2140,13 +2390,13 @@ func createStructSpecForEntryModel(resourceTyp properties.ResourceType, schemaTy
 	return structs
 }
 
-func createStructSpecForModel(resourceTyp properties.ResourceType, schemaTyp schemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
+func createStructSpecForModel(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
 	if spec.Spec == nil {
 		return nil
 	}
 
 	switch resourceTyp {
-	case properties.ResourceEntry, properties.ResourceCustom:
+	case properties.ResourceEntry, properties.ResourceCustom, properties.ResourceConfig:
 		return createStructSpecForEntryModel(resourceTyp, schemaTyp, spec, names)
 	case properties.ResourceEntryPlural:
 		return createStructSpecForEntryListModel(resourceTyp, schemaTyp, spec, names)
@@ -2210,7 +2460,7 @@ func RenderResourceStructs(resourceTyp properties.ResourceType, names *NameProvi
 	}
 
 	data := context{
-		Structs: createStructSpecForModel(resourceTyp, schemaResource, spec, names),
+		Structs: createStructSpecForModel(resourceTyp, properties.SchemaResource, spec, names),
 	}
 
 	return processTemplate(dataSourceStructs, "render-structs", data, commonFuncMap)
@@ -2222,7 +2472,7 @@ func RenderDataSourceStructs(resourceTyp properties.ResourceType, names *NamePro
 	}
 
 	data := context{
-		Structs: createStructSpecForModel(resourceTyp, schemaDataSource, spec, names),
+		Structs: createStructSpecForModel(resourceTyp, properties.SchemaDataSource, spec, names),
 	}
 
 	return processTemplate(dataSourceStructs, "render-structs", data, commonFuncMap)
@@ -2243,8 +2493,8 @@ func getCustomTemplateForFunction(spec *properties.Normalization, function strin
 func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProvider, serviceName string, paramSpec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, resourceSDKName string) (string, error) {
 	funcMap := template.FuncMap{
 		"ConfigToEntry": ConfigEntry,
-		"RenderImportLocationAssignment": func(locationVar string) (string, error) {
-			return RenderImportLocationAssignment(names, paramSpec, locationVar)
+		"RenderImportLocationAssignment": func(source string, dest string) (string, error) {
+			return RenderImportLocationAssignment(names, paramSpec, source, dest)
 		},
 		"RenderCreateUpdateMovementRequired": func(state string, entries string) (string, error) {
 			return RendeCreateUpdateMovementRequired(state, entries)
@@ -2265,7 +2515,7 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 	var listAttribute string
 	var exhaustive bool
 	switch resourceTyp {
-	case properties.ResourceEntry:
+	case properties.ResourceEntry, properties.ResourceConfig:
 		exhaustive = true
 		tmpl = resourceCreateFunction
 	case properties.ResourceEntryPlural:
@@ -2324,7 +2574,7 @@ func DataSourceReadFunction(resourceTyp properties.ResourceType, names *NameProv
 	var tmpl string
 	var listAttribute string
 	switch resourceTyp {
-	case properties.ResourceEntry:
+	case properties.ResourceEntry, properties.ResourceConfig:
 		tmpl = resourceReadFunction
 	case properties.ResourceEntryPlural:
 		tmpl = resourceReadEntryListFunction
@@ -2386,7 +2636,7 @@ func ResourceReadFunction(resourceTyp properties.ResourceType, names *NameProvid
 	var listAttribute string
 	var exhaustive bool
 	switch resourceTyp {
-	case properties.ResourceEntry:
+	case properties.ResourceEntry, properties.ResourceConfig:
 		tmpl = resourceReadFunction
 	case properties.ResourceEntryPlural:
 		tmpl = resourceReadEntryListFunction
@@ -2453,7 +2703,7 @@ func ResourceUpdateFunction(resourceTyp properties.ResourceType, names *NameProv
 	var listAttribute string
 	var exhaustive bool
 	switch resourceTyp {
-	case properties.ResourceEntry:
+	case properties.ResourceEntry, properties.ResourceConfig:
 		tmpl = resourceUpdateFunction
 	case properties.ResourceEntryPlural:
 		tmpl = resourceUpdateEntryListFunction
@@ -2520,7 +2770,7 @@ func ResourceDeleteFunction(resourceTyp properties.ResourceType, names *NameProv
 	var listAttribute string
 	var exhaustive bool
 	switch resourceTyp {
-	case properties.ResourceEntry:
+	case properties.ResourceEntry, properties.ResourceConfig:
 		tmpl = resourceDeleteFunction
 	case properties.ResourceEntryPlural:
 		tmpl = resourceDeleteManyFunction
@@ -2565,8 +2815,8 @@ func ResourceDeleteFunction(resourceTyp properties.ResourceType, names *NameProv
 	}
 
 	funcMap := template.FuncMap{
-		"RenderImportLocationAssignment": func(locationVar string) (string, error) {
-			return RenderImportLocationAssignment(names, paramSpec, locationVar)
+		"RenderImportLocationAssignment": func(source string, dest string) (string, error) {
+			return RenderImportLocationAssignment(names, paramSpec, source, dest)
 		},
 		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
 			return RenderLocationsStateToPango(names, paramSpec, source, dest)
@@ -2574,6 +2824,140 @@ func ResourceDeleteFunction(resourceTyp properties.ResourceType, names *NameProv
 	}
 
 	return processTemplate(tmpl, "resource-delete-function", data, funcMap)
+}
+
+type importStateStructFieldSpec struct {
+	Name string
+	Type string
+	Tags string
+}
+
+type importStateStructSpec struct {
+	StructName string
+	Fields     []importStateStructFieldSpec
+}
+
+func createImportStateStructSpecs(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) []importStateStructSpec {
+	var specs []importStateStructSpec
+
+	var fields []importStateStructFieldSpec
+	fields = append(fields, importStateStructFieldSpec{
+		Name: "Location",
+		Type: fmt.Sprintf("%sLocation", names.StructName),
+		Tags: "`json:\"location\"`",
+	})
+
+	switch resourceTyp {
+	case properties.ResourceEntry:
+		fields = append(fields, importStateStructFieldSpec{
+			Name: "Name",
+			Type: "string",
+			Tags: "`json:\"name\"`",
+		})
+	case properties.ResourceEntryPlural, properties.ResourceUuid:
+		fields = append(fields, importStateStructFieldSpec{
+			Name: "Names",
+			Type: "[]string",
+			Tags: "`json:\"names\"`",
+		})
+	case properties.ResourceUuidPlural:
+		fields = append(fields, []importStateStructFieldSpec{
+			{
+				Name: "Names",
+				Type: "[]string",
+				Tags: "`json:\"names\"`",
+			},
+			{
+				Name: "Position",
+				Type: "TerraformPositionObject",
+				Tags: "`json:\"position\"`",
+			},
+		}...)
+
+	case properties.ResourceCustom:
+		panic("unreachable")
+	case properties.ResourceConfig:
+	}
+
+	specs = append(specs, importStateStructSpec{
+		StructName: fmt.Sprintf("%sImportState", names.StructName),
+		Fields:     fields,
+	})
+
+	return specs
+}
+
+func RenderImportStateStructs(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
+	// Only singular entries can be imported at the time
+	if resourceTyp != properties.ResourceEntry {
+		return "", nil
+	}
+
+	type context struct {
+		Specs []importStateStructSpec
+	}
+
+	data := context{
+		Specs: createImportStateStructSpecs(resourceTyp, names, spec),
+	}
+
+	return processTemplate(renderImportStateStructsTmpl, "render-import-state-structs", data, nil)
+}
+
+func ResourceImportStateFunction(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
+	// Only singular entries can be imported at the time
+	if resourceTyp != properties.ResourceEntry {
+		return "", nil
+	}
+
+	type context struct {
+		StructName     string
+		ResourceIsMap  bool
+		ResourceIsList bool
+		HasEntryName   bool
+		ListAttribute  *properties.NameVariant
+	}
+
+	data := context{
+		StructName: names.StructName,
+	}
+
+	switch resourceTyp {
+	case properties.ResourceEntry:
+		data.HasEntryName = spec.HasEntryName()
+	case properties.ResourceEntryPlural:
+		data.ResourceIsMap = true
+		data.ListAttribute = properties.NewNameVariant(spec.TerraformProviderConfig.PluralName)
+	case properties.ResourceUuid, properties.ResourceUuidPlural:
+		data.ResourceIsList = true
+		data.ListAttribute = properties.NewNameVariant(spec.TerraformProviderConfig.PluralName)
+	case properties.ResourceCustom:
+		panic("unreachable")
+	case properties.ResourceConfig:
+		data.HasEntryName = false
+	}
+
+	return processTemplate(resourceImportStateFunctionTmpl, "resource-import-state-function", data, nil)
+}
+
+func RenderImportStateCreator(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
+	if resourceTyp != properties.ResourceEntry {
+		return "", nil
+	}
+
+	type context struct {
+		FuncName         string
+		ModelName        string
+		StructNamePrefix string
+	}
+
+	data := context{
+		FuncName:         fmt.Sprintf("%sImportStateCreator", names.StructName),
+		ModelName:        fmt.Sprintf("%sModel", names.ResourceStructName),
+		StructNamePrefix: names.StructName,
+	}
+
+	return processTemplate(resourceImportStateCreatorTmpl, "render-import-state-creator", data, commonFuncMap)
 }
 
 func ConfigEntry(entryName string, param *properties.SpecParam) (string, error) {
@@ -2596,6 +2980,38 @@ func ConfigEntry(entryName string, param *properties.SpecParam) (string, error) 
 	}
 
 	return processTemplate(resourceConfigEntry, "config-entry", entryData, nil)
+}
+
+func RenderResourceFuncMap(names map[string]properties.TerraformProviderSpecMetadata) (string, error) {
+	type entry struct {
+		Key        string
+		StructName string
+	}
+
+	type context struct {
+		Entries []entry
+	}
+
+	var entries []entry
+	for key, metadata := range names {
+		if key == "" {
+			continue
+		}
+
+		if metadata.Flags&properties.TerraformSpecImportable == 0 {
+			continue
+		}
+
+		entries = append(entries, entry{
+			Key:        fmt.Sprintf("panos%s", key),
+			StructName: metadata.StructName,
+		})
+	}
+	data := context{
+		Entries: entries,
+	}
+
+	return processTemplate(resourceFuncMapTmpl, "resource-func-map", data, nil)
 }
 
 var customResourceFuncsMap = map[string]map[string]string{

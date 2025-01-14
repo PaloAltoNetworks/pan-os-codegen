@@ -2,6 +2,7 @@ package generate
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"go/format"
 	"io"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
+	codegentmpl "github.com/paloaltonetworks/pan-os-codegen/pkg/template"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate/terraform_provider"
 )
@@ -57,7 +59,7 @@ func (c *Creator) RenderTemplate() error {
 }
 
 // RenderTerraformProviderFile generates a Go file for a Terraform provider based on the provided TerraformProviderFile and Normalization arguments.
-func (c *Creator) RenderTerraformProviderFile(spec *properties.Normalization, typ properties.ResourceType) ([]string, []string, error) {
+func (c *Creator) RenderTerraformProviderFile(spec *properties.Normalization, typ properties.ResourceType) ([]string, []string, map[string]properties.TerraformProviderSpecMetadata, error) {
 	var name string
 	switch typ {
 	case properties.ResourceUuidPlural:
@@ -66,25 +68,26 @@ func (c *Creator) RenderTerraformProviderFile(spec *properties.Normalization, ty
 		name = spec.TerraformProviderConfig.PluralSuffix
 	case properties.ResourceEntry, properties.ResourceUuid, properties.ResourceCustom:
 		name = spec.Name
+	case properties.ResourceConfig:
 	}
 
 	terraformProvider := properties.NewTerraformProviderFile(name)
 	tfp := terraform_provider.GenerateTerraformProvider{}
 
 	if err := tfp.GenerateTerraformDataSource(typ, spec, terraformProvider); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	if err := tfp.GenerateTerraformResource(typ, spec, terraformProvider); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	if err := tfp.GenerateCommonCode(typ, spec, terraformProvider); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	if err := tfp.GenerateTerraformProviderFile(spec, terraformProvider); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	var filePath string
@@ -95,15 +98,15 @@ func (c *Creator) RenderTerraformProviderFile(spec *properties.Normalization, ty
 	case properties.ResourceEntryPlural:
 		name = spec.TerraformProviderConfig.PluralSuffix
 		filePath = c.createTerraformProviderFilePath(name)
-	case properties.ResourceEntry, properties.ResourceUuid, properties.ResourceCustom:
+	case properties.ResourceEntry, properties.ResourceUuid, properties.ResourceCustom, properties.ResourceConfig:
 		filePath = c.createTerraformProviderFilePath(spec.TerraformProviderConfig.Suffix)
 	}
 
 	if err := c.writeFormattedContentToFile(filePath, terraformProvider.Code.String()); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return terraformProvider.DataSources, terraformProvider.Resources, nil
+	return terraformProvider.DataSources, terraformProvider.Resources, terraformProvider.SpecMetadata, nil
 }
 
 // RenderTerraformProvider generates and writes a Terraform provider file.
@@ -135,13 +138,14 @@ func (c *Creator) processTemplate(templateName, filePath string) error {
 		var formattedCode []byte
 		formattedCode, err = format.Source(data.Bytes())
 		if err != nil {
-			log.Printf("Failed to format source code: %s", err.Error())
+			log.Printf("Failed to format source code: %s, %s", filePath, err.Error())
 			formattedCode = data.Bytes()
 		}
 		formattedBuf := bytes.NewBuffer(formattedCode)
 
-		if writeErr := c.createAndWriteFile(filePath, formattedBuf); writeErr != nil {
-			return fmt.Errorf("error creating and writing to file %s: %w", filePath, err)
+		writeErr := c.createAndWriteFile(filePath, formattedBuf)
+		if writeErr != nil {
+			return errors.Join(err, writeErr)
 		}
 	}
 	return err
@@ -149,14 +153,16 @@ func (c *Creator) processTemplate(templateName, filePath string) error {
 
 // writeFormattedContentToFile formats the content and writes it to a file.
 func (c *Creator) writeFormattedContentToFile(filePath, content string) error {
-	formattedCode, err := format.Source([]byte(content))
-	if err != nil {
-		log.Printf("provided content: %s", content)
-		return fmt.Errorf("error formatting code: %w", err)
+	var formattedCode []byte
+	var formatErr error
+	formattedCode, formatErr = format.Source([]byte(content))
+	if formatErr != nil {
+		log.Printf("Failed to format target path: %s", filePath)
+		formattedCode = []byte(content)
 	}
 	formattedBuf := bytes.NewBuffer(formattedCode)
 
-	return c.createFileAndWriteContent(filePath, formattedBuf)
+	return errors.Join(formatErr, c.createFileAndWriteContent(filePath, formattedBuf))
 }
 
 // createTerraformProviderFilePath returns a file path for a Terraform provider based on the provided suffix.
@@ -244,6 +250,7 @@ func writeContentToFile(content *bytes.Buffer, file *os.File) error {
 func (c *Creator) parseTemplate(templateName string) (*template.Template, error) {
 	templatePath := filepath.Join(c.TemplatesDir, templateName)
 	funcMap := template.FuncMap{
+		"Map":                       codegentmpl.TemplateMap,
 		"renderImports":             translate.RenderImports,
 		"RenderEntryImportStructs":  func() (string, error) { return translate.RenderEntryImportStructs(c.Spec) },
 		"packageName":               translate.PackageName,
@@ -252,8 +259,8 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		"xmlParamType":              translate.XmlParamType,
 		"xmlName":                   translate.XmlName,
 		"xmlTag":                    translate.XmlTag,
-		"specifyEntryAssignment":    translate.SpecifyEntryAssignment,
-		"normalizeAssignment":       translate.NormalizeAssignment,
+		"specifyEntryAssignment":    translate.SpecifyEntryAssignmentTmpl,
+		"normalizeAssignment":       translate.NormalizeAssignmentTmpl,
 		"specMatchesFunction":       translate.SpecMatchesFunction,
 		"nestedSpecMatchesFunction": translate.NestedSpecMatchesFunction,
 		"omitEmpty":                 translate.OmitEmpty,
@@ -266,8 +273,8 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		},
 		"generateEntryXpath":        translate.GenerateEntryXpath,
 		"nestedSpecs":               translate.NestedSpecs,
-		"createGoSuffixFromVersion": translate.CreateGoSuffixFromVersion,
-		"paramSupportedInVersion":   translate.ParamSupportedInVersion,
+		"createGoSuffixFromVersion": translate.CreateGoSuffixFromVersionTmpl,
+		"paramSupportedInVersion":   translate.ParamSupportedInVersionTmpl,
 		"xmlPathSuffixes":           translate.XmlPathSuffixes,
 		"underscore":                naming.Underscore,
 		"camelCase":                 naming.CamelCase,

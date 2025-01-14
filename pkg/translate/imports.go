@@ -10,6 +10,8 @@ func RenderImports(templateTypes ...string) (string, error) {
 
 	for _, templateType := range templateTypes {
 		switch templateType {
+		case "sync":
+			manager.AddStandardImport("sync", "")
 		case "config":
 			//manager.AddStandardImport("fmt", "")
 			manager.AddStandardImport("encoding/xml", "")

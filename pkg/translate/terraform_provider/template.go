@@ -107,10 +107,6 @@ const resourceSchemaLocationAttribute = `
 					},
 				},
 			},
-			"tfid": rsschema.StringAttribute{
-				Description: "The Terraform ID.",
-				Computed:    true,
-			},
 `
 
 const resourceCreateUpdateMovementRequiredTmpl = `
@@ -242,6 +238,13 @@ var (
 )
 
 func New{{ resourceStructName }}() resource.Resource {
+{{- if IsImportable }}
+	if _, found := resourceFuncMap["panos{{ metaName }}"]; !found {
+		resourceFuncMap["panos{{ metaName }}"] = resourceFuncs{
+			CreateImportId: {{ structName }}ImportStateCreator,
+		}
+	}
+{{- end }}
 	return &{{ resourceStructName }}{}
 }
 
@@ -259,21 +262,6 @@ type {{ resourceStructName }} struct {
 	manager *sdkmanager.ConfigObjectManager[*{{ resourceSDKName }}.Config, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service]
 {{- end }}
 }
-
-{{- if not GoSDKSkipped }}
-type {{ resourceStructName }}Tfid struct {
-	{{ CreateTfIdStruct }}
-}
-
-func (o *{{ resourceStructName }}Tfid) IsValid() error {
-  {{- if .HasEntryName }}
-	if o.Name == "" {
-		return fmt.Errorf("name is unspecified")
-	}
-  {{- end }}
-	return o.Location.IsValid()
-}
-{{- end }}
 
 func {{ resourceStructName }}LocationSchema() rsschema.Attribute {
 	return {{ structName }}LocationSchema()
@@ -368,8 +356,12 @@ func (r *{{ resourceStructName }}) Delete(ctx context.Context, req resource.Dele
 	{{ ResourceDeleteFunction resourceStructName serviceName}}
 }
 
+{{ RenderImportStateStructs }}
+
+{{ RenderImportStateCreator }}
+
 func (r *{{ resourceStructName }}) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("tfid"), req, resp)
+	{{ ResourceImportStateFunction }}
 }
 
 {{- /* Done */ -}}`
@@ -592,17 +584,11 @@ const resourceCreateFunction = `
 	}
 
 	// Determine the location.
-{{- if .HasEntryName }}
-	loc := {{ .structName }}Tfid{Name: state.Name.ValueString()}
-{{- else }}
-	loc := {{ .structName }}Tfid{}
-{{- end }}
 
+	var location {{ .resourceSDKName }}.Location
+	{{ RenderLocationsStateToPango "state.Location" "location" }}
 
-	// TODO: this needs to handle location structure for UUID style shared has nested structure type
-	{{ RenderLocationsStateToPango "state.Location" "loc.Location" }}
-
-	if err := loc.IsValid(); err != nil {
+	if err := location.IsValid(); err != nil {
 		resp.Diagnostics.AddError("Invalid location", err.Error())
 		return
 	}
@@ -627,25 +613,16 @@ const resourceCreateFunction = `
 
 	// Perform the operation.
 {{- if .HasImports }}
-	{{ RenderImportLocationAssignment "state.Location" }}
-	created, err := r.manager.Create(ctx, loc.Location, []{{ .resourceSDKName }}.ImportLocation{location}, obj)
+	var importLocation {{ .resourceSDKName }}.ImportLocation
+	{{ RenderImportLocationAssignment "state.Location" "importLocation" }}
+	created, err := r.manager.Create(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, obj)
 {{- else }}
-	created, err := r.manager.Create(ctx, loc.Location, obj)
+	created, err := r.manager.Create(ctx, location, obj)
 {{- end }}
 	if err != nil {
 		resp.Diagnostics.AddError("Error in create", err.Error())
 		return
 	}
-
-	// Tfid handling.
-	tfid, err := EncodeLocation(&loc)
-	if err != nil {
-		resp.Diagnostics.AddError("Error creating tfid", err.Error())
-		return
-	}
-
-	// Save the state.
-	state.Tfid = types.StringValue(tfid)
 
 	resp.Diagnostics.Append(state.CopyFromPango(ctx, created, {{ $ev }})...)
 	if resp.Diagnostics.HasError() {
@@ -866,20 +843,8 @@ const resourceReadFunction = `
 		return
 	}
 
-{{- if eq .ResourceOrDS "DataSource" }}
-	var loc {{ .dataSourceStructName }}Tfid
-  {{- if .HasEntryName }}
-	loc.Name = *savestate.Name.ValueStringPointer()
-  {{- end }}
-	{{ RenderLocationsStateToPango "savestate.Location" "loc.Location" }}
-{{- else }}
-	var loc {{ .resourceStructName }}Tfid
-	// Parse the location from tfid.
-	if err := DecodeLocation(savestate.Tfid.ValueString(), &loc); err != nil {
-		resp.Diagnostics.AddError("Error parsing tfid", err.Error())
-		return
-	}
-{{- end }}
+	var location {{ .resourceSDKName }}.Location
+	{{ RenderLocationsStateToPango "savestate.Location" "location" }}
 
 {{ $ev := "nil" }}
 {{- if .HasEncryptedResources }}
@@ -896,19 +861,18 @@ const resourceReadFunction = `
 		"resource_name": "panos_{{ UnderscoreName .resourceStructName }}",
 		"function":      "Read",
 {{- if .HasEntryName }}
-		"name":          loc.Name,
+		"name":          savestate.Name.ValueString(),
 {{- end }}
 	})
 
 
 	// Perform the operation.
 {{- if .HasEntryName }}
-	object, err := o.manager.Read(ctx, loc.Location, loc.Name)
+	object, err := o.manager.Read(ctx, location, savestate.Name.ValueString())
 {{- else }}
-	object, err := o.manager.Read(ctx, loc.Location)
+	object, err := o.manager.Read(ctx, location)
 {{- end }}
 	if err != nil {
-		tflog.Warn(ctx, "KK: HERE3-1", map[string]any{"Error": err.Error()})
 		if errors.Is(err, sdkmanager.ErrObjectNotFound) {
 {{- if eq .ResourceOrDS "DataSource" }}
 			resp.Diagnostics.AddError("Error reading data", err.Error())
@@ -931,10 +895,6 @@ const resourceReadFunction = `
 	*/
 
 	state.Location = savestate.Location
-	// Save tfid to state.
-	state.Tfid = savestate.Tfid
-
-	// Save the answer to state.
 
 {{- if .HasEncryptedResources }}
 	ev_map, ev_diags := types.MapValueFrom(ctx, types.StringType, ev)
@@ -1151,17 +1111,13 @@ const resourceUpdateFunction = `
 	}
 {{- end }}
 
-	var loc {{ .structName }}Tfid
-	if err := DecodeLocation(state.Tfid.ValueString(), &loc); err != nil {
-		resp.Diagnostics.AddError("Error parsing tfid", err.Error())
-		return
-	}
+	var location {{ .resourceSDKName }}.Location
+	{{ RenderLocationsStateToPango "state.Location" "location" }}
 
 	// Basic logging.
 	tflog.Info(ctx, "performing resource update", map[string]any{
 		"resource_name": "panos_{{ UnderscoreName .structName }}",
 		"function":      "Update",
-		"tfid":          state.Tfid.ValueString(),
 	})
 
 	// Verify mode.
@@ -1171,9 +1127,9 @@ const resourceUpdateFunction = `
 	}
 
 {{- if .HasEntryName }}
-	obj, err := r.manager.Read(ctx, loc.Location, loc.Name)
+	obj, err := r.manager.Read(ctx, location, plan.Name.ValueString())
 {{- else }}
-	obj, err := r.manager.Read(ctx, loc.Location)
+	obj, err := r.manager.Read(ctx, location)
 {{- end }}
 	if err != nil {
 		resp.Diagnostics.AddError("Error in update", err.Error())
@@ -1187,9 +1143,9 @@ const resourceUpdateFunction = `
 
 	// Perform the operation.
 {{- if .HasEntryName }}
-	updated, err := r.manager.Update(ctx, loc.Location, obj, loc.Name)
+	updated, err := r.manager.Update(ctx, location, obj, obj.Name)
 {{- else }}
-	updated, err := r.manager.Update(ctx, loc.Location, obj)
+	updated, err := r.manager.Update(ctx, location, obj)
 {{- end }}
 	if err != nil {
 		resp.Diagnostics.AddError("Error in update", err.Error())
@@ -1204,16 +1160,6 @@ const resourceUpdateFunction = `
 		state.Timeouts = plan.Timeouts
 	*/
 
-	// Save the tfid.
-{{- if .HasEntryName }}
-	loc.Name = obj.Name
-{{- end }}
-	tfid, err := EncodeLocation(&loc)
-	if err != nil {
-		resp.Diagnostics.AddError("error creating tfid", err.Error())
-		return
-	}
-	state.Tfid = types.StringValue(tfid)
 
 	copy_diags := state.CopyFromPango(ctx, updated, {{ $ev }})
 {{- if .HasEncryptedResources }}
@@ -1290,19 +1236,12 @@ const resourceDeleteFunction = `
 		return
 	}
 
-	// Parse the location from tfid.
-	var loc {{ .structName }}Tfid
-	if err := DecodeLocation(state.Tfid.ValueString(), &loc); err != nil {
-		resp.Diagnostics.AddError("error parsing tfid", err.Error())
-		return
-	}
-
 	// Basic logging.
 	tflog.Info(ctx, "performing resource delete", map[string]any{
 		"resource_name": "panos_{{ UnderscoreName .structName }}",
 		"function":      "Delete",
 {{- if .HasEntryName }}
-		"name":          loc.Name,
+		"name":          state.Name.ValueString(),
 {{- end }}
 	})
 
@@ -1312,12 +1251,16 @@ const resourceDeleteFunction = `
 		return
 	}
 
+	var location {{ .resourceSDKName }}.Location
+	{{ RenderLocationsStateToPango "state.Location" "location" }}
+
 {{- if .HasEntryName }}
   {{- if .HasImports }}
-	{{ RenderImportLocationAssignment "state.Location" }}
-	err := r.manager.Delete(ctx, loc.Location, []{{ .resourceSDKName }}.ImportLocation{location}, []string{loc.Name}, sdkmanager.NonExhaustive)
+	var importLocation {{ .resourceSDKName }}.ImportLocation
+	{{ RenderImportLocationAssignment "state.Location" "importLocation" }}
+	err := r.manager.Delete(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, []string{state.Name.ValueString()}, sdkmanager.NonExhaustive)
   {{- else }}
-	err := r.manager.Delete(ctx, loc.Location, []string{loc.Name})
+	err := r.manager.Delete(ctx, location, []string{state.Name.ValueString()})
   {{- end }}
 	if err != nil && !errors.Is(err, sdkmanager.ErrObjectNotFound) {
 		resp.Diagnostics.AddError("Error in delete", err.Error())
@@ -1335,17 +1278,151 @@ const resourceDeleteFunction = `
 		return
 	}
 
-	err := r.manager.Delete(ctx, loc.Location, obj)
+	err := r.manager.Delete(ctx, location, obj)
 	if err != nil && errors.Is(err, sdkmanager.ErrObjectNotFound) {
 		resp.Diagnostics.AddError("Error in delete", err.Error())
 	}
 {{- end }}
 `
 
+const renderImportStateStructsTmpl = `
+{{- range .Specs }}
+type {{ .StructName }} struct {
+  {{- range .Fields }}
+	{{ .Name }} {{ .Type }} {{ .Tags }}
+  {{- end }}
+}
+{{- end }}
+`
+
+const locationMarshallersTmpl = `
+{{- define "renderMarshallerField" }}
+  {{- if eq .Type "object" }}
+	{{ .Name }}: o.{{ .Name }},
+  {{- else }}
+	{{ .Name }}: o.{{ .Name }}.Value{{ .Type | CamelCaseName }}Pointer(),
+  {{- end }}
+{{- end }}
+
+{{- define "renderShadowStructField" }}
+  {{- if eq .Type "object" }}
+    {{ .Name }} *{{ .StructName }} {{ .Tags }}
+  {{- else }}
+    {{ .Name }} *{{ .Type }} {{ .Tags }}
+  {{- end }}
+{{- end }}
+
+{{- define "renderUnmarshallerField" }}
+  {{- if eq .Type "object" }}
+    o.{{ .Name }} = shadow.{{ .Name }}
+  {{- else }}
+    o.{{ .Name }} = types.{{ .Type | CamelCaseName }}PointerValue(shadow.{{ .Name }})
+  {{- end }}
+{{- end }}
+
+{{- range .Specs }}
+  {{- $spec := . }}
+func (o {{ .StructName }}) MarshalJSON() ([]byte, error) {
+	obj := struct {
+  {{- range .Fields }}
+    {{- template "renderShadowStructField" . }}
+  {{- end }}
+	}{
+  {{- range .Fields }}
+    {{- template "renderMarshallerField" . }}
+  {{- end }}
+	}
+
+	return json.Marshal(obj)
+}
+
+func (o *{{ .StructName }}) UnmarshalJSON(data []byte) error {
+	var shadow struct {
+  {{- range .Fields }}
+    {{- template "renderShadowStructField" . }}
+  {{- end }}
+	}
+
+	err := json.Unmarshal(data, &shadow)
+	if err != nil {
+		return err
+	}
+
+  {{- range .Fields }}
+    {{- template "renderUnmarshallerField" . }}
+  {{- end }}
+
+	return nil
+}
+{{- end }}
+`
+
+const resourceImportStateCreatorTmpl = `
+func {{ .FuncName }}(ctx context.Context, resource types.Object) ([]byte, error) {
+	attrs := resource.Attributes()
+	if attrs == nil {
+		return nil, fmt.Errorf("Object has no attributes")
+	}
+
+	locationAttr, ok := attrs["location"]
+	if !ok {
+		return nil, fmt.Errorf("location attribute missing")
+	}
+
+	var location {{ .StructNamePrefix }}Location
+	switch value := locationAttr.(type) {
+	case types.Object:
+		value.As(ctx, &location, basetypes.ObjectAsOptions{})
+	default:
+		return nil, fmt.Errorf("location attribute expected to be an object")
+	}
+
+	nameAttr, ok := attrs["name"]
+	if !ok {
+		return nil, fmt.Errorf("name attribute missing")
+	}
+
+	var name string
+	switch value := nameAttr.(type) {
+	case types.String:
+		name = value.ValueString()
+	default:
+		return nil, fmt.Errorf("name attribute expected to be a string")
+	}
+
+	importStruct := {{ .StructNamePrefix }}ImportState{
+		Location: location,
+		Name: name,
+	}
+
+	return json.Marshal(importStruct)
+}
+`
+
+const resourceImportStateFunctionTmpl = `
+	var obj {{ .StructName }}ImportState
+	data, err := base64.StdEncoding.DecodeString(req.ID)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to decode Import ID", err.Error())
+		return
+	}
+
+	err = json.Unmarshal(data, &obj)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to unmarshal Import ID", err.Error())
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("location"), obj.Location)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), obj.Name)...)
+`
+
 const commonTemplate = `
 {{- RenderLocationStructs }}
 
 {{- RenderLocationSchemaGetter }}
+
+{{- RenderLocationMarshallers }}
 
 {{- RenderCustomCommonCode }}
 `
@@ -1360,7 +1437,7 @@ var (
 )
 
 func New{{ dataSourceStructName }}() datasource.DataSource {
-    return &{{ dataSourceStructName }}{}
+	return &{{ dataSourceStructName }}{}
 }
 
 type {{ dataSourceStructName }} struct {
@@ -1382,22 +1459,6 @@ type {{ dataSourceStructName }} struct {
 type {{ dataSourceStructName }}Filter struct {
 //TODO: Generate Data Source filter via function
 }
-
-{{- if not GoSDKSkipped }}
-type {{ dataSourceStructName }}Tfid struct {
-	{{ CreateTfIdStruct }}
-}
-
-func (o *{{ dataSourceStructName }}Tfid) IsValid() error {
-  {{- if .HasEntryName }}
-	if o.Name == "" {
-		return fmt.Errorf("name is unspecified")
-	}
-  {{- end }}
-	return o.Location.IsValid()
-}
-{{- end }}
-
 
 {{ RenderDataSourceStructs }}
 
@@ -1609,7 +1670,6 @@ func (p *PanosProvider) Configure(ctx context.Context, req provider.ConfigureReq
 // DataSources defines the data sources for this provider.
 func (p *PanosProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewTfidDataSource,
 {{- range $fnName := DataSources }}
         New{{ $fnName }},
 {{- end }}
@@ -1628,6 +1688,7 @@ func (p *PanosProvider) Resources(_ context.Context) []func() resource.Resource 
 func (p *PanosProvider) Functions(_ context.Context) []func() function.Function {
 	return []func() function.Function{
 		NewAddressValueFunction,
+		NewCreateImportIdFunction,
 	}
 }
 
@@ -1640,4 +1701,22 @@ func New(version string) func() provider.Provider {
 	}
 }
 
+type CreateResourceIdFunc func(context.Context, types.Object) ([]byte, error)
+
+type resourceFuncs struct {
+	CreateImportId CreateResourceIdFunc
+}
+
+var resourceFuncMap = map[string]resourceFuncs{
+{{- RenderResourceFuncMap }}
+}
+
 {{- /* Done */ -}}`
+
+const resourceFuncMapTmpl = `
+{{- range .Entries }}
+	"{{ .Key }}": resourceFuncs{
+		CreateImportId: {{ .StructName }}ImportStateCreator,
+	},
+{{- end }}
+`

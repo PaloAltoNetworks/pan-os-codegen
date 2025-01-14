@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "additionalProperties": false,
+  "required": ["params", "variants"],
   "properties": {
     "params": {
       "type": "array",
@@ -28,9 +29,12 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {
-                "private": { "type": "booleanf" },
+                "name": { "type": "string" },
+                "type": { "type": "string" },
+                "private": { "type": "boolean" },
                 "computed": { "type": "boolean" },
-                "sensitive": { "type": "boolean" }
+                "sensitive": { "type": "boolean" },
+                "variant_check": { "type": "string" }
               }
             }
           }
@@ -43,6 +47,7 @@
           }
         },
         "type": { "$ref": "#/$defs/type" },
+        "required": { "type": "boolean", "default": "false" },
         "profiles": {
           "type": "array",
           "items": { "$ref": "profile.schema.json" }
@@ -96,8 +101,9 @@
     "list": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["items"],
+      "required": ["type", "items"],
       "properties": {
+        "type": { "type": "string" },
         "items": {
           "type": "object",
           "additionalProperties": false,

@@ -1,0 +1,543 @@
+name: Decryption Policy
+terraform_provider_config:
+  description: Decryption policy rule
+  skip_resource: false
+  skip_datasource: false
+  resource_type: uuid
+  resource_variants:
+  - singular
+  - plural
+  suffix: decryption_policy
+  plural_suffix: decryption_policy_rules
+  plural_name: rules
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - policies
+  - rules
+  - decryption
+xpath_suffix:
+- decryption
+- rules
+locations:
+- name: shared
+  xpath:
+    path:
+    - config
+    - shared
+    - $rulebase
+    vars:
+    - name: rulebase
+      description: Rulebase name
+      required: false
+      default: pre-rulebase
+      validators: []
+      type: object
+  description: Located in a shared rulebase
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    - rulebase
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys name
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared". Use the "shared" path instead.
+      type: entry
+  description: Located in a specific vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: device-group
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - device-group
+    - $device_group
+    - $rulebase
+    vars:
+    - name: panorama_device
+      description: The panorama device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: device_group
+      description: The device group.
+      required: true
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The device group cannot be "shared". Use the "shared" path instead.
+      type: entry
+    - name: rulebase
+      description: The rulebase.
+      required: false
+      default: pre-rulebase
+      validators:
+      - type: values
+        spec:
+          values:
+          - post-rulebase
+          - pre-rulebase
+      type: object
+  description: Located in a specific device group.
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: action
+    type: enum
+    profiles:
+    - xpath:
+      - action
+    validators:
+    - type: values
+      spec:
+        values:
+        - no-decrypt
+        - decrypt
+        - decrypt-and-forward
+    spec:
+      default: no-decrypt
+      values:
+      - value: no-decrypt
+      - value: decrypt
+      - value: decrypt-and-forward
+    description: ''
+    required: false
+  - name: category
+    type: list
+    profiles:
+    - xpath:
+      - category
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: description
+    type: string
+    profiles:
+    - xpath:
+      - description
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 1024
+    spec: {}
+    description: ''
+    required: false
+  - name: destination
+    type: list
+    profiles:
+    - xpath:
+      - destination
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+    codegen_overrides:
+      terraform:
+        name: destination_addresses
+  - name: destination-hip
+    type: list
+    profiles:
+    - xpath:
+      - destination-hip
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: disabled
+    type: bool
+    profiles:
+    - xpath:
+      - disabled
+    validators: []
+    spec: {}
+    description: Disable the rule
+    required: false
+  - name: from
+    type: list
+    profiles:
+    - xpath:
+      - from
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+    codegen_overrides:
+      terraform:
+        name: source_zones
+  - name: group-tag
+    type: string
+    profiles:
+    - xpath:
+      - group-tag
+    validators:
+    - type: length
+      spec:
+        max: 127
+    spec: {}
+    description: ''
+    required: false
+  - name: log-fail
+    type: bool
+    profiles:
+    - xpath:
+      - log-fail
+    validators: []
+    spec: {}
+    description: Log unsuccessful TLS handshakes
+    required: false
+  - name: log-setting
+    type: string
+    profiles:
+    - xpath:
+      - log-setting
+    validators:
+    - type: length
+      spec:
+        max: 63
+    spec: {}
+    description: ''
+    required: false
+  - name: log-success
+    type: bool
+    profiles:
+    - xpath:
+      - log-success
+    validators: []
+    spec: {}
+    description: Log successful TLS handshakes
+    required: false
+  - name: negate-destination
+    type: bool
+    profiles:
+    - xpath:
+      - negate-destination
+    validators: []
+    spec: {}
+    description: ''
+    required: false
+  - name: negate-source
+    type: bool
+    profiles:
+    - xpath:
+      - negate-source
+    validators: []
+    spec: {}
+    description: ''
+    required: false
+  - name: packet-broker-profile
+    type: string
+    profiles:
+    - xpath:
+      - packet-broker-profile
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 255
+    spec: {}
+    description: packet-broker profile
+    required: false
+  - name: profile
+    type: string
+    profiles:
+    - xpath:
+      - profile
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 255
+    spec: {}
+    description: decryption profile
+    required: false
+  - name: service
+    type: list
+    profiles:
+    - xpath:
+      - service
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+    codegen_overrides:
+      terraform:
+        name: services
+  - name: source
+    type: list
+    profiles:
+    - xpath:
+      - source
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+    codegen_overrides:
+      terraform:
+        name: source_addresses
+  - name: source-hip
+    type: list
+    profiles:
+    - xpath:
+      - source-hip
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: source-user
+    type: list
+    profiles:
+    - xpath:
+      - source-user
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: tag
+    type: list
+    profiles:
+    - xpath:
+      - tag
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: target
+    type: object
+    profiles:
+    - xpath:
+      - target
+    validators: []
+    spec:
+      params:
+      - name: devices
+        type: list
+        profiles:
+        - xpath:
+          - devices
+          - entry
+          type: entry
+        validators: []
+        spec:
+          type: object
+          items:
+            type: object
+            spec:
+              params:
+              - name: vsys
+                type: list
+                profiles:
+                - xpath:
+                  - vsys
+                  - entry
+                  type: entry
+                validators: []
+                spec:
+                  type: object
+                  items:
+                    type: object
+                    spec:
+                      params: []
+                      variants: []
+                description: ''
+                required: false
+              variants: []
+        description: ''
+        required: false
+      - name: negate
+        type: bool
+        profiles:
+        - xpath:
+          - negate
+        validators: []
+        spec: {}
+        description: Target to all but these specified devices and tags
+        required: false
+      - name: tags
+        type: list
+        profiles:
+        - xpath:
+          - tags
+          type: member
+        validators: []
+        spec:
+          type: string
+          items:
+            type: string
+        description: ''
+        required: false
+      variants: []
+    description: Target devices
+    required: false
+  - name: to
+    type: list
+    profiles:
+    - xpath:
+      - to
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+    codegen_overrides:
+      terraform:
+        name: destination_zones
+  - name: type
+    type: object
+    profiles:
+    - xpath:
+      - type
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: ssh-proxy
+        type: object
+        profiles:
+        - xpath:
+          - ssh-proxy
+        validators: []
+        spec:
+          params: []
+          variants: []
+        description: SSH Proxy
+        required: false
+      - name: ssl-forward-proxy
+        type: object
+        profiles:
+        - xpath:
+          - ssl-forward-proxy
+        validators: []
+        spec:
+          params: []
+          variants: []
+        description: SSL Forward Proxy
+        required: false
+      - name: ssl-inbound-inspection
+        type: object
+        profiles:
+        - xpath:
+          - ssl-inbound-inspection
+        validators: []
+        spec:
+          params:
+          - name: certificates
+            type: list
+            profiles:
+            - xpath:
+              - certificates
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          variants: []
+        description: SSL Inbound Inspection
+        required: false
+    description: decryption type
+    required: false
+  - name: uuid
+    type: string
+    profiles:
+    - xpath:
+      - uuid
+    validators:
+    - type: regexp
+      spec:
+        expr: '[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}'
+    - type: length
+      spec:
+        min: 36
+        max: 36
+    description: Entry UUID value
+    required: false
+    codegen_overrides:
+      terraform:
+        computed: true
+  variants: []

@@ -1,0 +1,718 @@
+name: Network Address Translation Policy
+terraform_provider_config:
+  description: Nat policy rule
+  skip_resource: false
+  skip_datasource: false
+  resource_type: uuid
+  resource_variants:
+  - singular
+  - plural
+  suffix: nat_policy
+  plural_suffix: nat_policy_rules
+  plural_name: rules
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - policies
+  - rules
+  - nat
+xpath_suffix:
+- nat
+- rules
+locations:
+- name: shared
+  xpath:
+    path:
+    - config
+    - shared
+    - $rulebase
+    vars:
+    - name: rulebase
+      description: Rulebase name
+      required: false
+      default: pre-rulebase
+      validators: []
+      type: object
+  description: Located in a shared rulebase
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    - rulebase
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys name
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared". Use the "shared" path instead.
+      type: entry
+  description: Located in a specific vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: device-group
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - device-group
+    - $device_group
+    - $rulebase
+    vars:
+    - name: panorama_device
+      description: The panorama device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: device_group
+      description: The device group.
+      required: true
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The device group cannot be "shared". Use the "shared" path instead.
+      type: entry
+    - name: rulebase
+      description: The rulebase.
+      required: false
+      default: pre-rulebase
+      validators:
+      - type: values
+        spec:
+          values:
+          - post-rulebase
+          - pre-rulebase
+      type: object
+  description: Located in a specific device group.
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: active-active-device-binding
+    type: enum
+    profiles:
+    - xpath:
+      - active-active-device-binding
+    validators:
+    - type: values
+      spec:
+        values:
+        - primary
+        - both
+        - '0'
+        - '1'
+    spec:
+      values:
+      - value: primary
+      - value: both
+      - value: '0'
+      - value: '1'
+    description: Device binding configuration in HA Active-Active mode
+    required: false
+  - name: description
+    type: string
+    profiles:
+    - xpath:
+      - description
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 1024
+    spec: {}
+    description: ''
+    required: false
+  - name: destination
+    type: list
+    profiles:
+    - xpath:
+      - destination
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+    codegen_overrides:
+      terraform:
+        name: destination_addresses
+  - name: disabled
+    type: bool
+    profiles:
+    - xpath:
+      - disabled
+    validators: []
+    spec: {}
+    description: Disable the rule
+    required: false
+  - name: from
+    type: list
+    profiles:
+    - xpath:
+      - from
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+    codegen_overrides:
+      terraform:
+        name: source_zones
+  - name: group-tag
+    type: string
+    profiles:
+    - xpath:
+      - group-tag
+    validators:
+    - type: length
+      spec:
+        max: 127
+    spec: {}
+    description: ''
+    required: false
+  - name: nat-type
+    type: enum
+    profiles:
+    - xpath:
+      - nat-type
+    validators:
+    - type: values
+      spec:
+        values:
+        - ipv4
+        - nat64
+        - nptv6
+    spec:
+      default: ipv4
+      values:
+      - value: ipv4
+      - value: nat64
+      - value: nptv6
+    description: type of nat
+    required: false
+  - name: service
+    type: string
+    profiles:
+    - xpath:
+      - service
+    validators:
+    - type: length
+      spec:
+        max: 63
+    spec:
+      default: any
+    description: ''
+    required: false
+  - name: source
+    type: list
+    profiles:
+    - xpath:
+      - source
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+    codegen_overrides:
+      terraform:
+        name: source_addresses
+  - name: source-translation
+    type: object
+    profiles:
+    - xpath:
+      - source-translation
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: dynamic-ip
+        type: object
+        profiles:
+        - xpath:
+          - dynamic-ip
+        validators: []
+        spec:
+          params:
+          - name: fallback
+            type: object
+            profiles:
+            - xpath:
+              - fallback
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: interface-address
+                type: object
+                profiles:
+                - xpath:
+                  - interface-address
+                validators: []
+                spec:
+                  params:
+                  - name: interface
+                    type: string
+                    profiles:
+                    - xpath:
+                      - interface
+                    validators:
+                    - type: length
+                      spec:
+                        max: 31
+                    spec: {}
+                    description: Interface name
+                    required: false
+                  variants:
+                  - name: floating-ip
+                    type: string
+                    profiles:
+                    - xpath:
+                      - floating-ip
+                    validators: []
+                    spec: {}
+                    description: Floating IP address in HA Active-Active configuration
+                    required: false
+                  - name: ip
+                    type: string
+                    profiles:
+                    - xpath:
+                      - ip
+                    validators: []
+                    spec: {}
+                    description: specify exact IP address if interface has multiple
+                      addresses
+                    required: false
+                description: Use interface address as translated address
+                required: false
+              - name: translated-address
+                type: list
+                profiles:
+                - xpath:
+                  - translated-address
+                  type: member
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ''
+                required: false
+            description: Fallback Dynamic IP and port translation
+            required: false
+          - name: translated-address
+            type: list
+            profiles:
+            - xpath:
+              - translated-address
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          variants: []
+        description: Dynamic IP-only translation
+        required: false
+      - name: dynamic-ip-and-port
+        type: object
+        profiles:
+        - xpath:
+          - dynamic-ip-and-port
+        validators: []
+        spec:
+          params: []
+          variants:
+          - name: interface-address
+            type: object
+            profiles:
+            - xpath:
+              - interface-address
+            validators: []
+            spec:
+              params:
+              - name: interface
+                type: string
+                profiles:
+                - xpath:
+                  - interface
+                validators:
+                - type: length
+                  spec:
+                    max: 31
+                spec: {}
+                description: Interface name
+                required: false
+              variants:
+              - name: floating-ip
+                type: string
+                profiles:
+                - xpath:
+                  - floating-ip
+                validators: []
+                spec: {}
+                description: Floating IP address in HA Active-Active configuration
+                required: false
+              - name: ip
+                type: string
+                profiles:
+                - xpath:
+                  - ip
+                validators: []
+                spec: {}
+                description: specify exact IP address if interface has multiple addresses
+                required: false
+            description: Use interface address as translated address
+            required: false
+          - name: translated-address
+            type: list
+            profiles:
+            - xpath:
+              - translated-address
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+        description: Dynamic IP and port translation
+        required: false
+      - name: static-ip
+        type: object
+        profiles:
+        - xpath:
+          - static-ip
+        validators: []
+        spec:
+          params:
+          - name: bi-directional
+            type: enum
+            profiles:
+            - xpath:
+              - bi-directional
+            validators:
+            - type: values
+              spec:
+                values:
+                - 'yes'
+                - 'no'
+            spec:
+              default: 'no'
+              values:
+              - value: 'yes'
+              - value: 'no'
+            description: allow reverse translation from translated address to original
+              address
+            required: false
+          - name: translated-address
+            type: string
+            profiles:
+            - xpath:
+              - translated-address
+            validators: []
+            spec: {}
+            description: ''
+            required: false
+          variants: []
+        description: static IP translation via IP shifting
+        required: false
+    description: ''
+    required: false
+  - name: tag
+    type: list
+    profiles:
+    - xpath:
+      - tag
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: target
+    type: object
+    profiles:
+    - xpath:
+      - target
+    validators: []
+    spec:
+      params:
+      - name: devices
+        type: list
+        profiles:
+        - xpath:
+          - devices
+          - entry
+          type: entry
+        validators: []
+        spec:
+          type: object
+          items:
+            type: object
+            spec:
+              params:
+              - name: vsys
+                type: list
+                profiles:
+                - xpath:
+                  - vsys
+                  - entry
+                  type: entry
+                validators: []
+                spec:
+                  type: object
+                  items:
+                    type: object
+                    spec:
+                      params: []
+                      variants: []
+                description: ''
+                required: false
+              variants: []
+        description: ''
+        required: false
+      - name: negate
+        type: bool
+        profiles:
+        - xpath:
+          - negate
+        validators: []
+        spec: {}
+        description: Target to all but these specified devices and tags
+        required: false
+      - name: tags
+        type: list
+        profiles:
+        - xpath:
+          - tags
+          type: member
+        validators: []
+        spec:
+          type: string
+          items:
+            type: string
+        description: ''
+        required: false
+      variants: []
+    description: Target devices
+    required: false
+  - name: to
+    type: list
+    profiles:
+    - xpath:
+      - to
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+    codegen_overrides:
+      terraform:
+        name: destination_zone
+  - name: to-interface
+    type: string
+    profiles:
+    - xpath:
+      - to-interface
+    validators: []
+    spec:
+      default: any
+    description: Egress interface from route lookup
+    required: false
+  - name: uuid
+    type: string
+    profiles:
+    - xpath:
+      - uuid
+    validators:
+    - type: regexp
+      spec:
+        expr: '[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}'
+    - type: length
+      spec:
+        min: 36
+        max: 36
+    description: Entry UUID value
+    required: false
+    codegen_overrides:
+      terraform:
+        computed: true
+  variants:
+  - name: destination-translation
+    type: object
+    profiles:
+    - xpath:
+      - destination-translation
+    validators: []
+    spec:
+      params:
+      - name: translated-address
+        type: string
+        profiles:
+        - xpath:
+          - translated-address
+        validators: []
+        spec: {}
+        description: ''
+        required: false
+      - name: translated-port
+        type: int64
+        profiles:
+        - xpath:
+          - translated-port
+        validators:
+        - type: length
+          spec:
+            min: 1
+            max: 65535
+        spec: {}
+        description: ''
+        required: false
+      - name: dns-rewrite
+        type: object
+        profiles:
+        - xpath:
+          - dns-rewrite
+        validators: []
+        spec:
+          params:
+          - name: direction
+            type: enum
+            profiles:
+            - xpath:
+              - direction
+            validators:
+            - type: values
+              spec:
+                values:
+                - reverse
+                - forward
+            spec:
+              default: reverse
+              values:
+              - value: reverse
+              - value: forward
+            description: Select direction to apply DNS rewrite
+            required: false
+          variants: []
+        description: ''
+        required: false
+      variants: []
+    description: ''
+    required: false
+    codegen_overrides:
+      terraform:
+        variant_check: ConflictsWith
+  - name: dynamic-destination-translation
+    type: object
+    profiles:
+    - xpath:
+      - dynamic-destination-translation
+    validators: []
+    spec:
+      params:
+      - name: distribution
+        type: enum
+        profiles:
+        - xpath:
+          - distribution
+        validators:
+        - type: values
+          spec:
+            values:
+            - round-robin
+            - source-ip-hash
+            - ip-modulo
+            - ip-hash
+            - least-sessions
+        spec:
+          default: round-robin
+          values:
+          - value: round-robin
+          - value: source-ip-hash
+          - value: ip-modulo
+          - value: ip-hash
+          - value: least-sessions
+        description: Distribution algorithm for destination address pool
+        required: false
+      - name: translated-address
+        type: string
+        profiles:
+        - xpath:
+          - translated-address
+        validators: []
+        spec: {}
+        description: ''
+        required: false
+      - name: translated-port
+        type: int64
+        profiles:
+        - xpath:
+          - translated-port
+        validators:
+        - type: length
+          spec:
+            min: 1
+            max: 65535
+        spec: {}
+        description: ''
+        required: false
+      variants: []
+    description: ''
+    required: false
+    codegen_overrides:
+      terraform:
+        variant_check: ConflictsWith

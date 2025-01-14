@@ -1,259 +1,438 @@
-name: "NTP"
+name: NTP
 terraform_provider_config:
-  suffix: "ntp_settings"
+  description: NTP configuration
+  skip_resource: false
+  skip_datasource: false
+  resource_type: config
+  resource_variants: []
+  suffix: ntp_settings
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
 go_sdk_config:
+  skip: false
   package:
-    - "device"
-    - "services"
-    - "ntp"
+  - device
+  - services
+  - ntp
+xpath_suffix: []
 locations:
-  - name: "system"
-    description: "Located in a system settings."
-    devices:
-      - panorama
-      - ngfw
-    xpath:
-      path:
-        - "config"
-        - "devices"
-        - "$ngfw_device"
-        - "deviceconfig"
-        - "system"
-      vars:
-        - name: "ngfw_device"
-          description: "The NGFW device."
-          default: "localhost.localdomain"
-  - name: "template"
-    description: "Located in a specific template."
-    devices:
-      - panorama
-    xpath:
-      path:
-        - "config"
-        - "devices"
-        - "$panorama_device"
-        - "template"
-        - "$template"
-        - "config"
-        - "devices"
-        - "$ngfw_device"
-        - "deviceconfig"
-        - "system"
-      vars:
-        - name: "panorama_device"
-          description: "The panorama device."
-          default: "localhost.localdomain"
-        - name: "template"
-          description: "The template."
-          required: true
-        - name: "ngfw_device"
-          description: "The NGFW device."
-          default: "localhost.localdomain"
-  - name: "template-stack"
-    description: "Located in a specific template stack."
-    devices:
-      - panorama
-    xpath:
-      path:
-        - "config"
-        - "devices"
-        - "$panorama_device"
-        - "template-stack"
-        - "$template_stack"
-        - "config"
-        - "devices"
-        - "$ngfw_device"
-        - "deviceconfig"
-        - "system"
-      vars:
-        - name: "panorama_device"
-          description: "The panorama device."
-          default: "localhost.localdomain"
-        - name: "template_stack"
-          description: "The template stack."
-          required: true
-        - name: "ngfw_device"
-          description: "The NGFW device."
-          default: "localhost.localdomain"
-version: "10.1.0"
+- name: system
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - deviceconfig
+    - system
+    vars:
+    - name: ngfw_device
+      description: The NGFW device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a system settings.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    - deviceconfig
+    - system
+    vars:
+    - name: panorama_device
+      description: The panorama device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: The template.
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template.
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    - deviceconfig
+    - system
+    vars:
+    - name: panorama_device
+      description: The panorama device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack.
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack.
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries: []
+imports: []
 spec:
   params:
-    - name: ntp_servers
-      type: object
-      description: "NTP servers"
-      profiles:
-        - xpath: ["ntp-servers"]
-      spec:
-        params:
-          - name: primary_ntp_server
+  - name: ntp-servers
+    type: object
+    profiles:
+    - xpath:
+      - ntp-servers
+    validators: []
+    spec:
+      params:
+      - name: primary-ntp-server
+        type: object
+        profiles:
+        - xpath:
+          - primary-ntp-server
+        validators: []
+        spec:
+          params:
+          - name: authentication-type
             type: object
-            description: "Primary NTP Server Information"
             profiles:
-              - xpath: ["primary-ntp-server"]
+            - xpath:
+              - authentication-type
+            validators: []
             spec:
-              params:
-                - name: ntp_server_address
-                  type: string
-                  description: "NTP Server IP Address or Domain Name"
-                  profiles:
-                    - xpath: ["ntp-server-address"]
-                - name: authentication_type
-                  type: object
-                  description: "NTP Authentication"
-                  profiles:
-                    - xpath: ["authentication-type"]
-                  spec:
-                    variants:
-                      - name: none
-                        type: nil
-                        description: "No NTP Authentication"
-                        profiles:
-                          - xpath: ["none"]
-                      - name: symmetric_key
+              params: []
+              variants:
+              - name: autokey
+                type: object
+                profiles:
+                - xpath:
+                  - autokey
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Autokey Authentication
+                required: false
+              - name: none
+                type: object
+                profiles:
+                - xpath:
+                  - none
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: No NTP Authentication
+                required: false
+              - name: symmetric-key
+                type: object
+                profiles:
+                - xpath:
+                  - symmetric-key
+                validators: []
+                spec:
+                  params:
+                  - name: algorithm
+                    type: object
+                    profiles:
+                    - xpath:
+                      - algorithm
+                    validators: []
+                    spec:
+                      params: []
+                      variants:
+                      - name: md5
                         type: object
-                        description: "Symmetric Key Authentication"
                         profiles:
-                          - xpath: ["symmetric-key"]
+                        - xpath:
+                          - md5
+                        validators: []
                         spec:
                           params:
-                            - name: key_id
-                              description: "Symmetric Key Number"
-                              type: int64
-                              validators:
-                                - type: range
-                                  spec:
-                                    min: 1
-                                    max: 65534
-                              profiles:
-                                - xpath: ["key-id"]
-                          variants:
-                            - name: md5
-                              type: object
-                              profiles:
-                                - xpath: ["algorithm", "md5"]
+                          - name: authentication-key
+                            type: string
+                            profiles:
+                            - xpath:
+                              - authentication-key
+                            validators:
+                            - type: length
                               spec:
-                                params:
-                                  - name: authentication_key
-                                    type: string
-                                    description: "Symmetric Key MD5 String"
-                                    codegen_overrides:
-                                      terraform:
-                                        sensitive: true
-                                    hashing:
-                                      type: solo
-                                    validators:
-                                      - type: length
-                                        spec:
-                                          min: 6
-                                          max: 32
-                                    profiles:
-                                      - xpath: ["authentication-key"]
-                            - name: sha1
-                              type: object
-                              profiles:
-                                - xpath: ["algorithm", "sha1"]
-                              spec:
-                                params:
-                                  - name: authentication_key
-                                    type: string
-                                    description: "Symmetric Key SHA1 Hexadecimal"
-                                    codegen_overrides:
-                                      terraform:
-                                        sensitive: true
-                                    hashing:
-                                      type: solo
-                                    validators:
-                                      - type: length
-                                        spec:
-                                          min: 40
-                                          max: 40
-                                    profiles:
-                                      - xpath: ["authentication-key"]
-                      - name: autokey
-                        type: string
-                        description: "Autokey Authentication"
-                        profiles:
-                          - xpath: ["autokey"]
-          - name: secondary_ntp_server
-            type: object
-            description: "Secondary NTP Server Information"
-            profiles:
-              - xpath: ["secondary-ntp-server"]
-            spec:
-              params:
-                - name: ntp_server_address
-                  type: string
-                  description: "NTP Server IP Address or Domain Name"
-                  profiles:
-                    - xpath: ["ntp-server-address"]
-                - name: authentication_type
-                  type: object
-                  description: "NTP Authentication"
-                  profiles:
-                    - xpath: ["authentication-type"]
-                  spec:
-                    variants:
-                      - name: none
-                        type: nil
-                        description: "No NTP Authentication"
-                        profiles:
-                          - xpath: ["none"]
-                      - name: symmetric_key
+                                min: 6
+                                max: 32
+                            spec: {}
+                            description: Symmetric Key MD5 String
+                            required: false
+                            codegen_overrides:
+                              terraform:
+                                sensitive: true
+                            hashing:
+                              type: solo
+                          variants: []
+                        description: Symmetric Key Type MD5
+                        required: false
+                      - name: sha1
                         type: object
-                        description: "Symmetric Key Authentication"
                         profiles:
-                          - xpath: ["symmetric-key"]
+                        - xpath:
+                          - sha1
+                        validators: []
                         spec:
                           params:
-                            - name: key_id
-                              description: "Symmetric Key Number"
-                              type: int64
-                              validators:
-                                - type: range
-                                  spec:
-                                    min: 1
-                                    max: 65534
-                              profiles:
-                                - xpath: ["key-id"]
-                          variants:
-                            - name: md5
-                              type: object
-                              profiles:
-                                - xpath: ["algorithm", "md5"]
+                          - name: authentication-key
+                            type: string
+                            profiles:
+                            - xpath:
+                              - authentication-key
+                            validators:
+                            - type: length
                               spec:
-                                params:
-                                  - name: authentication_key
-                                    type: string
-                                    description: "Symmetric Key MD5 String"
-                                    hashing:
-                                      type: solo
-                                    validators:
-                                      - type: length
-                                        spec:
-                                          min: 6
-                                          max: 32
-                                    profiles:
-                                      - xpath: ["authentication-key"]
-                            - name: sha1
-                              type: object
-                              profiles:
-                                - xpath: ["algorithm", "sha1"]
-                              spec:
-                                params:
-                                  - name: authentication_key
-                                    type: string
-                                    description: "Symmetric Key SHA1 Hexadecimal"
-                                    hashing:
-                                      type: solo
-                                    validators:
-                                      - type: length
-                                        spec:
-                                          min: 40
-                                          max: 40
-                                    profiles:
-                                      - xpath: ["authentication-key"]
-                      - name: autokey
-                        type: string
-                        description: "Autokey Authentication"
+                                min: 40
+                                max: 40
+                            spec: {}
+                            description: Symmetric Key SHA1 Hexadecimal
+                            required: false
+                            codegen_overrides:
+                              terraform:
+                                sensitive: true
+                            hashing:
+                              type: solo
+                          variants: []
+                        description: Symmetric Key Type SHA1
+                        required: false
+                    description: Symmetric Key Algorith configuration
+                    required: false
+                  - name: key-id
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - key-id
+                    validators:
+                    - type: length
+                      spec:
+                        min: 1
+                        max: 65534
+                    spec: {}
+                    description: Symmetric Key Number
+                    required: false
+                    codegen_overrides:
+                      terraform:
+                        required: true
+                  variants: []
+                description: Symmetric Key Authentication
+                required: false
+            description: NTP Authentication
+            required: false
+            codegen_overrides:
+              terraform:
+                required: true
+          - name: ntp-server-address
+            type: string
+            profiles:
+            - xpath:
+              - ntp-server-address
+            validators:
+            - type: length
+              spec:
+                max: 63
+            spec: {}
+            description: NTP Server IP Address or Domain Name
+            required: false
+          variants: []
+        description: Primary NTP Server Information
+        required: false
+      - name: secondary-ntp-server
+        type: object
+        profiles:
+        - xpath:
+          - secondary-ntp-server
+        validators: []
+        spec:
+          params:
+          - name: authentication-type
+            type: object
+            profiles:
+            - xpath:
+              - authentication-type
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: autokey
+                type: object
+                profiles:
+                - xpath:
+                  - autokey
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Autokey Authentication
+                required: false
+              - name: none
+                type: object
+                profiles:
+                - xpath:
+                  - none
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: No NTP Authentication
+                required: false
+              - name: symmetric-key
+                type: object
+                profiles:
+                - xpath:
+                  - symmetric-key
+                validators: []
+                spec:
+                  params:
+                  - name: algorithm
+                    type: object
+                    profiles:
+                    - xpath:
+                      - algorithm
+                    validators: []
+                    spec:
+                      params: []
+                      variants:
+                      - name: md5
+                        type: object
                         profiles:
-                          - xpath: ["autokey"]
+                        - xpath:
+                          - md5
+                        validators: []
+                        spec:
+                          params:
+                          - name: authentication-key
+                            type: string
+                            profiles:
+                            - xpath:
+                              - authentication-key
+                            validators:
+                            - type: length
+                              spec:
+                                min: 6
+                                max: 32
+                            spec: {}
+                            description: Symmetric Key MD5 String
+                            required: false
+                            codegen_overrides:
+                              terraform:
+                                sensitive: true
+                            hashing:
+                              type: solo
+                          variants: []
+                        description: Symmetric Key Type MD5
+                        required: false
+                      - name: sha1
+                        type: object
+                        profiles:
+                        - xpath:
+                          - sha1
+                        validators: []
+                        spec:
+                          params:
+                          - name: authentication-key
+                            type: string
+                            profiles:
+                            - xpath:
+                              - authentication-key
+                            validators:
+                            - type: length
+                              spec:
+                                min: 40
+                                max: 40
+                            spec: {}
+                            description: Symmetric Key SHA1 Hexadecimal
+                            required: false
+                            codegen_overrides:
+                              terraform:
+                                sensitive: true
+                            hashing:
+                              type: solo
+                          variants: []
+                        description: Symmetric Key Type SHA1
+                        required: false
+                    description: Symmetric Key Algorith configuration
+                    required: false
+                  - name: key-id
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - key-id
+                    validators:
+                    - type: length
+                      spec:
+                        min: 1
+                        max: 65534
+                    spec: {}
+                    description: Symmetric Key Number
+                    required: false
+                    codegen_overrides:
+                      terraform:
+                        required: true
+                  variants: []
+                description: Symmetric Key Authentication
+                required: false
+            description: NTP Authentication
+            required: false
+          - name: ntp-server-address
+            type: string
+            profiles:
+            - xpath:
+              - ntp-server-address
+            validators:
+            - type: length
+              spec:
+                max: 63
+            spec: {}
+            description: NTP Server IP Address or Domain Name
+            required: false
+          variants: []
+        description: Secondary NTP Server Information
+        required: false
+      variants: []
+    description: NTP servers
+    required: false
+  variants: []

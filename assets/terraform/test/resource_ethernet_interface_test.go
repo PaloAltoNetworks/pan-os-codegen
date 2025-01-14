@@ -70,7 +70,7 @@ func makePanosEthernetInterface_Layer3(label string) string {
     variable "ip_addr_netmask" { type = string }
     variable "template_name" { type = string }
 
-    resource "panos_panorama_template" "acc_codegen_template" {
+    resource "panos_template" "acc_codegen_template" {
         name = "${var.template_name}-${var.name_suffix}"
 
         location = {
@@ -84,7 +84,7 @@ func makePanosEthernetInterface_Layer3(label string) string {
       location = {
         template = {
           vsys = "vsys1"
-          name = panos_panorama_template.acc_codegen_template.name
+          name = panos_template.acc_codegen_template.name
         }
       }
 
@@ -105,7 +105,7 @@ func makePanosEthernetInterface_Layer3(label string) string {
             {
               advertise = {
                 enable         = true
-                valid_lifetime = "10000"
+                valid_lifetime = "1000000"
               },
               name                = "::1",
               enable_on_interface = true
@@ -141,4 +141,3 @@ func testAccCheckPanosEthernetInterfaceDestroy(entryName, templateName string) f
 		return nil
 	}
 }
-

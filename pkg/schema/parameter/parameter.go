@@ -42,10 +42,21 @@ type EnumSpecValue struct {
 	Const string `yaml:"const"`
 }
 
+type VariantCheckType string
+
+const (
+	VariantCheckConflictsWith VariantCheckType = "ConflictsWith"
+	VariantCheckExactlyOneOf  VariantCheckType = "ExactlyOneOf"
+)
+
 type CodegenOverridesTerraform struct {
-	Private   bool `yaml:"private"`
-	Sensitive bool `yaml:"sensitive"`
-	Computed  bool `yaml:"computed"`
+	Name         *string           `yaml:"name"`
+	Type         *string           `yaml:"type"`
+	Private      *bool             `yaml:"private"`
+	Sensitive    *bool             `yaml:"sensitive"`
+	Computed     *bool             `yaml:"computed"`
+	Required     *bool             `yaml:"required"`
+	VariantCheck *VariantCheckType `yaml:"variant_check"`
 }
 
 type CodegenOverrides struct {
@@ -131,7 +142,7 @@ func (p *Parameter) UnmarshalYAML(n *yaml.Node) error {
 		p.Spec = new(EnumSpec)
 	case "nil":
 		p.Spec = new(NilSpec)
-	case "string", "bool", "int64":
+	case "string", "bool", "int64", "float64":
 		p.Spec = new(SimpleSpec)
 	default:
 		return errors.NewSchemaError(fmt.Sprintf("unsupported parameter type: '%s'", p.Type))
