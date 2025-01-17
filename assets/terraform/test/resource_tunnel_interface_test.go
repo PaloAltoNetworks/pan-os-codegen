@@ -33,7 +33,7 @@ func TestAccTunnelInterface(t *testing.T) {
 		),
 		Steps: []resource.TestStep{
 			{
-				Config: loopbackInterfaceResource1,
+				Config: tunnelInterfaceResource1,
 				ConfigVariables: map[string]config.Variable{
 					"prefix":         config.StringVariable(prefix),
 					"interface_name": config.StringVariable(interfaceName),
@@ -94,7 +94,7 @@ func TestAccTunnelInterface(t *testing.T) {
 	})
 }
 
-const loopbackInterfaceResource1 = `
+const tunnelInterfaceResource1 = `
 variable "prefix" { type = string }
 variable "interface_name" { type = string }
 
