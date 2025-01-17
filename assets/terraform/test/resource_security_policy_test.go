@@ -426,8 +426,8 @@ func TestAccSecurityPolicyOrdering(t *testing.T) {
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
 
-	rulesInitial := []string{"rule-1", "rule-2", "rule-3"}
-	rulesReordered := []string{"rule-2", "rule-1", "rule-3"}
+	rulesInitial := []string{"rule-1", "rule-2", "rule-3", "rule-4", "rule-5"}
+	rulesReordered := []string{"rule-2", "rule-1", "rule-3", "rule-4", "rule-5"}
 
 	prefixed := func(name string) string {
 		return fmt.Sprintf("%s-%s", prefix, name)
@@ -481,6 +481,8 @@ func TestAccSecurityPolicyOrdering(t *testing.T) {
 					stateExpectedRuleName(0, "rule-1"),
 					stateExpectedRuleName(1, "rule-2"),
 					stateExpectedRuleName(2, "rule-3"),
+					stateExpectedRuleName(3, "rule-4"),
+					stateExpectedRuleName(4, "rule-5"),
 					ExpectServerSecurityRulesCount(prefix, sdkLocation, len(rulesInitial)),
 					ExpectServerSecurityRulesOrder(prefix, sdkLocation, rulesInitial),
 				},
@@ -508,12 +510,16 @@ func TestAccSecurityPolicyOrdering(t *testing.T) {
 						planExpectedRuleName(0, "rule-2"),
 						planExpectedRuleName(1, "rule-1"),
 						planExpectedRuleName(2, "rule-3"),
+						planExpectedRuleName(3, "rule-4"),
+						planExpectedRuleName(4, "rule-5"),
 					},
 				},
 				ConfigStateChecks: []statecheck.StateCheck{
 					stateExpectedRuleName(0, "rule-2"),
 					stateExpectedRuleName(1, "rule-1"),
 					stateExpectedRuleName(2, "rule-3"),
+					stateExpectedRuleName(3, "rule-4"),
+					stateExpectedRuleName(4, "rule-5"),
 					ExpectServerSecurityRulesOrder(prefix, sdkLocation, rulesReordered),
 				},
 			},

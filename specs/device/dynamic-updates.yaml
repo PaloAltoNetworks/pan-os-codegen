@@ -1,0 +1,1678 @@
+name: NTP
+terraform_provider_config:
+  description: Dynamic Updates Schedule
+  skip_resource: false
+  skip_datasource: false
+  resource_type: config
+  resource_variants: []
+  suffix: dynamic_updates
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - device
+  - dynamicupdates
+xpath_suffix: []
+locations:
+- name: system
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - deviceconfig
+    - system
+    vars:
+    - name: ngfw_device
+      description: The NGFW device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a system settings.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    - deviceconfig
+    - system
+    vars:
+    - name: panorama_device
+      description: The panorama device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: The template.
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template.
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    - deviceconfig
+    - system
+    vars:
+    - name: panorama_device
+      description: The panorama device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack.
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack.
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries: []
+imports: []
+spec:
+  params:
+  - name: update-schedule
+    type: object
+    profiles:
+    - xpath:
+      - update-schedule
+    validators: []
+    spec:
+      params:
+      - name: anti-virus
+        type: object
+        profiles:
+        - xpath:
+          - anti-virus
+        validators: []
+        spec:
+          params:
+          - name: recurring
+            type: object
+            profiles:
+            - xpath:
+              - recurring
+            validators: []
+            spec:
+              params:
+              - name: sync-to-peer
+                type: bool
+                profiles:
+                - xpath:
+                  - sync-to-peer
+                validators: []
+                spec: {}
+                description: Synchronize content with HA peer after download/install
+                required: false
+              - name: threshold
+                type: int64
+                profiles:
+                - xpath:
+                  - threshold
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 336
+                spec: {}
+                description: ignore if release date is new (hours)
+                required: false
+              variants:
+              - name: daily
+                type: object
+                profiles:
+                - xpath:
+                  - daily
+                validators: []
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - download-only
+                        - download-and-install
+                    spec:
+                      values:
+                      - value: download-only
+                      - value: download-and-install
+                    description: ''
+                    required: false
+                  - name: at
+                    type: string
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 5
+                        max: 5
+                    spec: {}
+                    description: Time specification hh:mm (e.g. 20:10)
+                    required: false
+                  variants: []
+                description: Everyday
+                required: false
+              - name: hourly
+                type: object
+                profiles:
+                - xpath:
+                  - hourly
+                validators: []
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - download-only
+                        - download-and-install
+                    spec:
+                      values:
+                      - value: download-only
+                      - value: download-and-install
+                    description: ''
+                    required: false
+                  - name: at
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 0
+                        max: 59
+                    spec: {}
+                    description: Minutes past hour
+                    required: false
+                  variants: []
+                description: Every hour
+                required: false
+              - name: none
+                type: object
+                profiles:
+                - xpath:
+                  - none
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: No schedule
+                required: false
+              - name: weekly
+                type: object
+                profiles:
+                - xpath:
+                  - weekly
+                validators: []
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - download-only
+                        - download-and-install
+                    spec:
+                      values:
+                      - value: download-only
+                      - value: download-and-install
+                    description: ''
+                    required: false
+                  - name: at
+                    type: string
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 5
+                        max: 5
+                    spec: {}
+                    description: Time specification hh:mm (e.g. 20:10)
+                    required: false
+                  - name: day-of-week
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - day-of-week
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - sunday
+                        - monday
+                        - tuesday
+                        - wednesday
+                        - thursday
+                        - friday
+                        - saturday
+                    spec:
+                      values:
+                      - value: sunday
+                      - value: monday
+                      - value: tuesday
+                      - value: wednesday
+                      - value: thursday
+                      - value: friday
+                      - value: saturday
+                    description: ''
+                    required: false
+                  variants: []
+                description: Once a week
+                required: false
+            description: ''
+            required: false
+          variants: []
+        description: Anti virus database
+        required: false
+      - name: app-profile
+        type: object
+        profiles:
+        - xpath:
+          - app-profile
+        validators: []
+        spec:
+          params:
+          - name: recurring
+            type: object
+            profiles:
+            - xpath:
+              - recurring
+            validators: []
+            spec:
+              params:
+              - name: sync-to-peer
+                type: bool
+                profiles:
+                - xpath:
+                  - sync-to-peer
+                validators: []
+                spec: {}
+                description: Synchronize content with HA peer after download/install
+                required: false
+              - name: threshold
+                type: int64
+                profiles:
+                - xpath:
+                  - threshold
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 336
+                spec: {}
+                description: ignore if release date is new (hours)
+                required: false
+              variants:
+              - name: daily
+                type: object
+                profiles:
+                - xpath:
+                  - daily
+                validators: []
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - download-only
+                        - download-and-install
+                    spec:
+                      values:
+                      - value: download-only
+                      - value: download-and-install
+                    description: ''
+                    required: false
+                  - name: at
+                    type: string
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 5
+                        max: 5
+                    spec: {}
+                    description: Time specification hh:mm (e.g. 20:10)
+                    required: false
+                  variants: []
+                description: Everyday
+                required: false
+              - name: none
+                type: object
+                profiles:
+                - xpath:
+                  - none
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: No schedule
+                required: false
+              - name: weekly
+                type: object
+                profiles:
+                - xpath:
+                  - weekly
+                validators: []
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - download-only
+                        - download-and-install
+                    spec:
+                      values:
+                      - value: download-only
+                      - value: download-and-install
+                    description: ''
+                    required: false
+                  - name: at
+                    type: string
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 5
+                        max: 5
+                    spec: {}
+                    description: Time specification hh:mm (e.g. 20:10)
+                    required: false
+                  - name: day-of-week
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - day-of-week
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - sunday
+                        - monday
+                        - tuesday
+                        - wednesday
+                        - thursday
+                        - friday
+                        - saturday
+                    spec:
+                      values:
+                      - value: sunday
+                      - value: monday
+                      - value: tuesday
+                      - value: wednesday
+                      - value: thursday
+                      - value: friday
+                      - value: saturday
+                    description: ''
+                    required: false
+                  variants: []
+                description: Once a week
+                required: false
+            description: ''
+            required: false
+          variants: []
+        description: Application profile database
+        required: false
+      - name: global-protect-clientless-vpn
+        type: object
+        profiles:
+        - xpath:
+          - global-protect-clientless-vpn
+        validators: []
+        spec:
+          params:
+          - name: recurring
+            type: object
+            profiles:
+            - xpath:
+              - recurring
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: daily
+                type: object
+                profiles:
+                - xpath:
+                  - daily
+                validators: []
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - download-and-install
+                        - download-only
+                    spec:
+                      values:
+                      - value: download-and-install
+                      - value: download-only
+                    description: ''
+                    required: false
+                  - name: at
+                    type: string
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 5
+                        max: 5
+                    spec: {}
+                    description: Time specification hh:mm (e.g. 20:10)
+                    required: false
+                  variants: []
+                description: Everyday
+                required: false
+              - name: hourly
+                type: object
+                profiles:
+                - xpath:
+                  - hourly
+                validators: []
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - download-and-install
+                        - download-only
+                    spec:
+                      values:
+                      - value: download-and-install
+                      - value: download-only
+                    description: ''
+                    required: false
+                  - name: at
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 0
+                        max: 59
+                    spec: {}
+                    description: Minutes past hour
+                    required: false
+                  variants: []
+                description: Every hour
+                required: false
+              - name: none
+                type: object
+                profiles:
+                - xpath:
+                  - none
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: No schedule
+                required: false
+              - name: weekly
+                type: object
+                profiles:
+                - xpath:
+                  - weekly
+                validators: []
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - download-and-install
+                        - download-only
+                    spec:
+                      values:
+                      - value: download-and-install
+                      - value: download-only
+                    description: ''
+                    required: false
+                  - name: at
+                    type: string
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 5
+                        max: 5
+                    spec: {}
+                    description: Time specification hh:mm (e.g. 20:10)
+                    required: false
+                  - name: day-of-week
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - day-of-week
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - sunday
+                        - monday
+                        - tuesday
+                        - wednesday
+                        - thursday
+                        - friday
+                        - saturday
+                    spec:
+                      values:
+                      - value: sunday
+                      - value: monday
+                      - value: tuesday
+                      - value: wednesday
+                      - value: thursday
+                      - value: friday
+                      - value: saturday
+                    description: ''
+                    required: false
+                  variants: []
+                description: Once a week
+                required: false
+            description: ''
+            required: false
+          variants: []
+        description: GlobalProtect
+        required: false
+      - name: global-protect-datafile
+        type: object
+        profiles:
+        - xpath:
+          - global-protect-datafile
+        validators: []
+        spec:
+          params:
+          - name: recurring
+            type: object
+            profiles:
+            - xpath:
+              - recurring
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: daily
+                type: object
+                profiles:
+                - xpath:
+                  - daily
+                validators: []
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - download-and-install
+                    spec:
+                      values:
+                      - value: download-and-install
+                    description: ''
+                    required: false
+                  - name: at
+                    type: string
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 5
+                        max: 5
+                    spec: {}
+                    description: Time specification hh:mm (e.g. 20:10)
+                    required: false
+                  variants: []
+                description: Everyday
+                required: false
+              - name: hourly
+                type: object
+                profiles:
+                - xpath:
+                  - hourly
+                validators: []
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - download-and-install
+                        - download-only
+                    spec:
+                      values:
+                      - value: download-and-install
+                      - value: download-only
+                    description: ''
+                    required: false
+                  - name: at
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 0
+                        max: 59
+                    spec: {}
+                    description: Minutes past hour
+                    required: false
+                  variants: []
+                description: Every hour
+                required: false
+              - name: none
+                type: object
+                profiles:
+                - xpath:
+                  - none
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: No schedule
+                required: false
+              - name: weekly
+                type: object
+                profiles:
+                - xpath:
+                  - weekly
+                validators: []
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - download-and-install
+                        - download-only
+                    spec:
+                      values:
+                      - value: download-and-install
+                      - value: download-only
+                    description: ''
+                    required: false
+                  - name: at
+                    type: string
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 5
+                        max: 5
+                    spec: {}
+                    description: Time specification hh:mm (e.g. 20:10)
+                    required: false
+                  - name: day-of-week
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - day-of-week
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - sunday
+                        - monday
+                        - tuesday
+                        - wednesday
+                        - thursday
+                        - friday
+                        - saturday
+                    spec:
+                      values:
+                      - value: sunday
+                      - value: monday
+                      - value: tuesday
+                      - value: wednesday
+                      - value: thursday
+                      - value: friday
+                      - value: saturday
+                    description: ''
+                    required: false
+                  variants: []
+                description: Once a week
+                required: false
+            description: ''
+            required: false
+          variants: []
+        description: GlobalProtect datafile
+        required: false
+      - name: statistics-service
+        type: object
+        profiles:
+        - xpath:
+          - statistics-service
+        validators: []
+        spec:
+          params:
+          - name: application-reports
+            type: bool
+            profiles:
+            - xpath:
+              - application-reports
+            validators: []
+            spec: {}
+            description: Application Reports
+            required: false
+          - name: file-identification-reports
+            type: bool
+            profiles:
+            - xpath:
+              - file-identification-reports
+            validators: []
+            spec: {}
+            description: File Type Identification Reports
+            required: false
+          - name: health-performance-reports
+            type: bool
+            profiles:
+            - xpath:
+              - health-performance-reports
+            validators: []
+            spec: {}
+            description: Health and Performance Reports
+            required: false
+          - name: passive-dns-monitoring
+            type: bool
+            profiles:
+            - xpath:
+              - passive-dns-monitoring
+            validators: []
+            spec: {}
+            description: Passive DNS Monitor
+            required: false
+          - name: threat-prevention-information
+            type: bool
+            profiles:
+            - xpath:
+              - threat-prevention-information
+            validators: []
+            spec: {}
+            description: Threat Prevention Information
+            required: false
+          - name: threat-prevention-pcap
+            type: bool
+            profiles:
+            - xpath:
+              - threat-prevention-pcap
+            validators: []
+            spec: {}
+            description: Enable sending packet-captures with threat prevention information
+            required: false
+          - name: threat-prevention-reports
+            type: bool
+            profiles:
+            - xpath:
+              - threat-prevention-reports
+            validators: []
+            spec: {}
+            description: Threat Reports
+            required: false
+          - name: url-reports
+            type: bool
+            profiles:
+            - xpath:
+              - url-reports
+            validators: []
+            spec: {}
+            description: URL Reports
+            required: false
+          variants: []
+        description: Participate in Anonymous Statistics Upload Service
+        required: false
+      - name: threats
+        type: object
+        profiles:
+        - xpath:
+          - threats
+        validators: []
+        spec:
+          params:
+          - name: recurring
+            type: object
+            profiles:
+            - xpath:
+              - recurring
+            validators: []
+            spec:
+              params:
+              - name: new-app-threshold
+                type: int64
+                profiles:
+                - xpath:
+                  - new-app-threshold
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 336
+                spec: {}
+                description: ignore new apps if release date is new (hours)
+                required: false
+              - name: sync-to-peer
+                type: bool
+                profiles:
+                - xpath:
+                  - sync-to-peer
+                validators: []
+                spec: {}
+                description: Synchronize content with HA peer after download/install
+                required: false
+              - name: threshold
+                type: int64
+                profiles:
+                - xpath:
+                  - threshold
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 336
+                spec: {}
+                description: ignore if release date is new (hours)
+                required: false
+              variants:
+              - name: daily
+                type: object
+                profiles:
+                - xpath:
+                  - daily
+                validators: []
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - download-only
+                        - download-and-install
+                    spec:
+                      values:
+                      - value: download-only
+                      - value: download-and-install
+                    description: ''
+                    required: false
+                  - name: at
+                    type: string
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 5
+                        max: 5
+                    spec: {}
+                    description: Time specification hh:mm (e.g. 20:10)
+                    required: false
+                  - name: disable-new-content
+                    type: bool
+                    profiles:
+                    - xpath:
+                      - disable-new-content
+                    validators: []
+                    spec: {}
+                    description: Disable new applications after installation
+                    required: false
+                  variants: []
+                description: Everyday
+                required: false
+              - name: every-30-mins
+                type: object
+                profiles:
+                - xpath:
+                  - every-30-mins
+                validators: []
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - download-only
+                        - download-and-install
+                    spec:
+                      values:
+                      - value: download-only
+                      - value: download-and-install
+                    description: ''
+                    required: false
+                  - name: at
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 0
+                        max: 29
+                    spec: {}
+                    description: Minutes past half-hour
+                    required: false
+                  - name: disable-new-content
+                    type: bool
+                    profiles:
+                    - xpath:
+                      - disable-new-content
+                    validators: []
+                    spec: {}
+                    description: Disable new applications after installation
+                    required: false
+                  variants: []
+                description: Every 0, 30 minutes past the hour
+                required: false
+              - name: hourly
+                type: object
+                profiles:
+                - xpath:
+                  - hourly
+                validators: []
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - download-only
+                        - download-and-install
+                    spec:
+                      values:
+                      - value: download-only
+                      - value: download-and-install
+                    description: ''
+                    required: false
+                  - name: at
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 0
+                        max: 59
+                    spec: {}
+                    description: Minutes past hour
+                    required: false
+                  - name: disable-new-content
+                    type: bool
+                    profiles:
+                    - xpath:
+                      - disable-new-content
+                    validators: []
+                    spec: {}
+                    description: Disable new applications after installation
+                    required: false
+                  variants: []
+                description: Every hour
+                required: false
+              - name: none
+                type: object
+                profiles:
+                - xpath:
+                  - none
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: No schedule
+                required: false
+              - name: weekly
+                type: object
+                profiles:
+                - xpath:
+                  - weekly
+                validators: []
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - download-only
+                        - download-and-install
+                    spec:
+                      values:
+                      - value: download-only
+                      - value: download-and-install
+                    description: ''
+                    required: false
+                  - name: at
+                    type: string
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 5
+                        max: 5
+                    spec: {}
+                    description: Time specification hh:mm (e.g. 20:10)
+                    required: false
+                  - name: day-of-week
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - day-of-week
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - sunday
+                        - monday
+                        - tuesday
+                        - wednesday
+                        - thursday
+                        - friday
+                        - saturday
+                    spec:
+                      values:
+                      - value: sunday
+                      - value: monday
+                      - value: tuesday
+                      - value: wednesday
+                      - value: thursday
+                      - value: friday
+                      - value: saturday
+                    description: ''
+                    required: false
+                  - name: disable-new-content
+                    type: bool
+                    profiles:
+                    - xpath:
+                      - disable-new-content
+                    validators: []
+                    spec: {}
+                    description: Disable new applications after installation
+                    required: false
+                  variants: []
+                description: Once a week
+                required: false
+            description: ''
+            required: false
+          variants: []
+        description: Threat detection database
+        required: false
+      - name: wf-private
+        type: object
+        profiles:
+        - xpath:
+          - wf-private
+        validators: []
+        spec:
+          params:
+          - name: recurring
+            type: object
+            profiles:
+            - xpath:
+              - recurring
+            validators: []
+            spec:
+              params:
+              - name: sync-to-peer
+                type: bool
+                profiles:
+                - xpath:
+                  - sync-to-peer
+                validators: []
+                spec: {}
+                description: Synchronize content with HA peer after download/install
+                required: false
+              variants:
+              - name: every-15-mins
+                type: object
+                profiles:
+                - xpath:
+                  - every-15-mins
+                validators: []
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - download-only
+                        - download-and-install
+                    spec:
+                      values:
+                      - value: download-only
+                      - value: download-and-install
+                    description: ''
+                    required: false
+                  - name: at
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 0
+                        max: 14
+                    spec: {}
+                    description: Minutes Past Quarter-Hour
+                    required: false
+                  variants: []
+                description: Every 15 minutes
+                required: false
+              - name: every-30-mins
+                type: object
+                profiles:
+                - xpath:
+                  - every-30-mins
+                validators: []
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - download-only
+                        - download-and-install
+                    spec:
+                      values:
+                      - value: download-only
+                      - value: download-and-install
+                    description: ''
+                    required: false
+                  - name: at
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 0
+                        max: 29
+                    spec: {}
+                    description: Minutes Past Half-Hour
+                    required: false
+                  variants: []
+                description: Every 30 minutes
+                required: false
+              - name: every-5-mins
+                type: object
+                profiles:
+                - xpath:
+                  - every-5-mins
+                validators: []
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - download-only
+                        - download-and-install
+                    spec:
+                      values:
+                      - value: download-only
+                      - value: download-and-install
+                    description: ''
+                    required: false
+                  - name: at
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 0
+                        max: 4
+                    spec: {}
+                    description: Minutes Past five minutes
+                    required: false
+                  variants: []
+                description: Every 5 minutes
+                required: false
+              - name: every-hour
+                type: object
+                profiles:
+                - xpath:
+                  - every-hour
+                validators: []
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - download-only
+                        - download-and-install
+                    spec:
+                      values:
+                      - value: download-only
+                      - value: download-and-install
+                    description: ''
+                    required: false
+                  - name: at
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 0
+                        max: 59
+                    spec: {}
+                    description: Minutes Past Hour
+                    required: false
+                  variants: []
+                description: Every hour
+                required: false
+              - name: none
+                type: object
+                profiles:
+                - xpath:
+                  - none
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: No schedule
+                required: false
+            description: ''
+            required: false
+          variants: []
+        description: Wf-Private cloud database
+        required: false
+      - name: wildfire
+        type: object
+        profiles:
+        - xpath:
+          - wildfire
+        validators: []
+        spec:
+          params:
+          - name: recurring
+            type: object
+            profiles:
+            - xpath:
+              - recurring
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: every-15-mins
+                type: object
+                profiles:
+                - xpath:
+                  - every-15-mins
+                validators: []
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - download-only
+                        - download-and-install
+                    spec:
+                      values:
+                      - value: download-only
+                      - value: download-and-install
+                    description: ''
+                    required: false
+                  - name: at
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 0
+                        max: 14
+                    spec: {}
+                    description: Minutes past quarter-hour
+                    required: false
+                  - name: sync-to-peer
+                    type: bool
+                    profiles:
+                    - xpath:
+                      - sync-to-peer
+                    validators: []
+                    spec: {}
+                    description: Synchronize content with HA peer after download/install
+                    required: false
+                  variants: []
+                description: Every 0, 15, 30, 45 minutes past the hour
+                required: false
+              - name: every-30-mins
+                type: object
+                profiles:
+                - xpath:
+                  - every-30-mins
+                validators: []
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - download-only
+                        - download-and-install
+                    spec:
+                      values:
+                      - value: download-only
+                      - value: download-and-install
+                    description: ''
+                    required: false
+                  - name: at
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 0
+                        max: 29
+                    spec: {}
+                    description: Minutes past half-hour
+                    required: false
+                  - name: sync-to-peer
+                    type: bool
+                    profiles:
+                    - xpath:
+                      - sync-to-peer
+                    validators: []
+                    spec: {}
+                    description: Synchronize content with HA peer after download/install
+                    required: false
+                  variants: []
+                description: Every 0, 30 minutes past the hour
+                required: false
+              - name: every-hour
+                type: object
+                profiles:
+                - xpath:
+                  - every-hour
+                validators: []
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - download-only
+                        - download-and-install
+                    spec:
+                      values:
+                      - value: download-only
+                      - value: download-and-install
+                    description: ''
+                    required: false
+                  - name: at
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - at
+                    validators:
+                    - type: length
+                      spec:
+                        min: 0
+                        max: 59
+                    spec: {}
+                    description: Minutes past hour
+                    required: false
+                  - name: sync-to-peer
+                    type: bool
+                    profiles:
+                    - xpath:
+                      - sync-to-peer
+                    validators: []
+                    spec: {}
+                    description: Synchronize content with HA peer after download/install
+                    required: false
+                  variants: []
+                description: Every 0 minutes past the hour
+                required: false
+              - name: every-min
+                type: object
+                profiles:
+                - xpath:
+                  - every-min
+                validators: []
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - download-only
+                        - download-and-install
+                    spec:
+                      values:
+                      - value: download-only
+                      - value: download-and-install
+                    description: ''
+                    required: false
+                  - name: sync-to-peer
+                    type: bool
+                    profiles:
+                    - xpath:
+                      - sync-to-peer
+                    validators: []
+                    spec: {}
+                    description: Synchronize content with HA peer after download/install
+                    required: false
+                  variants: []
+                description: Every minute
+                required: false
+              - name: none
+                type: object
+                profiles:
+                - xpath:
+                  - none
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: No schedule
+                required: false
+              - name: real-time
+                type: object
+                profiles:
+                - xpath:
+                  - real-time
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Real-time Streaming
+                required: false
+            description: ''
+            required: false
+          variants: []
+        description: WildFire database
+        required: false
+      variants: []
+    description: ''
+    required: false
+  variants: []
