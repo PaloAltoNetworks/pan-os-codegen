@@ -1,11 +1,11 @@
-name: file-blocking-profile
+name: security-profile-file-blocking
 terraform_provider_config:
   description: File Blocking Profile
   skip_resource: false
   skip_datasource: false
   resource_type: entry
   resource_variants: []
-  suffix: file_blocking_profile
+  suffix: security_profile_file_blocking
   plural_suffix: ''
   plural_name: ''
   plural_description: ''
@@ -25,7 +25,7 @@ locations:
     - config
     - shared
     vars: []
-  description: Location in Shared Panorama
+  description: Panorama shared object
   devices:
   - panorama
   - ngfw
@@ -64,6 +64,39 @@ locations:
   validators: []
   required: false
   read_only: false
+- name: vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: ngfw_device
+      description: The NGFW device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The Virtual System name
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys name cannot be "shared". Use the "shared" location instead
+      type: entry
+  description: Located in a specific Virtual System
+  devices:
+  - ngfw
+  - panorama
+  validators: []
+  required: false
+  read_only: false
 entries:
 - name: name
   description: ''
@@ -82,7 +115,7 @@ spec:
         min: 0
         max: 255
     spec: {}
-    description: ''
+    description: Profile description.
     required: false
   - name: disable-override
     type: enum
@@ -100,7 +133,7 @@ spec:
       values:
       - value: 'yes'
       - value: 'no'
-    description: disable object override in child device groups
+    description: Disable object override in child device groups.
     required: false
   - name: rules
     type: list
@@ -127,8 +160,11 @@ spec:
               type: string
               items:
                 type: string
-            description: ''
+            description: List of applications.
             required: false
+            codegen_overrides:
+              terraform:
+                name: applications
           - name: file-type
             type: list
             profiles:
@@ -140,8 +176,11 @@ spec:
               type: string
               items:
                 type: string
-            description: ''
+            description: List of file types.
             required: false
+            codegen_overrides:
+              terraform:
+                name: file-types
           - name: direction
             type: enum
             profiles:
@@ -159,7 +198,7 @@ spec:
               - value: upload
               - value: download
               - value: both
-            description: ''
+            description: File transfer direction.
             required: false
           - name: action
             type: enum
@@ -179,9 +218,9 @@ spec:
               - value: alert
               - value: block
               - value: continue
-            description: ''
+            description: Action to take on matching files.
             required: false
           variants: []
-    description: ''
+    description: List of rules.
     required: false
   variants: []
