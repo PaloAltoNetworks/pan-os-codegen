@@ -62,9 +62,10 @@ func NewTerraformNameProvider(spec *Normalization, resourceTyp ResourceType) *Te
 type TerraformSpecFlags uint
 
 const (
-	TerraformSpecDatasource = 0x01
-	TerraformSpecResource   = 0x02
-	TerraformSpecImportable = 0x04
+	TerraformSpecDatasource        = 0x01
+	TerraformSpecResource          = 0x02
+	TerraformSpecEphemeralResource = 0x04
+	TerraformSpecImportable        = 0x08
 )
 
 type TerraformProviderSpecMetadata struct {
@@ -75,11 +76,12 @@ type TerraformProviderSpecMetadata struct {
 
 // TerraformProviderFile is a Terraform provider file handler.
 type TerraformProviderFile struct {
-	Filename      string
-	Directory     []string
-	ImportManager *imports.Manager
-	DataSources   []string
-	Resources     []string
-	SpecMetadata  map[string]TerraformProviderSpecMetadata
-	Code          *strings.Builder
+	Filename           string
+	Directory          []string
+	ImportManager      *imports.Manager
+	DataSources        []string
+	Resources          []string
+	EphemeralResources []string
+	SpecMetadata       map[string]TerraformProviderSpecMetadata
+	Code               *strings.Builder
 }

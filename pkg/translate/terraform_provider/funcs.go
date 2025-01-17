@@ -639,6 +639,10 @@ func RenderLocationStructs(resourceTyp properties.ResourceType, names *NameProvi
 
 	var locations []locationCtx
 
+	if len(spec.Locations) == 0 {
+		return "", nil
+	}
+
 	// Create the top location structure that references other locations
 	topLocation := locationCtx{
 		StructName: fmt.Sprintf("%sLocation", names.StructName),
@@ -824,6 +828,10 @@ type schemaCtx struct {
 
 func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalization, manager *imports.Manager) (string, error) {
 	var attributes []attributeCtx
+
+	if len(spec.Locations) == 0 {
+		return "", nil
+	}
 
 	var locations []string
 	for _, loc := range spec.Locations {
@@ -1328,18 +1336,20 @@ func createSchemaSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 	var schemas []schemaCtx
 	var attributes []attributeCtx
 
-	location := &properties.NameVariant{
-		Underscore:     naming.Underscore("", "location", ""),
-		CamelCase:      naming.CamelCase("", "location", "", true),
-		LowerCamelCase: naming.CamelCase("", "location", "", false),
-	}
+	if len(spec.Locations) > 0 {
+		location := &properties.NameVariant{
+			Underscore:     naming.Underscore("", "location", ""),
+			CamelCase:      naming.CamelCase("", "location", "", true),
+			LowerCamelCase: naming.CamelCase("", "location", "", false),
+		}
 
-	attributes = append(attributes, attributeCtx{
-		Package:    packageName,
-		Name:       location,
-		Required:   true,
-		SchemaType: "SingleNestedAttribute",
-	})
+		attributes = append(attributes, attributeCtx{
+			Package:    packageName,
+			Name:       location,
+			Required:   true,
+			SchemaType: "SingleNestedAttribute",
+		})
+	}
 
 	if resourceTyp == properties.ResourceUuidPlural {
 		position := &properties.NameVariant{
@@ -1408,18 +1418,21 @@ func createSchemaSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 func createSchemaSpecForEntrySingularModel(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, spec *properties.Normalization, packageName string, structName string, manager *imports.Manager) []schemaCtx {
 	var schemas []schemaCtx
 	var attributes []attributeCtx
-	location := &properties.NameVariant{
-		Underscore:     naming.Underscore("", "location", ""),
-		CamelCase:      naming.CamelCase("", "location", "", true),
-		LowerCamelCase: naming.CamelCase("", "location", "", false),
-	}
 
-	attributes = append(attributes, attributeCtx{
-		Package:    packageName,
-		Name:       location,
-		Required:   true,
-		SchemaType: "SingleNestedAttribute",
-	})
+	if len(spec.Locations) > 0 {
+		location := &properties.NameVariant{
+			Underscore:     naming.Underscore("", "location", ""),
+			CamelCase:      naming.CamelCase("", "location", "", true),
+			LowerCamelCase: naming.CamelCase("", "location", "", false),
+		}
+
+		attributes = append(attributes, attributeCtx{
+			Package:    packageName,
+			Name:       location,
+			Required:   true,
+			SchemaType: "SingleNestedAttribute",
+		})
+	}
 
 	normalizationAttrs, normalizationSchemas := createSchemaSpecForNormalization(resourceTyp, schemaTyp, spec, packageName, structName, manager)
 	attributes = append(attributes, normalizationAttrs...)
@@ -1452,18 +1465,21 @@ func createSchemaSpecForEntrySingularModel(resourceTyp properties.ResourceType, 
 func createSchemaSpecForEntryListModel(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, spec *properties.Normalization, packageName string, structName string, manager *imports.Manager) []schemaCtx {
 	var schemas []schemaCtx
 	var attributes []attributeCtx
-	location := &properties.NameVariant{
-		Underscore:     naming.Underscore("", "location", ""),
-		CamelCase:      naming.CamelCase("", "location", "", true),
-		LowerCamelCase: naming.CamelCase("", "location", "", false),
-	}
 
-	attributes = append(attributes, attributeCtx{
-		Package:    packageName,
-		Name:       location,
-		Required:   true,
-		SchemaType: "SingleNestedAttribute",
-	})
+	if len(spec.Locations) > 0 {
+		location := &properties.NameVariant{
+			Underscore:     naming.Underscore("", "location", ""),
+			CamelCase:      naming.CamelCase("", "location", "", true),
+			LowerCamelCase: naming.CamelCase("", "location", "", false),
+		}
+
+		attributes = append(attributes, attributeCtx{
+			Package:    packageName,
+			Name:       location,
+			Required:   true,
+			SchemaType: "SingleNestedAttribute",
+		})
+	}
 
 	listNameStr := spec.TerraformProviderConfig.PluralName
 	listName := &properties.NameVariant{
@@ -1517,7 +1533,11 @@ func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp pro
 	case properties.SchemaDataSource:
 		packageName = "dsschema"
 	case properties.SchemaResource:
-		packageName = "rsschema"
+		if spec.TerraformProviderConfig.Ephemeral == true {
+			packageName = "ephschema"
+		} else {
+			packageName = "rsschema"
+		}
 	case properties.SchemaCommon, properties.SchemaProvider:
 		panic("unreachable")
 	}
@@ -2236,11 +2256,14 @@ func createStructSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 	var structs []datasourceStructSpec
 
 	var fields []datasourceStructFieldSpec
-	fields = append(fields, datasourceStructFieldSpec{
-		Name: "Location",
-		Type: fmt.Sprintf("%sLocation", names.StructName),
-		Tags: []string{"`tfsdk:\"location\"`"},
-	})
+
+	if len(spec.Locations) > 0 {
+		fields = append(fields, datasourceStructFieldSpec{
+			Name: "Location",
+			Type: fmt.Sprintf("%sLocation", names.StructName),
+			Tags: []string{"`tfsdk:\"location\"`"},
+		})
+	}
 
 	if resourceTyp == properties.ResourceUuidPlural {
 
@@ -2305,11 +2328,13 @@ func createStructSpecForEntryListModel(resourceTyp properties.ResourceType, sche
 	var structs []datasourceStructSpec
 
 	var fields []datasourceStructFieldSpec
-	fields = append(fields, datasourceStructFieldSpec{
-		Name: "Location",
-		Type: fmt.Sprintf("%sLocation", names.StructName),
-		Tags: []string{"`tfsdk:\"location\"`"},
-	})
+	if len(spec.Locations) > 0 {
+		fields = append(fields, datasourceStructFieldSpec{
+			Name: "Location",
+			Type: fmt.Sprintf("%sLocation", names.StructName),
+			Tags: []string{"`tfsdk:\"location\"`"},
+		})
+	}
 
 	var structName string
 	switch schemaTyp {
@@ -2360,11 +2385,13 @@ func createStructSpecForEntryModel(resourceTyp properties.ResourceType, schemaTy
 
 	var fields []datasourceStructFieldSpec
 
-	fields = append(fields, datasourceStructFieldSpec{
-		Name: "Location",
-		Type: fmt.Sprintf("%sLocation", names.StructName),
-		Tags: []string{"`tfsdk:\"location\"`"},
-	})
+	if len(spec.Locations) > 0 {
+		fields = append(fields, datasourceStructFieldSpec{
+			Name: "Location",
+			Type: fmt.Sprintf("%sLocation", names.StructName),
+			Tags: []string{"`tfsdk:\"location\"`"},
+		})
+	}
 
 	var structName string
 	switch schemaTyp {
@@ -2826,6 +2853,83 @@ func ResourceDeleteFunction(resourceTyp properties.ResourceType, names *NameProv
 	return processTemplate(tmpl, "resource-delete-function", data, funcMap)
 }
 
+func ResourceOpenFunction(resourceTyp properties.ResourceType, names *NameProvider, serviceName string, paramSpec *properties.Normalization, resourceSDKName string) (string, error) {
+	var tmpl string
+	switch resourceTyp {
+	case properties.ResourceEntry, properties.ResourceConfig:
+	case properties.ResourceEntryPlural:
+	case properties.ResourceUuid:
+	case properties.ResourceUuidPlural:
+		return "", fmt.Errorf("Ephemeral resources are only implemented for custom specs")
+	case properties.ResourceCustom:
+		var err error
+		tmpl, err = getCustomTemplateForFunction(paramSpec, "Open")
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return processTemplate(tmpl, "resource-open-function", nil, nil)
+}
+
+func ResourceRenewFunction(resourceTyp properties.ResourceType, names *NameProvider, serviceName string, paramSpec *properties.Normalization, resourceSDKName string) (string, error) {
+	var tmpl string
+	switch resourceTyp {
+	case properties.ResourceEntry, properties.ResourceConfig:
+	case properties.ResourceEntryPlural:
+	case properties.ResourceUuid:
+	case properties.ResourceUuidPlural:
+		return "", fmt.Errorf("Ephemeral resources are only implemented for custom specs")
+	case properties.ResourceCustom:
+		var err error
+		tmpl, err = getCustomTemplateForFunction(paramSpec, "Renew")
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return processTemplate(tmpl, "resource-renew-function", nil, nil)
+}
+
+func ResourceCloseFunction(resourceTyp properties.ResourceType, names *NameProvider, serviceName string, paramSpec *properties.Normalization, resourceSDKName string) (string, error) {
+	var tmpl string
+	switch resourceTyp {
+	case properties.ResourceEntry, properties.ResourceConfig:
+	case properties.ResourceEntryPlural:
+	case properties.ResourceUuid:
+	case properties.ResourceUuidPlural:
+		return "", fmt.Errorf("Ephemeral resources are only implemented for custom specs")
+	case properties.ResourceCustom:
+		var err error
+		tmpl, err = getCustomTemplateForFunction(paramSpec, "Close")
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return processTemplate(tmpl, "resource-close-function", nil, nil)
+}
+
+func FunctionSupported(spec *properties.Normalization, function string) (bool, error) {
+	switch function {
+	case "Create", "Delete", "Read", "Update":
+		return spec.TerraformProviderConfig.Ephemeral != true, nil
+	case "Open", "Close", "Renew":
+		if spec.TerraformProviderConfig.Ephemeral != true {
+			return false, nil
+		}
+
+		if resource, found := customResourceFuncsMap[spec.TerraformProviderConfig.Suffix]; !found {
+			return false, fmt.Errorf("cannot find a list of custom functions for %s", spec.TerraformProviderConfig.Suffix)
+		} else {
+			_, found := resource[function]
+			return found, nil
+		}
+	default:
+		return false, fmt.Errorf("invalid custom function name: %s", function)
+	}
+}
+
 type importStateStructFieldSpec struct {
 	Name string
 	Type string
@@ -3023,5 +3127,9 @@ var customResourceFuncsMap = map[string]map[string]string{
 		"Update":         deviceGroupParentResourceUpdate,
 		"Delete":         deviceGroupParentResourceDelete,
 		"Common":         deviceGroupParentCommon,
+	},
+	"api_key": {
+		"Imports": apiKeyImports,
+		"Open":    apiKeyOpen,
 	},
 }
