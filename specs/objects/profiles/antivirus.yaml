@@ -1,4 +1,4 @@
-name: security-profile-antivirus
+name: antivirus-security-profile
 terraform_provider_config:
   description: Antivirus security profile
   skip_resource: false
@@ -6,7 +6,7 @@ terraform_provider_config:
   resource_type: entry
   resource_variants:
   - singular
-  suffix: security_profile_antivirus
+  suffix: antivirus_security_profile
   plural_suffix: ''
   plural_name: ''
   plural_description: ''
