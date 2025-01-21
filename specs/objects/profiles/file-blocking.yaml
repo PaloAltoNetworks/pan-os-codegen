@@ -1,11 +1,11 @@
-name: security-profile-file-blocking
+name: file-blocking-security-profile
 terraform_provider_config:
-  description: File Blocking Profile
+  description: File Blocking security profile
   skip_resource: false
   skip_datasource: false
   resource_type: entry
   resource_variants: []
-  suffix: security_profile_file_blocking
+  suffix: file_blocking_security_profile
   plural_suffix: ''
   plural_name: ''
   plural_description: ''
