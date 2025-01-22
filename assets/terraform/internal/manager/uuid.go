@@ -535,6 +535,8 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 		}
 	}
 
+	createOps := make([]*xmlapi.Config, len(planEntries))
+
 	for _, elt := range processedStateEntries {
 		path, err := location.XpathWithEntryName(o.client.Versioning(), elt.Entry.EntryName())
 		if err != nil {
@@ -547,7 +549,14 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 		}
 
 		switch elt.State {
-		case entryMissing, entryOutdated:
+		case entryMissing:
+			createOps[elt.StateIdx] = &xmlapi.Config{
+				Action:  "edit",
+				Xpath:   util.AsXpath(path),
+				Element: xmlEntry,
+				Target:  o.client.GetTarget(),
+			}
+		case entryOutdated:
 			updates.Add(&xmlapi.Config{
 				Action:  "edit",
 				Xpath:   util.AsXpath(path),
@@ -579,6 +588,12 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 			return nil, &Error{err: ErrInternal, message: "some entries were not processed"}
 		case entryOk:
 			// Nothing to do for entries that have no changes
+		}
+	}
+
+	for _, elt := range createOps {
+		if elt != nil {
+			updates.Add(elt)
 		}
 	}
 
