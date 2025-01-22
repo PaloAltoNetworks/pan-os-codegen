@@ -353,7 +353,7 @@ func (o *UuidObjectManager[E, L, S]) CreateMany(ctx context.Context, location L,
 	}
 
 	existing, err = o.service.List(ctx, location, "get", "", "")
-	if err != nil {
+	if err != nil && !sdkerrors.IsObjectNotFound(err) {
 		return nil, fmt.Errorf("Failed to list remote entries: %w", err)
 	}
 
@@ -602,7 +602,7 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 	}
 
 	existing, err = o.service.List(ctx, location, "get", "", "")
-	if err != nil {
+	if err != nil && !sdkerrors.IsObjectNotFound(err) {
 		return nil, fmt.Errorf("Failed to list remote entries: %w", err)
 	}
 

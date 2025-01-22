@@ -33,6 +33,20 @@ func TestAccAddresses(t *testing.T) {
 			{
 				Config: testAccAddressesResourceTmpl,
 				ConfigVariables: map[string]config.Variable{
+					"prefix":    config.StringVariable(prefix),
+					"addresses": config.MapVariable(map[string]config.Variable{})},
+			},
+			{
+				Config: testAccAddressesResourceTmpl,
+				ConfigVariables: map[string]config.Variable{
+					"prefix":    config.StringVariable(prefix),
+					"addresses": config.MapVariable(map[string]config.Variable{})},
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
+				Config: testAccAddressesResourceTmpl,
+				ConfigVariables: map[string]config.Variable{
 					"prefix": config.StringVariable(prefix),
 					"addresses": config.MapVariable(map[string]config.Variable{
 						fmt.Sprintf("%s-ip-netmask", prefix): config.ObjectVariable(map[string]config.Variable{
@@ -140,6 +154,20 @@ func TestAccAddresses(t *testing.T) {
 						}),
 					),
 				},
+			},
+			{
+				Config: testAccAddressesResourceTmpl,
+				ConfigVariables: map[string]config.Variable{
+					"prefix":    config.StringVariable(prefix),
+					"addresses": config.MapVariable(map[string]config.Variable{})},
+			},
+			{
+				Config: testAccAddressesResourceTmpl,
+				ConfigVariables: map[string]config.Variable{
+					"prefix":    config.StringVariable(prefix),
+					"addresses": config.MapVariable(map[string]config.Variable{})},
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})
