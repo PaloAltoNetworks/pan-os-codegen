@@ -13,7 +13,7 @@ resource "panos_security_policy" "name" {
       source_zones          = ["any"],
       source_addresses      = ["1.1.1.1"],
       destination_zones     = ["any"],
-      destination_addresses = ["172.16.0.0/8"],
+      destination_addresses = ["172.10.0.0/8"],
       services              = ["any"],
       applications          = ["any"],
     }
