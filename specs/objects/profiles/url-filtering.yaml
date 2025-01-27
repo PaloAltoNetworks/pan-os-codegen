@@ -242,8 +242,7 @@ spec:
             - type: length
               spec:
                 max: 31
-            spec:
-              default: any
+            spec: {}
             description: Use Group Mapping
             required: false
           - name: ip-user
