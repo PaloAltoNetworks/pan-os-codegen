@@ -1,0 +1,901 @@
+name: anti-spyware-profile
+terraform_provider_config:
+  description: Anti-Spyware Security Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: anti_spyware_security_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - security
+  - profiles
+  - spyware
+xpath_suffix:
+- profiles
+- spyware
+locations:
+- name: shared
+  xpath:
+    path:
+    - config
+    - shared
+    vars: []
+  description: Location in Shared Panorama
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: device-group
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - device-group
+    - $device_group
+    vars:
+    - name: panorama_device
+      description: Panorama device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: device_group
+      description: Device Group name
+      required: true
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The device group name cannot be "shared". Use the "shared" location
+              instead
+      type: entry
+  description: Located in a specific Device Group
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: botnet-domains
+    type: object
+    profiles:
+    - xpath:
+      - botnet-domains
+    validators: []
+    spec:
+      params:
+      - name: dns-security-categories
+        type: list
+        profiles:
+        - xpath:
+          - dns-security-categories
+          - entry
+          type: entry
+        validators: []
+        spec:
+          type: object
+          items:
+            type: object
+            spec:
+              params:
+              - name: action
+                type: enum
+                profiles:
+                - xpath:
+                  - action
+                validators:
+                - type: values
+                  spec:
+                    values:
+                    - default
+                    - allow
+                    - block
+                    - sinkhole
+                spec:
+                  default: default
+                  values:
+                  - value: default
+                  - value: allow
+                  - value: block
+                  - value: sinkhole
+                description: ''
+                required: false
+              - name: log-level
+                type: enum
+                profiles:
+                - xpath:
+                  - log-level
+                validators:
+                - type: values
+                  spec:
+                    values:
+                    - default
+                    - none
+                    - low
+                    - informational
+                    - medium
+                    - high
+                    - critical
+                spec:
+                  default: default
+                  values:
+                  - value: default
+                  - value: none
+                  - value: low
+                  - value: informational
+                  - value: medium
+                  - value: high
+                  - value: critical
+                description: ''
+                required: false
+              - name: packet-capture
+                type: enum
+                profiles:
+                - xpath:
+                  - packet-capture
+                validators:
+                - type: values
+                  spec:
+                    values:
+                    - disable
+                    - single-packet
+                    - extended-capture
+                spec:
+                  default: disable
+                  values:
+                  - value: disable
+                  - value: single-packet
+                  - value: extended-capture
+                description: ''
+                required: false
+              variants: []
+        description: ''
+        required: false
+      - name: lists
+        type: list
+        profiles:
+        - xpath:
+          - lists
+          - entry
+          type: entry
+        validators: []
+        spec:
+          type: object
+          items:
+            type: object
+            spec:
+              params:
+              - name: action
+                type: object
+                profiles:
+                - xpath:
+                  - action
+                validators: []
+                spec:
+                  params: []
+                  variants:
+                  - name: alert
+                    type: object
+                    profiles:
+                    - xpath:
+                      - alert
+                    validators: []
+                    spec:
+                      params: []
+                      variants: []
+                    description: ''
+                    required: false
+                  - name: allow
+                    type: object
+                    profiles:
+                    - xpath:
+                      - allow
+                    validators: []
+                    spec:
+                      params: []
+                      variants: []
+                    description: ''
+                    required: false
+                  - name: block
+                    type: object
+                    profiles:
+                    - xpath:
+                      - block
+                    validators: []
+                    spec:
+                      params: []
+                      variants: []
+                    description: ''
+                    required: false
+                  - name: sinkhole
+                    type: object
+                    profiles:
+                    - xpath:
+                      - sinkhole
+                    validators: []
+                    spec:
+                      params: []
+                      variants: []
+                    description: ''
+                    required: false
+                description: ''
+                required: false
+              - name: packet-capture
+                type: enum
+                profiles:
+                - xpath:
+                  - packet-capture
+                validators:
+                - type: values
+                  spec:
+                    values:
+                    - disable
+                    - single-packet
+                    - extended-capture
+                spec:
+                  default: disable
+                  values:
+                  - value: disable
+                  - value: single-packet
+                  - value: extended-capture
+                description: ''
+                required: false
+              variants: []
+        description: ''
+        required: false
+      - name: sinkhole
+        type: object
+        profiles:
+        - xpath:
+          - sinkhole
+        validators: []
+        spec:
+          params:
+          - name: ipv4-address
+            type: string
+            profiles:
+            - xpath:
+              - ipv4-address
+            validators: []
+            spec:
+              default: pan-sinkhole-default-ip
+            description: ''
+            required: false
+          - name: ipv6-address
+            type: string
+            profiles:
+            - xpath:
+              - ipv6-address
+            validators: []
+            spec:
+              default: ::1
+            description: ''
+            required: false
+          variants: []
+        description: ''
+        required: false
+      - name: threat-exception
+        type: list
+        profiles:
+        - xpath:
+          - threat-exception
+          - entry
+          type: entry
+        validators: []
+        spec:
+          type: object
+          items:
+            type: object
+            spec:
+              params: []
+              variants: []
+        description: ''
+        required: false
+      - name: whitelist
+        type: list
+        profiles:
+        - xpath:
+          - whitelist
+          - entry
+          type: entry
+        validators: []
+        spec:
+          type: object
+          items:
+            type: object
+            spec:
+              params:
+              - name: description
+                type: string
+                profiles:
+                - xpath:
+                  - description
+                validators:
+                - type: length
+                  spec:
+                    min: 0
+                    max: 255
+                spec: {}
+                description: ''
+                required: false
+              variants: []
+        description: ''
+        required: false
+      - name: rtype-action
+        type: object
+        profiles:
+        - xpath:
+          - rtype-action
+          min_version: 11.0.2
+          max_version: 11.0.3
+        validators: []
+        spec:
+          params:
+          - name: any
+            type: enum
+            profiles:
+            - xpath:
+              - any
+            validators:
+            - type: values
+              spec:
+                values:
+                - allow
+                - block
+            spec:
+              default: allow
+              values:
+              - value: allow
+              - value: block
+            description: ANY(255)
+            required: false
+          - name: https
+            type: enum
+            profiles:
+            - xpath:
+              - https
+            validators:
+            - type: values
+              spec:
+                values:
+                - allow
+                - block
+            spec:
+              default: allow
+              values:
+              - value: allow
+              - value: block
+            description: HTTPS(65)
+            required: false
+          - name: svcb
+            type: enum
+            profiles:
+            - xpath:
+              - svcb
+            validators:
+            - type: values
+              spec:
+                values:
+                - allow
+                - block
+            spec:
+              default: allow
+              values:
+              - value: allow
+              - value: block
+            description: SVCB(64)
+            required: false
+          variants: []
+        description: Action for specific record types
+        required: false
+      variants: []
+    description: ''
+    required: false
+  - name: cloud-inline-analysis
+    type: bool
+    profiles:
+    - xpath:
+      - cloud-inline-analysis
+    validators: []
+    spec: {}
+    description: Enable cloud inline analysis
+    required: false
+  - name: description
+    type: string
+    profiles:
+    - xpath:
+      - description
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 255
+    spec: {}
+    description: ''
+    required: false
+  - name: disable-override
+    type: enum
+    profiles:
+    - xpath:
+      - disable-override
+    validators:
+    - type: values
+      spec:
+        values:
+        - 'yes'
+        - 'no'
+    spec:
+      default: 'no'
+      values:
+      - value: 'yes'
+      - value: 'no'
+    description: disable object override in child device groups
+    required: false
+  - name: inline-exception-edl-url
+    type: list
+    profiles:
+    - xpath:
+      - inline-exception-edl-url
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: inline-exception-ip-address
+    type: list
+    profiles:
+    - xpath:
+      - inline-exception-ip-address
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: mica-engine-spyware-enabled
+    type: list
+    profiles:
+    - xpath:
+      - mica-engine-spyware-enabled
+      - entry
+      type: entry
+    validators: []
+    spec:
+      type: object
+      items:
+        type: object
+        spec:
+          params:
+          - name: inline-policy-action
+            type: enum
+            profiles:
+            - xpath:
+              - inline-policy-action
+            validators:
+            - type: values
+              spec:
+                values:
+                - drop
+                - alert
+                - allow
+                - reset-both
+                - reset-client
+                - reset-server
+            spec:
+              default: alert
+              values:
+              - value: drop
+              - value: alert
+              - value: allow
+              - value: reset-both
+              - value: reset-client
+              - value: reset-server
+            description: ''
+            required: false
+          variants: []
+    description: ''
+    required: false
+  - name: rules
+    type: list
+    profiles:
+    - xpath:
+      - rules
+      - entry
+      type: entry
+    validators: []
+    spec:
+      type: object
+      items:
+        type: object
+        spec:
+          params:
+          - name: threat-name
+            type: string
+            profiles:
+            - xpath:
+              - threat-name
+            validators: []
+            spec:
+              default: any
+            description: Threat name
+            required: false
+          - name: category
+            type: string
+            profiles:
+            - xpath:
+              - category
+            validators: []
+            spec:
+              default: any
+            description: ''
+            required: false
+          - name: packet-capture
+            type: enum
+            profiles:
+            - xpath:
+              - packet-capture
+            validators:
+            - type: values
+              spec:
+                values:
+                - disable
+                - single-packet
+                - extended-capture
+            spec:
+              default: disable
+              values:
+              - value: disable
+              - value: single-packet
+              - value: extended-capture
+            description: ''
+            required: false
+          - name: severity
+            type: list
+            profiles:
+            - xpath:
+              - severity
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          - name: action
+            type: object
+            profiles:
+            - xpath:
+              - action
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: default
+                type: object
+                profiles:
+                - xpath:
+                  - default
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: ''
+                required: false
+              - name: allow
+                type: object
+                profiles:
+                - xpath:
+                  - allow
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: ''
+                required: false
+              - name: alert
+                type: object
+                profiles:
+                - xpath:
+                  - alert
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: ''
+                required: false
+              - name: drop
+                type: object
+                profiles:
+                - xpath:
+                  - drop
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: ''
+                required: false
+              - name: reset-client
+                type: object
+                profiles:
+                - xpath:
+                  - reset-client
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: ''
+                required: false
+              - name: reset-server
+                type: object
+                profiles:
+                - xpath:
+                  - reset-server
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: ''
+                required: false
+              - name: reset-both
+                type: object
+                profiles:
+                - xpath:
+                  - reset-both
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: ''
+                required: false
+              - name: block-ip
+                type: object
+                profiles:
+                - xpath:
+                  - block-ip
+                validators: []
+                spec:
+                  params:
+                  - name: track-by
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - track-by
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - source
+                        - source-and-destination
+                    spec:
+                      values:
+                      - value: source
+                      - value: source-and-destination
+                    description: ''
+                    required: false
+                  - name: duration
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - duration
+                    validators:
+                    - type: length
+                      spec:
+                        min: 1
+                        max: 3600
+                    spec: {}
+                    description: Duration for block ip
+                    required: false
+                  variants: []
+                description: ''
+                required: false
+            description: ''
+            required: false
+          variants: []
+    description: ''
+    required: false
+  - name: threat-exception
+    type: list
+    profiles:
+    - xpath:
+      - threat-exception
+      - entry
+      type: entry
+    validators: []
+    spec:
+      type: object
+      items:
+        type: object
+        spec:
+          params:
+          - name: packet-capture
+            type: enum
+            profiles:
+            - xpath:
+              - packet-capture
+            validators:
+            - type: values
+              spec:
+                values:
+                - disable
+                - single-packet
+                - extended-capture
+            spec:
+              default: disable
+              values:
+              - value: disable
+              - value: single-packet
+              - value: extended-capture
+            description: ''
+            required: false
+          - name: action
+            type: object
+            profiles:
+            - xpath:
+              - action
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: default
+                type: object
+                profiles:
+                - xpath:
+                  - default
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: ''
+                required: false
+              - name: allow
+                type: object
+                profiles:
+                - xpath:
+                  - allow
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: ''
+                required: false
+              - name: alert
+                type: object
+                profiles:
+                - xpath:
+                  - alert
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: ''
+                required: false
+              - name: drop
+                type: object
+                profiles:
+                - xpath:
+                  - drop
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: ''
+                required: false
+              - name: reset-both
+                type: object
+                profiles:
+                - xpath:
+                  - reset-both
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: ''
+                required: false
+              - name: reset-client
+                type: object
+                profiles:
+                - xpath:
+                  - reset-client
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: ''
+                required: false
+              - name: reset-server
+                type: object
+                profiles:
+                - xpath:
+                  - reset-server
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: ''
+                required: false
+              - name: block-ip
+                type: object
+                profiles:
+                - xpath:
+                  - block-ip
+                validators: []
+                spec:
+                  params:
+                  - name: track-by
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - track-by
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - source
+                        - source-and-destination
+                    spec:
+                      values:
+                      - value: source
+                      - value: source-and-destination
+                    description: ''
+                    required: false
+                  - name: duration
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - duration
+                    validators:
+                    - type: length
+                      spec:
+                        min: 1
+                        max: 3600
+                    spec: {}
+                    description: Duration for block ip
+                    required: false
+                  variants: []
+                description: ''
+                required: false
+            description: ''
+            required: false
+          - name: exempt-ip
+            type: list
+            profiles:
+            - xpath:
+              - exempt-ip
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params: []
+                  variants: []
+            description: ''
+            required: false
+          variants: []
+    description: ''
+    required: false
+  variants: []

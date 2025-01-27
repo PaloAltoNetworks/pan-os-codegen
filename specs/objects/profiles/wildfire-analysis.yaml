@@ -1,0 +1,185 @@
+name: wildfire-analysis-profile
+terraform_provider_config:
+  description: WildFire Analysis Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants: []
+  suffix: wildfire_analysis_security_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - objects
+  - profiles
+  - wildfireanalysis
+xpath_suffix:
+- profiles
+- wildfire-analysis
+locations:
+- name: shared
+  xpath:
+    path:
+    - config
+    - shared
+    vars: []
+  description: Location in Shared Panorama
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: device-group
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - device-group
+    - $device_group
+    vars:
+    - name: panorama_device
+      description: Panorama device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: device_group
+      description: Device Group name
+      required: true
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The device group name cannot be "shared". Use the "shared" location
+              instead
+      type: entry
+  description: Located in a specific Device Group
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: description
+    type: string
+    profiles:
+    - xpath:
+      - description
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 255
+    spec: {}
+    description: ''
+    required: false
+  - name: disable-override
+    type: enum
+    profiles:
+    - xpath:
+      - disable-override
+    validators:
+    - type: values
+      spec:
+        values:
+        - 'yes'
+        - 'no'
+    spec:
+      default: 'no'
+      values:
+      - value: 'yes'
+      - value: 'no'
+    description: disable object override in child device groups
+    required: false
+  - name: rules
+    type: list
+    profiles:
+    - xpath:
+      - rules
+      - entry
+      type: entry
+    validators: []
+    spec:
+      type: object
+      items:
+        type: object
+        spec:
+          params:
+          - name: application
+            type: list
+            profiles:
+            - xpath:
+              - application
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          - name: file-type
+            type: list
+            profiles:
+            - xpath:
+              - file-type
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          - name: direction
+            type: enum
+            profiles:
+            - xpath:
+              - direction
+            validators:
+            - type: values
+              spec:
+                values:
+                - upload
+                - download
+                - both
+            spec:
+              values:
+              - value: upload
+              - value: download
+              - value: both
+            description: ''
+            required: false
+          - name: analysis
+            type: enum
+            profiles:
+            - xpath:
+              - analysis
+            validators:
+            - type: values
+              spec:
+                values:
+                - public-cloud
+                - private-cloud
+            spec:
+              default: public-cloud
+              values:
+              - value: public-cloud
+              - value: private-cloud
+            description: ''
+            required: false
+          variants: []
+    description: ''
+    required: false
+  variants: []

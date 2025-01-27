@@ -1,12 +1,12 @@
-name: Loopback interface
+name: Tunnel interface
 terraform_provider_config:
-  description: Loopback Interface
+  description: Tunnel Interface
   skip_resource: false
   skip_datasource: false
   resource_type: entry
   resource_variants:
   - singular
-  suffix: loopback_interface
+  suffix: tunnel_interface
   plural_suffix: ''
   plural_name: ''
   plural_description: ''
@@ -15,28 +15,22 @@ go_sdk_config:
   package:
   - network
   - interface
-  - loopback
+  - tunnel
 xpath_suffix:
 - network
 - interface
-- loopback
+- tunnel
 - units
 locations:
-- name: ngfw
+- name: shared
   xpath:
     path:
     - config
-    - devices
-    - $ngfw_device
-    vars:
-    - name: ngfw_device
-      description: The NGFW device
-      required: false
-      default: localhost.localdomain
-      validators: []
-      type: entry
-  description: Located in a specific NGFW device
+    - shared
+    vars: []
+  description: Location in Shared Panorama
   devices:
+  - panorama
   - ngfw
   validators: []
   required: false
@@ -111,6 +105,25 @@ locations:
   validators: []
   required: false
   read_only: false
+- name: ngfw
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific NGFW device
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
 entries:
 - name: name
   description: ''
@@ -118,11 +131,11 @@ entries:
 imports: []
 spec:
   params:
-  - name: adjust-tcp-mss
+  - name: bonjour
     type: object
     profiles:
     - xpath:
-      - adjust-tcp-mss
+      - bonjour
     validators: []
     spec:
       params:
@@ -133,38 +146,33 @@ spec:
           - enable
         validators: []
         spec: {}
-        description: Set if TCP MSS value should be reduced based on mtu
+        description: Set to support Bonjour service
         required: false
-      - name: ipv4-mss-adjustment
+      - name: group-id
         type: int64
         profiles:
         - xpath:
-          - ipv4-mss-adjustment
+          - group-id
         validators:
         - type: length
           spec:
-            min: 40
-            max: 300
+            min: 0
+            max: 16
         spec:
           default: 40
-        description: IPv4 MSS adjustment size (in bytes)
+        description: 'default 0: NO-Group'
         required: false
-      - name: ipv6-mss-adjustment
-        type: int64
+      - name: ttl-check
+        type: bool
         profiles:
         - xpath:
-          - ipv6-mss-adjustment
-        validators:
-        - type: length
-          spec:
-            min: 60
-            max: 300
-        spec:
-          default: 60
-        description: IPv6 MSS adjustment size (in bytes)
+          - ttl-check
+        validators: []
+        spec: {}
+        description: Set to check and update TTL
         required: false
       variants: []
-    description: TCP MSS adjustment configuration
+    description: Bonjour configuration
     required: false
   - name: comment
     type: string
@@ -176,6 +184,15 @@ spec:
       spec:
         min: 0
         max: 1023
+    spec: {}
+    description: ''
+    required: false
+  - name: df-ignore
+    type: bool
+    profiles:
+    - xpath:
+      - df-ignore
+    validators: []
     spec: {}
     description: ''
     required: false
@@ -286,6 +303,18 @@ spec:
         required: false
       variants: []
     description: Interface IPv6 configuration
+    required: false
+  - name: link-tag
+    type: string
+    profiles:
+    - xpath:
+      - link-tag
+    validators:
+    - type: length
+      spec:
+        max: 127
+    spec: {}
+    description: ''
     required: false
   - name: mtu
     type: int64

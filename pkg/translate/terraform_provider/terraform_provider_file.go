@@ -199,12 +199,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 			switch resourceTyp {
 			case properties.ResourceUuid:
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/movement", "")
-				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/errors", "sdkerrors")
 			case properties.ResourceEntry:
 			case properties.ResourceUuidPlural:
-				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/errors", "sdkerrors")
 			case properties.ResourceEntryPlural:
-				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/errors", "sdkerrors")
 			case properties.ResourceCustom, properties.ResourceConfig:
 			}
 

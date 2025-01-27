@@ -693,7 +693,7 @@ if resp.Diagnostics.HasError() {
 
 elements := make(map[string]{{ $resourceTFStructName }})
 resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
-if resp.Diagnostics.HasError() {
+if len(elements) == 0 || resp.Diagnostics.HasError() {
 	return
 }
 
@@ -785,6 +785,10 @@ if resp.Diagnostics.HasError() {
 
 var elements []{{ $resourceTFStructName }}
 state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
+if len(elements) == 0 {
+	return
+}
+
 entries := make([]*{{ $resourceSDKStructName }}, 0, len(elements))
 for _, elt := range elements {
 	var entry *{{ $resourceSDKStructName }}
@@ -948,7 +952,7 @@ for name, elt := range elements {
 }
 
 existing, err := r.manager.ReadMany(ctx, location, stateEntries)
-if err != nil && !sdkerrors.IsObjectNotFound(err) {
+if err != nil && !errors.Is(err, sdkmanager.ErrObjectNotFound) {
 	resp.Diagnostics.AddError("Error while reading entries from the server", err.Error())
 	return
 }
@@ -1042,7 +1046,7 @@ position := state.Position.CopyToPango()
 {{- end }}
 
 existing, err := r.manager.ReadMany(ctx, location, stateEntries, {{ $exhaustive }})
-if err != nil && !sdkerrors.IsObjectNotFound(err) {
+if err != nil && !errors.Is(err, sdkmanager.ErrObjectNotFound) {
 	resp.Diagnostics.AddError("Error while reading entries from the server", err.Error())
 	return
 }
