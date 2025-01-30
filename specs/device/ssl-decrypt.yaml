@@ -1,0 +1,333 @@
+name: SSL decrypt
+terraform_provider_config:
+  description: This resource manages the SSL decrypt settings.
+  skip_resource: false
+  skip_datasource: false
+  resource_type: config
+  resource_variants: []
+  suffix: ssl_decrypt
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - device
+  - ssldecrypt
+xpath_suffix: []
+locations:
+- name: panorama
+  xpath:
+    path:
+    - config
+    - panorama
+    vars: []
+  description: Located in a panorama.
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: The panorama device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: The template.
+      required: true
+      validators: []
+      type: entry
+  description: Located in a specific template.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template_vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: The panorama device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: The template.
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared". Use the "shared" path instead.
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template_stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: The panorama device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack.
+      required: true
+      validators: []
+      type: entry
+  description: Located in a specific template stack.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template_stack_vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: The panorama device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack.
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared". Use the "shared" path instead.
+      type: entry
+  description: Located in a specific template stack, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: shared
+  xpath:
+    path:
+    - config
+    - shared
+    vars: []
+  description: Located in shared.
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+entries: []
+imports: []
+spec:
+  params:
+  - name: disabled-ssl-exclude-cert-from-predefined
+    type: list
+    profiles:
+    - xpath:
+      - disabled-ssl-exclude-cert-from-predefined
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: List of disabled predefined exclude certificates.
+    required: false
+  - name: root-ca-exclude-list
+    type: list
+    profiles:
+    - xpath:
+      - root-ca-exclude-list
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: List of root CA excludes.
+    required: false
+  - name: ssl-exclude-cert
+    type: list
+    profiles:
+    - xpath:
+      - ssl-exclude-cert
+      - entry
+      type: entry
+    validators: []
+    spec:
+      type: object
+      items:
+        type: object
+        spec:
+          params:
+          - name: description
+            type: string
+            profiles:
+            - xpath:
+              - description
+            validators:
+            - type: length
+              spec:
+                min: 0
+                max: 512
+            spec: {}
+            description: The description.
+            required: false
+          - name: exclude
+            type: bool
+            profiles:
+            - xpath:
+              - exclude
+            validators: []
+            spec: {}
+            description: Exclude or not.
+            required: false
+          variants: []
+    description: List of SSL decrypt exclude certificates specs (specified below).
+    required: false
+  - name: trusted-root-ca
+    type: list
+    profiles:
+    - xpath:
+      - trusted-root-CA
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: List of trusted root CAs.
+    required: false
+  - name: forward-trust-certificate-ecdsa
+    type: string
+    profiles:
+    - xpath:
+      - forward-trust-certificate
+      - ecdsa
+    validators:
+    - type: length
+      spec:
+        max: 63
+    spec: {}
+    description: Forward trust ECDSA certificate.
+    required: false
+  - name: forward-trust-certificate-rsa
+    type: string
+    profiles:
+    - xpath:
+      - forward-trust-certificate
+      - rsa
+    validators:
+    - type: length
+      spec:
+        max: 63
+    spec: {}
+    description: Forward trust RSA certificate.
+    required: false
+  - name: forward-untrust-certificate-ecdsa
+    type: string
+    profiles:
+    - xpath:
+      - forward-untrust-certificate
+      - ecdsa
+    validators:
+    - type: length
+      spec:
+        max: 63
+    spec: {}
+    description: Forward untrust ECDSA certificate.
+    required: false
+  - name: forward-untrust-certificate-rsa
+    type: string
+    profiles:
+    - xpath:
+      - forward-untrust-certificate
+      - rsa
+    validators:
+    - type: length
+      spec:
+        max: 63
+    spec: {}
+    description: Forward untrust RSA certificate.
+    required: false
+  variants: []
