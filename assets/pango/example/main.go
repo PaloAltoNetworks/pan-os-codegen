@@ -408,9 +408,16 @@ func checkLoopback(c *pango.Client, ctx context.Context) {
 		},
 		Comment: util.String("This is a loopback entry"),
 		Mtu:     util.Int(1280),
-		Ips:     []string{"1.1.1.1", "2.2.2.2"},
+		Ip: []loopback.Ip{
+			{
+				Name: "1.1.1.1",
+			},
+			{
+				Name: "2.2.2.2",
+			},
+		},
 		Ipv6: &loopback.Ipv6{
-			Addresses: []loopback.Ipv6Addresses{
+			Address: []loopback.Ipv6Address{
 				{
 					EnableOnInterface: util.Bool(false),
 					Name:              "2001:0000:130F:0000:0000:09C0:876A:130B",

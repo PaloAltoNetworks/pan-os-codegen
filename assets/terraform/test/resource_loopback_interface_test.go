@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	sdkErrors "github.com/PaloAltoNetworks/pango/errors"
-	"github.com/PaloAltoNetworks/pango/network/interface/tunnel"
+	"github.com/PaloAltoNetworks/pango/network/interface/loopback"
 
 	"github.com/hashicorp/terraform-plugin-testing/config"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -18,53 +18,53 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
-func TestAccTunnelInterface(t *testing.T) {
+func TestAccLoopbackInterface(t *testing.T) {
 	t.Parallel()
 
-	interfaceName := "tunnel.1"
+	interfaceName := "loopback.1"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProviders,
-		CheckDestroy: testAccCheckPanosTunnelInterfaceDestroy(
+		CheckDestroy: testAccCheckPanosLoopbackInterfaceDestroy(
 			prefix, interfaceName,
 		),
 		Steps: []resource.TestStep{
 			{
-				Config: tunnelInterfaceResource1,
+				Config: loopbackInterfaceResource1,
 				ConfigVariables: map[string]config.Variable{
 					"prefix":         config.StringVariable(prefix),
 					"interface_name": config.StringVariable(interfaceName),
 				},
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
-						"panos_tunnel_interface.iface",
+						"panos_loopback_interface.iface",
 						tfjsonpath.New("name"),
-						knownvalue.StringExact("tunnel.1"),
+						knownvalue.StringExact("loopback.1"),
 					),
 					statecheck.ExpectKnownValue(
-						"panos_tunnel_interface.iface",
+						"panos_loopback_interface.iface",
 						tfjsonpath.New("comment"),
-						knownvalue.StringExact("tunnel interface comment"),
+						knownvalue.StringExact("loopback interface comment"),
 					),
 					statecheck.ExpectKnownValue(
-						"panos_tunnel_interface.iface",
+						"panos_loopback_interface.iface",
 						tfjsonpath.New("interface_management_profile"),
 						knownvalue.StringExact(fmt.Sprintf("%s-profile", prefix)),
 					),
 					statecheck.ExpectKnownValue(
-						"panos_tunnel_interface.iface",
-						tfjsonpath.New("bonjour"),
+						"panos_loopback_interface.iface",
+						tfjsonpath.New("adjust_tcp_mss"),
 						knownvalue.ObjectExact(map[string]knownvalue.Check{
-							"enable":    knownvalue.Bool(true),
-							"group_id":  knownvalue.Int64Exact(10),
-							"ttl_check": knownvalue.Bool(true),
+							"enable":              knownvalue.Bool(true),
+							"ipv4_mss_adjustment": knownvalue.Int64Exact(100),
+							"ipv6_mss_adjustment": knownvalue.Int64Exact(200),
 						}),
 					),
 					statecheck.ExpectKnownValue(
-						"panos_tunnel_interface.iface",
+						"panos_loopback_interface.iface",
 						tfjsonpath.New("ip"),
 						knownvalue.ListExact([]knownvalue.Check{
 							knownvalue.ObjectExact(map[string]knownvalue.Check{
@@ -73,7 +73,7 @@ func TestAccTunnelInterface(t *testing.T) {
 						}),
 					),
 					statecheck.ExpectKnownValue(
-						"panos_tunnel_interface.iface",
+						"panos_loopback_interface.iface",
 						tfjsonpath.New("ipv6"),
 						knownvalue.ObjectExact(map[string]knownvalue.Check{
 							"enabled":      knownvalue.Bool(true),
@@ -94,7 +94,7 @@ func TestAccTunnelInterface(t *testing.T) {
 	})
 }
 
-const tunnelInterfaceResource1 = `
+const loopbackInterfaceResource1 = `
 variable "prefix" { type = string }
 variable "interface_name" { type = string }
 
@@ -113,21 +113,19 @@ resource "panos_interface_management_profile" "profile" {
   name = format("%s-profile", var.prefix)
 }
 
-resource "panos_tunnel_interface" "iface" {
+resource "panos_loopback_interface" "iface" {
   location = { template = { name = panos_template.template.name } }
 
   name = var.interface_name
-  comment = "tunnel interface comment"
+  comment = "loopback interface comment"
 
-  df_ignore = true
   interface_management_profile = panos_interface_management_profile.profile.name
-  #link_tag = "tag-1"
   mtu = "9126"
   #netflow_profile = format("%s-profile", var.prefix)
-  bonjour = {
+  adjust_tcp_mss = {
     enable = true
-    group_id = 10
-    ttl_check = true
+    ipv4_mss_adjustment = 100
+    ipv6_mss_adjustment = 200
   }
   ip = [{
     name = "127.0.0.1"
@@ -146,12 +144,12 @@ resource "panos_tunnel_interface" "iface" {
 }
 `
 
-func testAccCheckPanosTunnelInterfaceDestroy(prefix string, entry string) func(s *terraform.State) error {
+func testAccCheckPanosLoopbackInterfaceDestroy(prefix string, entry string) func(s *terraform.State) error {
 	return func(s *terraform.State) error {
-		api := tunnel.NewService(sdkClient)
+		api := loopback.NewService(sdkClient)
 		ctx := context.TODO()
 
-		location := tunnel.NewTemplateLocation()
+		location := loopback.NewTemplateLocation()
 		location.Template.Template = fmt.Sprintf("%s-tmpl", prefix)
 
 		reply, err := api.Read(ctx, *location, entry, "show")

@@ -156,7 +156,7 @@ resource "panos_security_policy" "policy" {
     # source_hips      = ["hip-profile"]
     negate_source    = false
 
-    destination_zone      = "any"
+    destination_zones     = ["any"]
     destination_addresses = ["any"]
     # destination_hips = ["hip-device"]
 
@@ -262,8 +262,10 @@ func TestAccSecurityPolicyExtended(t *testing.T) {
 						"panos_security_policy.policy",
 						tfjsonpath.New("rules").
 							AtSliceIndex(0).
-							AtMapKey("destination_zone"),
-						knownvalue.StringExact("any"),
+							AtMapKey("destination_zones"),
+						knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact("any"),
+						}),
 					),
 					statecheck.ExpectKnownValue(
 						"panos_security_policy.policy",
@@ -410,7 +412,7 @@ resource "panos_security_policy" "policy" {
       source_zones     = ["any"]
       source_addresses = ["any"]
 
-      destination_zone      = "any"
+      destination_zones     = ["any"]
       destination_addresses = ["any"]
 
       services = ["any"]
@@ -474,6 +476,22 @@ func TestAccSecurityPolicyOrdering(t *testing.T) {
 			{
 				Config: securityPolicyOrderingTmpl,
 				ConfigVariables: map[string]config.Variable{
+					"rule_names": config.ListVariable([]config.Variable{}...),
+					"location":   cfgLocation,
+				},
+			},
+			{
+				Config: securityPolicyOrderingTmpl,
+				ConfigVariables: map[string]config.Variable{
+					"rule_names": config.ListVariable([]config.Variable{}...),
+					"location":   cfgLocation,
+				},
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+			{
+				Config: securityPolicyOrderingTmpl,
+				ConfigVariables: map[string]config.Variable{
 					"rule_names": config.ListVariable(withPrefix(rulesInitial)...),
 					"location":   cfgLocation,
 				},
@@ -522,6 +540,22 @@ func TestAccSecurityPolicyOrdering(t *testing.T) {
 					stateExpectedRuleName(4, "rule-5"),
 					ExpectServerSecurityRulesOrder(prefix, sdkLocation, rulesReordered),
 				},
+			},
+			{
+				Config: securityPolicyOrderingTmpl,
+				ConfigVariables: map[string]config.Variable{
+					"rule_names": config.ListVariable([]config.Variable{}...),
+					"location":   cfgLocation,
+				},
+			},
+			{
+				Config: securityPolicyOrderingTmpl,
+				ConfigVariables: map[string]config.Variable{
+					"rule_names": config.ListVariable([]config.Variable{}...),
+					"location":   cfgLocation,
+				},
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
 			},
 		},
 	})

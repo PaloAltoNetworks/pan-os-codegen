@@ -189,7 +189,7 @@ resource "panos_ipsec_crypto_profile" "profile2" {
 
   esp = {
     authentication = ["sha256"]
-    ecryption = ["3des", "null"]
+    encryption = ["3des", "null"]
   }
   lifesize = {
     kb = 5
