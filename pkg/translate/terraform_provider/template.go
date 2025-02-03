@@ -1715,6 +1715,7 @@ func (p *PanosProvider) Configure(ctx context.Context, req provider.ConfigureReq
 
 	resp.DataSourceData = con
 	resp.ResourceData = con
+	resp.EphemeralResourceData = con
 
 	// Done.
 	tflog.Info(ctx, "Configured client", map[string]any{"success": true})
