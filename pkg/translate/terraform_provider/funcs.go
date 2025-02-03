@@ -1182,7 +1182,7 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 	case properties.SchemaDataSource:
 		computed = true
 		required = false
-	case properties.SchemaResource:
+	case properties.SchemaResource, properties.SchemaEphemeralResource:
 		computed = param.FinalComputed()
 		required = param.FinalRequired()
 	case properties.SchemaCommon, properties.SchemaProvider:
@@ -1309,7 +1309,7 @@ func createSchemaAttributeForParameter(schemaTyp properties.SchemaType, manager 
 	case properties.SchemaDataSource:
 		required = false
 		computed = true
-	case properties.SchemaResource:
+	case properties.SchemaResource, properties.SchemaEphemeralResource:
 		computed = param.FinalComputed()
 		required = param.FinalRequired()
 	case properties.SchemaCommon, properties.SchemaProvider:
@@ -1533,7 +1533,7 @@ func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp pro
 	case properties.SchemaDataSource:
 		packageName = "dsschema"
 	case properties.SchemaResource:
-		if spec.TerraformProviderConfig.Ephemeral == true {
+		if spec.TerraformProviderConfig.Ephemeral {
 			packageName = "ephschema"
 		} else {
 			packageName = "rsschema"
@@ -2913,9 +2913,9 @@ func ResourceCloseFunction(resourceTyp properties.ResourceType, names *NameProvi
 func FunctionSupported(spec *properties.Normalization, function string) (bool, error) {
 	switch function {
 	case "Create", "Delete", "Read", "Update":
-		return spec.TerraformProviderConfig.Ephemeral != true, nil
+		return !spec.TerraformProviderConfig.Ephemeral, nil
 	case "Open", "Close", "Renew":
-		if spec.TerraformProviderConfig.Ephemeral != true {
+		if !spec.TerraformProviderConfig.Ephemeral {
 			return false, nil
 		}
 

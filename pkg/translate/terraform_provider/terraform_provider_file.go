@@ -147,7 +147,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 		"IsEphemeral":  func() bool { return spec.TerraformProviderConfig.Ephemeral },
 		"IsImportable": func() bool { return resourceTyp == properties.ResourceEntry },
 		"tfresourcepkg": func() string {
-			if spec.TerraformProviderConfig.Ephemeral == true {
+			if spec.TerraformProviderConfig.Ephemeral {
 				return "ephemeral"
 			} else {
 				return "resource"
