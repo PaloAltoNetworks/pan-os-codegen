@@ -2,6 +2,7 @@ package manager_test
 
 import (
 	"context"
+	"log"
 	"log/slog"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -11,6 +12,7 @@ import (
 	sdkmanager "github.com/PaloAltoNetworks/terraform-provider-panos/internal/manager"
 )
 
+var _ = log.Printf
 var _ = Expect
 var _ = slog.Debug
 
@@ -178,8 +180,8 @@ var _ = Describe("Server", func() {
 
 	Context("initially has some entries", func() {
 		Context("when creating new entries with NonExhaustive type", func() {
-			Context("and position is set to Last", func() {
-				It("should create new entries on the bottom of the list", func() {
+			Context("and position is set to first", func() {
+				It("should create new entries on the top of the list", func() {
 					entries := []*MockUuidObject{{Name: "4", Value: "D"}, {Name: "5", Value: "E"}, {Name: "6", Value: "F"}}
 
 					processed, err := manager.CreateMany(ctx, location, entries, sdkmanager.NonExhaustive, movement.PositionFirst{})
@@ -193,11 +195,35 @@ var _ = Describe("Server", func() {
 					clientEntries := client.list()
 					Expect(clientEntries).To(HaveLen(6))
 
+					Expect(mockService.moveGroupEntries).To(Equal(entries))
+
+					Expect(clientEntries[0]).To(Equal(entries[0]))
+					Expect(clientEntries[1]).To(Equal(entries[1]))
+					Expect(clientEntries[2]).To(Equal(entries[2]))
+
+				})
+			})
+			Context("and position is set to last", func() {
+				It("should create new entries on the bottom of the list", func() {
+					entries := []*MockUuidObject{{Name: "4", Value: "D"}, {Name: "5", Value: "E"}, {Name: "6", Value: "F"}}
+
+					processed, err := manager.CreateMany(ctx, location, entries, sdkmanager.NonExhaustive, movement.PositionLast{})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(processed).To(HaveLen(3))
+
+					Expect(processed[0]).To(Equal(entries[0]))
+					Expect(processed[1]).To(Equal(entries[1]))
+					Expect(processed[2]).To(Equal(entries[2]))
+
+					clientEntries := client.list()
+					Expect(clientEntries).To(HaveLen(6))
+
+					Expect(mockService.moveGroupEntries).To(Equal(entries))
+
 					Expect(clientEntries[3]).To(Equal(entries[0]))
 					Expect(clientEntries[4]).To(Equal(entries[1]))
 					Expect(clientEntries[5]).To(Equal(entries[2]))
 
-					Expect(mockService.moveGroupEntries).To(Equal(entries))
 				})
 			})
 			Context("and position is set to directly after first element", func() {
@@ -247,6 +273,14 @@ var _ = Describe("Server", func() {
 					Expect(current[5:5]).To(MatchEntries(initial[2:2]))
 
 					Expect(mockService.moveGroupEntries).To(Equal(entries))
+				})
+			})
+			Context("and there is a duplicate entry within a list", func() {
+				It("should properly raise an error", func() {
+					entries := []*MockUuidObject{{Name: "4", Value: "D"}, {Name: "4", Value: "D"}}
+					_, err := manager.CreateMany(ctx, location, entries, sdkmanager.NonExhaustive, movement.PositionFirst{})
+
+					Expect(err).To(MatchError(sdkmanager.ErrPlanConflict))
 				})
 			})
 		})

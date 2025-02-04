@@ -220,6 +220,9 @@ func (o *UuidObjectManager[E, L, S]) CreateMany(ctx context.Context, location L,
 	var diags diag.Diagnostics
 
 	planEntriesByName := o.entriesByName(planEntries, entryUnknown)
+	if len(planEntriesByName) != len(planEntries) {
+		return nil, ErrPlanConflict
+	}
 
 	existing, err := o.service.List(ctx, location, "get", "", "")
 	if err != nil && !sdkerrors.IsObjectNotFound(err) {
@@ -307,6 +310,9 @@ func (o *UuidObjectManager[E, L, S]) CreateMany(ctx context.Context, location L,
 func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L, stateEntries []E, planEntries []E, exhaustive ExhaustiveType, position movement.Position) ([]E, error) {
 	stateEntriesByName := o.entriesByName(stateEntries, entryUnknown)
 	planEntriesByName := o.entriesByName(planEntries, entryUnknown)
+	if len(planEntriesByName) != len(planEntries) {
+		return nil, ErrPlanConflict
+	}
 
 	findMatchingStateEntry := func(entry E) (E, bool) {
 		var found bool
