@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/PaloAltoNetworks/pango/rule"
+	"github.com/PaloAltoNetworks/pango/movement"
 	sdkmanager "github.com/PaloAltoNetworks/terraform-provider-panos/internal/manager"
 )
 
@@ -32,18 +32,16 @@ var _ = Describe("Server", func() {
 	var client *MockUuidClient[*MockUuidObject]
 	var service sdkmanager.SDKUuidService[*MockUuidObject, MockLocation]
 	var mockService *MockUuidService[*MockUuidObject, MockLocation]
-	var trueVal bool
 	var location MockLocation
 	var ctx context.Context
 
-	var position rule.Position
+	var position movement.Position
 	var entries []*MockUuidObject
 	var mode sdkmanager.ExhaustiveType
 
 	BeforeEach(func() {
 		location = MockLocation{}
 		ctx = context.Background()
-		trueVal = true
 		initial = []*MockUuidObject{{Name: "1", Value: "A"}, {Name: "2", Value: "B"}, {Name: "3", Value: "C"}}
 		client = NewMockUuidClient(initial)
 		service = NewMockUuidService[*MockUuidObject, MockLocation](client)
@@ -65,7 +63,7 @@ var _ = Describe("Server", func() {
 
 			It("CreateMany() should create new entries on the server, and return them with uuid set", func() {
 				entries := []*MockUuidObject{{Name: "1", Value: "A"}}
-				processed, err := manager.CreateMany(ctx, location, entries, sdkmanager.Exhaustive, rule.Position{First: &trueVal})
+				processed, err := manager.CreateMany(ctx, location, entries, sdkmanager.Exhaustive, movement.PositionFirst{})
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(processed).To(HaveLen(1))
@@ -100,7 +98,7 @@ var _ = Describe("Server", func() {
 
 			Context("and all entries being created are new to the server", func() {
 				It("should create those entries in the correct position", func() {
-					processed, err := manager.CreateMany(ctx, location, entries, sdkmanager.NonExhaustive, rule.Position{First: &trueVal})
+					processed, err := manager.CreateMany(ctx, location, entries, sdkmanager.NonExhaustive, movement.PositionFirst{})
 
 					Expect(err).ToNot(HaveOccurred())
 					Expect(processed).To(HaveLen(2))
@@ -117,7 +115,7 @@ var _ = Describe("Server", func() {
 				BeforeEach(func() {
 					entries = []*MockUuidObject{{Name: "1", Value: "A'"}, {Name: "3", Value: "C"}}
 					mode = sdkmanager.Exhaustive
-					position = rule.Position{First: &trueVal}
+					position = movement.PositionFirst{}
 				})
 
 				It("should not return any error and overwrite all entries on the server", func() {
@@ -169,7 +167,7 @@ var _ = Describe("Server", func() {
 				Expect(processed).To(HaveLen(3))
 				Expect(processed).NotTo(MatchEntries(entries))
 
-				processed, err = manager.UpdateMany(ctx, location, entries, entries, sdkmanager.NonExhaustive, rule.Position{First: &trueVal})
+				processed, err = manager.UpdateMany(ctx, location, entries, entries, sdkmanager.NonExhaustive, movement.PositionFirst{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(processed).To(HaveLen(3))
 
@@ -184,7 +182,7 @@ var _ = Describe("Server", func() {
 				It("should create new entries on the bottom of the list", func() {
 					entries := []*MockUuidObject{{Name: "4", Value: "D"}, {Name: "5", Value: "E"}, {Name: "6", Value: "F"}}
 
-					processed, err := manager.CreateMany(ctx, location, entries, sdkmanager.NonExhaustive, rule.Position{Last: &trueVal})
+					processed, err := manager.CreateMany(ctx, location, entries, sdkmanager.NonExhaustive, movement.PositionFirst{})
 					Expect(err).ToNot(HaveOccurred())
 					Expect(processed).To(HaveLen(3))
 
@@ -206,7 +204,7 @@ var _ = Describe("Server", func() {
 				It("should create new entries directly after first existing element", func() {
 					entries := []*MockUuidObject{{Name: "4", Value: "D"}, {Name: "5", Value: "E"}, {Name: "6", Value: "F"}}
 
-					processed, err := manager.CreateMany(ctx, location, entries, sdkmanager.NonExhaustive, rule.Position{DirectlyAfter: &initial[0].Name})
+					processed, err := manager.CreateMany(ctx, location, entries, sdkmanager.NonExhaustive, movement.PositionAfter{Directly: true, Pivot: initial[0].Name})
 
 					Expect(err).ToNot(HaveOccurred())
 					Expect(processed).To(HaveLen(3))
@@ -234,7 +232,7 @@ var _ = Describe("Server", func() {
 					entries := []*MockUuidObject{{Name: "4", Value: "D"}, {Name: "5", Value: "E"}, {Name: "6", Value: "F"}}
 
 					pivot := initial[2].Name // "3"
-					position = rule.Position{DirectlyBefore: &pivot}
+					position = movement.PositionBefore{Directly: true, Pivot: pivot}
 					processed, err := manager.CreateMany(ctx, location, entries, sdkmanager.NonExhaustive, position)
 
 					Expect(err).ToNot(HaveOccurred())
