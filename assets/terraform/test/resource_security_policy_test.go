@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -132,6 +133,47 @@ func (o *expectServerSecurityRulesCount) CheckState(ctx context.Context, req sta
 	}
 }
 
+const securityPolicyDuplicatedTmpl = `
+variable "prefix" { type = string }
+
+resource "panos_template" "template" {
+  location = { panorama = {} }
+
+  name = format("%s-tmpl", var.prefix)
+}
+
+resource "panos_device_group" "dg" {
+  location = { panorama = {} }
+
+  name = format("%s-dg", var.prefix)
+  templates = [ resource.panos_template.template.name ]
+}
+
+
+resource "panos_security_policy" "policy" {
+  location = { device_group = { name = resource.panos_device_group.dg.name }}
+
+  rules = [
+    {
+      name = format("%s-rule", var.prefix)
+      source_zones     = ["any"]
+      source_addresses = ["any"]
+
+      destination_zones     = ["any"]
+      destination_addresses = ["any"]
+    },
+    {
+      name = format("%s-rule", var.prefix)
+      source_zones     = ["any"]
+      source_addresses = ["any"]
+
+      destination_zones     = ["any"]
+      destination_addresses = ["any"]
+    }
+  ]
+}
+`
+
 const securityPolicyExtendedResource1Tmpl = `
 variable "prefix" { type = string }
 
@@ -196,6 +238,27 @@ resource "panos_security_policy" "policy" {
   }]
 }
 `
+
+func TestAccSecurityPolicyDuplicatedPlan(t *testing.T) {
+	t.Parallel()
+
+	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
+	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: securityPolicyDuplicatedTmpl,
+				ConfigVariables: map[string]config.Variable{
+					"prefix": config.StringVariable(prefix),
+				},
+				ExpectError: regexp.MustCompile("List entries must have unique names"),
+			},
+		},
+	})
+}
 
 func TestAccSecurityPolicyExtended(t *testing.T) {
 	t.Parallel()

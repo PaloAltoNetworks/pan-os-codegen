@@ -275,13 +275,37 @@ func (r *{{ resourceStructName }}) Metadata(ctx context.Context, req resource.Me
 
 func (r *{{ resourceStructName }}) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
 {{- if HasPosition }}
+	{
 	var resource {{ resourceStructName }}Model
 	resp.Diagnostics.Append(req.Config.Get(ctx, &resource)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
 	resource.Position.ValidateConfig(resp)
+	}
+{{- end }}
+
+{{- if IsUuid }}
+	{
+	var resource {{ resourceStructName }}Model
+	resp.Diagnostics.Append(req.Config.Get(ctx, &resource)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+  {{ $resourceTFStructName := printf "%s%sObject" resourceStructName ListAttribute.CamelCase }}
+	entries := make(map[string]struct{})
+	var elements []{{ $resourceTFStructName }}
+	resource.{{ ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
+
+	for _, elt := range elements {
+		entry :=  elt.Name.ValueString()
+		if _, found := entries[entry]; found {
+			resp.Diagnostics.AddError("Failed to validate resource", "List entries must have unique names")
+			return
+		}
+		entries[entry] = struct{}{}
+	}
+	}
 {{- end }}
 }
 

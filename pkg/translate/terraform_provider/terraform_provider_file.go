@@ -127,13 +127,16 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 	}
 
 	funcMap := template.FuncMap{
-		"GoSDKSkipped":            func() bool { return spec.GoSdkSkip },
-		"IsEntry":                 func() bool { return spec.HasEntryName() && !spec.HasEntryUuid() },
-		"HasImports":              func() bool { return len(spec.Imports) > 0 },
-		"IsCustom":                func() bool { return spec.TerraformProviderConfig.ResourceType == properties.TerraformResourceCustom },
-		"IsUuid":                  func() bool { return spec.HasEntryUuid() },
-		"IsConfig":                func() bool { return !spec.HasEntryName() && !spec.HasEntryUuid() },
-		"IsImportable":            func() bool { return resourceTyp == properties.ResourceEntry },
+		"GoSDKSkipped": func() bool { return spec.GoSdkSkip },
+		"IsEntry":      func() bool { return spec.HasEntryName() && !spec.HasEntryUuid() },
+		"HasImports":   func() bool { return len(spec.Imports) > 0 },
+		"IsCustom":     func() bool { return spec.TerraformProviderConfig.ResourceType == properties.TerraformResourceCustom },
+		"IsUuid":       func() bool { return spec.HasEntryUuid() },
+		"IsConfig":     func() bool { return !spec.HasEntryName() && !spec.HasEntryUuid() },
+		"IsImportable": func() bool { return resourceTyp == properties.ResourceEntry },
+		"ListAttribute": func() *properties.NameVariant {
+			return properties.NewNameVariant(spec.TerraformProviderConfig.PluralName)
+		},
 		"resourceSDKName":         func() string { return names.PackageName },
 		"HasPosition":             func() bool { return hasPosition },
 		"metaName":                func() string { return names.MetaName },
