@@ -4,11 +4,15 @@ import (
 	"context"
 	"flag"
 	"log"
+	"os"
+	"runtime/pprof"
 
 	"github.com/PaloAltoNetworks/terraform-provider-panos/internal/provider"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 )
+
+var _ = pprof.StartCPUProfile
 
 // Run "go generate" to format example terraform files and generate the docs for the registry/website
 
@@ -34,6 +38,16 @@ func main() {
 
 	flag.BoolVar(&debug, "debug", false, "set to true to run the provider with support for debuggers like delve")
 	flag.Parse()
+
+	cpuprofile := os.Getenv("TF_PANOS_PROFILE")
+	if cpuprofile != "" {
+		f, err := os.Create(cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
 
 	opts := providerserver.ServeOpts{
 		Address: "registry.terraform.io/paloaltonetworks/panos",
