@@ -61,3 +61,35 @@ type ImportLocation interface {
 	MarshalPangoXML([]string) (string, error)
 	UnmarshalPangoXML([]byte) ([]string, error)
 }
+
+func ChunkedMultiConfigUpdate(ctx context.Context, client SDKClient, operations []*xmlapi.Config) error {
+	if len(operations) == 0 {
+		return nil
+	}
+
+	chunkSize := 500
+
+	var chunked [][]*xmlapi.Config
+
+	for i := 0; i < len(operations); i += chunkSize {
+		end := i + chunkSize
+		if end > len(operations) {
+			end = len(operations)
+		}
+
+		chunked = append(chunked, operations[i:end])
+	}
+
+	for _, chunk := range chunked {
+		updates := xmlapi.NewMultiConfig(len(chunk))
+		for _, update := range chunk {
+			updates.Add(update)
+		}
+
+		if _, _, _, err := client.MultiConfig(ctx, updates, false, nil); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

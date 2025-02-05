@@ -125,7 +125,7 @@ func (o *EntryObjectManager[E, L, S]) CreateMany(ctx context.Context, location L
 		}
 	}
 
-	updates := xmlapi.NewMultiConfig(len(entries))
+	var operations []*xmlapi.Config
 
 	for _, elt := range entries {
 		path, err := location.XpathWithEntryName(o.client.Versioning(), elt.EntryName())
@@ -138,7 +138,7 @@ func (o *EntryObjectManager[E, L, S]) CreateMany(ctx context.Context, location L
 			return nil, &Error{err: err, message: "failed to marshal entry into XML document"}
 		}
 
-		updates.Add(&xmlapi.Config{
+		operations = append(operations, &xmlapi.Config{
 			Action:  "edit",
 			Xpath:   util.AsXpath(path),
 			Element: xmlEntry,
@@ -146,8 +146,8 @@ func (o *EntryObjectManager[E, L, S]) CreateMany(ctx context.Context, location L
 		})
 	}
 
-	if len(updates.Operations) > 0 {
-		if _, _, _, err := o.client.MultiConfig(ctx, updates, false, nil); err != nil {
+	if len(operations) > 0 {
+		if err := ChunkedMultiConfigUpdate(ctx, o.client, operations); err != nil {
 			return nil, &Error{err: err, message: "Failed to execute MultiConfig command"}
 		}
 	}
@@ -282,7 +282,7 @@ func (o *EntryObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L
 		}
 	}
 
-	updates := xmlapi.NewMultiConfig(len(planEntries))
+	var operations []*xmlapi.Config
 
 	for _, existingEntry := range existing {
 		existingEntryName := existingEntry.EntryName()
@@ -302,7 +302,7 @@ func (o *EntryObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L
 		// If the existing entry name matches new name for the renamed entry,
 		// we delete it before adding Renamed commands.
 		if _, found := renamedEntries[existingEntryName]; found {
-			updates.Add(&xmlapi.Config{
+			operations = append(operations, &xmlapi.Config{
 				Action: "delete",
 				Xpath:  util.AsXpath(path),
 				Target: o.client.GetTarget(),
@@ -341,14 +341,14 @@ func (o *EntryObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L
 
 		switch elt.State {
 		case entryMissing, entryOutdated:
-			updates.Add(&xmlapi.Config{
+			operations = append(operations, &xmlapi.Config{
 				Action:  "edit",
 				Xpath:   util.AsXpath(path),
 				Element: xmlEntry,
 				Target:  o.client.GetTarget(),
 			})
 		case entryRenamed:
-			updates.Add(&xmlapi.Config{
+			operations = append(operations, &xmlapi.Config{
 				Action:  "rename",
 				Xpath:   util.AsXpath(path),
 				NewName: elt.NewName,
@@ -363,7 +363,7 @@ func (o *EntryObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L
 			elt.Entry.SetEntryName(elt.NewName)
 			processedStateEntriesByName[elt.NewName] = elt
 		case entryDeleted:
-			updates.Add(&xmlapi.Config{
+			operations = append(operations, &xmlapi.Config{
 				Action: "delete",
 				Xpath:  util.AsXpath(path),
 				Target: o.client.GetTarget(),
@@ -376,8 +376,8 @@ func (o *EntryObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L
 
 	}
 
-	if len(updates.Operations) > 0 {
-		if _, _, _, err := o.client.MultiConfig(ctx, updates, false, nil); err != nil {
+	if len(operations) > 0 {
+		if err := ChunkedMultiConfigUpdate(ctx, o.client, operations); err != nil {
 			return nil, &Error{err: err, message: "Failed to execute MultiConfig command"}
 		}
 	}

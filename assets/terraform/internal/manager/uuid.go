@@ -289,7 +289,7 @@ func (o *UuidObjectManager[E, L, S]) CreateMany(ctx context.Context, location L,
 		return nil, fmt.Errorf("Failed to list remote entries: %w", err)
 	}
 
-	updates := xmlapi.NewMultiConfig(len(planEntriesByName))
+	var operations []*xmlapi.Config
 
 	switch exhaustive {
 	case Exhaustive:
@@ -299,7 +299,7 @@ func (o *UuidObjectManager[E, L, S]) CreateMany(ctx context.Context, location L,
 				return nil, ErrMarshaling
 			}
 
-			updates.Add(&xmlapi.Config{
+			operations = append(operations, &xmlapi.Config{
 				Action: "delete",
 				Xpath:  util.AsXpath(path),
 				Target: o.client.GetTarget(),
@@ -325,7 +325,7 @@ func (o *UuidObjectManager[E, L, S]) CreateMany(ctx context.Context, location L,
 			return nil, ErrMarshaling
 		}
 
-		updates.Add(&xmlapi.Config{
+		operations = append(operations, &xmlapi.Config{
 			Action:  "edit",
 			Xpath:   util.AsXpath(path),
 			Element: xmlEntry,
@@ -333,8 +333,9 @@ func (o *UuidObjectManager[E, L, S]) CreateMany(ctx context.Context, location L,
 		})
 	}
 
-	if len(updates.Operations) > 0 {
-		if _, _, _, err := o.client.MultiConfig(ctx, updates, false, nil); err != nil {
+	if len(operations) > 0 {
+		err := ChunkedMultiConfigUpdate(ctx, o.client, operations)
+		if err != nil {
 			return nil, fmt.Errorf("failed to create entries on the server: %w", err)
 		}
 	}
@@ -460,7 +461,7 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 		return nil, &Error{err: err, message: "sdk error while listing resources"}
 	}
 
-	updates := xmlapi.NewMultiConfig(len(planEntries))
+	var operations []*xmlapi.Config
 
 	// Next, we compare existing entries from the server against entries processed in the previous
 	// state to find any required updates.
@@ -484,7 +485,7 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 		// If the existing entry name matches new name for the renamed entry,
 		// we delete it before adding rename commands.
 		if _, found := renamedEntries[existingEntryName]; found {
-			updates.Add(&xmlapi.Config{
+			operations = append(operations, &xmlapi.Config{
 				Action: "delete",
 				Xpath:  util.AsXpath(path),
 				Target: o.client.GetTarget(),
@@ -498,7 +499,7 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 				// If existing entry is not found in the processedStateEntries map,
 				// entry is not managed by terraform. If Exhaustive update has been
 				// called, delete it from the server.
-				updates.Add(&xmlapi.Config{
+				operations = append(operations, &xmlapi.Config{
 					Action: "delete",
 					Xpath:  util.AsXpath(path),
 					Target: o.client.GetTarget(),
@@ -557,14 +558,14 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 				Target:  o.client.GetTarget(),
 			}
 		case entryOutdated:
-			updates.Add(&xmlapi.Config{
+			operations = append(operations, &xmlapi.Config{
 				Action:  "edit",
 				Xpath:   util.AsXpath(path),
 				Element: xmlEntry,
 				Target:  o.client.GetTarget(),
 			})
 		case entryRenamed:
-			updates.Add(&xmlapi.Config{
+			operations = append(operations, &xmlapi.Config{
 				Action:  "rename",
 				Xpath:   util.AsXpath(path),
 				NewName: elt.NewName,
@@ -579,7 +580,7 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 			elt.Entry.SetEntryName(elt.NewName)
 			processedStateEntries[elt.NewName] = elt
 		case entryDeleted:
-			updates.Add(&xmlapi.Config{
+			operations = append(operations, &xmlapi.Config{
 				Action: "delete",
 				Xpath:  util.AsXpath(path),
 				Target: o.client.GetTarget(),
@@ -593,12 +594,12 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 
 	for _, elt := range createOps {
 		if elt != nil {
-			updates.Add(elt)
+			operations = append(operations, elt)
 		}
 	}
 
-	if len(updates.Operations) > 0 {
-		if _, _, _, err := o.client.MultiConfig(ctx, updates, false, nil); err != nil {
+	if len(operations) > 0 {
+		if err := ChunkedMultiConfigUpdate(ctx, o.client, operations); err != nil {
 			return nil, &Error{err: err, message: "failed to execute MultiConfig command"}
 		}
 	}
