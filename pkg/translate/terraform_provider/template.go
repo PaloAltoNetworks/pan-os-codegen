@@ -327,7 +327,10 @@ func (r *{{ resourceStructName }}) Configure(ctx context.Context, req {{ tfresou
 		return
 	}
 
-	r.client = req.ProviderData.(*pango.Client)
+	providerData := req.ProviderData.(*ProviderData)
+	batchSize := providerData.MultiConfigBatchSize
+
+	r.client = providerData.Client
 
 {{- if IsCustom }}
 
@@ -344,14 +347,14 @@ func (r *{{ resourceStructName }}) Configure(ctx context.Context, req {{ tfresou
 		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
 		return
 	}
-	r.manager =  sdkmanager.NewEntryObjectManager(r.client, {{ resourceSDKName }}.NewService(r.client), specifier, {{ resourceSDKName }}.SpecMatches)
+	r.manager =  sdkmanager.NewEntryObjectManager(r.client, {{ resourceSDKName }}.NewService(r.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsUuid }}
 	specifier, _, err := {{ resourceSDKName }}.Versioning(r.client.Versioning())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
 		return
 	}
-	r.manager =  sdkmanager.NewUuidObjectManager(r.client, {{ resourceSDKName }}.NewService(r.client), specifier, {{ resourceSDKName }}.SpecMatches)
+	r.manager =  sdkmanager.NewUuidObjectManager(r.client, {{ resourceSDKName }}.NewService(r.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsConfig }}
 	specifier, _, err := {{ resourceSDKName }}.Versioning(r.client.Versioning())
 	if err != nil {
@@ -1802,6 +1805,11 @@ func (p *PanosProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp
 {{- end }}
 		},
 	}
+}
+
+type ProviderData struct {
+	Client               *sdk.Client
+	MultiConfigBatchSize int
 }
 
 // Configure prepares the provider.
