@@ -54,14 +54,16 @@ type TFUuidObject[E any] interface {
 }
 
 type UuidObjectManager[E UuidObject, L UuidLocation, S SDKUuidService[E, L]] struct {
+	batchSize int
 	service   S
 	client    SDKClient
 	specifier func(E) (any, error)
 	matcher   func(E, E) bool
 }
 
-func NewUuidObjectManager[E UuidObject, L UuidLocation, S SDKUuidService[E, L]](client SDKClient, service S, specifier func(E) (any, error), matcher func(E, E) bool) *UuidObjectManager[E, L, S] {
+func NewUuidObjectManager[E UuidObject, L UuidLocation, S SDKUuidService[E, L]](client SDKClient, service S, batchSize int, specifier func(E) (any, error), matcher func(E, E) bool) *UuidObjectManager[E, L, S] {
 	return &UuidObjectManager[E, L, S]{
+		batchSize: batchSize,
 		service:   service,
 		client:    client,
 		specifier: specifier,
@@ -334,7 +336,7 @@ func (o *UuidObjectManager[E, L, S]) CreateMany(ctx context.Context, location L,
 	}
 
 	if len(operations) > 0 {
-		err := ChunkedMultiConfigUpdate(ctx, o.client, operations)
+		err := ChunkedMultiConfigUpdate(ctx, o.client, operations, o.batchSize)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create entries on the server: %w", err)
 		}
@@ -599,7 +601,7 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 	}
 
 	if len(operations) > 0 {
-		if err := ChunkedMultiConfigUpdate(ctx, o.client, operations); err != nil {
+		if err := ChunkedMultiConfigUpdate(ctx, o.client, operations, o.batchSize); err != nil {
 			return nil, &Error{err: err, message: "failed to execute MultiConfig command"}
 		}
 	}

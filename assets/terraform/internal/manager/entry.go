@@ -45,14 +45,16 @@ type SDKEntryService[E EntryObject, L EntryLocation] interface {
 }
 
 type EntryObjectManager[E EntryObject, L EntryLocation, S SDKEntryService[E, L]] struct {
+	batchSize int
 	service   S
 	client    SDKClient
 	specifier func(E) (any, error)
 	matcher   func(E, E) bool
 }
 
-func NewEntryObjectManager[E EntryObject, L EntryLocation, S SDKEntryService[E, L]](client SDKClient, service S, specifier func(E) (any, error), matcher func(E, E) bool) *EntryObjectManager[E, L, S] {
+func NewEntryObjectManager[E EntryObject, L EntryLocation, S SDKEntryService[E, L]](client SDKClient, service S, batchSize int, specifier func(E) (any, error), matcher func(E, E) bool) *EntryObjectManager[E, L, S] {
 	return &EntryObjectManager[E, L, S]{
+		batchSize: batchSize,
 		service:   service,
 		client:    client,
 		specifier: specifier,
@@ -147,7 +149,7 @@ func (o *EntryObjectManager[E, L, S]) CreateMany(ctx context.Context, location L
 	}
 
 	if len(operations) > 0 {
-		if err := ChunkedMultiConfigUpdate(ctx, o.client, operations); err != nil {
+		if err := ChunkedMultiConfigUpdate(ctx, o.client, operations, o.batchSize); err != nil {
 			return nil, &Error{err: err, message: "Failed to execute MultiConfig command"}
 		}
 	}
@@ -377,7 +379,7 @@ func (o *EntryObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L
 	}
 
 	if len(operations) > 0 {
-		if err := ChunkedMultiConfigUpdate(ctx, o.client, operations); err != nil {
+		if err := ChunkedMultiConfigUpdate(ctx, o.client, operations, o.batchSize); err != nil {
 			return nil, &Error{err: err, message: "Failed to execute MultiConfig command"}
 		}
 	}

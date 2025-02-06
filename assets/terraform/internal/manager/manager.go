@@ -62,17 +62,14 @@ type ImportLocation interface {
 	UnmarshalPangoXML([]byte) ([]string, error)
 }
 
-func ChunkedMultiConfigUpdate(ctx context.Context, client SDKClient, operations []*xmlapi.Config) error {
+func ChunkedMultiConfigUpdate(ctx context.Context, client SDKClient, operations []*xmlapi.Config, batchSize int) error {
 	if len(operations) == 0 {
 		return nil
 	}
 
-	chunkSize := 500
-
 	var chunked [][]*xmlapi.Config
-
-	for i := 0; i < len(operations); i += chunkSize {
-		end := i + chunkSize
+	for i := 0; i < len(operations); i += batchSize {
+		end := i + batchSize
 		if end > len(operations) {
 			end = len(operations)
 		}
