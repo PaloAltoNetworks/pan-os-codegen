@@ -74,6 +74,7 @@ func (c *Command) Execute() error {
 	}
 	var resourceList []string
 	var dataSourceList []string
+	var ephemeralResourceList []string
 	specMetadata := make(map[string]properties.TerraformProviderSpecMetadata)
 
 	for _, specPath := range c.specs {
@@ -127,13 +128,14 @@ func (c *Command) Execute() error {
 				}
 
 				terraformGenerator := generate.NewCreator(config.Output.TerraformProvider, c.templatePath, spec)
-				dataSources, resources, partialNames, err := terraformGenerator.RenderTerraformProviderFile(spec, resourceTyp)
+				dataSources, resources, ephemeralResources, partialNames, err := terraformGenerator.RenderTerraformProviderFile(spec, resourceTyp)
 				if err != nil {
 					return fmt.Errorf("error rendering Terraform provider file for %s - %s", specPath, err)
 				}
 
 				resourceList = append(resourceList, resources...)
 				dataSourceList = append(dataSourceList, dataSources...)
+				ephemeralResourceList = append(ephemeralResourceList, ephemeralResources...)
 
 				for k, v := range partialNames {
 					specMetadata[k] = v
@@ -155,13 +157,14 @@ func (c *Command) Execute() error {
 				}
 
 				terraformGenerator := generate.NewCreator(config.Output.TerraformProvider, c.templatePath, spec)
-				dataSources, resources, partialNames, err := terraformGenerator.RenderTerraformProviderFile(spec, resourceTyp)
+				dataSources, resources, ephemeralResources, partialNames, err := terraformGenerator.RenderTerraformProviderFile(spec, resourceTyp)
 				if err != nil {
 					return fmt.Errorf("error rendering Terraform provider file for %s - %s", specPath, err)
 				}
 
 				resourceList = append(resourceList, resources...)
 				dataSourceList = append(dataSourceList, dataSources...)
+				ephemeralResourceList = append(ephemeralResourceList, ephemeralResources...)
 
 				for k, v := range partialNames {
 					specMetadata[k] = v
@@ -183,6 +186,7 @@ func (c *Command) Execute() error {
 		newProviderObject := properties.NewTerraformProviderFile(providerSpec.Name)
 		newProviderObject.DataSources = append(newProviderObject.DataSources, dataSourceList...)
 		newProviderObject.Resources = append(newProviderObject.Resources, resourceList...)
+		newProviderObject.EphemeralResources = append(newProviderObject.EphemeralResources, ephemeralResourceList...)
 		newProviderObject.SpecMetadata = specMetadata
 
 		terraformGenerator := generate.NewCreator(config.Output.TerraformProvider, c.templatePath, providerSpec)
