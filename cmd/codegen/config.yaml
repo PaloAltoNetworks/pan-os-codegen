@@ -105,3 +105,9 @@ terraform_provider_config:
       description: "(Local inspection mode) The version of PAN-OS that exported the config file. This is only used if the root 'config' block does not contain the 'detail-version' attribute. Example: `10.2.3`."
       optional: true
       type: string
+    multi_config_batch_size:
+      description: Number of operations to send as part of a single MultiConfig update
+      optional: true
+      type: int64
+      env_name: "PANOS_MULTI_CONFIG_BATCH_SIZE"
+      default_value: "500"
