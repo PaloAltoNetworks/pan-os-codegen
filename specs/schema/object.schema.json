@@ -28,13 +28,15 @@
         },
         "custom_functions": {
           "type": "object",
-          "required": ["Read", "Create", "Update", "Delete"],
           "additionalProperties": false,
           "properties": {
             "Read": { "type": "string" },
             "Create": { "type": "string" },
             "Update": { "type": "string" },
-            "Delete": { "type": "string" }
+            "Delete": { "type": "string" },
+            "Open": { "type": "string" },
+            "Refresh": { "type": "string" },
+            "Close": { "type": "string" }
           }
         },
         "resource_variants": {

@@ -197,7 +197,7 @@ func finishNestedObjectIfBlock(parent []*properties.SpecParam, param *properties
 }
 
 func isParamName(param *properties.SpecParam) bool {
-	return param.Name.CamelCase == "Name"
+	return param.Required && param.Name.CamelCase == "Name"
 }
 
 func declareRootOfNestedObject(parent []*properties.SpecParam, builder *strings.Builder, version *version.Version, prefix, suffix string, isNestedListHack bool) {

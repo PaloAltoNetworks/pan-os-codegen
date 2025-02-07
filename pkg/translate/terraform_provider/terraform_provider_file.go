@@ -64,6 +64,9 @@ func (g *GenerateTerraformProvider) appendResourceType(terraformProvider *proper
 	case properties.SchemaResource:
 		flags |= properties.TerraformSpecResource
 		terraformProvider.Resources = append(terraformProvider.Resources, names.ResourceStructName)
+	case properties.SchemaEphemeralResource:
+		flags |= properties.TerraformSpecEphemeralResource
+		terraformProvider.EphemeralResources = append(terraformProvider.EphemeralResources, names.ResourceStructName)
 	case properties.SchemaProvider, properties.SchemaCommon:
 	}
 
@@ -93,6 +96,8 @@ func (g *GenerateTerraformProvider) generateTerraformEntityTemplate(resourceTyp 
 		resourceType = "DataSource"
 	case properties.SchemaResource:
 		resourceType = "Resource"
+	case properties.SchemaEphemeralResource:
+		resourceType = "EphemeralResource"
 	case properties.SchemaCommon:
 		resourceType = "Common"
 	case properties.SchemaProvider:
@@ -126,6 +131,11 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 		hasPosition = false
 	}
 
+	schemaTyp := properties.SchemaResource
+	if spec.TerraformProviderConfig.Ephemeral {
+		schemaTyp = properties.SchemaEphemeralResource
+	}
+
 	funcMap := template.FuncMap{
 		"GoSDKSkipped": func() bool { return spec.GoSdkSkip },
 		"IsEntry":      func() bool { return spec.HasEntryName() && !spec.HasEntryUuid() },
@@ -139,11 +149,20 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 
 			panic("unreachable")
 		},
-		"HasImports":              func() bool { return len(spec.Imports) > 0 },
-		"IsCustom":                func() bool { return spec.TerraformProviderConfig.ResourceType == properties.TerraformResourceCustom },
-		"IsUuid":                  func() bool { return spec.HasEntryUuid() },
-		"IsConfig":                func() bool { return !spec.HasEntryName() && !spec.HasEntryUuid() },
-		"IsImportable":            func() bool { return resourceTyp == properties.ResourceEntry },
+		"HasImports":   func() bool { return len(spec.Imports) > 0 },
+		"HasLocations": func() bool { return len(spec.Locations) > 0 },
+		"IsCustom":     func() bool { return spec.TerraformProviderConfig.ResourceType == properties.TerraformResourceCustom },
+		"IsUuid":       func() bool { return spec.HasEntryUuid() },
+		"IsConfig":     func() bool { return !spec.HasEntryName() && !spec.HasEntryUuid() },
+		"IsEphemeral":  func() bool { return spec.TerraformProviderConfig.Ephemeral },
+		"IsImportable": func() bool { return resourceTyp == properties.ResourceEntry },
+		"tfresourcepkg": func() string {
+			if spec.TerraformProviderConfig.Ephemeral {
+				return "ephemeral"
+			} else {
+				return "resource"
+			}
+		},
 		"resourceSDKName":         func() string { return names.PackageName },
 		"HasPosition":             func() bool { return hasPosition },
 		"metaName":                func() string { return names.MetaName },
@@ -177,6 +196,18 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 		},
 		"ResourceDeleteFunction": func(structName string, serviceName string) (string, error) {
 			return ResourceDeleteFunction(resourceTyp, names, serviceName, spec, names.PackageName)
+		},
+		"ResourceOpenFunction": func(structName string, serviceName string) (string, error) {
+			return ResourceOpenFunction(resourceTyp, names, serviceName, spec, names.PackageName)
+		},
+		"ResourceRenewFunction": func(structName string, serviceName string) (string, error) {
+			return ResourceOpenFunction(resourceTyp, names, serviceName, spec, names.PackageName)
+		},
+		"ResourceCloseFunction": func(structName string, serviceName string) (string, error) {
+			return ResourceOpenFunction(resourceTyp, names, serviceName, spec, names.PackageName)
+		},
+		"FunctionSupported": func(function string) (bool, error) {
+			return FunctionSupported(spec, function)
 		},
 		"RenderImportStateStructs": func() (string, error) {
 			return RenderImportStateStructs(resourceTyp, names, spec)
@@ -213,12 +244,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 			switch resourceTyp {
 			case properties.ResourceUuid:
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/rule", "")
-				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/errors", "sdkerrors")
 			case properties.ResourceEntry:
 			case properties.ResourceUuidPlural:
-				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/errors", "sdkerrors")
 			case properties.ResourceEntryPlural:
-				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/errors", "sdkerrors")
 			case properties.ResourceCustom, properties.ResourceConfig:
 			}
 
@@ -239,15 +267,23 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 			conditionallyAddModifiers(terraformProvider.ImportManager, spec)
 			conditionallyAddDefaults(terraformProvider.ImportManager, spec.Spec)
 
-			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/diag", "")
+			if spec.TerraformProviderConfig.Ephemeral {
+				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/ephemeral/schema", "ephschema")
+			} else {
+				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
+			}
+
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/attr", "")
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource", "")
-			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
-			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault", "")
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types", "")
-			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
 
-			err := g.generateTerraformEntityTemplate(resourceTyp, properties.SchemaResource, names, spec, terraformProvider, resourceObj, funcMap)
+			if len(spec.Locations) > 0 {
+				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/diag", "")
+				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault", "")
+				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
+			}
+
+			err := g.generateTerraformEntityTemplate(resourceTyp, schemaTyp, names, spec, terraformProvider, resourceObj, funcMap)
 			if err != nil {
 				return err
 			}
@@ -271,15 +307,23 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 			conditionallyAddModifiers(terraformProvider.ImportManager, spec)
 			conditionallyAddDefaults(terraformProvider.ImportManager, spec.Spec)
 
-			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/diag", "")
+			if spec.TerraformProviderConfig.Ephemeral {
+				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/ephemeral/schema", "ephschema")
+			} else {
+				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
+			}
+
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/attr", "")
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource", "")
-			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
-			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault", "")
 			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types", "")
-			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
 
-			err := g.generateTerraformEntityTemplate(resourceTyp, properties.SchemaResource, names, spec, terraformProvider, resourceObj, funcMap)
+			if len(spec.Locations) > 0 {
+				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/diag", "")
+				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault", "")
+				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
+			}
+
+			err := g.generateTerraformEntityTemplate(resourceTyp, schemaTyp, names, spec, terraformProvider, resourceObj, funcMap)
 			if err != nil {
 				return err
 			}
@@ -325,6 +369,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 				panic("unreachable")
 			},
 			"HasImports":           func() bool { return len(spec.Imports) > 0 },
+			"HasLocations":         func() bool { return len(spec.Locations) > 0 },
 			"IsCustom":             func() bool { return spec.TerraformProviderConfig.ResourceType == properties.TerraformResourceCustom },
 			"IsUuid":               func() bool { return spec.HasEntryUuid() },
 			"resourceSDKName":      func() string { return names.PackageName },
@@ -336,6 +381,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 			"dataSourceStructName": func() string { return names.DataSourceStructName },
 			"DataSourceReadFunction": func(structName string, serviceName string) (string, error) {
 				return DataSourceReadFunction(resourceTyp, names, serviceName, spec, names.PackageName)
+			},
+			"FunctionSupported": func(function string) (bool, error) {
+				return FunctionSupported(spec, function)
 			},
 			"RenderCopyToPangoFunctions": func() (string, error) {
 				return RenderCopyToPangoFunctions(resourceTyp, names.PackageName, names.DataSourceStructName, spec)
@@ -377,7 +425,11 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 }
 
 func (g *GenerateTerraformProvider) GenerateCommonCode(resourceTyp properties.ResourceType, spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile) error {
-	terraformProvider.ImportManager.AddStandardImport("encoding/json", "")
+
+	// For specs with locations, we need to implement MarshalJSON and UnmarshalJSON methods
+	if len(spec.Locations) > 0 {
+		terraformProvider.ImportManager.AddStandardImport("encoding/json", "")
+	}
 	// Imports required by resources that can be imported into state
 	if resourceTyp == properties.ResourceEntry {
 		terraformProvider.ImportManager.AddStandardImport("encoding/base64", "")
@@ -386,6 +438,7 @@ func (g *GenerateTerraformProvider) GenerateCommonCode(resourceTyp properties.Re
 	}
 	names := NewNameProvider(spec, resourceTyp)
 	funcMap := template.FuncMap{
+		"HasLocations":          func() bool { return len(spec.Locations) > 0 },
 		"RenderLocationStructs": func() (string, error) { return RenderLocationStructs(resourceTyp, names, spec) },
 		"RenderLocationSchemaGetter": func() (string, error) {
 			return RenderLocationSchemaGetter(names, spec, terraformProvider.ImportManager)
@@ -420,12 +473,14 @@ func (g *GenerateTerraformProvider) GenerateTerraformProvider(terraformProvider 
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/provider", "")
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/provider/schema", "")
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource", "")
+	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/ephemeral", "")
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types", "")
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
 
 	funcMap := template.FuncMap{
 		"RenderImports":         func() (string, error) { return terraformProvider.ImportManager.RenderImports() },
 		"DataSources":           func() []string { return terraformProvider.DataSources },
+		"EphemeralResources":    func() []string { return terraformProvider.EphemeralResources },
 		"Resources":             func() []string { return terraformProvider.Resources },
 		"RenderResourceFuncMap": func() (string, error) { return RenderResourceFuncMap(terraformProvider.SpecMetadata) },
 		"ProviderParams":        func() map[string]properties.TerraformProviderParams { return providerConfig.TerraformProviderParams },

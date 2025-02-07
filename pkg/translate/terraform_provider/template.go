@@ -230,23 +230,38 @@ if !movementRequired {
 const resourceObj = `
 {{- /* Begin */ -}}
 
+{{- if IsEphemeral }}
+// Generate Terraform Ephemeral object
+var (
+	_ ephemeral.EphemeralResource              = &{{ resourceStructName }}{}
+        _ ephemeral.EphemeralResourceWithConfigure = &{{ resourceStructName }}{}
+)
+{{- else }}
 // Generate Terraform Resource object
 var (
 	_ resource.Resource                = &{{ resourceStructName }}{}
 	_ resource.ResourceWithConfigure   = &{{ resourceStructName }}{}
 	_ resource.ResourceWithImportState = &{{ resourceStructName }}{}
 )
+{{- end }}
 
+
+{{- if IsEphemeral }}
+func New{{ resourceStructName }}() ephemeral.EphemeralResource {
+	return &{{ resourceStructName }}{}
+}
+{{- else }}
 func New{{ resourceStructName }}() resource.Resource {
-{{- if IsImportable }}
+  {{- if IsImportable }}
 	if _, found := resourceFuncMap["panos{{ metaName }}"]; !found {
 		resourceFuncMap["panos{{ metaName }}"] = resourceFuncs{
 			CreateImportId: {{ structName }}ImportStateCreator,
 		}
 	}
-{{- end }}
+  {{- end }}
 	return &{{ resourceStructName }}{}
 }
+{{- end }}
 
 type {{ resourceStructName }} struct {
 	client *pango.Client
@@ -263,15 +278,13 @@ type {{ resourceStructName }} struct {
 {{- end }}
 }
 
+{{- if HasLocations }}
 func {{ resourceStructName }}LocationSchema() rsschema.Attribute {
 	return {{ structName }}LocationSchema()
 }
+{{- end }}
 
 {{ RenderResourceStructs }}
-
-func (r *{{ resourceStructName }}) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "{{ metaName }}"
-}
 
 func (r *{{ resourceStructName }}) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
 {{- if HasPosition }}
@@ -288,13 +301,17 @@ func (r *{{ resourceStructName }}) ValidateConfig(ctx context.Context, req resou
 // <ResourceSchema>
 {{ RenderResourceSchema }}
 
-func (r *{{ resourceStructName }}) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *{{ resourceStructName }}) Metadata(ctx context.Context, req {{ tfresourcepkg }}.MetadataRequest, resp *{{ tfresourcepkg }}.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "{{ metaName }}"
+}
+
+func (r *{{ resourceStructName }}) Schema(_ context.Context, _ {{ tfresourcepkg }}.SchemaRequest, resp *{{ tfresourcepkg }}.SchemaResponse) {
 	resp.Schema = {{ resourceStructName }}Schema()
 }
 
 // </ResourceSchema>
 
-func (r *{{ resourceStructName }}) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *{{ resourceStructName }}) Configure(ctx context.Context, req {{ tfresourcepkg }}.ConfigureRequest, resp *{{ tfresourcepkg }}.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -343,22 +360,48 @@ func (r *{{ resourceStructName }}) Configure(ctx context.Context, req resource.C
 {{ RenderXpathComponentsGetter }}
 {{- end }}
 
+{{- if FunctionSupported "Create" }}
 func (r *{{ resourceStructName }}) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	{{ ResourceCreateFunction resourceStructName serviceName}}
 }
+{{- end }}
 
+{{- if FunctionSupported "Read" }}
 func (o *{{ resourceStructName }}) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	{{ ResourceReadFunction resourceStructName serviceName}}
 }
+{{- end }}
 
 
+{{- if FunctionSupported "Update" }}
 func (r *{{ resourceStructName }}) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	{{ ResourceUpdateFunction resourceStructName serviceName}}
 }
+{{- end }}
 
+{{- if FunctionSupported "Delete" }}
 func (r *{{ resourceStructName }}) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	{{ ResourceDeleteFunction resourceStructName serviceName}}
 }
+{{- end }}
+
+{{- if FunctionSupported "Open" }}
+func (r *{{ resourceStructName }}) Open(ctx context.Context, req ephemeral.OpenRequest, resp *ephemeral.OpenResponse) {
+	{{ ResourceOpenFunction resourceStructName serviceName}}
+}
+{{- end }}
+
+{{- if FunctionSupported "Renew" }}
+func (r *{{ resourceStructName }}) Open(ctx context.Context, req ephemeral.RenewRequest, resp *ephemeral.RenewResponse) {
+	{{ ResourceRenewFunction resourceStructName serviceName}}
+}
+{{- end }}
+
+{{- if FunctionSupported "Close" }}
+func (r *{{ resourceStructName }}) Open(ctx context.Context, req ephemeral.CloseRequest, resp *ephemeral.CloseResponse) {
+	{{ ResourceCloseFunction resourceStructName serviceName}}
+}
+{{- end }}
 
 {{ RenderImportStateStructs }}
 
@@ -716,7 +759,7 @@ if resp.Diagnostics.HasError() {
 
 elements := make(map[string]{{ $resourceTFStructName }})
 resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
-if resp.Diagnostics.HasError() {
+if len(elements) == 0 || resp.Diagnostics.HasError() {
 	return
 }
 
@@ -808,6 +851,10 @@ if resp.Diagnostics.HasError() {
 
 var elements []{{ $resourceTFStructName }}
 state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
+if len(elements) == 0 {
+	return
+}
+
 entries := make([]*{{ $resourceSDKStructName }}, 0, len(elements))
 for _, elt := range elements {
 	var entry *{{ $resourceSDKStructName }}
@@ -981,7 +1028,7 @@ for name, elt := range elements {
 }
 
 existing, err := r.manager.ReadMany(ctx, location, stateEntries)
-if err != nil && !sdkerrors.IsObjectNotFound(err) {
+if err != nil && !errors.Is(err, sdkmanager.ErrObjectNotFound) {
 	resp.Diagnostics.AddError("Error while reading entries from the server", err.Error())
 	return
 }
@@ -1076,7 +1123,7 @@ position := state.Position.CopyToPango()
 {{- end }}
 
 existing, err := r.manager.ReadMany(ctx, location, stateEntries, {{ $exhaustive }})
-if err != nil && !sdkerrors.IsObjectNotFound(err) {
+if err != nil && !errors.Is(err, sdkmanager.ErrObjectNotFound) {
 	resp.Diagnostics.AddError("Error while reading entries from the server", err.Error())
 	return
 }
@@ -1452,11 +1499,13 @@ const resourceImportStateFunctionTmpl = `
 `
 
 const commonTemplate = `
+{{- if HasLocations }}
 {{- RenderLocationStructs }}
 
 {{- RenderLocationSchemaGetter }}
 
 {{- RenderLocationMarshallers }}
+{{- end }}
 
 {{- RenderCustomCommonCode }}
 `
@@ -1506,9 +1555,11 @@ type {{ dataSourceStructName }}Filter struct {
 
 {{ RenderDataSourceSchema }}
 
+{{- if HasLocations }}
 func {{ dataSourceStructName }}LocationSchema() rsschema.Attribute {
 	return {{ structName }}LocationSchema()
 }
+{{- end }}
 
 // Metadata returns the data source type name.
 func (d *{{ dataSourceStructName }}) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -1561,9 +1612,11 @@ func (d *{{ dataSourceStructName }}) Configure(_ context.Context, req datasource
 {{- end }}
 }
 
+{{- if FunctionSupported "Read" }}
 func (o *{{ dataSourceStructName }}) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	{{ DataSourceReadFunction dataSourceStructName serviceName }}
 }
+{{- end }}
 
 {{- /* Done */ -}}
 `
@@ -1700,6 +1753,7 @@ func (p *PanosProvider) Configure(ctx context.Context, req provider.ConfigureReq
 
 	resp.DataSourceData = con
 	resp.ResourceData = con
+	resp.EphemeralResourceData = con
 
 	// Done.
 	tflog.Info(ctx, "Configured client", map[string]any{"success": true})
@@ -1719,6 +1773,14 @@ func (p *PanosProvider) Resources(_ context.Context) []func() resource.Resource 
 	return []func() resource.Resource{
 {{- range $fnName := Resources }}
         New{{ $fnName }},
+{{- end }}
+	}
+}
+
+func (p *PanosProvider) EphemeralResources(_ context.Context) []func() ephemeral.EphemeralResource {
+	return []func() ephemeral.EphemeralResource{
+{{- range $fnName := EphemeralResources }}
+	New{{ $fnName }},
 {{- end }}
 	}
 }

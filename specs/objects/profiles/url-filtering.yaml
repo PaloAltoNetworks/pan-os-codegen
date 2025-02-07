@@ -1,0 +1,501 @@
+name: url-filtering-profile
+terraform_provider_config:
+  description: URL Filtering
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants: []
+  suffix: url_filtering_security_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - objects
+  - profiles
+  - urlfiltering
+xpath_suffix:
+- profiles
+- url-filtering
+locations:
+- name: shared
+  xpath:
+    path:
+    - config
+    - shared
+    vars: []
+  description: Location in Shared Panorama
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: device-group
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - device-group
+    - $device_group
+    vars:
+    - name: panorama_device
+      description: Panorama device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: device_group
+      description: Device Group name
+      required: true
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The device group name cannot be "shared". Use the "shared" location
+              instead
+      type: entry
+  description: Located in a specific Device Group
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: alert
+    type: list
+    profiles:
+    - xpath:
+      - alert
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: allow
+    type: list
+    profiles:
+    - xpath:
+      - allow
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: block
+    type: list
+    profiles:
+    - xpath:
+      - block
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: cloud-inline-cat
+    type: bool
+    profiles:
+    - xpath:
+      - cloud-inline-cat
+    validators: []
+    spec: {}
+    description: Enable cloud inline categorization
+    required: false
+  - name: continue
+    type: list
+    profiles:
+    - xpath:
+      - continue
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: credential-enforcement
+    type: object
+    profiles:
+    - xpath:
+      - credential-enforcement
+    validators: []
+    spec:
+      params:
+      - name: alert
+        type: list
+        profiles:
+        - xpath:
+          - alert
+          type: member
+        validators: []
+        spec:
+          type: string
+          items:
+            type: string
+        description: ''
+        required: false
+      - name: allow
+        type: list
+        profiles:
+        - xpath:
+          - allow
+          type: member
+        validators: []
+        spec:
+          type: string
+          items:
+            type: string
+        description: ''
+        required: false
+      - name: block
+        type: list
+        profiles:
+        - xpath:
+          - block
+          type: member
+        validators: []
+        spec:
+          type: string
+          items:
+            type: string
+        description: ''
+        required: false
+      - name: continue
+        type: list
+        profiles:
+        - xpath:
+          - continue
+          type: member
+        validators: []
+        spec:
+          type: string
+          items:
+            type: string
+        description: ''
+        required: false
+      - name: log-severity
+        type: string
+        profiles:
+        - xpath:
+          - log-severity
+        validators: []
+        spec:
+          default: medium
+        description: Log severity when credential matched
+        required: false
+      - name: mode
+        type: object
+        profiles:
+        - xpath:
+          - mode
+        validators: []
+        spec:
+          params: []
+          variants:
+          - name: disabled
+            type: object
+            profiles:
+            - xpath:
+              - disabled
+            validators: []
+            spec:
+              params: []
+              variants: []
+            description: Disabled
+            required: false
+          - name: domain-credentials
+            type: object
+            profiles:
+            - xpath:
+              - domain-credentials
+            validators: []
+            spec:
+              params: []
+              variants: []
+            description: Use Domain Credential Filter
+            required: false
+          - name: group-mapping
+            type: string
+            profiles:
+            - xpath:
+              - group-mapping
+            validators:
+            - type: length
+              spec:
+                max: 31
+            spec: {}
+            description: Use Group Mapping
+            required: false
+          - name: ip-user
+            type: object
+            profiles:
+            - xpath:
+              - ip-user
+            validators: []
+            spec:
+              params: []
+              variants: []
+            description: Use IP User Mapping
+            required: false
+        description: credential enforcement mode
+        required: false
+      variants: []
+    description: credential enforcement settings
+    required: false
+  - name: description
+    type: string
+    profiles:
+    - xpath:
+      - description
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 255
+    spec: {}
+    description: ''
+    required: false
+  - name: disable-override
+    type: enum
+    profiles:
+    - xpath:
+      - disable-override
+    validators:
+    - type: values
+      spec:
+        values:
+        - 'yes'
+        - 'no'
+    spec:
+      default: 'no'
+      values:
+      - value: 'yes'
+      - value: 'no'
+    description: disable object override in child device groups
+    required: false
+  - name: enable-container-page
+    type: bool
+    profiles:
+    - xpath:
+      - enable-container-page
+    validators: []
+    spec: {}
+    description: Track container page
+    required: false
+  - name: http-header-insertion
+    type: list
+    profiles:
+    - xpath:
+      - http-header-insertion
+      - entry
+      type: entry
+    validators: []
+    spec:
+      type: object
+      items:
+        type: object
+        spec:
+          params:
+          - name: disable-override
+            type: enum
+            profiles:
+            - xpath:
+              - disable-override
+            validators:
+            - type: values
+              spec:
+                values:
+                - 'yes'
+                - 'no'
+            spec:
+              default: 'no'
+              values:
+              - value: 'yes'
+              - value: 'no'
+            description: disable object override in child device groups
+            required: false
+          - name: type
+            type: list
+            profiles:
+            - xpath:
+              - type
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: headers
+                    type: list
+                    profiles:
+                    - xpath:
+                      - headers
+                      - entry
+                      type: entry
+                    validators: []
+                    spec:
+                      type: object
+                      items:
+                        type: object
+                        spec:
+                          params:
+                          - name: header
+                            type: string
+                            profiles:
+                            - xpath:
+                              - header
+                            validators:
+                            - type: length
+                              spec:
+                                min: 1
+                                max: 100
+                            spec: {}
+                            description: ''
+                            required: false
+                          - name: value
+                            type: string
+                            profiles:
+                            - xpath:
+                              - value
+                            validators:
+                            - type: length
+                              spec:
+                                min: 1
+                                max: 16384
+                            spec: {}
+                            description: ''
+                            required: false
+                          - name: log
+                            type: bool
+                            profiles:
+                            - xpath:
+                              - log
+                            validators: []
+                            spec: {}
+                            description: ''
+                            required: false
+                          variants: []
+                    description: ''
+                    required: false
+                  - name: domains
+                    type: list
+                    profiles:
+                    - xpath:
+                      - domains
+                      type: member
+                    validators: []
+                    spec:
+                      type: string
+                      items:
+                        type: string
+                    description: ''
+                    required: false
+                  variants: []
+            description: ''
+            required: false
+          variants: []
+    description: ''
+    required: false
+  - name: local-inline-cat
+    type: bool
+    profiles:
+    - xpath:
+      - local-inline-cat
+    validators: []
+    spec: {}
+    description: Enable local inline categorization
+    required: false
+  - name: log-container-page-only
+    type: bool
+    profiles:
+    - xpath:
+      - log-container-page-only
+    validators: []
+    spec: {}
+    description: Log container page only
+    required: false
+  - name: log-http-hdr-referer
+    type: bool
+    profiles:
+    - xpath:
+      - log-http-hdr-referer
+    validators: []
+    spec: {}
+    description: Log HTTP Header Referer field
+    required: false
+  - name: log-http-hdr-user-agent
+    type: bool
+    profiles:
+    - xpath:
+      - log-http-hdr-user-agent
+    validators: []
+    spec: {}
+    description: Log HTTP Header User-Agent field
+    required: false
+  - name: log-http-hdr-xff
+    type: bool
+    profiles:
+    - xpath:
+      - log-http-hdr-xff
+    validators: []
+    spec: {}
+    description: Log HTTP Header X-Forwarded-For field
+    required: false
+  - name: mlav-category-exception
+    type: list
+    profiles:
+    - xpath:
+      - mlav-category-exception
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: override
+    type: list
+    profiles:
+    - xpath:
+      - override
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: safe-search-enforcement
+    type: bool
+    profiles:
+    - xpath:
+      - safe-search-enforcement
+    validators: []
+    spec: {}
+    description: 'Safe-Search will be enforced if it is set '
+    required: false
+  variants: []
