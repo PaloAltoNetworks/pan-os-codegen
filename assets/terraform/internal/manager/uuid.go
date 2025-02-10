@@ -30,7 +30,7 @@ type UuidObject interface {
 }
 
 type UuidLocation interface {
-	XpathWithEntryName(version.Number, string) ([]string, error)
+	XpathWithComponents(version.Number, ...string) ([]string, error)
 }
 
 type SDKUuidService[E UuidObject, L UuidLocation] interface {
@@ -237,7 +237,7 @@ func (o *UuidObjectManager[E, L, S]) CreateMany(ctx context.Context, location L,
 	switch exhaustive {
 	case Exhaustive:
 		for _, elt := range existing {
-			path, err := location.XpathWithEntryName(o.client.Versioning(), elt.EntryName())
+			path, err := location.XpathWithComponents(o.client.Versioning(), elt.EntryName())
 			if err != nil {
 				return nil, ErrMarshaling
 			}
@@ -257,7 +257,7 @@ func (o *UuidObjectManager[E, L, S]) CreateMany(ctx context.Context, location L,
 	}
 
 	for _, elt := range planEntries {
-		path, err := location.XpathWithEntryName(o.client.Versioning(), elt.EntryName())
+		path, err := location.XpathWithComponents(o.client.Versioning(), elt.EntryName())
 		if err != nil {
 			return nil, ErrMarshaling
 		}
@@ -414,7 +414,7 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 	// state to find any required updates.
 	for _, existingEntry := range existing {
 		existingEntryName := existingEntry.EntryName()
-		path, err := location.XpathWithEntryName(o.client.Versioning(), existingEntryName)
+		path, err := location.XpathWithComponents(o.client.Versioning(), existingEntryName)
 		if err != nil {
 			return nil, &Error{err: err, message: "failed to create xpath for an existing entry"}
 		}
@@ -486,7 +486,7 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 	createOps := make([]*xmlapi.Config, len(planEntries))
 
 	for _, elt := range processedStateEntries {
-		path, err := location.XpathWithEntryName(o.client.Versioning(), elt.Entry.EntryName())
+		path, err := location.XpathWithComponents(o.client.Versioning(), elt.Entry.EntryName())
 		if err != nil {
 			return nil, &Error{err: err, message: "failed to create xpath for an existing entry"}
 		}

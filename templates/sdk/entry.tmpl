@@ -114,7 +114,7 @@ return entryList, nil
     )
 
     var (
-    Suffix = []string{
+    suffix = []string{
     {{- $length := subtract (len .XpathSuffix) 1 }}
     {{- range $index, $suffix := .XpathSuffix}}"
     {{- $suffix}}"{{- if lt $index $length}},{{- end}}

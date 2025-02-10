@@ -7,6 +7,7 @@ import (
 
 	sdkerrors "github.com/PaloAltoNetworks/pango/errors"
 	"github.com/PaloAltoNetworks/pango/util"
+	"github.com/PaloAltoNetworks/pango/xmlapi"
 )
 
 type SDKImportableEntryService[E EntryObject, L EntryLocation, IL ImportLocation] interface {
@@ -90,8 +91,20 @@ func (o *ImportableEntryObjectManager[E, L, IL, IS]) Update(ctx context.Context,
 	return updated, nil
 }
 
-func (o *ImportableEntryObjectManager[E, L, IL, IS]) Delete(ctx context.Context, location L, importLocations []IL, names []string, exhaustive ExhaustiveType) error {
-	err := o.service.Delete(ctx, location, importLocations, names...)
+func (o *ImportableEntryObjectManager[E, L, IL, IS]) Delete(ctx context.Context, location L, importLocations []IL, components ...string) error {
+	xpath, err := location.XpathWithComponents(o.client.Versioning(), components...)
+	if err != nil {
+		return err
+	}
+
+	deletes := xmlapi.NewChunkedMultiConfig(1, 1)
+	deletes.Add(&xmlapi.Config{
+		Action: "delete",
+		Xpath:  util.AsXpath(xpath),
+		Target: o.client.GetTarget(),
+	})
+
+	_, _, _, err = o.client.MultiConfig(ctx, deletes, false, nil)
 	if err != nil {
 		return &Error{err: err, message: "sdk error while deleting"}
 	}

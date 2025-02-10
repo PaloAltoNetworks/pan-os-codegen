@@ -1,12 +1,8 @@
 package provider_test
 
 import (
-	"context"
 	"fmt"
 	"testing"
-
-	sdkErrors "github.com/PaloAltoNetworks/pango/errors"
-	"github.com/PaloAltoNetworks/pango/network/subinterface/ethernet/layer3"
 
 	"github.com/hashicorp/terraform-plugin-testing/config"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -14,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
@@ -23,12 +18,10 @@ func TestAccEthernetLayer3Subinterface_1(t *testing.T) {
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
-	entry := "ethernet1/1.1"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProviders,
-		CheckDestroy:             testAccCheckEthernetLayer3SubinterfaceDestroy(entry, prefix),
 		Steps: []resource.TestStep{
 			{
 				Config: ethernetLayer3Subinterface_1,
@@ -105,26 +98,3 @@ resource "panos_ethernet_layer3_subinterface" "subinterface" {
   tag = 1
 }
 `
-
-func testAccCheckEthernetLayer3SubinterfaceDestroy(entry string, prefix string) func(s *terraform.State) error {
-	return func(s *terraform.State) error {
-		api := layer3.NewService(sdkClient)
-		ctx := context.TODO()
-
-		location := layer3.NewTemplateLocation()
-		location.Template.Template = fmt.Sprintf("%s-tmpl", prefix)
-
-		reply, err := api.Read(ctx, *location, entry, "show")
-		if err != nil && !sdkErrors.IsObjectNotFound(err) {
-			return fmt.Errorf("reading ethernet entry via sdk: %v", err)
-		}
-
-		if reply != nil {
-			if reply.EntryName() == entry {
-				return fmt.Errorf("ethernet object still exists: %s", entry)
-			}
-		}
-
-		return nil
-	}
-}

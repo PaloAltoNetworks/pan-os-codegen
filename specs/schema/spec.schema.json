@@ -21,6 +21,7 @@
       "properties": {
         "name": { "type": "string" },
         "description": { "type": "string" },
+        "variant_group_id": { "type": "integer" },
         "codegen_overrides": {
           "type": "object",
           "additionalProperties": false,

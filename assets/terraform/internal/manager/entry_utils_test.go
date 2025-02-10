@@ -5,6 +5,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"strings"
 
 	sdkerrors "github.com/PaloAltoNetworks/pango/errors"
 	"github.com/PaloAltoNetworks/pango/version"
@@ -101,6 +102,11 @@ type MockEntryService[E manager.UuidObject, L manager.EntryLocation] struct {
 	client *MockEntryClient[E]
 }
 
+func (o *MockEntryService[E, L]) CreateWithXpath(ctx context.Context, xpath string, entry E) error {
+	_, err := o.Create(ctx, *new(L), entry)
+	return err
+}
+
 func (o *MockEntryService[E, L]) Create(ctx context.Context, location L, entry E) (E, error) {
 	o.client.Initial.PushBack(entry)
 
@@ -121,6 +127,11 @@ func (o *MockEntryService[E, L]) Update(ctx context.Context, location L, entry E
 
 func (o *MockEntryService[E, L]) List(ctx context.Context, location L, action string, filter string, quote string) ([]E, error) {
 	return o.client.list(), nil
+}
+
+func (o *MockEntryService[E, L]) ReadWithXpath(ctx context.Context, xpath string, action string) (E, error) {
+	components := strings.Split(xpath, "/")
+	return o.Read(ctx, *new(L), components[len(components)-1], action)
 }
 
 func (o *MockEntryService[E, L]) Read(ctx context.Context, location L, name string, action string) (E, error) {

@@ -35,7 +35,6 @@ type EntryObject interface {
 
 type EntryLocation interface {
 	XpathWithComponents(version.Number, ...string) ([]string, error)
-	XpathWithEntryName(version.Number, string) ([]string, error)
 }
 
 type SDKEntryService[E EntryObject, L EntryLocation] interface {
@@ -124,7 +123,7 @@ func (o *EntryObjectManager[E, L, S]) Create(ctx context.Context, location L, co
 		return *new(E), err
 	}
 
-	return o.Read(ctx, location, components)
+	return o.service.ReadWithXpath(ctx, util.AsXpath(xpath), "get")
 }
 
 func (o *EntryObjectManager[E, L, S]) CreateMany(ctx context.Context, location L, entries []E) ([]E, error) {
@@ -145,7 +144,7 @@ func (o *EntryObjectManager[E, L, S]) CreateMany(ctx context.Context, location L
 	updates := xmlapi.NewChunkedMultiConfig(len(existing), o.batchSize)
 
 	for _, elt := range entries {
-		path, err := location.XpathWithEntryName(o.client.Versioning(), elt.EntryName())
+		path, err := location.XpathWithComponents(o.client.Versioning(), elt.EntryName())
 		if err != nil {
 			return nil, &Error{err: err, message: "failed to create xpath for an existing entry"}
 		}
@@ -311,7 +310,7 @@ func (o *EntryObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L
 			return nil, &Error{err: ErrConflict, message: "entry with a matching name already exists"}
 		}
 
-		path, err := location.XpathWithEntryName(o.client.Versioning(), existingEntryName)
+		path, err := location.XpathWithComponents(o.client.Versioning(), existingEntryName)
 		if err != nil {
 			return nil, &Error{err: err, message: "failed to create xpath for an existing entry"}
 		}
@@ -346,7 +345,7 @@ func (o *EntryObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L
 	}
 
 	for _, elt := range processedStateEntriesByName {
-		path, err := location.XpathWithEntryName(o.client.Versioning(), elt.Entry.EntryName())
+		path, err := location.XpathWithComponents(o.client.Versioning(), elt.Entry.EntryName())
 		if err != nil {
 			return nil, &Error{err: err, message: "failed to create xpath for entry"}
 		}

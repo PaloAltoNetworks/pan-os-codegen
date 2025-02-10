@@ -648,27 +648,7 @@ const xpathComponentsGetterTmpl = `
 func (o *{{ .StructName }}Model) resourceXpathComponents() ([]string, error) {
 	var components []string
 {{- range .Components }}
-  {{- if eq .Type "value" }}
-	components = append(components, pangoutil.AsEntryXpath(
-		[]string{o.{{ .Name.CamelCase }}.ValueString()},
-	))
-  {{- else if eq .Type "variant" }}
-	{
-	var component string
-    {{- range .Variants }}
-	if component != "" {
-		return nil, fmt.Errorf("invalid resource xpath, multiple variants set")
-	}
-	if o.{{ .CamelCase }} != nil {
-		component = "{{ .Original }}"
-	}
-    {{- end }}
-	if component == "" {
-		return nil, fmt.Errorf("invalid resource xpath, must set one of variants")
-	}
-	components = append(components, component)
-	}
-  {{- end }}
+	components = append(components, (o.{{ .Name.CamelCase }}.ValueString()))
 {{- end }}
 	return components, nil
 }
@@ -693,15 +673,13 @@ func RenderXpathComponentsGetter(structName string, property *properties.Normali
 				Type: "value",
 				Name: properties.NewNameVariant(elt.Name),
 			})
-		case object.PanosXpathVariableVariant:
-			var variants []*properties.NameVariant
-			for _, elt := range property.Spec.OneOf {
-				variants = append(variants, elt.Name)
-			}
+		case object.PanosXpathVariableEntry:
 			components = append(components, componentSpec{
-				Type:     "variant",
-				Variants: variants,
+				Type: "entry",
+				Name: properties.NewNameVariant(elt.Name),
 			})
+		default:
+			panic(fmt.Sprintf("invalid panos xpath variable type: '%s'", elt.Spec.Type))
 		}
 	}
 
@@ -2818,19 +2796,18 @@ func DataSourceReadFunction(resourceTyp properties.ResourceType, names *NameProv
 		resourceIsMap = true
 	}
 	data := map[string]interface{}{
-		"ResourceOrDS":            "DataSource",
-		"ResourceIsMap":           resourceIsMap,
-		"HasEncryptedResources":   paramSpec.HasEncryptedResources(),
-		"ListAttribute":           listAttributeVariant,
-		"EntryOrConfig":           paramSpec.EntryOrConfig(),
-		"ResourceXpathComponents": func() (string, error) { return paramSpec.ResourceXpathComponents() },
-		"HasEntryName":            paramSpec.HasEntryName(),
-		"structName":              names.StructName,
-		"resourceStructName":      names.ResourceStructName,
-		"dataSourceStructName":    names.DataSourceStructName,
-		"serviceName":             naming.CamelCase("", serviceName, "", false),
-		"resourceSDKName":         resourceSDKName,
-		"locations":               paramSpec.OrderedLocations(),
+		"ResourceOrDS":          "DataSource",
+		"ResourceIsMap":         resourceIsMap,
+		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
+		"ListAttribute":         listAttributeVariant,
+		"EntryOrConfig":         paramSpec.EntryOrConfig(),
+		"HasEntryName":          paramSpec.HasEntryName(),
+		"structName":            names.StructName,
+		"resourceStructName":    names.ResourceStructName,
+		"dataSourceStructName":  names.DataSourceStructName,
+		"serviceName":           naming.CamelCase("", serviceName, "", false),
+		"resourceSDKName":       resourceSDKName,
+		"locations":             paramSpec.OrderedLocations(),
 	}
 
 	funcMap := template.FuncMap{

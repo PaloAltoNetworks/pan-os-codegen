@@ -1,7 +1,6 @@
 package properties
 
 import (
-	"bytes"
 	"fmt"
 	"io/fs"
 	"maps"
@@ -10,7 +9,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"text/template"
 
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/content"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
@@ -210,13 +208,14 @@ type SpecParamGoSdkConfig struct {
 }
 
 type SpecParamTerraformProviderConfig struct {
-	Name         *string `json:"name" yaml:"name"`
-	Type         *string `json:"type" yaml:"type"`
-	Private      *bool   `json:"ignored" yaml:"private"`
-	Sensitive    *bool   `json:"sensitive" yaml:"sensitive"`
-	Computed     *bool   `json:"computed" yaml:"computed"`
-	Required     *bool   `json:"required" yaml:"required"`
-	VariantCheck *string `json:"variant_check" yaml:"variant_check"`
+	Name          *string `json:"name" yaml:"name"`
+	Type          *string `json:"type" yaml:"type"`
+	Private       *bool   `json:"ignored" yaml:"private"`
+	Sensitive     *bool   `json:"sensitive" yaml:"sensitive"`
+	Computed      *bool   `json:"computed" yaml:"computed"`
+	Required      *bool   `json:"required" yaml:"required"`
+	VariantCheck  *string `json:"variant_check" yaml:"variant_check"`
+	XpathVariable *string `json:"xpath_variable" yaml:"xpath_variable"`
 }
 
 type SpecParamLength struct {
@@ -598,13 +597,14 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 		}
 
 		terraformProviderConfig = &SpecParamTerraformProviderConfig{
-			Name:         schemaSpec.CodegenOverrides.Terraform.Name,
-			Type:         schemaSpec.CodegenOverrides.Terraform.Type,
-			Private:      schemaSpec.CodegenOverrides.Terraform.Private,
-			Sensitive:    schemaSpec.CodegenOverrides.Terraform.Sensitive,
-			Computed:     schemaSpec.CodegenOverrides.Terraform.Computed,
-			Required:     schemaSpec.CodegenOverrides.Terraform.Required,
-			VariantCheck: variantCheck,
+			Name:          schemaSpec.CodegenOverrides.Terraform.Name,
+			Type:          schemaSpec.CodegenOverrides.Terraform.Type,
+			Private:       schemaSpec.CodegenOverrides.Terraform.Private,
+			Sensitive:     schemaSpec.CodegenOverrides.Terraform.Sensitive,
+			Computed:      schemaSpec.CodegenOverrides.Terraform.Computed,
+			Required:      schemaSpec.CodegenOverrides.Terraform.Required,
+			VariantCheck:  variantCheck,
+			XpathVariable: schemaSpec.CodegenOverrides.Terraform.XpathVariable,
 		}
 
 		goSdkConfig = &SpecParamGoSdkConfig{
@@ -1112,9 +1112,6 @@ func (spec *Normalization) AttributesFromXpathComponents() map[string]int {
 		if elt.Name == "name" {
 			continue
 		}
-		if elt.Spec.Type != object.PanosXpathVariableValue {
-			continue
-		}
 
 		variants := NewNameVariant(elt.Name)
 		result[variants.CamelCase] = idx
@@ -1123,45 +1120,18 @@ func (spec *Normalization) AttributesFromXpathComponents() map[string]int {
 	return result
 }
 
-func (spec *Normalization) ResourceXpathComponents() (string, error) {
-	var components []string
-
-	tmpl := template.Must(template.New("component-variant").Parse(componentVariantTmpl))
-	explicitNameVariable := false
-	for _, elt := range spec.PanosXpath.Variables {
-		if elt.Name == "name" {
-			explicitNameVariable = true
-		}
-
-		var component string
-		name := NewNameVariant(elt.Name)
-		switch elt.Spec.Type {
-		case object.PanosXpathVariableValue:
-			component = fmt.Sprintf("components = append(components, o.%s)", name.CamelCase)
-		case object.PanosXpathVariableVariant:
-			var buf bytes.Buffer
-			err := tmpl.Execute(&buf, nil)
-			if err != nil {
-				return "", err
-			}
-			component = buf.String()
-		}
-		components = append(components, component)
-	}
-
-	if !explicitNameVariable {
-		components = append(components, "components = append(components, o.Name)")
-	}
-
-	return strings.Join(components, "\n"), nil
-}
-
 func (spec *Normalization) ResourceXpathAssigments() (string, error) {
 	var elements []string
 
-	variables := map[string]string{"$name": "name"}
+	variables := map[string]object.PanosXpathVariable{"$name": {
+		Name: "name",
+		Spec: object.PanosXpathVariableSpec{
+			Type: "entry",
+		},
+	}}
+
 	for _, elt := range spec.PanosXpath.Variables {
-		variables[fmt.Sprintf("$%s", elt.Name)] = elt.Name
+		variables[fmt.Sprintf("$%s", elt.Name)] = elt
 	}
 
 	explicitNameVariable := false
@@ -1171,10 +1141,17 @@ func (spec *Normalization) ResourceXpathAssigments() (string, error) {
 			explicitNameVariable = true
 		}
 
-		_, found := variables[elt]
+		xpathVariable, found := variables[elt]
 		var assignment string
 		if found {
-			assignment = fmt.Sprintf("components[%d]", componentIdx)
+			switch xpathVariable.Spec.Type {
+			case object.PanosXpathVariableEntry:
+				assignment = fmt.Sprintf("util.AsEntryXpath(components[%d])", componentIdx)
+			case object.PanosXpathVariableValue:
+				assignment = fmt.Sprintf("components[%d]", componentIdx)
+			default:
+				panic(fmt.Sprintf("unsupported panos xpath variable type: '%s'", xpathVariable.Spec.Type))
+			}
 			componentIdx += 1
 		} else {
 			assignment = fmt.Sprintf("\"%s\"", elt)
@@ -1183,8 +1160,8 @@ func (spec *Normalization) ResourceXpathAssigments() (string, error) {
 		elements = append(elements, assignment)
 	}
 
-	if !explicitNameVariable {
-		elements = append(elements, fmt.Sprintf("components[%d]", componentIdx))
+	if !explicitNameVariable && spec.TerraformProviderConfig.ResourceType != TerraformResourceConfig {
+		elements = append(elements, fmt.Sprintf("util.AsEntryXpath(components[%d])", componentIdx))
 	}
 
 	result := strings.Join(elements, ",")

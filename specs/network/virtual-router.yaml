@@ -15,9 +15,11 @@ go_sdk_config:
   package:
   - network
   - virtual_router
-xpath_suffix:
-- network
-- virtual-router
+panos_xpath:
+  path:
+  - network
+  - virtual-router
+  vars: []
 locations:
 - name: ngfw
   xpath:
@@ -283,6 +285,7 @@ spec:
               variants: []
             description: Re-balance load on path add/delete
             required: false
+            variant_group_id: 0
           - name: ip-hash
             type: object
             profiles:
@@ -326,6 +329,7 @@ spec:
               variants: []
             description: Hash based on IP addresses and optionally port numbers
             required: false
+            variant_group_id: 0
           - name: ip-modulo
             type: object
             profiles:
@@ -337,6 +341,7 @@ spec:
               variants: []
             description: IP addresses modulo number of path
             required: false
+            variant_group_id: 0
           - name: weighted-round-robin
             type: object
             profiles:
@@ -379,6 +384,7 @@ spec:
               variants: []
             description: Weighted round robin
             required: false
+            variant_group_id: 0
         description: load balancing algorithm
         required: false
       - name: enable
@@ -994,6 +1000,7 @@ spec:
                   variants: []
                 description: Configure device to act as candidate RP
                 required: false
+                variant_group_id: 0
               - name: static-rp
                 type: object
                 profiles:
@@ -1051,6 +1058,7 @@ spec:
                   variants: []
                 description: Configure device to act as a static RP
                 required: false
+                variant_group_id: 0
             description: Local Rendezvous Point configuration
             required: false
           variants: []
@@ -1730,6 +1738,7 @@ spec:
                                 spec: {}
                                 description: peer address configuration
                                 required: false
+                                variant_group_id: 0
                               - name: fqdn
                                 type: string
                                 profiles:
@@ -1742,6 +1751,7 @@ spec:
                                 spec: {}
                                 description: bgp peer FQDN address object configuration
                                 required: false
+                                variant_group_id: 0
                             description: peer address configuration
                             required: false
                           - name: connection-options
@@ -2114,6 +2124,7 @@ spec:
                                       variants: []
                                     description: no change on AS path
                                     required: false
+                                    variant_group_id: 0
                                   - name: prepend
                                     type: int64
                                     profiles:
@@ -2129,6 +2140,7 @@ spec:
                                     description: prepend local AS for specified number
                                       of times
                                     required: false
+                                    variant_group_id: 0
                                 description: AS path update options
                                 required: false
                               - name: community
@@ -2151,6 +2163,7 @@ spec:
                                       variants: []
                                     description: no change on communities
                                     required: false
+                                    variant_group_id: 0
                                   - name: remove-all
                                     type: object
                                     profiles:
@@ -2162,6 +2175,7 @@ spec:
                                       variants: []
                                     description: remove all communities
                                     required: false
+                                    variant_group_id: 0
                                   - name: remove-regex
                                     type: string
                                     profiles:
@@ -2175,6 +2189,7 @@ spec:
                                     description: remove specified coummnity match
                                       regular expression
                                     required: false
+                                    variant_group_id: 0
                                   - name: append
                                     type: list
                                     profiles:
@@ -2188,6 +2203,7 @@ spec:
                                         type: string
                                     description: ''
                                     required: false
+                                    variant_group_id: 0
                                   - name: overwrite
                                     type: list
                                     profiles:
@@ -2201,6 +2217,7 @@ spec:
                                         type: string
                                     description: ''
                                     required: false
+                                    variant_group_id: 0
                                 description: community update options
                                 required: false
                               - name: extended-community
@@ -2223,6 +2240,7 @@ spec:
                                       variants: []
                                     description: no change on communities
                                     required: false
+                                    variant_group_id: 0
                                   - name: remove-all
                                     type: object
                                     profiles:
@@ -2234,6 +2252,7 @@ spec:
                                       variants: []
                                     description: remove all communities
                                     required: false
+                                    variant_group_id: 0
                                   - name: remove-regex
                                     type: string
                                     profiles:
@@ -2247,6 +2266,7 @@ spec:
                                     description: remove specified coummnity match
                                       regular expression
                                     required: false
+                                    variant_group_id: 0
                                   - name: append
                                     type: list
                                     profiles:
@@ -2260,6 +2280,7 @@ spec:
                                         type: string
                                     description: ''
                                     required: false
+                                    variant_group_id: 0
                                   - name: overwrite
                                     type: list
                                     profiles:
@@ -2273,6 +2294,7 @@ spec:
                                         type: string
                                     description: ''
                                     required: false
+                                    variant_group_id: 0
                                 description: extended community update options
                                 required: false
                               variants: []
@@ -2415,6 +2437,7 @@ spec:
                                             spec: {}
                                             description: AS-path regular expression
                                             required: false
+                                            variant_group_id: 0
                                         description: AS-path to match
                                         required: false
                                       - name: community
@@ -2438,6 +2461,7 @@ spec:
                                             spec: {}
                                             description: AS-path regular expression
                                             required: false
+                                            variant_group_id: 0
                                         description: community to match
                                         required: false
                                       - name: extended-community
@@ -2461,6 +2485,7 @@ spec:
                                             spec: {}
                                             description: AS-path regular expression
                                             required: false
+                                            variant_group_id: 0
                                         description: community to match
                                         required: false
                                       variants: []
@@ -2606,6 +2631,7 @@ spec:
                                             spec: {}
                                             description: AS-path regular expression
                                             required: false
+                                            variant_group_id: 0
                                         description: AS-path to match
                                         required: false
                                       - name: community
@@ -2629,6 +2655,7 @@ spec:
                                             spec: {}
                                             description: AS-path regular expression
                                             required: false
+                                            variant_group_id: 0
                                         description: community to match
                                         required: false
                                       - name: extended-community
@@ -2652,6 +2679,7 @@ spec:
                                             spec: {}
                                             description: AS-path regular expression
                                             required: false
+                                            variant_group_id: 0
                                         description: community to match
                                         required: false
                                       variants: []
@@ -2838,6 +2866,7 @@ spec:
                                             spec: {}
                                             description: AS-path regular expression
                                             required: false
+                                            variant_group_id: 0
                                         description: AS-path to match
                                         required: false
                                       - name: community
@@ -2861,6 +2890,7 @@ spec:
                                             spec: {}
                                             description: AS-path regular expression
                                             required: false
+                                            variant_group_id: 0
                                         description: community to match
                                         required: false
                                       - name: extended-community
@@ -2884,6 +2914,7 @@ spec:
                                             spec: {}
                                             description: AS-path regular expression
                                             required: false
+                                            variant_group_id: 0
                                         description: community to match
                                         required: false
                                       variants: []
@@ -3020,6 +3051,7 @@ spec:
                                             spec: {}
                                             description: AS-path regular expression
                                             required: false
+                                            variant_group_id: 0
                                         description: AS-path to match
                                         required: false
                                       - name: community
@@ -3043,6 +3075,7 @@ spec:
                                             spec: {}
                                             description: AS-path regular expression
                                             required: false
+                                            variant_group_id: 0
                                         description: community to match
                                         required: false
                                       - name: extended-community
@@ -3066,6 +3099,7 @@ spec:
                                             spec: {}
                                             description: AS-path regular expression
                                             required: false
+                                            variant_group_id: 0
                                         description: community to match
                                         required: false
                                       variants: []
@@ -3238,6 +3272,7 @@ spec:
                                     spec: {}
                                     description: AS-path regular expression
                                     required: false
+                                    variant_group_id: 0
                                 description: AS-path to match
                                 required: false
                               - name: community
@@ -3261,6 +3296,7 @@ spec:
                                     spec: {}
                                     description: AS-path regular expression
                                     required: false
+                                    variant_group_id: 0
                                 description: community to match
                                 required: false
                               - name: extended-community
@@ -3284,6 +3320,7 @@ spec:
                                     spec: {}
                                     description: AS-path regular expression
                                     required: false
+                                    variant_group_id: 0
                                 description: community to match
                                 required: false
                               variants: []
@@ -3309,6 +3346,7 @@ spec:
                                   variants: []
                                 description: ''
                                 required: false
+                                variant_group_id: 0
                               - name: allow
                                 type: object
                                 profiles:
@@ -3413,6 +3451,7 @@ spec:
                                               variants: []
                                             description: no change on AS path
                                             required: false
+                                            variant_group_id: 0
                                           - name: remove
                                             type: object
                                             profiles:
@@ -3424,6 +3463,7 @@ spec:
                                               variants: []
                                             description: remove matched AS path(s)
                                             required: false
+                                            variant_group_id: 0
                                           - name: prepend
                                             type: int64
                                             profiles:
@@ -3439,6 +3479,7 @@ spec:
                                             description: prepend local AS for specified
                                               number of times
                                             required: false
+                                            variant_group_id: 0
                                           - name: remove-and-prepend
                                             type: int64
                                             profiles:
@@ -3455,6 +3496,7 @@ spec:
                                               and prepend local AS for specified number
                                               of times
                                             required: false
+                                            variant_group_id: 0
                                         description: AS path update options
                                         required: false
                                       - name: community
@@ -3477,6 +3519,7 @@ spec:
                                               variants: []
                                             description: no change on communities
                                             required: false
+                                            variant_group_id: 0
                                           - name: remove-all
                                             type: object
                                             profiles:
@@ -3488,6 +3531,7 @@ spec:
                                               variants: []
                                             description: remove all communities
                                             required: false
+                                            variant_group_id: 0
                                           - name: remove-regex
                                             type: string
                                             profiles:
@@ -3501,6 +3545,7 @@ spec:
                                             description: remove specified coummnity
                                               match regular expression
                                             required: false
+                                            variant_group_id: 0
                                           - name: append
                                             type: list
                                             profiles:
@@ -3514,6 +3559,7 @@ spec:
                                                 type: string
                                             description: ''
                                             required: false
+                                            variant_group_id: 0
                                           - name: overwrite
                                             type: list
                                             profiles:
@@ -3527,6 +3573,7 @@ spec:
                                                 type: string
                                             description: ''
                                             required: false
+                                            variant_group_id: 0
                                         description: community update options
                                         required: false
                                       - name: extended-community
@@ -3549,6 +3596,7 @@ spec:
                                               variants: []
                                             description: no change on communities
                                             required: false
+                                            variant_group_id: 0
                                           - name: remove-all
                                             type: object
                                             profiles:
@@ -3560,6 +3608,7 @@ spec:
                                               variants: []
                                             description: remove all communities
                                             required: false
+                                            variant_group_id: 0
                                           - name: remove-regex
                                             type: string
                                             profiles:
@@ -3573,6 +3622,7 @@ spec:
                                             description: remove specified coummnity
                                               match regular expression
                                             required: false
+                                            variant_group_id: 0
                                           - name: append
                                             type: list
                                             profiles:
@@ -3586,6 +3636,7 @@ spec:
                                                 type: string
                                             description: ''
                                             required: false
+                                            variant_group_id: 0
                                           - name: overwrite
                                             type: list
                                             profiles:
@@ -3599,6 +3650,7 @@ spec:
                                                 type: string
                                             description: ''
                                             required: false
+                                            variant_group_id: 0
                                         description: extended community update options
                                         required: false
                                       variants: []
@@ -3607,6 +3659,7 @@ spec:
                                   variants: []
                                 description: ''
                                 required: false
+                                variant_group_id: 0
                             description: rule action
                             required: false
                           variants: []
@@ -3773,6 +3826,7 @@ spec:
                                     spec: {}
                                     description: AS-path regular expression
                                     required: false
+                                    variant_group_id: 0
                                 description: AS-path to match
                                 required: false
                               - name: community
@@ -3796,6 +3850,7 @@ spec:
                                     spec: {}
                                     description: AS-path regular expression
                                     required: false
+                                    variant_group_id: 0
                                 description: community to match
                                 required: false
                               - name: extended-community
@@ -3819,6 +3874,7 @@ spec:
                                     spec: {}
                                     description: AS-path regular expression
                                     required: false
+                                    variant_group_id: 0
                                 description: community to match
                                 required: false
                               variants: []
@@ -3844,6 +3900,7 @@ spec:
                                   variants: []
                                 description: ''
                                 required: false
+                                variant_group_id: 0
                               - name: allow
                                 type: object
                                 profiles:
@@ -3970,6 +4027,7 @@ spec:
                                               variants: []
                                             description: no change on AS path
                                             required: false
+                                            variant_group_id: 0
                                           - name: remove
                                             type: object
                                             profiles:
@@ -3981,6 +4039,7 @@ spec:
                                               variants: []
                                             description: remove matched AS path(s)
                                             required: false
+                                            variant_group_id: 0
                                         description: AS path update options
                                         required: false
                                       - name: community
@@ -4003,6 +4062,7 @@ spec:
                                               variants: []
                                             description: no change on communities
                                             required: false
+                                            variant_group_id: 0
                                           - name: remove-all
                                             type: object
                                             profiles:
@@ -4014,6 +4074,7 @@ spec:
                                               variants: []
                                             description: remove all communities
                                             required: false
+                                            variant_group_id: 0
                                           - name: remove-regex
                                             type: string
                                             profiles:
@@ -4027,6 +4088,7 @@ spec:
                                             description: remove specified coummnity
                                               match regular expression
                                             required: false
+                                            variant_group_id: 0
                                           - name: append
                                             type: list
                                             profiles:
@@ -4040,6 +4102,7 @@ spec:
                                                 type: string
                                             description: ''
                                             required: false
+                                            variant_group_id: 0
                                           - name: overwrite
                                             type: list
                                             profiles:
@@ -4053,6 +4116,7 @@ spec:
                                                 type: string
                                             description: ''
                                             required: false
+                                            variant_group_id: 0
                                         description: community update options
                                         required: false
                                       - name: extended-community
@@ -4075,6 +4139,7 @@ spec:
                                               variants: []
                                             description: no change on communities
                                             required: false
+                                            variant_group_id: 0
                                           - name: remove-all
                                             type: object
                                             profiles:
@@ -4086,6 +4151,7 @@ spec:
                                               variants: []
                                             description: remove all communities
                                             required: false
+                                            variant_group_id: 0
                                           - name: remove-regex
                                             type: string
                                             profiles:
@@ -4099,6 +4165,7 @@ spec:
                                             description: remove specified coummnity
                                               match regular expression
                                             required: false
+                                            variant_group_id: 0
                                           - name: append
                                             type: list
                                             profiles:
@@ -4112,6 +4179,7 @@ spec:
                                                 type: string
                                             description: ''
                                             required: false
+                                            variant_group_id: 0
                                           - name: overwrite
                                             type: list
                                             profiles:
@@ -4125,6 +4193,7 @@ spec:
                                                 type: string
                                             description: ''
                                             required: false
+                                            variant_group_id: 0
                                         description: extended community update options
                                         required: false
                                       variants: []
@@ -4133,6 +4202,7 @@ spec:
                                   variants: []
                                 description: ''
                                 required: false
+                                variant_group_id: 0
                             description: rule action
                             required: false
                           variants: []
@@ -4732,6 +4802,7 @@ spec:
                                       variants: []
                                     description: do summarization and advertise
                                     required: false
+                                    variant_group_id: 0
                                   - name: suppress
                                     type: object
                                     profiles:
@@ -4744,6 +4815,7 @@ spec:
                                     description: suppress summarization to be sent,
                                       make this subnet hidden from other areas
                                     required: false
+                                    variant_group_id: 0
                             description: ''
                             required: false
                           variants: []
@@ -4777,6 +4849,7 @@ spec:
                               variants: []
                             description: do summarization and advertise
                             required: false
+                            variant_group_id: 0
                           - name: suppress
                             type: object
                             profiles:
@@ -4789,6 +4862,7 @@ spec:
                             description: suppress summarization to be sent, make this
                               subnet hidden from other areas
                             required: false
+                            variant_group_id: 0
                     description: ''
                     required: false
                   - name: interface
@@ -5182,6 +5256,7 @@ spec:
                     spec: {}
                     description: Simple password authentication
                     required: false
+                    variant_group_id: 0
                   - name: md5
                     type: list
                     profiles:
@@ -5220,6 +5295,7 @@ spec:
                           variants: []
                     description: ''
                     required: false
+                    variant_group_id: 0
             description: ''
             required: false
           - name: enable
@@ -5691,6 +5767,7 @@ spec:
                                       variants: []
                                     description: do summarization and advertise
                                     required: false
+                                    variant_group_id: 0
                                   - name: suppress
                                     type: object
                                     profiles:
@@ -5703,6 +5780,7 @@ spec:
                                     description: suppress summarization to be sent,
                                       make this subnet hidden from other areas
                                     required: false
+                                    variant_group_id: 0
                             description: ''
                             required: false
                           variants: []
@@ -5736,6 +5814,7 @@ spec:
                               variants: []
                             description: do summarization and advertise
                             required: false
+                            variant_group_id: 0
                           - name: suppress
                             type: object
                             profiles:
@@ -5748,6 +5827,7 @@ spec:
                             description: suppress summarization to be sent, make this
                               subnet hidden from other areas
                             required: false
+                            variant_group_id: 0
                     description: ''
                     required: false
                   - name: interface
@@ -6208,6 +6288,7 @@ spec:
                               variants: []
                             description: key is 128 bit
                             required: false
+                            variant_group_id: 0
                           - name: sha1
                             type: object
                             profiles:
@@ -6232,6 +6313,7 @@ spec:
                               variants: []
                             description: key is 160 bit
                             required: false
+                            variant_group_id: 0
                           - name: sha256
                             type: object
                             profiles:
@@ -6256,6 +6338,7 @@ spec:
                               variants: []
                             description: key is 256 bit
                             required: false
+                            variant_group_id: 0
                           - name: sha384
                             type: object
                             profiles:
@@ -6280,6 +6363,7 @@ spec:
                               variants: []
                             description: key is 384 bit
                             required: false
+                            variant_group_id: 0
                           - name: sha512
                             type: object
                             profiles:
@@ -6304,6 +6388,7 @@ spec:
                               variants: []
                             description: key is 512 bit
                             required: false
+                            variant_group_id: 0
                           - name: none
                             type: object
                             profiles:
@@ -6315,6 +6400,7 @@ spec:
                               variants: []
                             description: no authentication
                             required: false
+                            variant_group_id: 0
                         description: authentication algorithm
                         required: false
                       - name: encryption
@@ -6368,6 +6454,7 @@ spec:
                       variants: []
                     description: ESP options
                     required: false
+                    variant_group_id: 0
                   - name: ah
                     type: object
                     profiles:
@@ -6401,6 +6488,7 @@ spec:
                           variants: []
                         description: key is 128 bit
                         required: false
+                        variant_group_id: 0
                       - name: sha1
                         type: object
                         profiles:
@@ -6425,6 +6513,7 @@ spec:
                           variants: []
                         description: key is 160 bit
                         required: false
+                        variant_group_id: 0
                       - name: sha256
                         type: object
                         profiles:
@@ -6449,6 +6538,7 @@ spec:
                           variants: []
                         description: key is 256 bit
                         required: false
+                        variant_group_id: 0
                       - name: sha384
                         type: object
                         profiles:
@@ -6473,6 +6563,7 @@ spec:
                           variants: []
                         description: key is 384 bit
                         required: false
+                        variant_group_id: 0
                       - name: sha512
                         type: object
                         profiles:
@@ -6497,8 +6588,10 @@ spec:
                           variants: []
                         description: key is 512 bit
                         required: false
+                        variant_group_id: 0
                     description: AH options
                     required: false
+                    variant_group_id: 0
             description: ''
             required: false
           - name: disable-transit-traffic
@@ -7222,6 +7315,7 @@ spec:
                     spec: {}
                     description: Simple password authentication
                     required: false
+                    variant_group_id: 0
                   - name: md5
                     type: list
                     profiles:
@@ -7260,6 +7354,7 @@ spec:
                           variants: []
                     description: ''
                     required: false
+                    variant_group_id: 0
             description: ''
             required: false
           - name: enable
@@ -7696,6 +7791,7 @@ spec:
                           variants: []
                         description: Install route into unicast routing table
                         required: false
+                        variant_group_id: 0
                       - name: multicast
                         type: object
                         profiles:
@@ -7708,6 +7804,7 @@ spec:
                         description: Install route into multicast routing table, this
                           will create multicast routing table if not exists
                         required: false
+                        variant_group_id: 0
                       - name: both
                         type: object
                         profiles:
@@ -7720,6 +7817,7 @@ spec:
                         description: Install route into both unicast and multicast
                           routing table
                         required: false
+                        variant_group_id: 0
                       - name: no-install
                         type: object
                         profiles:
@@ -7731,6 +7829,7 @@ spec:
                           variants: []
                         description: Do not install route into forwarding table
                         required: false
+                        variant_group_id: 0
                     description: target routing table to install the route
                     required: false
                   - name: bfd
@@ -8028,6 +8127,7 @@ spec:
                           variants: []
                         description: Install route into unicast routing table
                         required: false
+                        variant_group_id: 0
                       - name: no-install
                         type: object
                         profiles:
@@ -8039,6 +8139,7 @@ spec:
                           variants: []
                         description: Do not install route into forwarding table
                         required: false
+                        variant_group_id: 0
                     description: target routing table to install the route
                     required: false
                   - name: bfd

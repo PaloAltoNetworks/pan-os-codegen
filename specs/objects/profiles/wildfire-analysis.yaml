@@ -15,9 +15,11 @@ go_sdk_config:
   - objects
   - profiles
   - wildfireanalysis
-xpath_suffix:
-- profiles
-- wildfire-analysis
+panos_xpath:
+  path:
+  - profiles
+  - wildfire-analysis
+  vars: []
 locations:
 - name: shared
   xpath:

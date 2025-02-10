@@ -72,9 +72,9 @@ func (s *Service) Create(ctx context.Context, loc Location, config *Config) (*Co
 	vn := s.client.Versioning()
 
   {{- if .Entry}}
-	path, err := loc.XpathWithEntryName(vn, entry.Name)
+	path, err := loc.XpathWithComponents(vn, entry.Name)
   {{- else}}
-	path, err := loc.Xpath(vn)
+	path, err := loc.XpathWithComponents(vn)
   {{- end}}
 	if err != nil {
 		return nil, err
@@ -355,16 +355,12 @@ func (s *Service) read(ctx context.Context, loc Location, action string) (*Confi
 	var path []string
         var err error
     {{- if $.Spec.Params.uuid}}
-	if byName {
-		path, err = loc.XpathWithEntryName(vn, value)
-	} else {
-		path, err = loc.XpathWithUuid(vn, value)
-	}
+	path, err = loc.XpathWithComponents(vn, value)
     {{- else}}
-	path, err = loc.XpathWithEntryName(vn, value)
+	path, err = loc.XpathWithComponents(vn, value)
     {{- end}}
   {{- else}}
-	path, err := loc.Xpath(vn)
+	path, err := loc.XpathWithComponents(vn)
   {{- end}}
 	if err != nil {
 		return nil, err
@@ -431,7 +427,7 @@ func (s *Service) Update(ctx context.Context, loc Location, entry *{{ $object }}
         if byName {
     {{- end}}
     if value != "" && value != entry.Name {
-        path, err := loc.XpathWithEntryName(vn, value)
+        path, err := loc.XpathWithComponents(vn, value)
         if err != nil {
             return nil, err
         }
@@ -469,10 +465,10 @@ func (s *Service) Update(ctx context.Context, loc Location, entry *{{ $object }}
 
   {{- if .Entry }}
     if !SpecMatches(entry, old) {
-        path, err := loc.XpathWithEntryName(vn, entry.Name)
+        path, err := loc.XpathWithComponents(vn, entry.Name)
   {{- else }}
     if !SpecMatches(entry, old) {
-        path, err := loc.Xpath(vn)
+        path, err := loc.XpathWithComponents(vn)
   {{- end }}
         if err != nil {
             return nil, err
@@ -595,17 +591,9 @@ vn := s.client.Versioning()
   {{- end }}
     for _, value := range values {
     var path []string
-    {{- if $.Spec.Params.uuid}}
-        if byName {
-        path, err = loc.XpathWithEntryName(vn, value)
-        } else {
-        path, err = loc.XpathWithUuid(vn, value)
-        }
-    {{- else}}
-        path, err = loc.XpathWithEntryName(vn, value)
-    {{- end}}
+        path, err = loc.XpathWithComponents(vn, value)
 {{- else}}
-    path, err := loc.Xpath(vn)
+    path, err := loc.XpathWithComponents(vn)
 {{- end}}
 if err != nil {
 return err
@@ -759,7 +747,7 @@ func (s *Service) RemoveFromImport(ctx context.Context, loc Location, entry Entr
     return nil, err
     }
 
-    path, err := loc.XpathWithEntryName(vn, "")
+    path, err := loc.XpathWithComponents(vn, "")
     if err != nil {
     return nil, err
     }
@@ -826,7 +814,7 @@ func (s *Service) RemoveFromImport(ctx context.Context, loc Location, entry Entr
 	updates := xmlapi.NewChunkedMultiConfig(len(movements), batchSize)
 
 	for _, elt := range movements {
-	        path, err := loc.XpathWithEntryName(s.client.Versioning(), elt.Movable.EntryName())
+	        path, err := loc.XpathWithComponents(s.client.Versioning(), elt.Movable.EntryName())
 	        if err != nil {
 		        return err
 	        }
@@ -889,7 +877,7 @@ func (s *Service) RemoveFromImport(ctx context.Context, loc Location, entry Entr
 
         vn := s.client.Versioning()
 
-        path, err := loc.XpathWithEntryName(vn, name)
+        path, err := loc.XpathWithComponents(vn, name)
         if err != nil {
         return err
         }
@@ -914,7 +902,7 @@ func (s *Service) RemoveFromImport(ctx context.Context, loc Location, entry Entr
 
         vn := s.client.Versioning()
 
-        path, err := loc.XpathWithEntryName(vn, name)
+        path, err := loc.XpathWithComponents(vn, name)
         if err != nil {
         return "", err
         }

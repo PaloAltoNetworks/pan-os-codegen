@@ -270,7 +270,6 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 
 			switch resourceTyp {
 			case properties.ResourceEntry, properties.ResourceConfig:
-				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "pangoutil")
 			case properties.ResourceEntryPlural, properties.ResourceUuid, properties.ResourceUuidPlural, properties.ResourceCustom:
 			}
 

@@ -22,8 +22,8 @@ func (o MockLocation) IsValid() error {
 	panic("unimplemented")
 }
 
-func (o MockLocation) XpathWithEntryName(version version.Number, name string) ([]string, error) {
-	return []string{"some", "location", name}, nil
+func (o MockLocation) XpathWithComponents(version version.Number, components ...string) ([]string, error) {
+	return []string{"some", "location", components[0]}, nil
 }
 
 func (o MockLocation) XpathWithUuid(version version.Number, uuid string) ([]string, error) {

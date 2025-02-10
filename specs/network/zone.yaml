@@ -15,8 +15,10 @@ go_sdk_config:
   package:
   - network
   - zone
-xpath_suffix:
-- zone
+panos_xpath:
+  path:
+  - zone
+  vars: []
 locations:
 - name: vsys
   xpath:
@@ -47,7 +49,6 @@ locations:
   description: Located in a specific Virtual System
   devices:
   - ngfw
-  - panorama
   validators: []
   required: false
   read_only: false
@@ -225,15 +226,6 @@ spec:
         spec: {}
         description: Log setting for forwarding scan logs
         required: false
-      - name: zone-protection-profile
-        type: string
-        profiles:
-        - xpath:
-          - zone-protection-profile
-        validators: []
-        spec: {}
-        description: Zone protection profile
-        required: false
       - name: net-inspection
         type: bool
         profiles:
@@ -244,6 +236,15 @@ spec:
         validators: []
         spec: {}
         description: ''
+        required: false
+      - name: zone-protection-profile
+        type: string
+        profiles:
+        - xpath:
+          - zone-protection-profile
+        validators: []
+        spec: {}
+        description: Zone protection profile
         required: false
       variants:
       - name: external
@@ -259,6 +260,7 @@ spec:
             type: string
         description: ''
         required: false
+        variant_group_id: 0
       - name: layer2
         type: list
         profiles:
@@ -272,6 +274,7 @@ spec:
             type: string
         description: ''
         required: false
+        variant_group_id: 0
       - name: layer3
         type: list
         profiles:
@@ -285,6 +288,7 @@ spec:
             type: string
         description: ''
         required: false
+        variant_group_id: 0
       - name: tap
         type: list
         profiles:
@@ -298,6 +302,7 @@ spec:
             type: string
         description: ''
         required: false
+        variant_group_id: 0
       - name: tunnel
         type: object
         profiles:
@@ -309,6 +314,7 @@ spec:
           variants: []
         description: Tunnel inspection zone
         required: false
+        variant_group_id: 0
       - name: virtual-wire
         type: list
         profiles:
@@ -322,6 +328,7 @@ spec:
             type: string
         description: ''
         required: false
+        variant_group_id: 0
     description: Zone network configuration
     required: false
   - name: user-acl

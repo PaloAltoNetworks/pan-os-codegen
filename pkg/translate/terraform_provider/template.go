@@ -741,10 +741,6 @@ const resourceCreateFunction = `
 	}
 {{- end }}
 
-{{- if .HasEntryName }}
-	state.Name = types.StringValue(created.Name)
-{{- end }}
-
 	// Done.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 
@@ -1010,13 +1006,7 @@ const resourceReadFunction = `
 {{- end }}
 
 {{- range $name, $index := .AttributesFromXpathComponents }}
-	{
-		value := components[{{ $index }}]
-		// component elements are entry-formatted for xpath rendering,
-		// each one looking like this: entry[@name='VALUE'], so we have
-                // to somehow slice the actual value from the component.
-		state.{{ $name }} = types.StringValue(value[13:len(value)-2])
-	}
+	state.{{ $name }} = types.StringValue(components[{{ $index }}])
 {{- end }}
 
 	// Done.
@@ -1401,12 +1391,23 @@ const resourceDeleteFunction = `
   {{- if .HasImports }}
 	var importLocation {{ .resourceSDKName }}.ImportLocation
 	{{ RenderImportLocationAssignment "state.Location" "importLocation" }}
-	err := r.manager.Delete(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, []string{state.Name.ValueString()}, sdkmanager.NonExhaustive)
+	err := r.manager.UnimportFromLocations(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, state.Name.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Error in delete", err.Error())
+		return
+	}
+	components, err := state.resourceXpathComponents()
+	if err != nil {
+		resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
+		return
+	}
+	err = r.manager.Delete(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, components...)
   {{- else }}
 	err := r.manager.Delete(ctx, location, []string{state.Name.ValueString()})
   {{- end }}
 	if err != nil && !errors.Is(err, sdkmanager.ErrObjectNotFound) {
 		resp.Diagnostics.AddError("Error in delete", err.Error())
+		return
 	}
 {{- else }}
 
@@ -1424,6 +1425,7 @@ const resourceDeleteFunction = `
 	err := r.manager.Delete(ctx, location, obj)
 	if err != nil && errors.Is(err, sdkmanager.ErrObjectNotFound) {
 		resp.Diagnostics.AddError("Error in delete", err.Error())
+		return
 	}
 {{- end }}
 `

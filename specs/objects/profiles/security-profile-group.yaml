@@ -15,8 +15,10 @@ go_sdk_config:
   - objects
   - profiles
   - secgroup
-xpath_suffix:
-- profile-group
+panos_xpath:
+  path:
+  - profile-group
+  vars: []
 locations:
 - name: shared
   xpath:

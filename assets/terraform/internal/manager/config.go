@@ -48,7 +48,7 @@ func (o *ConfigObjectManager[C, L, S]) Create(ctx context.Context, location L, c
 		return *new(C), err
 	}
 
-	err = o.service.CreateWithXpath(ctx, util.AsXpath(xpath), config)
+	err = o.service.CreateWithXpath(ctx, util.AsXpath(xpath[:len(xpath)-1]), config)
 	if err != nil {
 		return *new(C), err
 	}

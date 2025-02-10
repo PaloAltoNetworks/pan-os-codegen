@@ -15,8 +15,10 @@ go_sdk_config:
   package:
   - objects
   - extdynlist
-xpath_suffix:
-- external-list
+panos_xpath:
+  path:
+  - external-list
+  vars: []
 locations:
 - name: shared
   xpath:
@@ -221,6 +223,7 @@ spec:
                   variants: []
                 description: Everyday
                 required: false
+                variant_group_id: 0
               - name: five-minute
                 type: object
                 profiles:
@@ -232,6 +235,7 @@ spec:
                   variants: []
                 description: Every five minutes
                 required: false
+                variant_group_id: 0
               - name: hourly
                 type: object
                 profiles:
@@ -243,6 +247,7 @@ spec:
                   variants: []
                 description: Everyhour
                 required: false
+                variant_group_id: 0
               - name: monthly
                 type: object
                 profiles:
@@ -281,6 +286,7 @@ spec:
                   variants: []
                 description: Monthly
                 required: false
+                variant_group_id: 0
               - name: weekly
                 type: object
                 profiles:
@@ -333,6 +339,7 @@ spec:
                   variants: []
                 description: Once a week
                 required: false
+                variant_group_id: 0
             description: ''
             required: false
           - name: url
@@ -468,6 +475,7 @@ spec:
                   variants: []
                 description: Everyday
                 required: false
+                variant_group_id: 0
               - name: five-minute
                 type: object
                 profiles:
@@ -479,6 +487,7 @@ spec:
                   variants: []
                 description: Every five minutes
                 required: false
+                variant_group_id: 0
               - name: hourly
                 type: object
                 profiles:
@@ -490,6 +499,7 @@ spec:
                   variants: []
                 description: Everyhour
                 required: false
+                variant_group_id: 0
               - name: monthly
                 type: object
                 profiles:
@@ -528,6 +538,7 @@ spec:
                   variants: []
                 description: Monthly
                 required: false
+                variant_group_id: 0
               - name: weekly
                 type: object
                 profiles:
@@ -580,6 +591,7 @@ spec:
                   variants: []
                 description: Once a week
                 required: false
+                variant_group_id: 0
             description: ''
             required: false
           - name: url
@@ -715,6 +727,7 @@ spec:
                   variants: []
                 description: Everyday
                 required: false
+                variant_group_id: 0
               - name: five-minute
                 type: object
                 profiles:
@@ -726,6 +739,7 @@ spec:
                   variants: []
                 description: Every five minutes
                 required: false
+                variant_group_id: 0
               - name: hourly
                 type: object
                 profiles:
@@ -737,6 +751,7 @@ spec:
                   variants: []
                 description: Everyhour
                 required: false
+                variant_group_id: 0
               - name: monthly
                 type: object
                 profiles:
@@ -775,6 +790,7 @@ spec:
                   variants: []
                 description: Monthly
                 required: false
+                variant_group_id: 0
               - name: weekly
                 type: object
                 profiles:
@@ -827,6 +843,7 @@ spec:
                   variants: []
                 description: Once a week
                 required: false
+                variant_group_id: 0
             description: ''
             required: false
           - name: url
@@ -962,6 +979,7 @@ spec:
                   variants: []
                 description: Everyday
                 required: false
+                variant_group_id: 0
               - name: five-minute
                 type: object
                 profiles:
@@ -973,6 +991,7 @@ spec:
                   variants: []
                 description: Every five minutes
                 required: false
+                variant_group_id: 0
               - name: hourly
                 type: object
                 profiles:
@@ -984,6 +1003,7 @@ spec:
                   variants: []
                 description: Everyhour
                 required: false
+                variant_group_id: 0
               - name: monthly
                 type: object
                 profiles:
@@ -1022,6 +1042,7 @@ spec:
                   variants: []
                 description: Monthly
                 required: false
+                variant_group_id: 0
               - name: weekly
                 type: object
                 profiles:
@@ -1074,6 +1095,7 @@ spec:
                   variants: []
                 description: Once a week
                 required: false
+                variant_group_id: 0
             description: ''
             required: false
           - name: url
@@ -1301,6 +1323,7 @@ spec:
                   variants: []
                 description: Everyday
                 required: false
+                variant_group_id: 0
               - name: five-minute
                 type: object
                 profiles:
@@ -1312,6 +1335,7 @@ spec:
                   variants: []
                 description: Every five minutes
                 required: false
+                variant_group_id: 0
               - name: hourly
                 type: object
                 profiles:
@@ -1323,6 +1347,7 @@ spec:
                   variants: []
                 description: Everyhour
                 required: false
+                variant_group_id: 0
               - name: monthly
                 type: object
                 profiles:
@@ -1361,6 +1386,7 @@ spec:
                   variants: []
                 description: Monthly
                 required: false
+                variant_group_id: 0
               - name: weekly
                 type: object
                 profiles:
@@ -1413,6 +1439,7 @@ spec:
                   variants: []
                 description: Once a week
                 required: false
+                variant_group_id: 0
             description: ''
             required: false
           - name: url

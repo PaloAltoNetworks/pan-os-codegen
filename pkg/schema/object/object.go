@@ -60,8 +60,8 @@ type Spec struct {
 type PanosXpathVariableType string
 
 const (
-	PanosXpathVariableValue   PanosXpathVariableType = "value"
-	PanosXpathVariableVariant PanosXpathVariableType = "variant"
+	PanosXpathVariableValue PanosXpathVariableType = "value"
+	PanosXpathVariableEntry PanosXpathVariableType = "entry"
 )
 
 type PanosXpathVariableSpec struct {

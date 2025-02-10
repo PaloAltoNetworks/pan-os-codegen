@@ -301,7 +301,7 @@ func createImportLocationSpecsForLocation(location properties.ImportLocation) im
 	for _, elt := range location.XpathElements {
 		if strings.HasPrefix(elt, "$") {
 			variableName := elt[1:]
-			asEntryXpath := fmt.Sprintf("util.AsEntryXpath([]string{o.%s})", variablesByName[variableName].Name.LowerCamelCase)
+			asEntryXpath := fmt.Sprintf("util.AsEntryXpath(o.%s)", variablesByName[variableName].Name.LowerCamelCase)
 			elements = append(elements, asEntryXpath)
 		} else {
 			elements = append(elements, fmt.Sprintf("\"%s\"", elt))
