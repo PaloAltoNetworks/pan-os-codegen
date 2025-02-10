@@ -1085,7 +1085,7 @@ func (spec *Normalization) ResourceXpathAssigments() (string, error) {
 		elements = append(elements, assignment)
 	}
 
-	if !explicitNameVariable {
+	if !explicitNameVariable && spec.TerraformProviderConfig.ResourceType != TerraformResourceConfig {
 		elements = append(elements, fmt.Sprintf("components[%d]", componentIdx))
 	}
 
