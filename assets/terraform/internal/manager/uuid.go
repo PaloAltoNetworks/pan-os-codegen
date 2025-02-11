@@ -2,6 +2,7 @@ package manager
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -602,7 +603,8 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 
 	if len(operations) > 0 {
 		if err := ChunkedMultiConfigUpdate(ctx, o.client, operations, o.batchSize); err != nil {
-			return nil, &Error{err: err, message: "failed to execute MultiConfig command"}
+			cleanupErr := o.cleanUpIncompleteUpdate(ctx, location, processedStateEntries, exhaustive)
+			return nil, errors.Join(&Error{err: err, message: "failed to execute MultiConfig command"}, cleanupErr)
 		}
 	}
 
@@ -682,10 +684,24 @@ func (o *UuidObjectManager[E, L, S]) ReadMany(ctx context.Context, location L, s
 }
 
 func (o *UuidObjectManager[E, L, S]) Delete(ctx context.Context, location L, entryNames []string, exhaustive ExhaustiveType) error {
-	err := o.service.Delete(ctx, location, entryNames...)
-	if err != nil {
-		return &Error{err: err, message: "sdk error while deleting"}
+
+	var batches [][]string
+	for i := 0; i < len(entryNames); i += o.batchSize {
+		end := i + o.batchSize
+		if end > len(entryNames) {
+			end = len(entryNames)
+		}
+
+		batches = append(batches, entryNames[i:end])
 	}
+
+	for _, elt := range batches {
+		err := o.service.Delete(ctx, location, elt...)
+		if err != nil {
+			return &Error{err: err, message: "sdk error while deleting"}
+		}
+	}
+
 	return nil
 }
 
@@ -729,4 +745,13 @@ func parseSDKPosition(sdkPosition rule.Position) (position, error) {
 	}
 
 	return position{}, ErrInvalidPosition
+}
+
+func (o *UuidObjectManager[E, L, S]) cleanUpIncompleteUpdate(ctx context.Context, location L, entries map[string]uuidObjectWithState[E], exhaustive ExhaustiveType) error {
+	var names []string
+	for _, elt := range entries {
+		names = append(names, elt.Entry.EntryName())
+	}
+
+	return o.Delete(ctx, location, names, exhaustive)
 }
