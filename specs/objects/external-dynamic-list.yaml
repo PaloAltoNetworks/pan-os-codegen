@@ -125,6 +125,8 @@ spec:
                 spec: {}
                 description: ''
                 required: false
+                hashing:
+                  type: solo
               - name: username
                 type: string
                 profiles:
@@ -379,6 +381,8 @@ spec:
                 spec: {}
                 description: ''
                 required: false
+                hashing:
+                  type: solo
               - name: username
                 type: string
                 profiles:
@@ -624,6 +628,8 @@ spec:
                 spec: {}
                 description: ''
                 required: false
+                hashing:
+                  type: solo
               - name: username
                 type: string
                 profiles:
@@ -869,6 +875,8 @@ spec:
                 spec: {}
                 description: ''
                 required: false
+                hashing:
+                  type: solo
               - name: username
                 type: string
                 profiles:
@@ -1206,6 +1214,8 @@ spec:
                 spec: {}
                 description: ''
                 required: false
+                hashing:
+                  type: solo
               - name: username
                 type: string
                 profiles:
