@@ -1,7 +1,6 @@
 package properties
 
 import (
-	"bytes"
 	"fmt"
 	"io/fs"
 	"maps"
@@ -10,7 +9,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"text/template"
 
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/content"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
@@ -26,18 +24,13 @@ type Normalization struct {
 	TerraformProviderConfig TerraformProviderConfig `json:"terraform_provider_config" yaml:"terraform_provider_config"`
 	GoSdkSkip               bool                    `json:"go_sdk_skip" yaml:"go_sdk_skip"`
 	GoSdkPath               []string                `json:"go_sdk_path" yaml:"go_sdk_path"`
-	PanosXpath              PanosXpath              `json:"panos_xpath" yaml:"panos_xpath"`
+	XpathSuffix             []string                `json:"xpath_suffix" yaml:"xpath_suffix"`
 	Locations               map[string]*Location    `json:"locations" yaml:"locations"`
 	Entry                   *Entry                  `json:"entry" yaml:"entry"`
 	Imports                 []Import                `json:"imports" yaml:"imports"`
 	Version                 string                  `json:"version" yaml:"version"`
 	Spec                    *Spec                   `json:"spec" yaml:"spec"`
 	Const                   map[string]*Const       `json:"const" yaml:"const"`
-}
-
-type PanosXpath struct {
-	Path      []string                    `yaml:"path"`
-	Variables []object.PanosXpathVariable `yaml:"vars"`
 }
 
 type Import struct {
@@ -91,7 +84,6 @@ type TerraformProviderConfig struct {
 }
 
 type NameVariant struct {
-	Original       string
 	Underscore     string
 	CamelCase      string
 	LowerCamelCase string
@@ -99,7 +91,6 @@ type NameVariant struct {
 
 func NewNameVariant(name string) *NameVariant {
 	return &NameVariant{
-		Original:       name,
 		Underscore:     naming.Underscore("", name, ""),
 		CamelCase:      naming.CamelCase("", name, "", true),
 		LowerCamelCase: naming.CamelCase("", name, "", false),
@@ -173,7 +164,6 @@ type SpecParam struct {
 	Name                    *NameVariant
 	Description             string                            `json:"description" yaml:"description"`
 	TerraformProviderConfig *SpecParamTerraformProviderConfig `json:"terraform_provider_config" yaml:"terraform_provider_config"`
-	GoSdkConfig             *SpecParamGoSdkConfig             `json:"gosdk_config" yaml:"gosdk_config"`
 	IsNil                   bool                              `json:"-" yaml:"-"`
 	Type                    string                            `json:"type" yaml:"type"`
 	Default                 string                            `json:"default" yaml:"default"`
@@ -186,10 +176,6 @@ type SpecParam struct {
 	Regex                   string                            `json:"regex" yaml:"regex,omitempty"`
 	Profiles                []*SpecParamProfile               `json:"profiles" yaml:"profiles"`
 	Spec                    *Spec                             `json:"spec" yaml:"spec"`
-}
-
-type SpecParamGoSdkConfig struct {
-	Skip *bool `json:"skip" yaml:"skip"`
 }
 
 type SpecParamTerraformProviderConfig struct {
@@ -387,14 +373,6 @@ func (o *SpecParam) HasPrivateParameters() bool {
 	return false
 }
 
-func (o *SpecParam) IsTerraformOnly() bool {
-	if o.GoSdkConfig != nil && o.GoSdkConfig.Skip != nil {
-		return *o.GoSdkConfig.Skip
-	}
-
-	return false
-}
-
 func (o *SpecParam) IsPrivateParameter() bool {
 	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.Private != nil {
 		return *o.TerraformProviderConfig.Private
@@ -537,7 +515,6 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 	}
 
 	var terraformProviderConfig *SpecParamTerraformProviderConfig
-	var goSdkConfig *SpecParamGoSdkConfig
 	if schemaSpec.CodegenOverrides != nil {
 		var variantCheck *string
 		if schemaSpec.CodegenOverrides.Terraform.VariantCheck != nil {
@@ -554,10 +531,6 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 			Required:     schemaSpec.CodegenOverrides.Terraform.Required,
 			VariantCheck: variantCheck,
 		}
-
-		goSdkConfig = &SpecParamGoSdkConfig{
-			Skip: schemaSpec.CodegenOverrides.GoSdk.Skip,
-		}
 	}
 	specParameter := &SpecParam{
 		Description:             schemaSpec.Description,
@@ -565,7 +538,6 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 		IsNil:                   paramTypeIsNil,
 		Default:                 defaultVal,
 		Required:                schemaSpec.Required,
-		GoSdkConfig:             goSdkConfig,
 		TerraformProviderConfig: terraformProviderConfig,
 		Hashing:                 specHashing,
 		Profiles:                profiles,
@@ -636,12 +608,6 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 	for _, elt := range object.TerraformConfig.ResourceVariants {
 		resourceVariants = append(resourceVariants, TerraformResourceVariant(elt))
 	}
-
-	panosXpath := PanosXpath{
-		Path:      object.PanosXpath.Path,
-		Variables: object.PanosXpath.Variables,
-	}
-
 	spec := &Normalization{
 		Name: object.DisplayName,
 		TerraformProviderConfig: TerraformProviderConfig{
@@ -658,11 +624,11 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 			PluralName:            object.TerraformConfig.PluralName,
 			PluralDescription:     object.TerraformConfig.PluralDescription,
 		},
-		Locations:  make(map[string]*Location),
-		GoSdkSkip:  object.GoSdkConfig.Skip,
-		GoSdkPath:  object.GoSdkConfig.Package,
-		PanosXpath: panosXpath,
-		Version:    object.Version,
+		Locations:   make(map[string]*Location),
+		GoSdkSkip:   object.GoSdkConfig.Skip,
+		GoSdkPath:   object.GoSdkConfig.Package,
+		XpathSuffix: object.XpathSuffix,
+		Version:     object.Version,
 		Spec: &Spec{
 			Params: make(map[string]*SpecParam),
 			OneOf:  make(map[string]*SpecParam),
@@ -750,7 +716,11 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 			for _, xpathVariable := range location.Xpath.Variables {
 				schemaXpathVars[xpathVariable.Name] = xpathVariable
 				xpathVars[xpathVariable.Name] = ImportXpathVariable{
-					Name:        NewNameVariant(xpathVariable.Name),
+					Name: &NameVariant{
+						Underscore:     naming.Underscore("", xpathVariable.Name, ""),
+						CamelCase:      naming.CamelCase("", xpathVariable.Name, "", true),
+						LowerCamelCase: naming.CamelCase("", xpathVariable.Name, "", false),
+					},
 					Description: xpathVariable.Description,
 					Default:     xpathVariable.Default,
 				}
@@ -760,7 +730,11 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 			xpath = append(xpath, location.Xpath.Elements...)
 
 			locations[location.Name] = ImportLocation{
-				Name:           NewNameVariant(location.Name),
+				Name: &NameVariant{
+					Underscore:     naming.Underscore("", location.Name, ""),
+					CamelCase:      naming.CamelCase("", location.Name, "", true),
+					LowerCamelCase: naming.CamelCase("", location.Name, "", false),
+				},
 				Required:       location.Required,
 				XpathVariables: xpathVars,
 				XpathElements:  xpath,
@@ -768,8 +742,16 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 		}
 
 		imports = append(imports, Import{
-			Type:      NewNameVariant(elt.Type),
-			Variant:   NewNameVariant(elt.Variant),
+			Type: &NameVariant{
+				Underscore:     naming.Underscore("", elt.Type, ""),
+				CamelCase:      naming.CamelCase("", elt.Type, "", true),
+				LowerCamelCase: naming.CamelCase("", elt.Type, "", false),
+			},
+			Variant: &NameVariant{
+				Underscore:     naming.Underscore("", elt.Variant, ""),
+				CamelCase:      naming.CamelCase("", elt.Variant, "", true),
+				LowerCamelCase: naming.CamelCase("", elt.Variant, "", false),
+			},
 			Locations: locations,
 		})
 	}
@@ -868,10 +850,18 @@ func ParseSpec(input []byte) (*Normalization, error) {
 // AddNameVariantsForLocation add name variants for location (under_score and CamelCase).
 func (spec *Normalization) AddNameVariantsForLocation() error {
 	for key, location := range spec.Locations {
-		location.Name = NewNameVariant(key)
+		location.Name = &NameVariant{
+			Underscore:     naming.Underscore("", key, ""),
+			CamelCase:      naming.CamelCase("", key, "", true),
+			LowerCamelCase: naming.CamelCase("", key, "", false),
+		}
 
 		for subkey, variable := range location.Vars {
-			variable.Name = NewNameVariant(subkey)
+			variable.Name = &NameVariant{
+				Underscore:     naming.Underscore("", subkey, ""),
+				CamelCase:      naming.CamelCase("", subkey, "", true),
+				LowerCamelCase: naming.CamelCase("", subkey, "", false),
+			}
 		}
 	}
 
@@ -880,7 +870,11 @@ func (spec *Normalization) AddNameVariantsForLocation() error {
 
 // AddNameVariantsForParams recursively add name variants for params for nested specs.
 func AddNameVariantsForParams(name string, param *SpecParam) error {
-	param.Name = NewNameVariant(name)
+	param.Name = &NameVariant{
+		Underscore:     naming.Underscore("", name, ""),
+		CamelCase:      naming.CamelCase("", name, "", true),
+		LowerCamelCase: naming.CamelCase("", name, "", false),
+	}
 	if param.Spec != nil {
 		for key, childParam := range param.Spec.Params {
 			if err := AddNameVariantsForParams(key, childParam); err != nil {
@@ -917,9 +911,17 @@ func (spec *Normalization) AddNameVariantsForParams() error {
 func (spec *Normalization) AddNameVariantsForTypes() error {
 	if spec.Const != nil {
 		for nameType, customType := range spec.Const {
-			customType.Name = NewNameVariant(nameType)
+			customType.Name = &NameVariant{
+				Underscore:     naming.Underscore("", nameType, ""),
+				CamelCase:      naming.CamelCase("", nameType, "", true),
+				LowerCamelCase: naming.CamelCase("", nameType, "", false),
+			}
 			for nameValue, customValue := range customType.Values {
-				customValue.Name = NewNameVariant(nameValue)
+				customValue.Name = &NameVariant{
+					Underscore:     naming.Underscore("", nameValue, ""),
+					CamelCase:      naming.CamelCase("", nameValue, "", true),
+					LowerCamelCase: naming.CamelCase("", nameValue, "", false),
+				}
 			}
 		}
 	}
@@ -976,123 +978,6 @@ func (spec *Normalization) Sanity() error {
 	return nil
 }
 
-func (spec *Normalization) XpathSuffix() []string {
-	return spec.PanosXpath.Path
-}
-
-func (spec *Normalization) ResourceXpathVariablesCount() int {
-	if spec.HasEntryName() && len(spec.PanosXpath.Variables) == 0 {
-		return 1
-	}
-
-	return len(spec.PanosXpath.Variables)
-}
-
-const componentVariantTmpl = `
-{
-
-var component string
-{{- range .Variants }}
-if component != "" {
-	return "", fmt.Errorf("invalid resource, multiple variants set")
-}
-if o.{{ .CamelCase }} != nil {
-	component = {{ .Original }}
-}
-{{- end }}
-if component == "" {
-	return "", fmt.Errorf("invalid resource, missing xpath variant")
-}
-
-}
-`
-
-func (spec *Normalization) AttributesFromXpathComponents() map[string]int {
-	result := make(map[string]int)
-	for idx, elt := range spec.PanosXpath.Variables {
-		// "Entry Name" has special case handling all over the place
-		if elt.Name == "name" {
-			continue
-		}
-		if elt.Spec.Type != object.PanosXpathVariableValue {
-			continue
-		}
-
-		variants := NewNameVariant(elt.Name)
-		result[variants.CamelCase] = idx
-	}
-
-	return result
-}
-
-func (spec *Normalization) ResourceXpathComponents() (string, error) {
-	var components []string
-
-	tmpl := template.Must(template.New("component-variant").Parse(componentVariantTmpl))
-	explicitNameVariable := false
-	for _, elt := range spec.PanosXpath.Variables {
-		if elt.Name == "name" {
-			explicitNameVariable = true
-		}
-
-		var component string
-		name := NewNameVariant(elt.Name)
-		switch elt.Spec.Type {
-		case object.PanosXpathVariableValue:
-			component = fmt.Sprintf("components = append(components, o.%s)", name.CamelCase)
-		case object.PanosXpathVariableVariant:
-			var buf bytes.Buffer
-			err := tmpl.Execute(&buf, nil)
-			if err != nil {
-				return "", err
-			}
-			component = buf.String()
-		}
-		components = append(components, component)
-	}
-
-	if !explicitNameVariable {
-		components = append(components, "components = append(components, o.Name)")
-	}
-
-	return strings.Join(components, "\n"), nil
-}
-
-func (spec *Normalization) ResourceXpathAssigments() (string, error) {
-	var elements []string
-
-	variables := map[string]string{"$name": "name"}
-	for _, elt := range spec.PanosXpath.Variables {
-		variables[fmt.Sprintf("$%s", elt.Name)] = elt.Name
-	}
-
-	explicitNameVariable := false
-	componentIdx := 0
-	for _, elt := range spec.PanosXpath.Path {
-		if elt == "$name" {
-			explicitNameVariable = true
-		}
-
-		_, found := variables[elt]
-		var assignment string
-		if found {
-			assignment = fmt.Sprintf("components[%d]", componentIdx)
-			componentIdx += 1
-		} else {
-			assignment = fmt.Sprintf("\"%s\"", elt)
-		}
-
-		elements = append(elements, assignment)
-	}
-
-	if !explicitNameVariable {
-		elements = append(elements, fmt.Sprintf("components[%d]", componentIdx))
-	}
-
-	result := strings.Join(elements, ",")
-	return result, nil
-}
-
 // Validate validations for specification (normalization) e.g. check if XPath contain /.
 func (spec *Normalization) Validate() []error {
 	var checks []error
@@ -1100,7 +985,7 @@ func (spec *Normalization) Validate() []error {
 	if strings.Contains(spec.TerraformProviderConfig.Suffix, "panos_") {
 		checks = append(checks, fmt.Errorf("suffix for Terraform provider cannot contain `panos_`"))
 	}
-	for _, suffix := range spec.XpathSuffix() {
+	for _, suffix := range spec.XpathSuffix {
 		if strings.Contains(suffix, "/") {
 			checks = append(checks, fmt.Errorf("XPath cannot contain /"))
 		}

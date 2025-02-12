@@ -356,10 +356,6 @@ func (r *{{ resourceStructName }}) Configure(ctx context.Context, req {{ tfresou
 
 {{ RenderCopyFromPangoFunctions }}
 
-{{- if not IsResourcePlural }}
-{{ RenderXpathComponentsGetter }}
-{{- end }}
-
 {{- if FunctionSupported "Create" }}
 func (r *{{ resourceStructName }}) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	{{ ResourceCreateFunction resourceStructName serviceName}}
@@ -659,35 +655,17 @@ const resourceCreateFunction = `
 	*/
 
 	// Perform the operation.
-
-	components, err := state.resourceXpathComponents()
-	if err != nil {
-		resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
-		return
-	}
-
 {{- if .HasImports }}
 	var importLocation {{ .resourceSDKName }}.ImportLocation
 	{{ RenderImportLocationAssignment "state.Location" "importLocation" }}
-	created, err := r.manager.Create(ctx, location, components, obj)
-	if err != nil {
-		resp.Diagnostics.AddError("Error in create", err.Error())
-		return
-	}
-
-	err = r.manager.ImportToLocations(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, obj.Name)
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to import resource into location", err.Error())
-		return
-	}
+	created, err := r.manager.Create(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, obj)
 {{- else }}
-	created, err := r.manager.Create(ctx, location, components, obj)
+	created, err := r.manager.Create(ctx, location, obj)
+{{- end }}
 	if err != nil {
 		resp.Diagnostics.AddError("Error in create", err.Error())
 		return
 	}
-{{- end }}
-
 
 	resp.Diagnostics.Append(state.CopyFromPango(ctx, created, {{ $ev }})...)
 	if resp.Diagnostics.HasError() {
@@ -935,13 +913,12 @@ const resourceReadFunction = `
 	})
 
 
-	components, err := savestate.resourceXpathComponents()
-	if err != nil {
-		resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
-		return
-	}
-
-	object, err := o.manager.Read(ctx, location, components)
+	// Perform the operation.
+{{- if .HasEntryName }}
+	object, err := o.manager.Read(ctx, location, savestate.Name.ValueString())
+{{- else }}
+	object, err := o.manager.Read(ctx, location)
+{{- end }}
 	if err != nil {
 		if errors.Is(err, sdkmanager.ErrObjectNotFound) {
 {{- if eq .ResourceOrDS "DataSource" }}
@@ -972,15 +949,6 @@ const resourceReadFunction = `
         resp.Diagnostics.Append(ev_diags...)
 {{- end }}
 
-{{- range $name, $index := .AttributesFromXpathComponents }}
-	{
-		value := components[{{ $index }}]
-		// component elements are entry-formatted for xpath rendering,
-		// each one looking like this: entry[@name='VALUE'], so we have
-                // to somehow slice the actual value from the component.
-		state.{{ $name }} = types.StringValue(value[13:len(value)-2])
-	}
-{{- end }}
 
 	// Done.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -1205,13 +1173,11 @@ const resourceUpdateFunction = `
 		return
 	}
 
-	components, err := state.resourceXpathComponents()
-	if err != nil {
-		resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
-		return
-	}
-
-	obj, err := r.manager.Read(ctx, location, components)
+{{- if .HasEntryName }}
+	obj, err := r.manager.Read(ctx, location, plan.Name.ValueString())
+{{- else }}
+	obj, err := r.manager.Read(ctx, location)
+{{- end }}
 	if err != nil {
 		resp.Diagnostics.AddError("Error in update", err.Error())
 		return
@@ -1548,10 +1514,6 @@ type {{ dataSourceStructName }}Filter struct {
 {{ RenderCopyToPangoFunctions }}
 
 {{ RenderCopyFromPangoFunctions }}
-
-{{- if not IsResourcePlural }}
-{{ RenderXpathComponentsGetter }}
-{{- end }}
 
 {{ RenderDataSourceSchema }}
 
