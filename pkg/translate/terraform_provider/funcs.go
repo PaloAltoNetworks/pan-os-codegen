@@ -3220,4 +3220,9 @@ var customResourceFuncsMap = map[string]map[string]string{
 		"Imports": apiKeyImports,
 		"Open":    apiKeyOpen,
 	},
+	"auth_key": {
+		"Common":  authKeyCommon,
+		"Imports": authKeyImports,
+		"Open":    authKeyOpen,
+	},
 }
