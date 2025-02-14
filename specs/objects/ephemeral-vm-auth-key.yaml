@@ -1,16 +1,16 @@
-name: auth-key
+name: vm-auth-key
 terraform_provider_config:
   skip_datasource: true
-  description: Auth Key
+  description: VM Auth Key
   resource_type: custom
   ephemeral: true
   custom_functions:
-    Open: authKeyEphemeralResourceOpen
-  suffix: auth_key
+    Open: vmAuthKeyEphemeralResourceOpen
+  suffix: vm_auth_key
 go_sdk_config:
   skip: true
-  package: ["authkey"] # unused
-xpath_suffix: ["authkey"] # unused
+  package: ["vmauthkey"] # unused
+xpath_suffix: ["vmauthkey"] # unused
 locations: []
 entries: []
 imports: []
@@ -27,7 +27,7 @@ spec:
           spec:
             min: 1
             max: 8760
-    - name: authkey
+    - name: vm_auth_key
       type: string
       profiles:
         - xpath: ["authkey"]

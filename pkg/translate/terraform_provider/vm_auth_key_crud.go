@@ -1,6 +1,6 @@
 package terraform_provider
 
-const authKeyImports = `
+const vmAuthKeyImports = `
 import (
 	"encoding/xml"
         "regexp"
@@ -10,20 +10,20 @@ import (
 )
 `
 
-const authKeyCommon = `
-type authKeyRequest struct {
+const vmAuthKeyCommon = `
+type vmAuthKeyRequest struct {
 	XMLName xml.Name ` + "`" + `xml:"request"` + "`" + `
         Lifetime int64 ` + "`" + `xml:"bootstrap>vm-auth-key>generate>lifetime"` + "`" + `
 }
 
-type authKeyResponse struct {
+type vmAuthKeyResponse struct {
 	XMLName xml.Name ` + "`" + `xml:"response"` + "`" + `
 	Result string ` + "`" + `xml:"result"` + "`" + `
 }
 `
 
-const authKeyOpen = `
-var data AuthKeyResourceModel
+const vmAuthKeyOpen = `
+var data VmAuthKeyResourceModel
 resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 if resp.Diagnostics.HasError() {
 	return
@@ -32,17 +32,17 @@ if resp.Diagnostics.HasError() {
 lifetime := data.Lifetime.ValueInt64()
 
 cmd := &xmlapi.Op{
-	Command: authKeyRequest{Lifetime: lifetime},
+	Command: vmAuthKeyRequest{Lifetime: lifetime},
 }
 
-var serverResponse authKeyResponse
+var serverResponse vmAuthKeyResponse
 if _, _, err := r.client.Communicate(ctx, cmd, false, &serverResponse); err != nil {
 	resp.Diagnostics.AddError("Failed to generate Authenticaion Key", "Server returned an error: " + err.Error())
 	return
 }
 
-authKeyRegexp := ` + "`" + `VM auth key (?P<authkey>.+) generated. Expires at: (?P<expiration>.+)` + "`" + `
-expr := regexp.MustCompile(authKeyRegexp)
+vmAuthKeyRegexp := ` + "`" + `VM auth key (?P<vmauthkey>.+) generated. Expires at: (?P<expiration>.+)` + "`" + `
+expr := regexp.MustCompile(vmAuthKeyRegexp)
 match := expr.FindStringSubmatch(serverResponse.Result)
 if match == nil {
 	resp.Diagnostics.AddError("Failed to parse server response", "Server response did not match regular expression")
@@ -57,8 +57,8 @@ for i, name := range expr.SubexpNames() {
 }
 
 
-if authKey, found := groups["authkey"]; found {
-	data.Authkey = types.StringValue(authKey)
+if vmAuthKey, found := groups["vmauthkey"]; found {
+	data.VmAuthKey = types.StringValue(vmAuthKey)
 } else {
 	resp.Diagnostics.AddError("Failed to parse server response", "Server response did not contain matching authentication key")
 	return
