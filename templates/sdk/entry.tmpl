@@ -3,7 +3,7 @@ type entryXml{{createGoSuffixFromVersion $.Version}} struct {
 	XMLName xml.Name `xml:"entry"`
 	Name string `xml:"name,attr"`
   {{- range $_, $param := $.Spec.Params}}
-    {{- if and (paramNotSkipped $param) (paramSupportedInVersion $param $.Version)}}
+    {{- if paramSupportedInVersion $param $.Version}}
       {{- if $param.Spec}}
         {{$param.Name.CamelCase}} {{xmlParamType "" $param}}{{createGoSuffixFromVersion $.Version}} {{xmlTag $param}}
       {{- else}}
@@ -13,7 +13,7 @@ type entryXml{{createGoSuffixFromVersion $.Version}} struct {
   {{- end}}
 
   {{- range $_, $param := $.Spec.OneOf}}
-    {{- if and (paramNotSkipped $param) (paramSupportedInVersion $param $.Version)}}
+    {{- if paramSupportedInVersion $param $.Version}}
       {{- if $param.Spec}}
         {{$param.Name.CamelCase}} {{xmlParamType "" $param}}{{createGoSuffixFromVersion $.Version}} {{xmlTag $param}}
       {{- else}}
@@ -32,7 +32,7 @@ type {{ .Name }}Xml{{createGoSuffixFromVersion $.Version}} struct {
     {{- if eq $param.Name.CamelCase "Name"}}
 	XMLName xml.Name `xml:"entry"`
     {{- end}}
-    {{- if and (paramNotSkipped $param) (paramSupportedInVersion $param $.Version)}}
+    {{- if paramSupportedInVersion $param $.Version}}
       {{- if $param.Spec}}
 	{{$param.Name.CamelCase}} {{xmlParamType $.Name $param}}{{createGoSuffixFromVersion $.Version}} {{xmlTag $param}}
       {{- else}}
@@ -42,7 +42,7 @@ type {{ .Name }}Xml{{createGoSuffixFromVersion $.Version}} struct {
   {{- end}}
 
   {{- range $_, $param := $.Spec.OneOf}}
-    {{- if and (paramNotSkipped $param) (paramSupportedInVersion $param $.Version)}}
+    {{- if paramSupportedInVersion $param $.Version}}
       {{- if $param.Spec}}
 	{{$param.Name.CamelCase}} {{xmlParamType $.Name $param}}{{createGoSuffixFromVersion $.Version}} {{xmlTag $param}}
       {{- else}}
@@ -84,15 +84,11 @@ func (c *entryXmlContainer{{ createGoSuffixFromVersion $.Version }}) Normalize()
 	}
 	entry.Name = o.Name
   {{- range $_, $param := $.Spec.Params}}
-    {{- if paramNotSkipped $param }}
 	{{normalizeAssignment "entry" $param $.Version }}
-    {{- end }}
   {{- end}}
 
   {{- range $_, $param := $.Spec.OneOf}}
-    {{- if paramNotSkipped $param }}
 	{{normalizeAssignment "entry" $param $.Version }}
-    {{- end }}
   {{- end}}
 
 	entry.Misc["Entry"] = o.Misc
@@ -124,14 +120,10 @@ return entryList, nil
     type Entry{{createGoSuffixFromVersion nil}} struct {
     Name string
     {{- range $_, $param := $.Spec.Params}}
-      {{- if paramNotSkipped $param }}
         {{$param.Name.CamelCase}} {{specParamType "" $param}}
-      {{- end }}
     {{- end}}
     {{- range $_, $param := $.Spec.OneOf}}
-      {{- if paramNotSkipped $param }}
         {{$param.Name.CamelCase}} {{specParamType "" $param}}
-      {{- end }}
     {{- end}}
 
     Misc map[string][]generic.Xml
@@ -140,14 +132,10 @@ return entryList, nil
     {{ range $name, $spec := nestedSpecs $.Spec }}
         type {{$name}}{{createGoSuffixFromVersion nil}} struct {
         {{- range $_, $param := $spec.Params}}
-          {{- if paramNotSkipped $param }}
             {{$param.Name.CamelCase}} {{specParamType $name $param}}
-          {{- end }}
         {{- end}}
         {{- range $_, $param := $spec.OneOf}}
-          {{- if paramNotSkipped $param }}
             {{$param.Name.CamelCase}} {{specParamType $name $param}}
-          {{- end }}
         {{- end}}
         }
     {{- end}}
@@ -191,9 +179,6 @@ return entryList, nil
     }
 
     {{- range $_, $param := .Spec.Params}}
-      {{- if not (paramNotSkipped $param) }}
-        {{ continue }}
-      {{- end }}
         if v == "{{$param.Name.Underscore}}" || v == "{{$param.Name.CamelCase}}" {
         return e.{{$param.Name.CamelCase}}, nil
         }
@@ -247,17 +232,11 @@ return entryList, nil
 
     // Don't compare Name.
     {{- range $_, $param := .Spec.Params}}
-        {{- if not (paramNotSkipped $param) }}
-          {{ continue }}
-        {{- end }}
         if !{{specMatchesFunction $param}}(a.{{$param.Name.CamelCase}}, b.{{$param.Name.CamelCase}}) {
         return false
         }
     {{- end}}
     {{- range $_, $param := .Spec.OneOf}}
-        {{- if not (paramNotSkipped $param) }}
-          {{ continue }}
-        {{- end }}
         if !{{specMatchesFunction $param}}(a.{{$param.Name.CamelCase}}, b.{{$param.Name.CamelCase}}) {
         return false
         }

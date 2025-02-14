@@ -94,9 +94,7 @@ func isParamListAndProfileTypeIsExtendedEntry(param *properties.SpecParam) bool 
 }
 
 func appendSimpleAssignment(param *properties.SpecParam, objectType string, builder *strings.Builder) {
-	if ParamNotSkippedTmpl(param) {
-		builder.WriteString(fmt.Sprintf("%s.%s = o.%s", objectType, param.Name.CamelCase, param.Name.CamelCase))
-	}
+	builder.WriteString(fmt.Sprintf("%s.%s = o.%s", objectType, param.Name.CamelCase, param.Name.CamelCase))
 }
 
 func appendFunctionAssignment(param *properties.SpecParam, objectType string, functionName, additionalArguments string, builder *strings.Builder) {

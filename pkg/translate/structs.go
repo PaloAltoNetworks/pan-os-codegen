@@ -460,14 +460,6 @@ func CreateGoSuffixFromVersion(v *version.Version) string {
 	return fmt.Sprintf("_%s", strings.ReplaceAll(v.String(), ".", "_"))
 }
 
-func ParamNotSkippedTmpl(param *properties.SpecParam) bool {
-	if param.GoSdkConfig != nil && param.GoSdkConfig.Skip != nil {
-		return !*param.GoSdkConfig.Skip
-	}
-
-	return true
-}
-
 func ParamSupportedInVersionTmpl(param *properties.SpecParam, deviceVersion any) (bool, error) {
 	if deviceVersion == nil {
 		return true, nil

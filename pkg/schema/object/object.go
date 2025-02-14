@@ -57,32 +57,10 @@ type Spec struct {
 	Variants   []*parameter.Parameter `yaml:"variants"`
 }
 
-type PanosXpathVariableType string
-
-const (
-	PanosXpathVariableValue   PanosXpathVariableType = "value"
-	PanosXpathVariableVariant PanosXpathVariableType = "variant"
-)
-
-type PanosXpathVariableSpec struct {
-	Type  PanosXpathVariableType `yaml:"type"`
-	Xpath string                 `yaml:"xpath"`
-}
-
-type PanosXpathVariable struct {
-	Name string                 `yaml:"name"`
-	Spec PanosXpathVariableSpec `yaml:"spec"`
-}
-
-type PanosXpath struct {
-	Path      []string             `yaml:"path"`
-	Variables []PanosXpathVariable `yaml:"vars"`
-}
-
 type Object struct {
 	Name            string              `yaml:"-"`
 	DisplayName     string              `yaml:"name"`
-	PanosXpath      PanosXpath          `yaml:"panos_xpath"`
+	XpathSuffix     []string            `yaml:"xpath_suffix"`
 	TerraformConfig *TerraformConfig    `yaml:"terraform_provider_config"`
 	Version         string              `yaml:"version"`
 	GoSdkConfig     *GoSdkConfig        `yaml:"go_sdk_config"`

@@ -274,7 +274,6 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		"generateEntryXpath":        translate.GenerateEntryXpath,
 		"nestedSpecs":               translate.NestedSpecs,
 		"createGoSuffixFromVersion": translate.CreateGoSuffixFromVersionTmpl,
-		"paramNotSkipped":           translate.ParamNotSkippedTmpl,
 		"paramSupportedInVersion":   translate.ParamSupportedInVersionTmpl,
 		"xmlPathSuffixes":           translate.XmlPathSuffixes,
 		"underscore":                naming.Underscore,
