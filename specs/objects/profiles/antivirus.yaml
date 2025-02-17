@@ -292,7 +292,6 @@ spec:
         - 'yes'
         - 'no'
     spec:
-      default: 'no'
       values:
       - value: 'yes'
       - value: 'no'
@@ -421,6 +420,8 @@ spec:
     profiles:
     - xpath:
       - wfrt-hold-mode
+      min_version: 11.0.2
+      max_version: 11.0.3
     validators: []
     spec: {}
     description: Enable hold mode for WildFire real time signature lookup

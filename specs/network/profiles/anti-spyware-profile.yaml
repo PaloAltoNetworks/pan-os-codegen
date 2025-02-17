@@ -26,10 +26,43 @@ locations:
     - config
     - shared
     vars: []
-  description: Location in Shared Panorama
+  description: Panorama shared object
   devices:
   - panorama
   - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: ngfw_device
+      description: The NGFW device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The Virtual System name
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys name cannot be "shared". Use the "shared" location instead
+      type: entry
+  description: Located in a specific Virtual System
+  devices:
+  - ngfw
+  - panorama
   validators: []
   required: false
   read_only: false
@@ -441,7 +474,6 @@ spec:
         - 'yes'
         - 'no'
     spec:
-      default: 'no'
       values:
       - value: 'yes'
       - value: 'no'
