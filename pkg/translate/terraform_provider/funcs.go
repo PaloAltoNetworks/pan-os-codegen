@@ -1538,6 +1538,8 @@ func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp pro
 		} else {
 			packageName = "rsschema"
 		}
+	case properties.SchemaEphemeralResource:
+		packageName = "ephschema"
 	case properties.SchemaCommon, properties.SchemaProvider:
 		panic("unreachable")
 	}
@@ -1552,7 +1554,7 @@ func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp pro
 	switch schemaTyp {
 	case properties.SchemaDataSource:
 		structName = names.DataSourceStructName
-	case properties.SchemaResource:
+	case properties.SchemaResource, properties.SchemaEphemeralResource:
 		structName = names.ResourceStructName
 	case properties.SchemaCommon, properties.SchemaProvider:
 		panic("unreachable")
@@ -2282,7 +2284,7 @@ func createStructSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 
 	var structName string
 	switch schemaTyp {
-	case properties.SchemaResource:
+	case properties.SchemaResource, properties.SchemaEphemeralResource:
 		structName = names.ResourceStructName
 	case properties.SchemaDataSource:
 		structName = names.DataSourceStructName
@@ -2338,7 +2340,7 @@ func createStructSpecForEntryListModel(resourceTyp properties.ResourceType, sche
 
 	var structName string
 	switch schemaTyp {
-	case properties.SchemaResource:
+	case properties.SchemaResource, properties.SchemaEphemeralResource:
 		structName = names.ResourceStructName
 	case properties.SchemaDataSource:
 		structName = names.DataSourceStructName
@@ -2397,7 +2399,7 @@ func createStructSpecForEntryModel(resourceTyp properties.ResourceType, schemaTy
 	switch schemaTyp {
 	case properties.SchemaDataSource:
 		structName = names.DataSourceStructName
-	case properties.SchemaResource:
+	case properties.SchemaResource, properties.SchemaEphemeralResource:
 		structName = names.ResourceStructName
 	case properties.SchemaCommon, properties.SchemaProvider:
 		panic("unreachable")
