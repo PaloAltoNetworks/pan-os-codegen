@@ -24,7 +24,7 @@ locations:
     - config
     - shared
     vars: []
-  description: Location in Shared Panorama
+  description: Panorama shared object
   devices:
   - panorama
   - ngfw
@@ -115,7 +115,6 @@ spec:
         - 'yes'
         - 'no'
     spec:
-      default: 'no'
       values:
       - value: 'yes'
       - value: 'no'

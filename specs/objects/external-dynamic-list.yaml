@@ -16,7 +16,7 @@ go_sdk_config:
   - objects
   - extdynlist
 xpath_suffix:
-- address
+- external-list
 locations:
 - name: shared
   xpath:
@@ -24,7 +24,7 @@ locations:
     - config
     - shared
     vars: []
-  description: Location in Shared Panorama
+  description: Panorama shared object
   devices:
   - panorama
   - ngfw
@@ -82,7 +82,6 @@ spec:
         - 'yes'
         - 'no'
     spec:
-      default: 'no'
       values:
       - value: 'yes'
       - value: 'no'
@@ -125,6 +124,8 @@ spec:
                 spec: {}
                 description: ''
                 required: false
+                hashing:
+                  type: solo
               - name: username
                 type: string
                 profiles:
@@ -379,6 +380,8 @@ spec:
                 spec: {}
                 description: ''
                 required: false
+                hashing:
+                  type: solo
               - name: username
                 type: string
                 profiles:
@@ -624,6 +627,8 @@ spec:
                 spec: {}
                 description: ''
                 required: false
+                hashing:
+                  type: solo
               - name: username
                 type: string
                 profiles:
@@ -869,6 +874,8 @@ spec:
                 spec: {}
                 description: ''
                 required: false
+                hashing:
+                  type: solo
               - name: username
                 type: string
                 profiles:
@@ -1206,6 +1213,8 @@ spec:
                 spec: {}
                 description: ''
                 required: false
+                hashing:
+                  type: solo
               - name: username
                 type: string
                 profiles:

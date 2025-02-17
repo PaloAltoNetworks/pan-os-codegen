@@ -6,372 +6,372 @@ terraform_provider_config:
   resource_type: entry
   resource_variants: []
   suffix: ipsec_crypto_profile
-  plural_suffix: ""
-  plural_name: ""
-  plural_description: ""
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
 go_sdk_config:
   skip: false
   package:
-    - objects
-    - profiles
-    - ipseccrypto
+  - objects
+  - profiles
+  - ipseccrypto
 xpath_suffix:
-  - network
-  - ike
-  - crypto-profiles
-  - ipsec-crypto-profiles
+- network
+- ike
+- crypto-profiles
+- ipsec-crypto-profiles
 locations:
-  - name: ngfw
-    xpath:
-      path:
-        - config
-        - devices
-        - $ngfw_device
-      vars:
-        - name: ngfw_device
-          description: The NGFW device
-          required: false
-          default: localhost.localdomain
-          validators: []
-          type: entry
-    description: Located in a specific NGFW device
-    devices:
-      - ngfw
-    validators: []
-    required: false
-    read_only: false
-  - name: template
-    xpath:
-      path:
-        - config
-        - devices
-        - $panorama_device
-        - template
-        - $template
-        - config
-        - devices
-        - $ngfw_device
-      vars:
-        - name: panorama_device
-          description: Specific Panorama device
-          required: false
-          default: localhost.localdomain
-          validators: []
-          type: entry
-        - name: template
-          description: Specific Panorama template
-          required: true
-          validators: []
-          type: entry
-        - name: ngfw_device
-          description: The NGFW device
-          required: false
-          default: localhost.localdomain
-          validators: []
-          type: entry
-    description: Located in a specific template
-    devices:
-      - panorama
-    validators: []
-    required: false
-    read_only: false
-  - name: template-stack
-    xpath:
-      path:
-        - config
-        - devices
-        - $panorama_device
-        - template-stack
-        - $template_stack
-        - config
-        - devices
-        - $ngfw_device
-      vars:
-        - name: panorama_device
-          description: Specific Panorama device
-          required: false
-          default: localhost.localdomain
-          validators: []
-          type: entry
-        - name: template_stack
-          description: Specific Panorama template stack
-          required: true
-          validators: []
-          type: entry
-        - name: ngfw_device
-          description: The NGFW device
-          required: false
-          default: localhost.localdomain
-          validators: []
-          type: entry
-    description: Located in a specific template stack
-    devices:
-      - panorama
-    validators: []
-    required: false
-    read_only: false
+- name: ngfw
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific NGFW device
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
 entries:
-  - name: name
-    description: ""
-    validators: []
+- name: name
+  description: ''
+  validators: []
 imports: []
 spec:
   params:
-    - name: dh-group
-      type: enum
-      profiles:
+  - name: dh-group
+    type: enum
+    profiles:
+    - xpath:
+      - dh-group
+    validators:
+    - type: values
+      spec:
+        values:
+        - no-pfs
+        - group1
+        - group2
+        - group5
+        - group14
+        - group15
+        - group16
+        - group19
+        - group20
+        - group21
+    spec:
+      default: group2
+      values:
+      - value: no-pfs
+      - value: group1
+      - value: group2
+      - value: group5
+      - value: group14
+      - value: group15
+      - value: group16
+      - value: group19
+      - value: group20
+      - value: group21
+    description: phase-2 DH group (PFS DH group)
+    required: false
+  - name: lifesize
+    type: object
+    profiles:
+    - xpath:
+      - lifesize
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: gb
+        type: int64
+        profiles:
         - xpath:
-            - dh-group
-      validators:
+          - gb
+        validators:
+        - type: length
+          spec:
+            min: 1
+            max: 65535
+        spec: {}
+        description: specify lifesize in gigabytes(GB)
+        required: false
+      - name: kb
+        type: int64
+        profiles:
+        - xpath:
+          - kb
+        validators:
+        - type: length
+          spec:
+            min: 1
+            max: 65535
+        spec: {}
+        description: specify lifesize in kilobytes(KB)
+        required: false
+      - name: mb
+        type: int64
+        profiles:
+        - xpath:
+          - mb
+        validators:
+        - type: length
+          spec:
+            min: 1
+            max: 65535
+        spec: {}
+        description: specify lifesize in megabytes(MB)
+        required: false
+      - name: tb
+        type: int64
+        profiles:
+        - xpath:
+          - tb
+        validators:
+        - type: length
+          spec:
+            min: 1
+            max: 65535
+        spec: {}
+        description: specify lifesize in terabytes(TB)
+        required: false
+    description: IPSec SA lifesize
+    required: false
+  - name: lifetime
+    type: object
+    profiles:
+    - xpath:
+      - lifetime
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: days
+        type: int64
+        profiles:
+        - xpath:
+          - days
+        validators:
+        - type: length
+          spec:
+            min: 1
+            max: 365
+        spec: {}
+        description: specify lifetime in days
+        required: false
+      - name: hours
+        type: int64
+        profiles:
+        - xpath:
+          - hours
+        validators:
+        - type: length
+          spec:
+            min: 1
+            max: 65535
+        spec: {}
+        description: specify lifetime in hours
+        required: false
+      - name: minutes
+        type: int64
+        profiles:
+        - xpath:
+          - minutes
+        validators:
+        - type: length
+          spec:
+            min: 3
+            max: 65535
+        spec: {}
+        description: specify lifetime in minutes
+        required: false
+      - name: seconds
+        type: int64
+        profiles:
+        - xpath:
+          - seconds
+        validators:
+        - type: length
+          spec:
+            min: 180
+            max: 65535
+        spec: {}
+        description: specify lifetime in seconds
+        required: false
+    description: IPSec SA lifetime
+    required: false
+  variants:
+  - name: ah
+    type: object
+    profiles:
+    - xpath:
+      - ah
+    validators: []
+    spec:
+      params:
+      - name: authentication
+        type: list
+        profiles:
+        - xpath:
+          - authentication
+          type: member
+        validators:
         - type: values
           spec:
             values:
-              - no-pfs
-              - group1
-              - group2
-              - group5
-              - group14
-              - group15
-              - group16
-              - group19
-              - group20
-              - group21
-      spec:
-        default: group2
-        values:
-          - value: no-pfs
-          - value: group1
-          - value: group2
-          - value: group5
-          - value: group14
-          - value: group15
-          - value: group16
-          - value: group19
-          - value: group20
-          - value: group21
-      description: phase-2 DH group (PFS DH group)
-      required: false
-    - name: lifesize
-      type: object
-      profiles:
-        - xpath:
-            - lifesize
-      validators: []
-      spec:
-        params: []
-        variants:
-          - name: gb
-            type: int64
-            profiles:
-              - xpath:
-                  - gb
-            validators:
-              - type: length
-                spec:
-                  min: 1
-                  max: 65535
-            spec: {}
-            description: specify lifesize in gigabytes(GB)
-            required: false
-          - name: kb
-            type: int64
-            profiles:
-              - xpath:
-                  - kb
-            validators:
-              - type: length
-                spec:
-                  min: 1
-                  max: 65535
-            spec: {}
-            description: specify lifesize in kilobytes(KB)
-            required: false
-          - name: mb
-            type: int64
-            profiles:
-              - xpath:
-                  - mb
-            validators:
-              - type: length
-                spec:
-                  min: 1
-                  max: 65535
-            spec: {}
-            description: specify lifesize in megabytes(MB)
-            required: false
-          - name: tb
-            type: int64
-            profiles:
-              - xpath:
-                  - tb
-            validators:
-              - type: length
-                spec:
-                  min: 1
-                  max: 65535
-            spec: {}
-            description: specify lifesize in terabytes(TB)
-            required: false
-      description: IPSec SA lifesize
-      required: false
-    - name: lifetime
-      type: object
-      profiles:
-        - xpath:
-            - lifetime
-      validators: []
-      spec:
-        params: []
-        variants:
-          - name: days
-            type: int64
-            profiles:
-              - xpath:
-                  - days
-            validators:
-              - type: length
-                spec:
-                  min: 1
-                  max: 365
-            spec: {}
-            description: specify lifetime in days
-            required: false
-          - name: hours
-            type: int64
-            profiles:
-              - xpath:
-                  - hours
-            validators:
-              - type: length
-                spec:
-                  min: 1
-                  max: 65535
-            spec: {}
-            description: specify lifetime in hours
-            required: false
-          - name: minutes
-            type: int64
-            profiles:
-              - xpath:
-                  - minutes
-            validators:
-              - type: length
-                spec:
-                  min: 3
-                  max: 65535
-            spec: {}
-            description: specify lifetime in minutes
-            required: false
-          - name: seconds
-            type: int64
-            profiles:
-              - xpath:
-                  - seconds
-            validators:
-              - type: length
-                spec:
-                  min: 180
-                  max: 65535
-            spec: {}
-            description: specify lifetime in seconds
-            required: false
-      description: IPSec SA lifetime
-      required: false
-  variants:
-    - name: ah
-      type: object
-      profiles:
-        - xpath:
-            - ah
-      validators: []
-      spec:
-        params:
-          - name: authentication
-            type: list
-            profiles:
-              - xpath:
-                  - authentication
-                type: member
-            validators:
-              - type: values
-                spec:
-                  values:
-                    - md5
-                    - sha1
-                    - sha256
-                    - sha384
-                    - sha512
+            - md5
+            - sha1
+            - sha256
+            - sha384
+            - sha512
+        spec:
+          type: enum
+          items:
+            type: enum
             spec:
-              type: enum
-              items:
-                type: enum
-                spec:
-                  values:
-                    - value: md5
-                    - value: sha1
-                    - value: sha256
-                    - value: sha384
-                    - value: sha512
-            description: ""
-            required: false
-        variants: []
-      description: AH only
-      required: false
-    - name: esp
-      type: object
-      profiles:
+              values:
+              - value: md5
+              - value: sha1
+              - value: sha256
+              - value: sha384
+              - value: sha512
+        description: ''
+        required: false
+      variants: []
+    description: AH only
+    required: false
+  - name: esp
+    type: object
+    profiles:
+    - xpath:
+      - esp
+    validators: []
+    spec:
+      params:
+      - name: authentication
+        type: list
+        profiles:
         - xpath:
-            - esp
-      validators: []
-      spec:
-        params:
-          - name: authentication
-            type: list
-            profiles:
-              - xpath:
-                  - authentication
-                type: member
-            validators: []
+          - authentication
+          type: member
+        validators: []
+        spec:
+          type: string
+          items:
+            type: string
+        description: ''
+        required: false
+      - name: encryption
+        type: list
+        profiles:
+        - xpath:
+          - encryption
+          type: member
+        validators:
+        - type: values
+          spec:
+            values:
+            - 3des
+            - aes-128-cbc
+            - aes-192-cbc
+            - aes-256-cbc
+            - aes-128-ccm
+            - aes-128-gcm
+            - aes-256-gcm
+            - 'null'
+        spec:
+          type: enum
+          items:
+            type: enum
             spec:
-              type: string
-              items:
-                type: string
-            description: ""
-            required: false
-          - name: encryption
-            type: list
-            profiles:
-              - xpath:
-                  - encryption
-                type: member
-            validators:
-              - type: values
-                spec:
-                  values:
-                    - 3des
-                    - aes-128-cbc
-                    - aes-192-cbc
-                    - aes-256-cbc
-                    - aes-128-ccm
-                    - aes-128-gcm
-                    - aes-256-gcm
-                    - "null"
-            spec:
-              type: enum
-              items:
-                type: enum
-                spec:
-                  values:
-                    - value: 3des
-                    - value: aes-128-cbc
-                    - value: aes-192-cbc
-                    - value: aes-256-cbc
-                    - value: aes-128-ccm
-                    - value: aes-128-gcm
-                    - value: aes-256-gcm
-                    - value: "null"
-            description: ""
-            required: false
-        variants: []
-      description: ESP options
-      required: false
+              values:
+              - value: 3des
+              - value: aes-128-cbc
+              - value: aes-192-cbc
+              - value: aes-256-cbc
+              - value: aes-128-ccm
+              - value: aes-128-gcm
+              - value: aes-256-gcm
+              - value: 'null'
+        description: ''
+        required: false
+      variants: []
+    description: ESP options
+    required: false
