@@ -281,7 +281,7 @@ func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Conte
     {{- else if eq .Type "" }}
       {{- $pangoType := printf "%sObject" $spec.PangoType }}
 	{{- template "terraformNestedElementsAssign" Map "Parameter" . "Spec" $spec }}
-    {{- else if eq .Type "list" }}
+    {{- else if or (eq .Type "list") (eq .Type "set") }}
       {{- $pangoType := printf "%s%s" $spec.PangoType .TerraformName.CamelCase }}
 	{{- template "terraformListElementsAs" Map "Parameter" . "Spec" $spec }}
     {{- else }}
@@ -295,7 +295,7 @@ func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Conte
     {{- else if eq .Type "" }}
       {{- $pangoType := printf "%sObject" $spec.PangoType }}
 	{{- template "terraformNestedElementsAssign" Map "Parameter" . "Spec" $spec }}
-    {{- else if eq .Type "list" }}
+    {{- else if or (eq .Type "list") (eq .Type "set") }}
 	{{- template "terraformListElementsAs" Map "Parameter" . "Spec" $spec }}
     {{- else }}
         {{- template "renderSimpleAssignment" . }}
@@ -313,7 +313,7 @@ func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Conte
 	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_pango_entries
     {{- else if eq .Type "" }}
 	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_entry
-    {{- else if eq .Type "list" }}
+    {{- else if or (eq .Type "list") (eq .Type "set") }}
 	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_pango_entries
     {{- else }}
 	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_value
@@ -325,7 +325,7 @@ func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Conte
 	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_pango_entries
     {{- else if eq .Type "" }}
 	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_entry
-    {{- else if eq .Type "list" }}
+    {{- else if or (eq .Type "list") (eq .Type "set") }}
 	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_pango_entries
     {{- else }}
 	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_value
@@ -341,7 +341,7 @@ const copyFromPangoTmpl = `
 {{- define "renderFromPangoToTfParameter" }}
   {{- if eq .Type "" }}
 	// TODO: Missing implementation
-  {{- else if eq .Type "list" }}
+  {{- else if or (eq .Type "list") (eq .Type "set") }}
 	{{ .TerraformName.CamelCase }}: {{ .TerraformName.LowerCamelCase }}_list,
   {{- end }}
 {{- end }}
@@ -355,17 +355,28 @@ var {{ .TerraformName.LowerCamelCase }}_list types.List
 }
 {{- end }}
 
+{{- define "renderSetValueSimple" }}
+var {{ .TerraformName.LowerCamelCase }}_list types.Set
+{
+	schema := rsschema.{{ .Type | PascalCase }}Attribute{}
+	{{ .TerraformName.LowerCamelCase }}_list, {{ .TerraformName.LowerCamelCase }}_diags := types.ValueFrom(ctx, obj.{{ .PangoName.CamelCase }}, schema.GetType())
+	diags.Append({{ .TerraformName.LowerCamelCase }}_diags...)
+}
+{{- end }}
+
 {{- define "renderNestedValues" }}
   {{- range .Spec.Params }}
     {{- $terraformType := printf "%s%s" $.TerraformType (.TerraformName.CamelCase) }}
     {{- if eq .Type "" }}
 	// TODO {{ .TerraformName.CamelCase }} {{ .Type }}
-    {{- else if (and (eq .Type "list") (eq .ItemsType "entry")) }}
+    {{- else if (and (or (eq .Type "list") (eq .Type "set")) (eq .ItemsType "entry")) }}
 	{{- template "renderListValueEntry" Map "Name" .TerraformName "Type" $terraformType }}
-    {{- else if (and (eq .Type "list") (eq .ItemsType "member")) }}
+    {{- else if (and (or (eq .Type "list") (eq .Type "set")) (eq .ItemsType "member")) }}
 	// TODO: {{ .TerraformName.CamelCase }} {{ .ItemsType }}
     {{- else if (eq .Type "list") }}
 	{{- template "renderListValueSimple" Map "Name" .TerraformName "Type" .ItemsType }}
+    {{- else if (eq .Type "set") }}
+	{{- template "renderSetValueSimple" Map "Name" .TerraformName "Type" .ItemsType }}
     {{- else }}
 	// TODO: {{ .TerraformName.CamelCase }} {{ .Type }}
     {{- end }}
@@ -396,7 +407,7 @@ var {{ .TerraformName.LowerCamelCase }}_list types.List
     {{- $pangoEntries := printf "%s_pango_entries" .TerraformName.LowerCamelCase }}
     {{- $tfEntries := printf "%s_tf_entries" .TerraformName.LowerCamelCase }}
     {{- if eq .ItemsType "entry" }}
-	var {{ $terraformList }} types.List
+	var {{ $terraformList }} types.{{ $.ListOrSet }}
 	{
 		var {{ $tfEntries }} []{{ $terraformType }}
 		for _, elt := range obj.{{ .PangoName.CamelCase }} {
@@ -407,16 +418,30 @@ var {{ .TerraformName.LowerCamelCase }}_list types.List
 		}
 		var list_diags diag.Diagnostics
 		schemaType := o.getTypeFor("{{ .TerraformName.Underscore }}")
-		{{ $terraformList }}, list_diags = types.ListValueFrom(ctx, schemaType, {{ $tfEntries }})
+		{{ $terraformList }}, list_diags = types.{{ $.ListOrSet }}ValueFrom(ctx, schemaType, {{ $tfEntries }})
 		diags.Append(list_diags...)
 	}
     {{- else }}
-		var {{ .TerraformName.LowerCamelCase }}_list types.List
+		var {{ .TerraformName.LowerCamelCase }}_list types.{{ $.ListOrSet }}
 		{
 			var list_diags diag.Diagnostics
-			{{ .TerraformName.LowerCamelCase }}_list, list_diags = types.ListValueFrom(ctx, types.{{ .ItemsType | PascalCase }}Type, obj.{{ .PangoName.CamelCase }})
+			{{ .TerraformName.LowerCamelCase }}_list, list_diags = types.{{ $.ListOrSet }}ValueFrom(ctx, types.{{ .ItemsType | PascalCase }}Type, obj.{{ .PangoName.CamelCase }})
 			diags.Append(list_diags...)
 		}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- define "terraformSetElementsAs" }}
+  {{- range .Params }}
+    {{- if eq .Type "set" }}
+      {{- template "terraformListElementsAsParam" Map "Spec" $ "Parameter" . "ListOrSet" "Set" }}
+    {{- end }}
+  {{- end }}
+
+  {{- range .OneOf }}
+    {{- if eq .Type "set" }}
+      {{- template "terraformListElementsAsParam" Map "Spec" $ "Parameter" . "ListOrSet" "Set" }}
     {{- end }}
   {{- end }}
 {{- end }}
@@ -424,13 +449,13 @@ var {{ .TerraformName.LowerCamelCase }}_list types.List
 {{- define "terraformListElementsAs" }}
   {{- range .Params }}
     {{- if eq .Type "list" }}
-      {{- template "terraformListElementsAsParam" Map "Spec" $ "Parameter" . }}
+      {{- template "terraformListElementsAsParam" Map "Spec" $ "Parameter" . "ListOrSet" "List" }}
     {{- end }}
   {{- end }}
 
   {{- range .OneOf }}
     {{- if eq .Type "list" }}
-      {{- template "terraformListElementsAsParam" Map "Spec" $ "Parameter" . }}
+      {{- template "terraformListElementsAsParam" Map "Spec" $ "Parameter" . "ListOrSet" "List" }}
     {{- end }}
   {{- end }}
 {{- end }}
@@ -484,7 +509,7 @@ var {{ .TerraformName.LowerCamelCase }}_list types.List
 {{- define "terraformCreateSimpleValues" }}
   {{- range .Params }}
     {{- $terraformType := printf "types.%s" (.Type | PascalCase) }}
-    {{- if (not (or (eq .Type "") (eq .Type "list") (eq .ComplexType "string-as-member"))) }}
+    {{- if (not (or (eq .Type "") (eq .Type "list") (eq .Type "set") (eq .ComplexType "string-as-member"))) }}
 	var {{ .TerraformName.LowerCamelCase }}_value {{ $terraformType }}
 	if obj.{{ .PangoName.CamelCase }} != nil {
 {{- if .Encryption }}
@@ -501,7 +526,7 @@ var {{ .TerraformName.LowerCamelCase }}_list types.List
 
   {{- range .OneOf }}
     {{- $terraformType := printf "types.%s" (.Type | PascalCase) }}
-    {{- if (not (or (eq .Type "") (eq .Type "list") (eq .ComplexType "string-as-member"))) }}
+    {{- if (not (or (eq .Type "") (eq .Type "list") (eq .Type "set") (eq .ComplexType "string-as-member"))) }}
 	var {{ .TerraformName.LowerCamelCase }}_value {{ $terraformType }}
 	if obj.{{ .PangoName.CamelCase }} != nil {
 		{{ .TerraformName.LowerCamelCase }}_value = types.{{ .Type | PascalCase }}Value(*obj.{{ .PangoName.CamelCase }})
@@ -516,7 +541,7 @@ var {{ .TerraformName.LowerCamelCase }}_list types.List
 	o.{{ .TerraformName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_value
   {{- else if eq .Type "" }}
 	o.{{ .TerraformName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_object
-  {{- else if eq .Type "list" }}
+  {{- else if or (eq .Type "list") (eq .Type "set") }}
 	o.{{ .TerraformName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_list
   {{- else }}
 	o.{{ .TerraformName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_value
@@ -530,6 +555,7 @@ var {{ .TerraformName.LowerCamelCase }}_list types.List
 func (o *{{ $terraformType }}) CopyFromPango(ctx context.Context, obj *{{ .PangoReturnType }}, encrypted *map[string]types.String) diag.Diagnostics {
 	var diags diag.Diagnostics
 
+  {{- template "terraformSetElementsAs" $spec }}
   {{- template "terraformListElementsAs" $spec }}
   {{- template "terraformCreateEntryAssignment" $spec }}
   {{- template "terraformCreateStringAsMemberValues" $spec }}
@@ -1066,10 +1092,10 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 	}
 
 	var returnType string
-	switch param.Type {
+	switch param.FinalType() {
 	case "":
 		returnType = "SingleNestedAttribute"
-	case "list":
+	case "list", "set":
 		switch param.Items.Type {
 		case "entry":
 			returnType = "NestedAttributeObject"
@@ -1235,7 +1261,7 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 			}
 		}
 
-		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
+		if elt.Type == "" || ((elt.FinalType() == "list" || elt.FinalType() == "set") && elt.Items.Type == "entry") {
 			schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, manager, structName, packageName, elt, validators)...)
 		}
 	}
@@ -1245,7 +1271,7 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 			continue
 		}
 
-		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
+		if elt.Type == "" || ((elt.FinalType() == "list" || elt.FinalType() == "set") && elt.Items.Type == "entry") {
 			validatorImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework-validators/%svalidator", "object")
 			manager.AddHashicorpImport(validatorImport, "")
 			validators := &validatorCtx{
@@ -1267,7 +1293,7 @@ func createSchemaAttributeForParameter(schemaTyp properties.SchemaType, manager 
 	case "string-as-member":
 		schemaType = "StringAttribute"
 	default:
-		switch param.Type {
+		switch param.FinalType() {
 		case "":
 			schemaType = "SingleNestedAttribute"
 		case "list":
@@ -1279,6 +1305,17 @@ func createSchemaAttributeForParameter(schemaTyp properties.SchemaType, manager 
 				elementType = "types.StringType"
 			default:
 				schemaType = "ListAttribute"
+				elementType = fmt.Sprintf("types.%sType", pascalCase(param.Items.Type))
+			}
+		case "set":
+			switch param.Items.Type {
+			case "entry":
+				schemaType = "SetNestedAttribute"
+			case "member":
+				schemaType = "SetAttribute"
+				elementType = "types.StringType"
+			default:
+				schemaType = "SetAttribute"
 				elementType = fmt.Sprintf("types.%sType", pascalCase(param.Items.Type))
 			}
 		default:
@@ -1819,7 +1856,7 @@ const renderSchemaTemplate = `
 
 {{- define "renderSchemaAttribute" }}
   {{- with .Attribute }}
-    {{ if eq .SchemaType "ListAttribute" }}
+    {{ if or (eq .SchemaType "ListAttribute") (eq .SchemaType "SetAttribute") }}
       {{- template "renderSchemaListAttribute" . }}
     {{- else if eq .SchemaType "MapAttribute" }}
       {{- template "renderSchemaMapAttribute" . }}
@@ -2171,12 +2208,20 @@ func terraformTypeForProperty(structPrefix string, prop *properties.SpecParam) s
 		return "types.String"
 	}
 
-	if prop.Type == "list" && prop.Items.Type == "entry" {
+	if prop.FinalType() == "list" && prop.Items.Type == "entry" {
 		return "types.List"
 	}
 
-	if prop.Type == "list" {
+	if prop.FinalType() == "set" && prop.Items.Type == "entry" {
+		return "types.Set"
+	}
+
+	if prop.FinalType() == "list" {
 		return "types.List"
+	}
+
+	if prop.FinalType() == "set" {
+		return "types.Set"
 	}
 
 	return fmt.Sprintf("types.%s", pascalCase(prop.Type))

@@ -441,7 +441,11 @@ type entryWithState struct {
 }
 
 var elements map[string]{{ $resourceTFStructName }}
-state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
+resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
 entries := make([]*{{ $resourceSDKStructName }}, len(elements))
 idx := 0
 for name, elt := range elements {
@@ -519,7 +523,11 @@ ev := make(map[string]types.String, len(state.EncryptedValues.Elements()))
 
 
 var elements []{{ $resourceTFStructName }}
-state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
+resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
 entries := make([]*{{ $resourceSDKStructName }}, len(elements))
 for idx, elt := range elements {
 	var entry *{{ $resourceSDKStructName }}
@@ -828,8 +836,8 @@ if resp.Diagnostics.HasError() {
 {{- end }}
 
 var elements []{{ $resourceTFStructName }}
-state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
-if len(elements) == 0 {
+resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
+if resp.Diagnostics.HasError() || len(elements) == 0 {
 	return
 }
 
@@ -981,7 +989,11 @@ tflog.Info(ctx, "performing resource update", map[string]any{
 })
 
 var elements map[string]{{ $resourceTFStructName }}
-state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
+resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
 stateEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
 idx := 0
 for name, elt := range elements {
@@ -1006,7 +1018,11 @@ for _, elt := range existing {
 	existingEntriesByName[elt.Name] = elt
 }
 
-plan.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
+resp.Diagnostics.Append(plan.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
 planEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
 idx = 0
 for name, elt := range elements {
@@ -1070,7 +1086,10 @@ var location {{ .resourceSDKName }}.Location
 {{ RenderLocationsStateToPango "plan.Location" "location" }}
 
 var elements []{{ $resourceTFStructName }}
-state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
+resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
+if resp.Diagnostics.HasError() {
+	return
+}
 stateEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
 for idx, elt := range elements {
 	var entry *{{ $resourceSDKStructName }}
@@ -1101,7 +1120,11 @@ for _, elt := range existing {
 	existingEntriesByName[elt.Name] = elt
 }
 
-plan.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
+resp.Diagnostics.Append(plan.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
 planEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
 for idx, elt := range elements {
 	entry, _ := existingEntriesByName[elt.Name.ValueString()]
@@ -1241,10 +1264,16 @@ tflog.Info(ctx, "performing resource delete", map[string]any{
 
 {{- if .ResourceIsMap }}
 elements := make(map[string]{{ $resourceTFStructName }}, len(state.{{ .ListAttribute.CamelCase }}.Elements()))
-state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
+resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
+if resp.Diagnostics.HasError() {
+	return
+}
 {{- else }}
 var elements []{{ $resourceTFStructName }}
-state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
+resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
+if resp.Diagnostics.HasError() {
+	return
+}
 {{- end }}
 
 var location {{ .resourceSDKName }}.Location
