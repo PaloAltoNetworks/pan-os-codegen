@@ -1,0 +1,44 @@
+name: vm-auth-key
+terraform_provider_config:
+  skip_datasource: true
+  description: VM Auth Key
+  resource_type: custom
+  ephemeral: true
+  custom_functions:
+    Open: vmAuthKeyEphemeralResourceOpen
+  suffix: vm_auth_key
+go_sdk_config:
+  skip: true
+  package: ["vmauthkey"] # unused
+xpath_suffix: ["vmauthkey"] # unused
+locations: []
+entries: []
+imports: []
+version: 11.0.2
+spec:
+  params:
+    - name: lifetime
+      type: int64
+      profiles:
+        - xpath: ["lifetime"]
+      required: true
+      validators:
+        - type: range
+          spec:
+            min: 1
+            max: 8760
+    - name: vm_auth_key
+      type: string
+      profiles:
+        - xpath: ["authkey"]
+      codegen_overrides:
+        terraform:
+          sensitive: true
+          computed: true
+    - name: expiration-date
+      type: string
+      profiles:
+        - xpath: ["expiration-date"]
+      codegen_overrides:
+        terraform:
+          computed: true
