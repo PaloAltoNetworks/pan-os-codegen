@@ -28,7 +28,7 @@ locations:
     - config
     - shared
     vars: []
-  description: Location in Shared Panorama
+  description: Panorama shared object
   devices:
   - panorama
   - ngfw
@@ -988,6 +988,8 @@ spec:
         profiles:
         - xpath:
           - dhcp-client
+          min_version: 11.0.2
+          max_version: 11.0.3
         validators: []
         spec:
           params:
@@ -1496,6 +1498,8 @@ spec:
         profiles:
         - xpath:
           - inherited
+          min_version: 11.0.2
+          max_version: 11.0.3
         validators: []
         spec:
           params:
