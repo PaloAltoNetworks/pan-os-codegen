@@ -25,10 +25,20 @@ locations:
     - config
     - shared
     vars: []
-  description: Location in Shared Panorama
+  description: Panorama shared object
   devices:
   - panorama
   - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: panorama
+  xpath:
+    path:
+    - config
+    - panorama
+    vars: []
+  description: Located in a panorama.
   validators: []
   required: false
   read_only: false
@@ -41,8 +51,38 @@ locations:
     - template
     - $template
     - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template_vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
     - devices
     - $ngfw_device
+    - vsys
+    - $vsys
     vars:
     - name: panorama_device
       description: Specific Panorama device
@@ -61,9 +101,21 @@ locations:
       default: localhost.localdomain
       validators: []
       type: entry
-  description: Located in a specific template
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
   devices:
   - panorama
+  - ngfw
   validators: []
   required: false
   read_only: false
@@ -76,8 +128,7 @@ locations:
     - template-stack
     - $template_stack
     - config
-    - devices
-    - $ngfw_device
+    - shared
     vars:
     - name: panorama_device
       description: Specific Panorama device
@@ -86,7 +137,38 @@ locations:
       validators: []
       type: entry
     - name: template_stack
-      description: Specific Panorama template stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
       required: true
       validators: []
       type: entry
@@ -96,9 +178,21 @@ locations:
       default: localhost.localdomain
       validators: []
       type: entry
-  description: Located in a specific template stack
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
   devices:
   - panorama
+  - ngfw
   validators: []
   required: false
   read_only: false
