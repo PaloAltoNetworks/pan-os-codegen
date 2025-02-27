@@ -3344,6 +3344,8 @@ spec:
                     profiles:
                     - xpath:
                       - dhcp-syslog-server
+                      min_version: 11.0.2
+                      max_version: 11.0.3
                     validators:
                     - type: values
                       spec:
@@ -5204,6 +5206,8 @@ spec:
                     profiles:
                     - xpath:
                       - secure-web-gateway
+                      min_version: 11.0.2
+                      max_version: 11.0.3
                     validators:
                     - type: values
                       spec:
@@ -6451,6 +6455,8 @@ spec:
                     profiles:
                     - xpath:
                       - object-level-changes
+                      min_version: 11.0.2
+                      max_version: 11.0.3
                     validators:
                     - type: values
                       spec:
@@ -6974,6 +6980,8 @@ spec:
                     profiles:
                     - xpath:
                       - sdwan-interface-profiles
+                      min_version: 11.0.2
+                      max_version: 11.0.3
                     validators:
                     - type: values
                       spec:
@@ -9044,6 +9052,8 @@ spec:
                     profiles:
                     - xpath:
                       - dhcp-syslog-server
+                      min_version: 11.0.2
+                      max_version: 11.0.3
                     validators:
                     - type: values
                       spec:
@@ -11348,6 +11358,8 @@ spec:
                     profiles:
                     - xpath:
                       - object-level-changes
+                      min_version: 11.0.2
+                      max_version: 11.0.3
                     validators:
                     - type: values
                       spec:
