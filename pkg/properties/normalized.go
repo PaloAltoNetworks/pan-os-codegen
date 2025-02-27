@@ -235,7 +235,7 @@ func (o *SpecParam) ComplexType() string {
 	}
 
 	if terraformType != nil && o.Type == "list" && o.Items.Type == "string" {
-		return "string-as-member"
+		return *terraformType
 	}
 
 	return ""
