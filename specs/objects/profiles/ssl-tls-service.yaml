@@ -19,6 +19,19 @@ go_sdk_config:
 xpath_suffix:
 - ssl-tls-service-profile
 locations:
+- name: shared
+  xpath:
+    path:
+    - config
+    - shared
+    vars: []
+  description: Panorama shared object
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
 - name: panorama
   xpath:
     path:
