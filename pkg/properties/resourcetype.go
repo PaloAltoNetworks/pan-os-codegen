@@ -14,8 +14,9 @@ const (
 type SchemaType int
 
 const (
-	SchemaResource   SchemaType = iota
-	SchemaDataSource SchemaType = iota
-	SchemaCommon     SchemaType = iota
-	SchemaProvider   SchemaType = iota
+	SchemaResource          SchemaType = iota
+	SchemaEphemeralResource SchemaType = iota
+	SchemaDataSource        SchemaType = iota
+	SchemaCommon            SchemaType = iota
+	SchemaProvider          SchemaType = iota
 )

@@ -1,0 +1,51 @@
+name: API Key
+terraform_provider_config:
+  skip_datasource: true
+  description: API Key
+  resource_type: custom
+  ephemeral: true
+  custom_functions:
+    Open: apiKeyEphemeralResourceOpen
+    Close: apiKeyEphemeralResourceClose
+  suffix: api_key
+go_sdk_config:
+  skip: true
+  package: ["api_key"]
+xpath_suffix: ["api-key"]
+locations: []
+entries: []
+imports: []
+version: 11.0.2
+spec:
+  params:
+    - name: username
+      type: string
+      required: true
+      profiles:
+        - xpath: ["username"]
+      validators:
+        - type: length
+          spec:
+            min: 1
+            max: 63
+    - name: password
+      type: string
+      required: true
+      profiles:
+        - xpath: ["password"]
+      validators:
+        - type: length
+          spec:
+            min: 1
+            max: 63
+      codegen_overrides:
+        terraform:
+          sensitive: true
+    - name: api-key
+      type: string
+      profiles:
+        - xpath: ["api-key"]
+      codegen_overrides:
+        terraform:
+          sensitive: true
+          computed: true

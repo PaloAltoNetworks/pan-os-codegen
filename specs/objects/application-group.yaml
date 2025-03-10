@@ -1,23 +1,22 @@
-name: address
+name: application
 terraform_provider_config:
-  description: Address Object
+  description: Application Group
   skip_resource: false
   skip_datasource: false
   resource_type: entry
-  resource_variants:
-  - singular
-  - plural
-  suffix: address
-  plural_suffix: addresses
-  plural_name: addresses
+  resource_variants: []
+  suffix: application_group
+  plural_suffix: ''
+  plural_name: ''
   plural_description: ''
 go_sdk_config:
   skip: false
   package:
   - objects
-  - address
+  - application
+  - group
 xpath_suffix:
-- address
+- application-group
 locations:
 - name: shared
   xpath:
@@ -104,19 +103,6 @@ entries:
 imports: []
 spec:
   params:
-  - name: description
-    type: string
-    profiles:
-    - xpath:
-      - description
-    validators:
-    - type: length
-      spec:
-        min: 0
-        max: 1023
-    spec: {}
-    description: The description.
-    required: false
   - name: disable-override
     type: enum
     profiles:
@@ -135,60 +121,17 @@ spec:
       - value: 'no'
     description: disable object override in child device groups
     required: false
-  - name: tag
+  - name: members
     type: list
     profiles:
     - xpath:
-      - tag
+      - members
       type: member
     validators: []
     spec:
       type: string
       items:
         type: string
-    description: The administrative tags.
+    description: ''
     required: false
-    codegen_overrides:
-      terraform:
-        name: tags
-  variants:
-  - name: fqdn
-    type: string
-    profiles:
-    - xpath:
-      - fqdn
-    validators:
-    - type: length
-      spec:
-        min: 1
-        max: 255
-    spec: {}
-    description: The FQDN value.
-    required: false
-  - name: ip-netmask
-    type: string
-    profiles:
-    - xpath:
-      - ip-netmask
-    validators: []
-    spec: {}
-    description: The IP netmask value.
-    required: false
-  - name: ip-range
-    type: string
-    profiles:
-    - xpath:
-      - ip-range
-    validators: []
-    spec: {}
-    description: The IP range value.
-    required: false
-  - name: ip-wildcard
-    type: string
-    profiles:
-    - xpath:
-      - ip-wildcard
-    validators: []
-    spec: {}
-    description: The IP wildcard value.
-    required: false
+  variants: []

@@ -1,0 +1,422 @@
+name: Certificate profile
+terraform_provider_config:
+  description: This resource allows you to add/update/delete certificate profiles.
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants: []
+  suffix: certificate_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - device
+  - profile
+  - certificate
+xpath_suffix: []
+locations:
+- name: panorama
+  xpath:
+    path:
+    - config
+    - panorama
+    vars: []
+  description: Located in a panorama.
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: The panorama device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: The template.
+      required: true
+      validators: []
+      type: entry
+  description: Located in a specific template.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template_vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: The panorama device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: The template.
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared". Use the "shared" path instead.
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template_stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: The panorama device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack.
+      required: true
+      validators: []
+      type: entry
+  description: Located in a specific template stack.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template_stack_vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: The panorama device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack.
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared". Use the "shared" path instead.
+      type: entry
+  description: Located in a specific template stack, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: shared
+  xpath:
+    path:
+    - config
+    - shared
+    vars: []
+  description: Located in shared.
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: certificate
+    type: list
+    profiles:
+    - xpath:
+      - CA
+      - entry
+      type: entry
+    validators: []
+    spec:
+      type: object
+      items:
+        type: object
+        spec:
+          params:
+          - name: default-ocsp-url
+            type: string
+            profiles:
+            - xpath:
+              - default-ocsp-url
+            validators:
+            - type: length
+              spec:
+                min: 1
+                max: 255
+            spec: {}
+            description: Default URL for ocsp verification.
+            required: false
+          - name: ocsp-verify-certificate
+            type: string
+            profiles:
+            - xpath:
+              - ocsp-verify-cert
+            validators:
+            - type: length
+              spec:
+                max: 63
+            spec: {}
+            description: Certificate to verify signature in OCSP response.
+            required: false
+          - name: template-name
+            type: string
+            profiles:
+            - xpath:
+              - template-name
+            validators:
+            - type: length
+              spec:
+                min: 1
+                max: 255
+            spec: {}
+            description: Template Name/OID that was used to sign the certificate.
+            required: false
+          variants: []
+    description: CA Certificate to assign to the profile.
+    required: false
+  - name: block-expired-certificate
+    type: bool
+    profiles:
+    - xpath:
+      - block-expired-cert
+    validators: []
+    spec: {}
+    description: Whether to block a session if certificate status is expired.
+    required: false
+  - name: block-timeout-certificate
+    type: bool
+    profiles:
+    - xpath:
+      - block-timeout-cert
+    validators: []
+    spec: {}
+    description: Whether to block a session if cert. status can't be retrieved within timeout.
+    required: false
+  - name: block-unauthenticated-certificate
+    type: bool
+    profiles:
+    - xpath:
+      - block-unauthenticated-cert
+    validators: []
+    spec: {}
+    description: Whether to block session if the certificate was not issued to the authenticating device.
+    required: false
+  - name: block-unknown-certificate
+    type: bool
+    profiles:
+    - xpath:
+      - block-unknown-cert
+    validators: []
+    spec: {}
+    description: Whether to block a session if cert. status is unknown.
+    required: false
+  - name: certificate-status-timeout
+    type: int64
+    profiles:
+    - xpath:
+      - cert-status-timeout
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 60
+    spec:
+      default: 5
+    description: Certificate status query timeout value in seconds.
+    required: false
+  - name: crl-receive-timeout
+    type: int64
+    profiles:
+    - xpath:
+      - crl-receive-timeout
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 60
+    spec:
+      default: 5
+    description: CRL receive timeout value in seconds.
+    required: false
+  - name: domain
+    type: string
+    profiles:
+    - xpath:
+      - domain
+    validators:
+    - type: length
+      spec:
+        max: 63
+    spec: {}
+    description: NetBIOS domain so the PAN-OS software can map users through User-ID.
+    required: false
+  - name: ocsp-exclude-nonce
+    type: bool
+    profiles:
+    - xpath:
+      - ocsp-exclude-nonce
+    validators: []
+    spec: {}
+    description: Whether to exclude nonce extension for OCSP requests.
+    required: false
+  - name: ocsp-receive-timeout
+    type: int64
+    profiles:
+    - xpath:
+      - ocsp-receive-timeout
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 60
+    spec:
+      default: 5
+    description: OCSP receive timeout value in seconds.
+    required: false
+  - name: use-crl
+    type: bool
+    profiles:
+    - xpath:
+      - use-crl
+    validators: []
+    spec: {}
+    description: Enable use of CRL to verify the revocation status of certificates.
+    required: false
+  - name: use-ocsp
+    type: bool
+    profiles:
+    - xpath:
+      - use-ocsp
+    validators: []
+    spec: {}
+    description: Enable use of OCSP to verify the revocation status of certificates.
+    required: false
+  - name: username-field
+    type: object
+    profiles:
+    - xpath:
+      - username-field
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: subject
+        type: enum
+        profiles:
+        - xpath:
+          - subject
+        validators:
+        - type: values
+          spec:
+            values:
+            - common-name
+        spec:
+          values:
+          - value: common-name
+        description: The common name.
+        required: false
+      - name: subject-alt
+        type: enum
+        profiles:
+        - xpath:
+          - subject-alt
+        validators:
+        - type: values
+          spec:
+            values:
+            - email
+            - principal-name
+        spec:
+          values:
+          - value: email
+          - value: principal-name
+        description: The Email or Principal Name.
+        required: false
+    description: The certificate field you select as the username to match it to the IP address for the User-ID service.
+    required: false
+  variants: []
