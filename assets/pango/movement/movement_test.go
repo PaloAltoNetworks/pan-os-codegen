@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"movements/movement"
+	"github.com/PaloAltoNetworks/pango/movement"
 )
 
 var _ = fmt.Printf
