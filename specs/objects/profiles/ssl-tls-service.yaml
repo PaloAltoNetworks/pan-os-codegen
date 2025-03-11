@@ -1,0 +1,383 @@
+name: ssl-tls-service-profile
+terraform_provider_config:
+  description: SSL/TLS Service Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: ssl_tls_service_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - device
+  - profile
+  - ssltls
+xpath_suffix:
+- ssl-tls-service-profile
+locations:
+- name: shared
+  xpath:
+    path:
+    - config
+    - shared
+    vars: []
+  description: Panorama shared object
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: panorama
+  xpath:
+    path:
+    - config
+    - panorama
+    vars: []
+  description: Located in a panorama.
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template_vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: certificate
+    type: string
+    profiles:
+    - xpath:
+      - certificate
+    validators:
+    - type: length
+      spec:
+        max: 255
+    spec: {}
+    description: SSL certificate file name
+    required: false
+    codegen_overrides:
+      terraform:
+        required: true
+  - name: protocol-settings
+    type: object
+    profiles:
+    - xpath:
+      - protocol-settings
+    validators: []
+    spec:
+      params:
+      - name: allow-authentication-sha1
+        type: bool
+        profiles:
+        - xpath:
+          - auth-algo-sha1
+        validators: []
+        spec: {}
+        description: Allow authentication SHA1
+        required: false
+      - name: allow-authentication-sha256
+        type: bool
+        profiles:
+        - xpath:
+          - auth-algo-sha256
+        validators: []
+        spec: {}
+        description: Allow authentication SHA256
+        required: false
+      - name: allow-authentication-sha384
+        type: bool
+        profiles:
+        - xpath:
+          - auth-algo-sha384
+        validators: []
+        spec: {}
+        description: Allow authentication SHA384
+        required: false
+      - name: allow-algorithm-3des
+        type: bool
+        profiles:
+        - xpath:
+          - enc-algo-3des
+        validators: []
+        spec: {}
+        description: Allow algorithm 3DES
+        required: false
+      - name: allow-algorithm-aes-128-cbc
+        type: bool
+        profiles:
+        - xpath:
+          - enc-algo-aes-128-cbc
+        validators: []
+        spec: {}
+        description: Allow algorithm AES-128-CBC
+        required: false
+      - name: allow-algorithm-aes-128-gcm
+        type: bool
+        profiles:
+        - xpath:
+          - enc-algo-aes-128-gcm
+        validators: []
+        spec: {}
+        description: Allow algorithm AES-128-GCM
+        required: false
+      - name: allow-algorithm-aes-256-cbc
+        type: bool
+        profiles:
+        - xpath:
+          - enc-algo-aes-256-cbc
+        validators: []
+        spec: {}
+        description: Allow algorithm AES-256-CBC
+        required: false
+      - name: allow-algorithm-aes-256-gcm
+        type: bool
+        profiles:
+        - xpath:
+          - enc-algo-aes-256-gcm
+        validators: []
+        spec: {}
+        description: Allow algorithm AES-256-GCM
+        required: false
+      - name: allow-algorithm-rc4
+        type: bool
+        profiles:
+        - xpath:
+          - enc-algo-rc4
+        validators: []
+        spec: {}
+        description: Allow algorithm RC4
+        required: false
+      - name: allow-algorithm-dhe
+        type: bool
+        profiles:
+        - xpath:
+          - keyxchg-algo-dhe
+        validators: []
+        spec: {}
+        description: Allow algorithm DHE
+        required: false
+      - name: allow-algorithm-ecdhe
+        type: bool
+        profiles:
+        - xpath:
+          - keyxchg-algo-ecdhe
+        validators: []
+        spec: {}
+        description: Allow algorithm ECDHE
+        required: false
+      - name: allow-algorithm-rsa
+        type: bool
+        profiles:
+        - xpath:
+          - keyxchg-algo-rsa
+        validators: []
+        spec: {}
+        description: Allow algorithm RSA
+        required: false
+      - name: max-version
+        type: enum
+        profiles:
+        - xpath:
+          - max-version
+        validators:
+        - type: values
+          spec:
+            values:
+            - tls1-0
+            - tls1-1
+            - tls1-2
+            - max
+        spec:
+          default: max
+          values:
+          - value: tls1-0
+          - value: tls1-1
+          - value: tls1-2
+          - value: max
+        description: Maximum TLS protocol version. Valid values are 'tls1-0', 'tls1-1',
+          'tls1-2', and max (default).
+        required: false
+      - name: min-version
+        type: enum
+        profiles:
+        - xpath:
+          - min-version
+        validators:
+        - type: values
+          spec:
+            values:
+            - tls1-0
+            - tls1-1
+            - tls1-2
+        spec:
+          default: tls1-0
+          values:
+          - value: tls1-0
+          - value: tls1-1
+          - value: tls1-2
+        description: ''
+        required: false
+      variants: []
+    description: Protocol Settings
+    required: false
+  variants: []
