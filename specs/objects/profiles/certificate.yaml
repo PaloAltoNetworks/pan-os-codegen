@@ -254,7 +254,7 @@ spec:
                 min: 1
                 max: 255
             spec: {}
-            description: Template Name/OID that was used to sign the certificate.
+            description: Certificate Template Name / OID for the certificate
             required: false
           variants: []
     description: CA Certificate to assign to the profile.
@@ -275,7 +275,8 @@ spec:
       - block-timeout-cert
     validators: []
     spec: {}
-    description: Whether to block a session if cert. status can't be retrieved within timeout.
+    description: Whether to block a session if cert. status can't be retrieved within
+      timeout.
     required: false
   - name: block-unauthenticated-certificate
     type: bool
@@ -284,7 +285,8 @@ spec:
       - block-unauthenticated-cert
     validators: []
     spec: {}
-    description: Whether to block session if the certificate was not issued to the authenticating device.
+    description: Whether to block session if the certificate was not issued to the
+      authenticating device.
     required: false
   - name: block-unknown-certificate
     type: bool
@@ -417,6 +419,7 @@ spec:
           - value: principal-name
         description: The Email or Principal Name.
         required: false
-    description: The certificate field you select as the username to match it to the IP address for the User-ID service.
+    description: The certificate field you select as the username to match it to the
+      IP address for the User-ID service.
     required: false
   variants: []

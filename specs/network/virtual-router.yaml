@@ -2114,17 +2114,6 @@ spec:
                                       variants: []
                                     description: no change on AS path
                                     required: false
-                                  - name: remove
-                                    type: object
-                                    profiles:
-                                    - xpath:
-                                      - remove
-                                    validators: []
-                                    spec:
-                                      params: []
-                                      variants: []
-                                    description: remove matched AS path(s)
-                                    required: false
                                   - name: prepend
                                     type: int64
                                     profiles:
@@ -8018,17 +8007,6 @@ spec:
                         description: Next hop virtual router
                         required: false
                     description: Next hop to destination
-                    required: false
-                  - name: option
-                    type: object
-                    profiles:
-                    - xpath:
-                      - option
-                    validators: []
-                    spec:
-                      params: []
-                      variants: []
-                    description: Route entry option
                     required: false
                   - name: route-table
                     type: object

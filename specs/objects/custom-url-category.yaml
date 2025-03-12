@@ -26,7 +26,7 @@ locations:
     - config
     - shared
     vars: []
-  description: Location in Shared Panorama
+  description: Panorama shared object
   devices:
   - panorama
   - ngfw
@@ -129,7 +129,6 @@ spec:
         values:
         - 'no'
     spec:
-      default: 'no'
       values:
       - value: 'no'
     description: disable object override in child device groups
