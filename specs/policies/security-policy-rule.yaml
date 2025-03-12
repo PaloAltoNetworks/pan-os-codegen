@@ -166,6 +166,7 @@ spec:
     required: false
     codegen_overrides:
       terraform:
+        type: set
         name: applications
   - name: category
     type: list
@@ -208,7 +209,8 @@ spec:
     required: false
     codegen_overrides:
       terraform:
-        name: destination_addresses
+        type: set
+        name: destination-addresses
   - name: destination-hip
     type: list
     profiles:
@@ -255,7 +257,8 @@ spec:
     required: false
     codegen_overrides:
       terraform:
-        name: source_zones
+        type: set
+        name: source-zones
   - name: group-tag
     type: string
     profiles:
@@ -572,6 +575,7 @@ spec:
     required: false
     codegen_overrides:
       terraform:
+        type: set
         name: services
   - name: source
     type: list
@@ -588,7 +592,8 @@ spec:
     required: false
     codegen_overrides:
       terraform:
-        name: source_addresses
+        type: set
+        name: source-addresses
   - name: source-hip
     type: list
     profiles:
@@ -656,6 +661,7 @@ spec:
     required: false
     codegen_overrides:
       terraform:
+        type: set
         name: source-users
   - name: tag
     type: list
@@ -752,7 +758,8 @@ spec:
     required: false
     codegen_overrides:
       terraform:
-        name: destination_zones
+        type: set
+        name: destination-zones
   - name: uuid
     type: string
     profiles:
@@ -770,7 +777,7 @@ spec:
     required: false
     codegen_overrides:
       terraform:
-        computed: true
+        private: true
   - name: disable-server-response-inspection
     type: bool
     profiles:
