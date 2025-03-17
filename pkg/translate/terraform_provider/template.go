@@ -1453,6 +1453,7 @@ func {{ .FuncName }}(ctx context.Context, resource types.Object) ([]byte, error)
 		return nil, fmt.Errorf("location attribute expected to be an object")
 	}
 
+{{- if eq .ResourceType "entry" }}
 	nameAttr, ok := attrs["name"]
 	if !ok {
 		return nil, fmt.Errorf("name attribute missing")
@@ -1470,6 +1471,59 @@ func {{ .FuncName }}(ctx context.Context, resource types.Object) ([]byte, error)
 		Location: location,
 		Name: name,
 	}
+{{- else if eq .ResourceType "entry-plural" }}
+	itemsAttr, ok := attrs["{{ .ListAttribute.Underscore }}"]
+	if !ok {
+		return nil, fmt.Errorf("{{ .ListAttribute.Underscore }} attribute missing")
+	}
+
+	items := make(map[string]{{ .ListStructName }})
+	switch value := itemsAttr.(type) {
+	case types.Map:
+		diags := value.ElementsAs(ctx, &items, false)
+		if diags.HasError() {
+			return nil, fmt.Errorf("Failed to convert {{ .ListAttribute.Underscore }} into a valid map: %s", diags.Errors())
+		}
+	default:
+		return nil, fmt.Errorf("{{ .ListAttribute.Underscore }} expected to be a map")
+	}
+
+	var names []string
+	for key := range items {
+		names = append(names, key)
+	}
+
+	importStruct := {{ .StructNamePrefix }}ImportState{
+		Location: location,
+		Names: names,
+	}
+{{- else if or (eq .ResourceType "uuid") (eq .ResourceType "uuid-plural") }}
+	itemsAttr, ok := attrs["{{ .ListAttribute.Underscore }}"]
+	if !ok {
+		return nil, fmt.Errorf("{{ .ListAttribute.Underscore }} attribute missing")
+	}
+
+	var items []*{{ .ListStructName }}
+	switch value := itemsAttr.(type) {
+	case types.List:
+		diags := value.ElementsAs(ctx, &items, false)
+		if diags.HasError() {
+			return nil, fmt.Errorf("Invalid {{ .ListAttribute.Underscore }} attribute element type, expected list of valid objects")
+		}
+	default:
+		return nil, fmt.Errorf("Invalid names attribute type, expected list of strings")
+	}
+
+	var names []string
+	for _, elt := range items {
+		names = append(names, elt.Name.ValueString())
+	}
+
+	importStruct := {{ .StructNamePrefix }}ImportState{
+		Location: location,
+		Names: names,
+	}
+{{- end }}
 
 	return json.Marshal(importStruct)
 }
@@ -1490,7 +1544,36 @@ const resourceImportStateFunctionTmpl = `
 	}
 
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("location"), obj.Location)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+{{- if .ResourceIsMap }}
+	names := make(map[string]*{{ .ListStructName }})
+	for _, elt := range obj.Names {
+		object := &{{ .ListStructName }}{}
+		resp.Diagnostics.Append(object.CopyFromPango(ctx, &{{ .PangoStructName }}{}, nil)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		names[elt] = object
+	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("{{ .ListAttribute.Underscore }}"), names)...)
+{{- else if .ResourceIsList }}
+	var names []*{{ .ListStructName }}
+	for _, elt := range obj.Names {
+		object := &{{ .ListStructName }}{}
+		resp.Diagnostics.Append(object.CopyFromPango(ctx, &{{ .PangoStructName }}{}, nil)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		object.Name = types.StringValue(elt)
+		names = append(names, object)
+	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("{{ .ListAttribute.Underscore }}"), names)...)
+{{- else }}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), obj.Name)...)
+{{- end -}}
 `
 
 const commonTemplate = `
