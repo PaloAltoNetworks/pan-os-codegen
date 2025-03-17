@@ -3005,29 +3005,14 @@ func createImportStateStructSpecs(resourceTyp properties.ResourceType, names *Na
 			Type: "string",
 			Tags: "`json:\"name\"`",
 		})
-	case properties.ResourceEntryPlural, properties.ResourceUuid:
+	case properties.ResourceEntryPlural, properties.ResourceUuid, properties.ResourceUuidPlural:
 		fields = append(fields, importStateStructFieldSpec{
 			Name: "Names",
 			Type: "[]string",
 			Tags: "`json:\"names\"`",
 		})
-	case properties.ResourceUuidPlural:
-		fields = append(fields, []importStateStructFieldSpec{
-			{
-				Name: "Names",
-				Type: "[]string",
-				Tags: "`json:\"names\"`",
-			},
-			{
-				Name: "Position",
-				Type: "TerraformPositionObject",
-				Tags: "`json:\"position\"`",
-			},
-		}...)
-
-	case properties.ResourceCustom:
+	case properties.ResourceCustom, properties.ResourceConfig:
 		panic("unreachable")
-	case properties.ResourceConfig:
 	}
 
 	specs = append(specs, importStateStructSpec{
@@ -3040,7 +3025,7 @@ func createImportStateStructSpecs(resourceTyp properties.ResourceType, names *Na
 
 func RenderImportStateStructs(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
 	// Only singular entries can be imported at the time
-	if resourceTyp != properties.ResourceEntry {
+	if resourceTyp == properties.ResourceCustom || resourceTyp == properties.ResourceConfig {
 		return "", nil
 	}
 
@@ -3056,17 +3041,18 @@ func RenderImportStateStructs(resourceTyp properties.ResourceType, names *NamePr
 }
 
 func ResourceImportStateFunction(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
-	// Only singular entries can be imported at the time
-	if resourceTyp != properties.ResourceEntry {
+	if resourceTyp == properties.ResourceConfig || resourceTyp == properties.ResourceCustom {
 		return "", nil
 	}
 
 	type context struct {
-		StructName     string
-		ResourceIsMap  bool
-		ResourceIsList bool
-		HasEntryName   bool
-		ListAttribute  *properties.NameVariant
+		StructName      string
+		ResourceIsMap   bool
+		ResourceIsList  bool
+		HasEntryName    bool
+		ListAttribute   *properties.NameVariant
+		ListStructName  string
+		PangoStructName string
 	}
 
 	data := context{
@@ -3078,21 +3064,25 @@ func ResourceImportStateFunction(resourceTyp properties.ResourceType, names *Nam
 		data.HasEntryName = spec.HasEntryName()
 	case properties.ResourceEntryPlural:
 		data.ResourceIsMap = true
-		data.ListAttribute = properties.NewNameVariant(spec.TerraformProviderConfig.PluralName)
+		listAttribute := properties.NewNameVariant(spec.TerraformProviderConfig.PluralName)
+		data.ListAttribute = listAttribute
+		data.ListStructName = fmt.Sprintf("%sResource%sObject", names.StructName, listAttribute.CamelCase)
+		data.PangoStructName = fmt.Sprintf("%s.Entry", names.PackageName)
 	case properties.ResourceUuid, properties.ResourceUuidPlural:
 		data.ResourceIsList = true
+		listAttribute := properties.NewNameVariant(spec.TerraformProviderConfig.PluralName)
 		data.ListAttribute = properties.NewNameVariant(spec.TerraformProviderConfig.PluralName)
-	case properties.ResourceCustom:
+		data.ListStructName = fmt.Sprintf("%sResource%sObject", names.StructName, listAttribute.CamelCase)
+		data.PangoStructName = fmt.Sprintf("%s.Entry", names.PackageName)
+	case properties.ResourceCustom, properties.ResourceConfig:
 		panic("unreachable")
-	case properties.ResourceConfig:
-		data.HasEntryName = false
 	}
 
 	return processTemplate(resourceImportStateFunctionTmpl, "resource-import-state-function", data, nil)
 }
 
 func RenderImportStateCreator(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
-	if resourceTyp != properties.ResourceEntry {
+	if resourceTyp == properties.ResourceConfig || resourceTyp == properties.ResourceCustom {
 		return "", nil
 	}
 
@@ -3100,12 +3090,30 @@ func RenderImportStateCreator(resourceTyp properties.ResourceType, names *NamePr
 		FuncName         string
 		ModelName        string
 		StructNamePrefix string
+		ListAttribute    *properties.NameVariant
+		ListStructName   string
+		ResourceType     properties.ResourceType
 	}
 
 	data := context{
 		FuncName:         fmt.Sprintf("%sImportStateCreator", names.StructName),
 		ModelName:        fmt.Sprintf("%sModel", names.ResourceStructName),
+		ResourceType:     resourceTyp,
 		StructNamePrefix: names.StructName,
+	}
+
+	switch resourceTyp {
+	case properties.ResourceEntry:
+	case properties.ResourceEntryPlural:
+		listAttribute := properties.NewNameVariant(spec.TerraformProviderConfig.PluralName)
+		data.ListAttribute = listAttribute
+		data.ListStructName = fmt.Sprintf("%sResource%sObject", names.StructName, listAttribute.CamelCase)
+	case properties.ResourceUuid, properties.ResourceUuidPlural:
+		listAttribute := properties.NewNameVariant(spec.TerraformProviderConfig.PluralName)
+		data.ListAttribute = listAttribute
+		data.ListStructName = fmt.Sprintf("%sResource%sObject", names.StructName, listAttribute.CamelCase)
+	case properties.ResourceCustom, properties.ResourceConfig:
+		panic("unreachable")
 	}
 
 	return processTemplate(resourceImportStateCreatorTmpl, "render-import-state-creator", data, commonFuncMap)

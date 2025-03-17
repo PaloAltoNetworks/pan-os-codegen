@@ -1,14 +1,14 @@
 package properties
 
-type ResourceType int
+type ResourceType string
 
 const (
-	ResourceEntry ResourceType = iota
-	ResourceCustom
-	ResourceConfig
-	ResourceEntryPlural
-	ResourceUuid
-	ResourceUuidPlural
+	ResourceEntry       ResourceType = "entry"
+	ResourceCustom      ResourceType = "custom"
+	ResourceConfig      ResourceType = "config"
+	ResourceEntryPlural ResourceType = "entry-plural"
+	ResourceUuid        ResourceType = "uuid"
+	ResourceUuidPlural  ResourceType = "uuid-plural"
 )
 
 type SchemaType int
