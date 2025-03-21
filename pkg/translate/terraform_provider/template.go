@@ -1128,7 +1128,7 @@ for idx, elt := range elements {
   {{ $exhaustive = "sdkmanager.Exhaustive" }}
 position := movement.PositionFirst{}
 {{- else }}
-position := state.Position.CopyToPango()
+position := plan.Position.CopyToPango()
 {{- end }}
 
 existing, err := r.manager.ReadMany(ctx, location, stateEntries, {{ $exhaustive }})
