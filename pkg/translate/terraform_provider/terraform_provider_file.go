@@ -71,9 +71,9 @@ func (g *GenerateTerraformProvider) appendResourceType(terraformProvider *proper
 	}
 
 	switch resourceTyp {
-	case properties.ResourceEntry:
+	case properties.ResourceEntry, properties.ResourceEntryPlural, properties.ResourceUuid, properties.ResourceUuidPlural:
 		flags |= properties.TerraformSpecImportable
-	case properties.ResourceCustom, properties.ResourceEntryPlural, properties.ResourceUuid, properties.ResourceUuidPlural, properties.ResourceConfig:
+	case properties.ResourceCustom, properties.ResourceConfig:
 	}
 
 	terraformProvider.SpecMetadata[names.MetaName] = properties.TerraformProviderSpecMetadata{
@@ -144,12 +144,21 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 		"IsCustom":     func() bool { return spec.TerraformProviderConfig.ResourceType == properties.TerraformResourceCustom },
 		"IsUuid":       func() bool { return spec.HasEntryUuid() },
 		"IsConfig":     func() bool { return !spec.HasEntryName() && !spec.HasEntryUuid() },
-		"IsImportable": func() bool { return resourceTyp == properties.ResourceEntry },
-		"ListAttribute": func() *properties.NameVariant {
+		"IsEphemeral":  func() bool { return spec.TerraformProviderConfig.Ephemeral },
+    "ListAttribute": func() *properties.NameVariant {
 			return properties.NewNameVariant(spec.TerraformProviderConfig.PluralName)
 		},
 		"HasLocations": func() bool { return len(spec.Locations) > 0 },
-		"IsEphemeral":  func() bool { return spec.TerraformProviderConfig.Ephemeral },
+		"IsImportable": func() bool {
+			switch resourceTyp {
+			case properties.ResourceEntry, properties.ResourceEntryPlural, properties.ResourceUuid, properties.ResourceUuidPlural:
+				return true
+			case properties.ResourceConfig, properties.ResourceCustom:
+				return false
+			}
+
+			panic("unreachable")
+		},
 		"tfresourcepkg": func() string {
 			if spec.TerraformProviderConfig.Ephemeral {
 				return "ephemeral"
@@ -401,11 +410,14 @@ func (g *GenerateTerraformProvider) GenerateCommonCode(resourceTyp properties.Re
 		terraformProvider.ImportManager.AddStandardImport("encoding/json", "")
 	}
 	// Imports required by resources that can be imported into state
-	if resourceTyp == properties.ResourceEntry {
+	switch resourceTyp {
+	case properties.ResourceEntry, properties.ResourceEntryPlural, properties.ResourceUuid, properties.ResourceUuidPlural:
 		terraformProvider.ImportManager.AddStandardImport("encoding/base64", "")
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types/basetypes", "")
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
+	case properties.ResourceConfig, properties.ResourceCustom:
 	}
+
 	names := NewNameProvider(spec, resourceTyp)
 	funcMap := template.FuncMap{
 		"HasLocations":          func() bool { return len(spec.Locations) > 0 },
