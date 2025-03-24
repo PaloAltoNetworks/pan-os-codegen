@@ -589,7 +589,7 @@ spec:
     required: false
     codegen_overrides:
       terraform:
-        computed: true
+        private: true
   variants:
   - name: destination-translation
     type: object
