@@ -60,6 +60,11 @@ func (o *expectServerSecurityRulesOrder) CheckState(ctx context.Context, req sta
 		}
 	}
 
+	var serverRules []string
+	for _, elt := range objects {
+		serverRules = append(serverRules, elt.EntryName())
+	}
+
 	var prevActualIdx = -1
 	for actualIdx, elt := range objects {
 		if state, ok := rulesWithIdx[elt.Name]; !ok {
@@ -72,10 +77,10 @@ func (o *expectServerSecurityRulesOrder) CheckState(ctx context.Context, req sta
 				prevActualIdx = actualIdx
 				continue
 			} else if prevActualIdx == -1 {
-				resp.Error = fmt.Errorf("rules missing from the server")
+				resp.Error = fmt.Errorf("rules missing from the server: %s", strings.Join(serverRules, ", "))
 				return
 			} else if actualIdx-prevActualIdx > 1 {
-				resp.Error = fmt.Errorf("invalid rules order on the server")
+				resp.Error = fmt.Errorf("invalid rules order on the server: %s", strings.Join(serverRules, ", "))
 				return
 			}
 			prevActualIdx = actualIdx

@@ -102,6 +102,36 @@ resource "panos_security_policy_rules" "policy" {
 }
 `
 
+const securityPolicyRulesPositionDirectlyAfter = `
+variable "rule_names" { type = list(string) }
+variable "prefix" { type = string }
+
+resource "panos_security_policy_rules" "policy" {
+  location = { device_group = { name = format("%s-dg", var.prefix), rulebase = "pre-rulebase" }}
+
+  position = {
+    where = "after"
+    directly = true
+    pivot = format("%s-rule-0", var.prefix)
+  }
+
+  rules = [
+    for index, name in var.rule_names: {
+      name = name
+
+      source_zones     = ["any"]
+      source_addresses = ["any"]
+
+      destination_zones     = ["any"]
+      destination_addresses = ["any"]
+
+      services = ["any"]
+      applications = ["any"]
+    }
+  ]
+}
+`
+
 const securityPolicyRulesPositionLast = `
 variable "rule_names" { type = list(string) }
 variable "prefix" { type = string }
@@ -136,7 +166,7 @@ func TestAccSecurityPolicyRulesPositioning(t *testing.T) {
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
 
-	ruleNames := []string{"rule-1", "rule-2", "rule-3", "rule-4", "rule-5"}
+	ruleNames := []string{"rule-2", "rule-3", "rule-4", "rule-5", "rule-6"}
 
 	prefixed := func(name string) string {
 		return fmt.Sprintf("%s-%s", prefix, name)
@@ -199,12 +229,12 @@ func TestAccSecurityPolicyRulesPositioning(t *testing.T) {
 					"prefix":     config.StringVariable(prefix),
 				},
 				ConfigStateChecks: []statecheck.StateCheck{
-					stateExpectedRuleName(0, "rule-1"),
-					stateExpectedRuleName(1, "rule-2"),
-					stateExpectedRuleName(2, "rule-3"),
-					stateExpectedRuleName(3, "rule-4"),
-					stateExpectedRuleName(4, "rule-5"),
-					ExpectServerSecurityRulesOrder(prefix, []string{"rule-1", "rule-2", "rule-3", "rule-4", "rule-5", "rule-0", "rule-99"}),
+					stateExpectedRuleName(0, "rule-2"),
+					stateExpectedRuleName(1, "rule-3"),
+					stateExpectedRuleName(2, "rule-4"),
+					stateExpectedRuleName(3, "rule-5"),
+					stateExpectedRuleName(4, "rule-6"),
+					ExpectServerSecurityRulesOrder(prefix, []string{"rule-2", "rule-3", "rule-4", "rule-5", "rule-6", "rule-0", "rule-1", "rule-99"}),
 				},
 			},
 			{
@@ -214,12 +244,12 @@ func TestAccSecurityPolicyRulesPositioning(t *testing.T) {
 					"prefix":     config.StringVariable(prefix),
 				},
 				ConfigStateChecks: []statecheck.StateCheck{
-					stateExpectedRuleName(0, "rule-1"),
-					stateExpectedRuleName(1, "rule-2"),
-					stateExpectedRuleName(2, "rule-3"),
-					stateExpectedRuleName(3, "rule-4"),
-					stateExpectedRuleName(4, "rule-5"),
-					ExpectServerSecurityRulesOrder(prefix, []string{"rule-1", "rule-2", "rule-3", "rule-4", "rule-5", "rule-0", "rule-99"}),
+					stateExpectedRuleName(0, "rule-2"),
+					stateExpectedRuleName(1, "rule-3"),
+					stateExpectedRuleName(2, "rule-4"),
+					stateExpectedRuleName(3, "rule-5"),
+					stateExpectedRuleName(4, "rule-6"),
+					ExpectServerSecurityRulesOrder(prefix, []string{"rule-2", "rule-3", "rule-4", "rule-5", "rule-6", "rule-0", "rule-1", "rule-99"}),
 				},
 			},
 			{
@@ -229,12 +259,27 @@ func TestAccSecurityPolicyRulesPositioning(t *testing.T) {
 					"prefix":     config.StringVariable(prefix),
 				},
 				ConfigStateChecks: []statecheck.StateCheck{
-					stateExpectedRuleName(0, "rule-1"),
-					stateExpectedRuleName(1, "rule-2"),
-					stateExpectedRuleName(2, "rule-3"),
-					stateExpectedRuleName(3, "rule-4"),
-					stateExpectedRuleName(4, "rule-5"),
-					ExpectServerSecurityRulesOrder(prefix, []string{"rule-0", "rule-1", "rule-2", "rule-3", "rule-4", "rule-5", "rule-99"}),
+					stateExpectedRuleName(0, "rule-2"),
+					stateExpectedRuleName(1, "rule-3"),
+					stateExpectedRuleName(2, "rule-4"),
+					stateExpectedRuleName(3, "rule-5"),
+					stateExpectedRuleName(4, "rule-6"),
+					ExpectServerSecurityRulesOrder(prefix, []string{"rule-0", "rule-1", "rule-2", "rule-3", "rule-4", "rule-5", "rule-6", "rule-99"}),
+				},
+			},
+			{
+				Config: securityPolicyRulesPositionDirectlyAfter,
+				ConfigVariables: map[string]config.Variable{
+					"rule_names": config.ListVariable(withPrefix(ruleNames)...),
+					"prefix":     config.StringVariable(prefix),
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					stateExpectedRuleName(0, "rule-2"),
+					stateExpectedRuleName(1, "rule-3"),
+					stateExpectedRuleName(2, "rule-4"),
+					stateExpectedRuleName(3, "rule-5"),
+					stateExpectedRuleName(4, "rule-6"),
+					ExpectServerSecurityRulesOrder(prefix, []string{"rule-0", "rule-2", "rule-3", "rule-4", "rule-5", "rule-6", "rule-1", "rule-99"}),
 				},
 			},
 			{
@@ -244,12 +289,12 @@ func TestAccSecurityPolicyRulesPositioning(t *testing.T) {
 					"prefix":     config.StringVariable(prefix),
 				},
 				ConfigStateChecks: []statecheck.StateCheck{
-					stateExpectedRuleName(0, "rule-1"),
-					stateExpectedRuleName(1, "rule-2"),
-					stateExpectedRuleName(2, "rule-3"),
-					stateExpectedRuleName(3, "rule-4"),
-					stateExpectedRuleName(4, "rule-5"),
-					ExpectServerSecurityRulesOrder(prefix, []string{"rule-0", "rule-99", "rule-1", "rule-2", "rule-3", "rule-4", "rule-5"}),
+					stateExpectedRuleName(0, "rule-2"),
+					stateExpectedRuleName(1, "rule-3"),
+					stateExpectedRuleName(2, "rule-4"),
+					stateExpectedRuleName(3, "rule-5"),
+					stateExpectedRuleName(4, "rule-6"),
+					ExpectServerSecurityRulesOrder(prefix, []string{"rule-0", "rule-1", "rule-99", "rule-1", "rule-2", "rule-3", "rule-4", "rule-5"}),
 				},
 			},
 		},
@@ -268,6 +313,15 @@ func securityPolicyRulesPreCheck(prefix string) {
 	rules := []security.Entry{
 		{
 			Name:        fmt.Sprintf("%s-rule-0", prefix),
+			Description: stringPointer("Rule 0"),
+			Source:      []string{"any"},
+			Destination: []string{"any"},
+			From:        []string{"any"},
+			To:          []string{"any"},
+			Service:     []string{"any"},
+		},
+		{
+			Name:        fmt.Sprintf("%s-rule-1", prefix),
 			Description: stringPointer("Rule 0"),
 			Source:      []string{"any"},
 			Destination: []string{"any"},
@@ -310,8 +364,20 @@ func securityPolicyRulesCheckDestroy(prefix string) func(s *terraform.State) err
 		}
 
 		var danglingNames []string
+
+		seededRule := func(name string) bool {
+			seeded := []string{"rule-0", "rule-1", "rule-99"}
+			for _, elt := range seeded {
+				if strings.HasSuffix(name, elt) {
+					return true
+				}
+			}
+
+			return false
+		}
+
 		for _, elt := range rules {
-			if strings.HasPrefix(elt.Name, prefix) && !strings.HasSuffix(elt.Name, "rule-0") && !strings.HasSuffix(elt.Name, "rule-99") {
+			if strings.HasPrefix(elt.Name, prefix) && !seededRule(elt.Name) {
 				danglingNames = append(danglingNames, elt.Name)
 			}
 		}

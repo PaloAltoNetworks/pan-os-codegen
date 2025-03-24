@@ -263,6 +263,7 @@ func getPivotMovement(entries []Movable, existing []Movable, pivot string, direc
 			filteredLen := len(filtered)
 			for i := filteredPivotIdx + 1; i < filteredLen; i++ {
 				expected[expectedIdx] = filtered[i]
+				expectedIdx++
 			}
 		} else {
 			filteredLen := len(filtered)
