@@ -288,13 +288,37 @@ func {{ resourceStructName }}LocationSchema() rsschema.Attribute {
 
 func (r *{{ resourceStructName }}) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
 {{- if HasPosition }}
+	{
 	var resource {{ resourceStructName }}Model
 	resp.Diagnostics.Append(req.Config.Get(ctx, &resource)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
 	resource.Position.ValidateConfig(resp)
+	}
+{{- end }}
+
+{{- if IsUuid }}
+	{
+	var resource {{ resourceStructName }}Model
+	resp.Diagnostics.Append(req.Config.Get(ctx, &resource)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+  {{ $resourceTFStructName := printf "%s%sObject" resourceStructName ListAttribute.CamelCase }}
+	entries := make(map[string]struct{})
+	var elements []{{ $resourceTFStructName }}
+	resource.{{ ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
+
+	for _, elt := range elements {
+		entry :=  elt.Name.ValueString()
+		if _, found := entries[entry]; found {
+			resp.Diagnostics.AddError("Failed to validate resource", "List entries must have unique names")
+			return
+		}
+		entries[entry] = struct{}{}
+	}
+	}
 {{- end }}
 }
 
@@ -545,8 +569,7 @@ if err != nil {
 	return
 }
 {{- else if .Exhaustive }}
-trueVal := true
-processed, err := r.manager.CreateMany(ctx, location, entries, sdkmanager.Exhaustive, rule.Position{First: &trueVal})
+processed, err := r.manager.CreateMany(ctx, location, entries, sdkmanager.Exhaustive, movement.PositionFirst{})
 if err != nil {
 	resp.Diagnostics.AddError("Error during CreateMany() call", err.Error())
 	return
@@ -1103,10 +1126,9 @@ for idx, elt := range elements {
 {{ $exhaustive := "sdkmanager.NonExhaustive" }}
 {{- if .Exhaustive }}
   {{ $exhaustive = "sdkmanager.Exhaustive" }}
-trueValue := true
-position := rule.Position{First: &trueValue}
+position := movement.PositionFirst{}
 {{- else }}
-position := state.Position.CopyToPango()
+position := plan.Position.CopyToPango()
 {{- end }}
 
 existing, err := r.manager.ReadMany(ctx, location, stateEntries, {{ $exhaustive }})

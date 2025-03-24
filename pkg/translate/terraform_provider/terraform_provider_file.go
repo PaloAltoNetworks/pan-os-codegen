@@ -140,11 +140,15 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 		"GoSDKSkipped": func() bool { return spec.GoSdkSkip },
 		"IsEntry":      func() bool { return spec.HasEntryName() && !spec.HasEntryUuid() },
 		"HasImports":   func() bool { return len(spec.Imports) > 0 },
-		"HasLocations": func() bool { return len(spec.Locations) > 0 },
+
 		"IsCustom":     func() bool { return spec.TerraformProviderConfig.ResourceType == properties.TerraformResourceCustom },
 		"IsUuid":       func() bool { return spec.HasEntryUuid() },
 		"IsConfig":     func() bool { return !spec.HasEntryName() && !spec.HasEntryUuid() },
 		"IsEphemeral":  func() bool { return spec.TerraformProviderConfig.Ephemeral },
+    "ListAttribute": func() *properties.NameVariant {
+			return properties.NewNameVariant(spec.TerraformProviderConfig.PluralName)
+		},
+		"HasLocations": func() bool { return len(spec.Locations) > 0 },
 		"IsImportable": func() bool {
 			switch resourceTyp {
 			case properties.ResourceEntry, properties.ResourceEntryPlural, properties.ResourceUuid, properties.ResourceUuidPlural:
@@ -238,7 +242,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 			terraformProvider.ImportManager.AddStandardImport("errors", "")
 			switch resourceTyp {
 			case properties.ResourceUuid:
-				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/rule", "")
+				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/movement", "")
 			case properties.ResourceEntry:
 			case properties.ResourceUuidPlural:
 			case properties.ResourceEntryPlural:
