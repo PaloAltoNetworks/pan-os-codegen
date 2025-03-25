@@ -219,7 +219,6 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 			return ResourceImportStateFunction(resourceTyp, names, spec)
 		},
 		"ParamToModelResource": ParamToModelResource,
-		"ModelNestedStruct":    ModelNestedStruct,
 		"ResourceParamToSchema": func(paramName string, paramParameters interface{}) (string, error) {
 			return ParamToSchemaResource(paramName, paramParameters, terraformProvider)
 		},

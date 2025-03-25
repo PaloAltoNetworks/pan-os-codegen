@@ -131,10 +131,7 @@ func TestXmlTag(t *testing.T) {
 	paramTypeUuid := properties.SpecParam{
 		Type:     "string",
 		Required: false,
-		Name: &properties.NameVariant{
-			CamelCase:  "Uuid",
-			Underscore: "uuid",
-		},
+		Name:     properties.NewNameVariant("uuid"),
 		Profiles: []*properties.SpecParamProfile{
 			{
 				Type:  "string",
@@ -171,24 +168,15 @@ func TestNestedSpecs(t *testing.T) {
 	spec := properties.Spec{
 		Params: map[string]*properties.SpecParam{
 			"a": {
-				Name: &properties.NameVariant{
-					Underscore: "a",
-					CamelCase:  "A",
-				},
+				Name: properties.NewNameVariant("a"),
 				Spec: &properties.Spec{
 					Params: map[string]*properties.SpecParam{
 						"b": {
-							Name: &properties.NameVariant{
-								Underscore: "b",
-								CamelCase:  "B",
-							},
+							Name: properties.NewNameVariant("b"),
 							Spec: &properties.Spec{
 								Params: map[string]*properties.SpecParam{
 									"c": {
-										Name: &properties.NameVariant{
-											Underscore: "c",
-											CamelCase:  "C",
-										},
+										Name: properties.NewNameVariant("c"),
 									},
 								},
 							},
@@ -225,10 +213,7 @@ func TestParamSupportedInVersion(t *testing.T) {
 	deviceVersion101, _ := version.NewVersionFromString("10.1.1")
 	deviceVersion90, _ := version.NewVersionFromString("9.0.3")
 
-	paramName := properties.NameVariant{
-		CamelCase:  "test",
-		Underscore: "test",
-	}
+	paramName := properties.NewNameVariant("test")
 
 	profileAlwaysPresent := properties.SpecParamProfile{
 		Xpath: []string{"test"},
@@ -260,21 +245,21 @@ func TestParamSupportedInVersion(t *testing.T) {
 
 	paramPresentFrom10 := &properties.SpecParam{
 		Type: "string",
-		Name: &paramName,
+		Name: paramName,
 		Profiles: []*properties.SpecParamProfile{
 			&profilePresentFrom10,
 		},
 	}
 	paramAlwaysPresent := &properties.SpecParam{
 		Type: "string",
-		Name: &paramName,
+		Name: paramName,
 		Profiles: []*properties.SpecParamProfile{
 			&profileAlwaysPresent,
 		},
 	}
 	paramNotPresentFrom10 := &properties.SpecParam{
 		Type: "string",
-		Name: &paramName,
+		Name: paramName,
 		Profiles: []*properties.SpecParamProfile{
 			&profileNotPresentFrom10,
 		},
@@ -282,7 +267,7 @@ func TestParamSupportedInVersion(t *testing.T) {
 
 	paramPresentFrom10And11 := &properties.SpecParam{
 		Type: "string",
-		Name: &paramName,
+		Name: paramName,
 		Profiles: []*properties.SpecParamProfile{
 			&profilePresentFrom10,
 			&profilePresentFrom11,
