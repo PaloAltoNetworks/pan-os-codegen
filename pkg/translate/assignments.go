@@ -134,8 +134,8 @@ func defineNestedObject(parent []*properties.SpecParam, param, parentParam *prop
 		switch {
 		case param.Spec != nil:
 			assignEmptyStructForNestedObject(parent, builder, param, objectType, version, prefix, suffix)
-			defineNestedObjectForChildParams(parent, param.Spec.Params, param, objectType, version, listFunction, entryFunction, boolFunction, prefix, suffix, builder)
-			defineNestedObjectForChildParams(parent, param.Spec.OneOf, param, objectType, version, listFunction, entryFunction, boolFunction, prefix, suffix, builder)
+			defineNestedObjectForChildParams(parent, param.Spec.SortedParams(), param, objectType, version, listFunction, entryFunction, boolFunction, prefix, suffix, builder)
+			defineNestedObjectForChildParams(parent, param.Spec.SortedOneOf(), param, objectType, version, listFunction, entryFunction, boolFunction, prefix, suffix, builder)
 		case isParamListAndProfileTypeIsMember(param):
 			assignFunctionForNestedObject(parent, listFunction, "", builder, param, parentParam)
 		case isParamListAndProfileTypeIsSingleEntry(param):
@@ -345,7 +345,7 @@ func assignFunctionForNestedObject(parent []*properties.SpecParam, functionName,
 	}
 }
 
-func defineNestedObjectForChildParams(parent []*properties.SpecParam, params map[string]*properties.SpecParam, parentParam *properties.SpecParam, objectType string, version *version.Version, listFunction, entryFunction, boolFunction, prefix, suffix string, builder *strings.Builder) {
+func defineNestedObjectForChildParams(parent []*properties.SpecParam, params []*properties.SpecParam, parentParam *properties.SpecParam, objectType string, version *version.Version, listFunction, entryFunction, boolFunction, prefix, suffix string, builder *strings.Builder) {
 	for _, param := range params {
 		defineNestedObject(append(parent, param), param, parentParam, objectType, version, listFunction, entryFunction, boolFunction, prefix, suffix, builder)
 		if isParamListAndProfileTypeIsExtendedEntry(param) {

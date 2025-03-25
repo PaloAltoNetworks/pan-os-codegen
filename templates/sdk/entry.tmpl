@@ -131,10 +131,10 @@ return entryList, nil
 
     {{ range $name, $spec := nestedSpecs $.Spec }}
         type {{$name}}{{createGoSuffixFromVersion nil}} struct {
-        {{- range $_, $param := $spec.Params}}
+        {{- range $param := $spec.SortedParams}}
             {{$param.Name.CamelCase}} {{specParamType $name $param}}
         {{- end}}
-        {{- range $_, $param := $spec.OneOf}}
+        {{- range $param := $spec.SortedOneOf}}
             {{$param.Name.CamelCase}} {{specParamType $name $param}}
         {{- end}}
         }
@@ -178,7 +178,7 @@ return entryList, nil
     return e.Name, nil
     }
 
-    {{- range $_, $param := .Spec.Params}}
+    {{- range $_, $param := .Spec.SortedParams}}
         if v == "{{$param.Name.Underscore}}" || v == "{{$param.Name.CamelCase}}" {
         return e.{{$param.Name.CamelCase}}, nil
         }
@@ -188,7 +188,7 @@ return entryList, nil
             }
         {{- end}}
     {{- end}}
-    {{- range $_, $param := .Spec.OneOf}}
+    {{- range $_, $param := .Spec.SortedOneOf}}
         if v == "{{$param.Name.Underscore}}" || v == "{{$param.Name.CamelCase}}" {
         return e.{{$param.Name.CamelCase}}, nil
         }
@@ -231,12 +231,12 @@ return entryList, nil
     }
 
     // Don't compare Name.
-    {{- range $_, $param := .Spec.Params}}
+    {{- range $_, $param := .Spec.SortedParams}}
         if !{{specMatchesFunction $param}}(a.{{$param.Name.CamelCase}}, b.{{$param.Name.CamelCase}}) {
         return false
         }
     {{- end}}
-    {{- range $_, $param := .Spec.OneOf}}
+    {{- range $_, $param := .Spec.SortedOneOf}}
         if !{{specMatchesFunction $param}}(a.{{$param.Name.CamelCase}}, b.{{$param.Name.CamelCase}}) {
         return false
         }

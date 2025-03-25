@@ -219,11 +219,6 @@ imports:
         default: vsys1
         validators: []
         type: entry
-      - name: vsys
-        description: Security Zone
-        required: false
-        validators: []
-        type: entry
       - name: zone
         description: Security Zone Identifier
         required: false

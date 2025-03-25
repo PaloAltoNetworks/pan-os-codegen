@@ -5,11 +5,11 @@ type {{ .structName }}Object struct {
 {{- if .HasEntryName }}
 	Name types.String ` + "`" + `tfsdk:"name"` + "`" + `
 {{- end }}
-	{{- range $pName, $pParam := $.Spec.Params -}}
-		{{- structItems $pName $pParam -}}
+	{{- range $pParam := $.Spec.SortedParams -}}
+		{{- structItems $pParam.Name.Original $pParam -}}
 	{{- end}}
-	{{- range $pName, $pParam := $.Spec.OneOf -}}
-		{{- structItems $pName $pParam  -}}
+	{{- range $pParam := $.Spec.SortedOneOf -}}
+		{{- structItems $pParam.Name.Original $pParam  -}}
 	{{- end}}
 }
 `

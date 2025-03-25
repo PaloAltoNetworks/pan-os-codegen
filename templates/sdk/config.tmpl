@@ -107,10 +107,10 @@ return configList, nil
     {{renderImports "config"}}
 
     type Config{{createGoSuffixFromVersion nil}} struct {
-    {{- range $_, $param := $.Spec.Params}}
+    {{- range $_, $param := $.Spec.SortedParams}}
         {{$param.Name.CamelCase}} {{specParamType "" $param}}
     {{- end}}
-    {{- range $_, $param := $.Spec.OneOf}}
+    {{- range $_, $param := $.Spec.SortedOneOf}}
         {{$param.Name.CamelCase}} {{specParamType "" $param}}
     {{- end}}
 
@@ -119,10 +119,10 @@ return configList, nil
 
     {{- range $name, $spec := nestedSpecs $.Spec }}
         type {{$name}}{{createGoSuffixFromVersion nil}} struct {
-        {{- range $_, $param := $spec.Params}}
+        {{- range $_, $param := $spec.SortedParams}}
             {{$param.Name.CamelCase}} {{specParamType $name $param}}
         {{- end}}
-        {{- range $_, $param := $spec.OneOf}}
+        {{- range $_, $param := $spec.SortedOneOf}}
             {{$param.Name.CamelCase}} {{specParamType $name $param}}
         {{- end}}
         }
@@ -198,12 +198,12 @@ return configList, nil
     }
 
     // Don't compare Name.
-    {{- range $_, $param := .Spec.Params}}
+    {{- range $_, $param := .Spec.SortedParams}}
         if !{{specMatchesFunction $param}}(a.{{$param.Name.CamelCase}}, b.{{$param.Name.CamelCase}}) {
         return false
         }
     {{- end}}
-    {{- range $_, $param := .Spec.OneOf}}
+    {{- range $_, $param := .Spec.SortedOneOf}}
         if !{{specMatchesFunction $param}}(a.{{$param.Name.CamelCase}}, b.{{$param.Name.CamelCase}}) {
         return false
         }

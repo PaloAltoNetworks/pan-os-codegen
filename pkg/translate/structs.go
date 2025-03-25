@@ -35,16 +35,26 @@ func NestedSpecs(spec *properties.Spec) (map[string]*properties.Spec, error) {
 }
 
 func checkNestedSpecs(parent []string, spec *properties.Spec, nestedSpecs map[string]*properties.Spec) {
-	for _, param := range spec.Params {
-		updateNestedSpecs(append(parent, param.Name.CamelCase), param, nestedSpecs)
+	for _, param := range spec.SortedParams() {
+		paramKey := append(parent, param.Name.CamelCase)
+		updateNestedSpecs(paramKey, param, nestedSpecs)
 		if len(param.Profiles) > 0 && param.Profiles[0].Type == "entry" && param.Items != nil && param.Items.Type == "entry" {
-			addNameAsParamForNestedSpec(append(parent, param.Name.CamelCase), nestedSpecs)
+			fmt.Printf("UPDATING Params %s\n", strings.Join(paramKey, ">"))
+			spec, modified := addNameAsParamForNestedSpec(paramKey, nestedSpecs)
+			if modified {
+				spec.HackFixInjectedNameSpecOrder()
+			}
 		}
 	}
-	for _, param := range spec.OneOf {
-		updateNestedSpecs(append(parent, param.Name.CamelCase), param, nestedSpecs)
+	for _, param := range spec.SortedOneOf() {
+		paramKey := append(parent, param.Name.CamelCase)
+		updateNestedSpecs(paramKey, param, nestedSpecs)
 		if len(param.Profiles) > 0 && param.Profiles[0].Type == "entry" && param.Items != nil && param.Items.Type == "entry" {
-			addNameAsParamForNestedSpec(append(parent, param.Name.CamelCase), nestedSpecs)
+			fmt.Printf("UPDATING OneOf %s\n", strings.Join(paramKey, ">"))
+			spec, modified := addNameAsParamForNestedSpec(paramKey, nestedSpecs)
+			if modified {
+				spec.HackFixInjectedNameSpecOrder()
+			}
 		}
 	}
 }
@@ -56,20 +66,28 @@ func updateNestedSpecs(parent []string, param *properties.SpecParam, nestedSpecs
 	}
 }
 
-func addNameAsParamForNestedSpec(parent []string, nestedSpecs map[string]*properties.Spec) {
-	nestedSpecs[strings.Join(parent, "")].Params["name"] = &properties.SpecParam{
+func addNameAsParamForNestedSpec(parent []string, nestedSpecs map[string]*properties.Spec) (*properties.Spec, bool) {
+	spec := nestedSpecs[strings.Join(parent, "")]
+	if _, found := spec.Params["name"]; found {
+		return nil, false
+	}
+
+	spec.Params["name"] = &properties.SpecParam{
 		Name: &properties.NameVariant{
 			Underscore: "name",
 			CamelCase:  "Name",
 		},
-		Type:     "string",
-		Required: true,
+		SpecOrder: 0,
+		Type:      "string",
+		Required:  true,
 		Profiles: []*properties.SpecParamProfile{
 			{
 				Xpath: []string{"name"},
 			},
 		},
 	}
+
+	return spec, true
 }
 
 const importLocationStructTmpl = `
@@ -254,7 +272,7 @@ func createImportLocationSpecsForLocation(location properties.ImportLocation) im
 	var variables []importXpathVariableSpec
 	variablesByName := make(map[string]importXpathVariableSpec, len(location.XpathVariables))
 
-	for _, elt := range location.XpathVariables {
+	for _, elt := range location.OrderedXpathVariables() {
 		var defaultValue *string
 		if elt.Default != "" {
 			defaultValue = &elt.Default
@@ -301,9 +319,11 @@ func createImportSpecsForNormalization(spec *properties.Normalization) []importS
 
 	for _, imp := range spec.Imports {
 		var locations []importLocationSpec
-		for _, location := range imp.Locations {
-			locations = append(locations, createImportLocationSpecsForLocation(location))
+		fmt.Printf("HELLO\n")
+		for _, location := range imp.OrderedLocations() {
+			locations = append(locations, createImportLocationSpecsForLocation(*location))
 		}
+		fmt.Printf("END\n")
 
 		specs = append(specs, importSpec{
 			Variant:   imp.Variant,

@@ -3,6 +3,7 @@ package terraform_provider
 import (
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 	"text/template"
 
@@ -51,7 +52,7 @@ type spec struct {
 	OneOf                  []parameterSpec
 }
 
-func renderSpecsForParams(params map[string]*properties.SpecParam, parentNames []string) []parameterSpec {
+func renderSpecsForParams(params []*properties.SpecParam, parentNames []string) []parameterSpec {
 	var specs []parameterSpec
 	for _, elt := range params {
 		if elt.IsPrivateParameter() {
@@ -98,8 +99,8 @@ func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix st
 
 	parentNames = append(parentNames, paramSpec.Name.Underscore)
 
-	paramSpecs := renderSpecsForParams(paramSpec.Spec.Params, parentNames)
-	oneofSpecs := renderSpecsForParams(paramSpec.Spec.OneOf, parentNames)
+	paramSpecs := renderSpecsForParams(paramSpec.Spec.SortedParams(), parentNames)
+	oneofSpecs := renderSpecsForParams(paramSpec.Spec.SortedOneOf(), parentNames)
 
 	var hasEntryName bool
 	if paramSpec.Type == "list" && paramSpec.Items.Type == "entry" {
@@ -118,7 +119,7 @@ func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix st
 	}
 	specs = append(specs, element)
 
-	renderSpecsForParams := func(params map[string]*properties.SpecParam) {
+	renderSpecsForParams := func(params []*properties.SpecParam) {
 		for _, elt := range params {
 			if elt.Spec == nil || elt.IsPrivateParameter() {
 				continue
@@ -129,8 +130,8 @@ func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix st
 		}
 	}
 
-	renderSpecsForParams(paramSpec.Spec.Params)
-	renderSpecsForParams(paramSpec.Spec.OneOf)
+	renderSpecsForParams(paramSpec.Spec.SortedParams())
+	renderSpecsForParams(paramSpec.Spec.SortedOneOf())
 
 	return specs
 }
@@ -146,8 +147,8 @@ func generateFromTerraformToPangoParameter(resourceTyp properties.ResourceType, 
 		pangoReturnType = fmt.Sprintf("%s.%s", pkgName, parentName)
 	}
 
-	paramSpecs := renderSpecsForParams(prop.Spec.Params, []string{parentName})
-	oneofSpecs := renderSpecsForParams(prop.Spec.OneOf, []string{parentName})
+	paramSpecs := renderSpecsForParams(prop.Spec.SortedParams(), []string{parentName})
+	oneofSpecs := renderSpecsForParams(prop.Spec.SortedOneOf(), []string{parentName})
 
 	switch resourceTyp {
 	case properties.ResourceEntry, properties.ResourceConfig:
@@ -179,7 +180,7 @@ func generateFromTerraformToPangoParameter(resourceTyp properties.ResourceType, 
 		panic("custom resources don't generate anything")
 	}
 
-	for _, elt := range prop.Spec.Params {
+	for _, elt := range prop.Spec.SortedParams() {
 		if elt.IsPrivateParameter() {
 			continue
 		}
@@ -187,7 +188,7 @@ func generateFromTerraformToPangoParameter(resourceTyp properties.ResourceType, 
 		specs = append(specs, generateFromTerraformToPangoSpec(pangoPrefix, terraformPrefix, elt, []string{})...)
 	}
 
-	for _, elt := range prop.Spec.OneOf {
+	for _, elt := range prop.Spec.SortedOneOf() {
 		if elt.IsPrivateParameter() {
 			continue
 		}
@@ -365,7 +366,7 @@ var {{ .TerraformName.LowerCamelCase }}_list types.Set
 {{- end }}
 
 {{- define "renderNestedValues" }}
-  {{- range .Spec.Params }}
+  {{- range .Spec.SortedParams }}
     {{- $terraformType := printf "%s%s" $.TerraformType (.TerraformName.CamelCase) }}
     {{- if eq .Type "" }}
 	// TODO {{ .TerraformName.CamelCase }} {{ .Type }}
@@ -382,17 +383,17 @@ var {{ .TerraformName.LowerCamelCase }}_list types.Set
     {{- end }}
   {{- end }}
 
-  {{- range .Spec.OneOf }}
-	// TODO: .Spec.OneOf {{ .TerraformName.CamelCase }}
+  {{- range .Spec.SortedOneOf }}
+	// TODO: .Spec.SortedOneOf {{ .TerraformName.CamelCase }}
   {{- end }}
 {{- end }}
 
 {{- define "renderObjectListElement" }}
 	entry := &{{ .TerraformType }} {
-  {{- range .Element.Spec.Params }}
+  {{- range .Element.Spec.SortedParams }}
 	{{- template "renderFromPangoToTfParameter" . }}
   {{- end }}
-  {{- range .Element.Spec.OneOf }}
+  {{- range .Element.Spec.SortedOneOf }}
 	{{- template "renderFromPangoToTfParameter" . }}
   {{- end }}
 	}
@@ -674,7 +675,7 @@ func RenderLocationStructs(resourceTyp properties.ResourceType, names *NameProvi
 		StructName: fmt.Sprintf("%sLocation", names.StructName),
 	}
 
-	for _, data := range spec.Locations {
+	for _, data := range spec.OrderedLocations() {
 		structName := fmt.Sprintf("%s%sLocation", names.StructName, data.Name.CamelCase)
 		tfTag := fmt.Sprintf("`tfsdk:\"%s\"`", data.Name.Underscore)
 		var structType string
@@ -701,7 +702,7 @@ func RenderLocationStructs(resourceTyp properties.ResourceType, names *NameProvi
 				continue
 			}
 
-			for _, elt := range i.Locations {
+			for _, elt := range i.OrderedLocations() {
 				if elt.Required {
 					fields = append(fields, fieldCtx{
 						Name: elt.Name.CamelCase,
@@ -712,7 +713,7 @@ func RenderLocationStructs(resourceTyp properties.ResourceType, names *NameProvi
 			}
 		}
 
-		for _, param := range data.Vars {
+		for _, param := range data.OrderedVars() {
 			paramTag := fmt.Sprintf("`tfsdk:\"%s\"`", param.Name.Underscore)
 			name := param.Name.CamelCase
 			if name == data.Name.CamelCase {
@@ -860,12 +861,12 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 	}
 
 	var locations []string
-	for _, loc := range spec.Locations {
+	for _, loc := range spec.OrderedLocations() {
 		locations = append(locations, loc.Name.Underscore)
 	}
 
 	var idx int
-	for _, data := range spec.Locations {
+	for _, data := range spec.OrderedLocations() {
 		var schemaType string
 		if len(data.Vars) == 0 {
 			schemaType = "rsschema.BoolAttribute"
@@ -880,7 +881,7 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 				continue
 			}
 
-			for _, elt := range i.Locations {
+			for _, elt := range i.OrderedLocations() {
 				if elt.Required {
 					variableAttrs = append(variableAttrs, attributeCtx{
 						Name:         elt.Name,
@@ -892,7 +893,7 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 			}
 		}
 
-		for _, variable := range data.Vars {
+		for _, variable := range data.OrderedVars() {
 			name := variable.Name
 			if name.CamelCase == data.Name.CamelCase {
 				name = properties.NewNameVariant("name")
@@ -956,11 +957,7 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 		idx += 1
 	}
 
-	locationName := &properties.NameVariant{
-		Underscore:     naming.Underscore("", "location", ""),
-		CamelCase:      naming.CamelCase("", "location", "", true),
-		LowerCamelCase: naming.CamelCase("", "location", "", false),
-	}
+	locationName := properties.NewNameVariant("location")
 
 	topAttribute := attributeCtx{
 		Name:         locationName,
@@ -1000,7 +997,7 @@ func createLocationMarshallerSpecs(names *NameProvider, spec *properties.Normali
 	var specs []marshallerSpec
 
 	var topFields []marshallerFieldSpec
-	for _, loc := range spec.Locations {
+	for _, loc := range spec.OrderedLocations() {
 		if len(loc.Vars) == 0 {
 			topFields = append(topFields, marshallerFieldSpec{
 				Name: loc.Name.CamelCase,
@@ -1018,7 +1015,7 @@ func createLocationMarshallerSpecs(names *NameProvider, spec *properties.Normali
 		})
 
 		var fields []marshallerFieldSpec
-		for _, field := range loc.Vars {
+		for _, field := range loc.OrderedVars() {
 			name := field.Name.CamelCase
 			tag := field.Name.Underscore
 			if name == loc.Name.CamelCase {
@@ -1039,7 +1036,7 @@ func createLocationMarshallerSpecs(names *NameProvider, spec *properties.Normali
 				continue
 			}
 
-			for _, elt := range i.Locations {
+			for _, elt := range i.OrderedLocations() {
 				if elt.Required {
 					fields = append(fields, marshallerFieldSpec{
 						Name: elt.Name.CamelCase,
@@ -1106,11 +1103,7 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 
 	var attributes []attributeCtx
 	if param.HasEntryName() {
-		name := &properties.NameVariant{
-			Underscore:     naming.Underscore("", "name", ""),
-			CamelCase:      naming.CamelCase("", "name", "", true),
-			LowerCamelCase: naming.CamelCase("", "name", "", false),
-		}
+		name := properties.NewNameVariant("name")
 
 		attributes = append(attributes, attributeCtx{
 			Package:    packageName,
@@ -1120,7 +1113,7 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		})
 	}
 
-	for _, elt := range param.Spec.Params {
+	for _, elt := range param.Spec.SortedParams() {
 		if elt.IsPrivateParameter() {
 			continue
 		}
@@ -1128,8 +1121,8 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		var functions []validatorFunctionCtx
 		if len(elt.EnumValues) > 0 && schemaTyp == properties.SchemaResource {
 			var values []string
-			for value := range elt.EnumValues {
-				values = append(values, value)
+			for _, elt := range elt.EnumValues {
+				values = append(values, elt.Name)
 			}
 
 			functions = append(functions, validatorFunctionCtx{
@@ -1159,7 +1152,7 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 	// validation is performed by ConflictsWith.
 	validatorFn := "ExactlyOneOf"
 	var expressions []string
-	for _, elt := range param.Spec.OneOf {
+	for _, elt := range param.Spec.SortedOneOf() {
 		if elt.IsPrivateParameter() {
 			continue
 		}
@@ -1177,7 +1170,7 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 	}
 
 	var idx int
-	for _, elt := range param.Spec.OneOf {
+	for _, elt := range param.Spec.SortedOneOf() {
 		if elt.IsPrivateParameter() {
 			continue
 		}
@@ -1230,7 +1223,7 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		Validators:    validators,
 	})
 
-	for _, elt := range param.Spec.Params {
+	for _, elt := range param.Spec.SortedParams() {
 		if elt.IsPrivateParameter() {
 			continue
 		}
@@ -1238,8 +1231,8 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		var functions []validatorFunctionCtx
 		if len(elt.EnumValues) > 0 && schemaTyp == properties.SchemaResource {
 			var values []string
-			for value := range elt.EnumValues {
-				values = append(values, value)
+			for _, elt := range elt.EnumValues {
+				values = append(values, elt.Name)
 			}
 
 			functions = append(functions, validatorFunctionCtx{
@@ -1266,7 +1259,7 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		}
 	}
 
-	for _, elt := range param.Spec.OneOf {
+	for _, elt := range param.Spec.SortedOneOf() {
 		if elt.IsPrivateParameter() {
 			continue
 		}
@@ -1374,11 +1367,7 @@ func createSchemaSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 	var attributes []attributeCtx
 
 	if len(spec.Locations) > 0 {
-		location := &properties.NameVariant{
-			Underscore:     naming.Underscore("", "location", ""),
-			CamelCase:      naming.CamelCase("", "location", "", true),
-			LowerCamelCase: naming.CamelCase("", "location", "", false),
-		}
+		location := properties.NewNameVariant("location")
 
 		attributes = append(attributes, attributeCtx{
 			Package:    packageName,
@@ -1389,11 +1378,7 @@ func createSchemaSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 	}
 
 	if resourceTyp == properties.ResourceUuidPlural {
-		position := &properties.NameVariant{
-			Underscore:     naming.Underscore("", "position", ""),
-			CamelCase:      naming.CamelCase("", "position", "", true),
-			LowerCamelCase: naming.CamelCase("", "position", "", false),
-		}
+		position := properties.NewNameVariant("position")
 
 		attributes = append(attributes, attributeCtx{
 			Package:      packageName,
@@ -1405,11 +1390,7 @@ func createSchemaSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 	}
 
 	listNameStr := spec.TerraformProviderConfig.PluralName
-	listName := &properties.NameVariant{
-		Underscore:     naming.Underscore("", listNameStr, ""),
-		CamelCase:      naming.CamelCase("", listNameStr, "", true),
-		LowerCamelCase: naming.CamelCase("", listNameStr, "", false),
-	}
+	listName := properties.NewNameVariant(listNameStr)
 
 	attributes = append(attributes, attributeCtx{
 		Package:     packageName,
@@ -1457,11 +1438,7 @@ func createSchemaSpecForEntrySingularModel(resourceTyp properties.ResourceType, 
 	var attributes []attributeCtx
 
 	if len(spec.Locations) > 0 {
-		location := &properties.NameVariant{
-			Underscore:     naming.Underscore("", "location", ""),
-			CamelCase:      naming.CamelCase("", "location", "", true),
-			LowerCamelCase: naming.CamelCase("", "location", "", false),
-		}
+		location := properties.NewNameVariant("location")
 
 		attributes = append(attributes, attributeCtx{
 			Package:    packageName,
@@ -1504,11 +1481,7 @@ func createSchemaSpecForEntryListModel(resourceTyp properties.ResourceType, sche
 	var attributes []attributeCtx
 
 	if len(spec.Locations) > 0 {
-		location := &properties.NameVariant{
-			Underscore:     naming.Underscore("", "location", ""),
-			CamelCase:      naming.CamelCase("", "location", "", true),
-			LowerCamelCase: naming.CamelCase("", "location", "", false),
-		}
+		location := properties.NewNameVariant("location")
 
 		attributes = append(attributes, attributeCtx{
 			Package:    packageName,
@@ -1519,11 +1492,7 @@ func createSchemaSpecForEntryListModel(resourceTyp properties.ResourceType, sche
 	}
 
 	listNameStr := spec.TerraformProviderConfig.PluralName
-	listName := &properties.NameVariant{
-		Underscore:     naming.Underscore("", listNameStr, ""),
-		CamelCase:      naming.CamelCase("", listNameStr, "", true),
-		LowerCamelCase: naming.CamelCase("", listNameStr, "", false),
-	}
+	listName := properties.NewNameVariant(listNameStr)
 
 	attributes = append(attributes, attributeCtx{
 		Package:     packageName,
@@ -1614,11 +1583,7 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 	var attributes []attributeCtx
 
 	if spec.HasEncryptedResources() {
-		name := &properties.NameVariant{
-			Underscore:     naming.Underscore("", "encrypted_values", ""),
-			CamelCase:      naming.CamelCase("", "encrypted_values", "", true),
-			LowerCamelCase: naming.CamelCase("", "encrypted_values", "", false),
-		}
+		name := properties.NewNameVariant("encrypted_values")
 
 		attributes = append(attributes, attributeCtx{
 			Package:     packageName,
@@ -1633,11 +1598,7 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 	// We don't add name for resources of type ResourceEntryPlural, as those resources
 	// handle names as map keys in the top-level model.
 	if spec.HasEntryName() && resourceTyp != properties.ResourceEntryPlural {
-		name := &properties.NameVariant{
-			Underscore:     naming.Underscore("", "name", ""),
-			CamelCase:      naming.CamelCase("", "name", "", true),
-			LowerCamelCase: naming.CamelCase("", "name", "", false),
-		}
+		name := properties.NewNameVariant("name")
 
 		var description string
 		if spec.Entry != nil && spec.Entry.Name != nil {
@@ -1653,7 +1614,7 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 		})
 	}
 
-	for _, elt := range spec.Spec.Params {
+	for _, elt := range spec.Spec.SortedParams() {
 		if elt.IsPrivateParameter() {
 			continue
 		}
@@ -1661,8 +1622,8 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 		var functions []validatorFunctionCtx
 		if len(elt.EnumValues) > 0 && schemaTyp == properties.SchemaResource {
 			var values []string
-			for value := range elt.EnumValues {
-				values = append(values, value)
+			for _, elt := range elt.EnumValues {
+				values = append(values, elt.Name)
 			}
 
 			functions = append(functions, validatorFunctionCtx{
@@ -1690,7 +1651,7 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 
 	validatorFn := "ExactlyOneOf"
 	var expressions []string
-	for _, elt := range spec.Spec.OneOf {
+	for _, elt := range spec.Spec.SortedOneOf() {
 		if elt.IsPrivateParameter() {
 			continue
 		}
@@ -1713,7 +1674,7 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 	}
 
 	var idx int
-	for _, elt := range spec.Spec.OneOf {
+	for _, elt := range spec.Spec.SortedOneOf() {
 		if elt.IsPrivateParameter() {
 			continue
 		}
@@ -2083,9 +2044,9 @@ type locationCtx struct {
 func renderLocationsGetContext(names *NameProvider, spec *properties.Normalization) []locationCtx {
 	var locations []locationCtx
 
-	for _, location := range spec.Locations {
+	for _, location := range spec.OrderedLocations() {
 		var fields []locationFieldCtx
-		for _, variable := range location.Vars {
+		for _, variable := range location.OrderedVars() {
 			name := variable.Name.CamelCase
 			if variable.Name.CamelCase == location.Name.CamelCase {
 				name = "Name"
@@ -2252,14 +2213,14 @@ func dataSourceStructContextForParam(structPrefix string, param *properties.Spec
 	}
 
 	if param.Spec != nil {
-		for _, elt := range param.Spec.Params {
+		for _, elt := range param.Spec.SortedParams() {
 			if elt.IsPrivateParameter() {
 				continue
 			}
 			fields = append(fields, structFieldSpec(elt, structName))
 		}
 
-		for _, elt := range param.Spec.OneOf {
+		for _, elt := range param.Spec.SortedOneOf() {
 			if elt.IsPrivateParameter() {
 				continue
 			}
@@ -2277,7 +2238,7 @@ func dataSourceStructContextForParam(structPrefix string, param *properties.Spec
 		return structs
 	}
 
-	for _, elt := range param.Spec.Params {
+	for _, elt := range param.Spec.SortedParams() {
 		if elt.IsPrivateParameter() {
 			continue
 		}
@@ -2286,7 +2247,7 @@ func dataSourceStructContextForParam(structPrefix string, param *properties.Spec
 		}
 	}
 
-	for _, elt := range param.Spec.OneOf {
+	for _, elt := range param.Spec.SortedOneOf() {
 		if elt.IsPrivateParameter() {
 			continue
 		}
@@ -2314,11 +2275,7 @@ func createStructSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 
 	if resourceTyp == properties.ResourceUuidPlural {
 
-		position := &properties.NameVariant{
-			Underscore:     naming.Underscore("", "position", ""),
-			CamelCase:      naming.CamelCase("", "position", "", true),
-			LowerCamelCase: naming.CamelCase("", "position", "", false),
-		}
+		position := properties.NewNameVariant("position")
 
 		fields = append(fields, datasourceStructFieldSpec{
 			Name: position.CamelCase,
@@ -2338,11 +2295,7 @@ func createStructSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 	}
 
 	listNameStr := spec.TerraformProviderConfig.PluralName
-	listName := &properties.NameVariant{
-		Underscore:     naming.Underscore("", listNameStr, ""),
-		CamelCase:      naming.CamelCase("", listNameStr, "", true),
-		LowerCamelCase: naming.CamelCase("", listNameStr, "", false),
-	}
+	listName := properties.NewNameVariant(listNameStr)
 
 	tag := fmt.Sprintf("`tfsdk:\"%s\"`", listName.Underscore)
 	fields = append(fields, datasourceStructFieldSpec{
@@ -2394,11 +2347,7 @@ func createStructSpecForEntryListModel(resourceTyp properties.ResourceType, sche
 	}
 
 	listNameStr := spec.TerraformProviderConfig.PluralName
-	listName := &properties.NameVariant{
-		Underscore:     naming.Underscore("", listNameStr, ""),
-		CamelCase:      naming.CamelCase("", listNameStr, "", true),
-		LowerCamelCase: naming.CamelCase("", listNameStr, "", false),
-	}
+	listName := properties.NewNameVariant(listNameStr)
 
 	tag := fmt.Sprintf("`tfsdk:\"%s\"`", listName.Underscore)
 	fields = append(fields, datasourceStructFieldSpec{
@@ -2495,7 +2444,7 @@ func createStructSpecForNormalization(resourceTyp properties.ResourceType, struc
 		})
 	}
 
-	for _, elt := range spec.Spec.Params {
+	for _, elt := range spec.Spec.SortedParams() {
 		if elt.IsPrivateParameter() {
 			continue
 		}
@@ -2506,7 +2455,7 @@ func createStructSpecForNormalization(resourceTyp properties.ResourceType, struc
 		}
 	}
 
-	for _, elt := range spec.Spec.OneOf {
+	for _, elt := range spec.Spec.SortedOneOf() {
 		if elt.IsPrivateParameter() {
 			continue
 		}
@@ -2612,11 +2561,7 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 		}
 	}
 
-	listAttributeVariant := &properties.NameVariant{
-		Underscore:     naming.Underscore("", listAttribute, ""),
-		CamelCase:      naming.CamelCase("", listAttribute, "", true),
-		LowerCamelCase: naming.CamelCase("", listAttribute, "", false),
-	}
+	listAttributeVariant := properties.NewNameVariant(listAttribute)
 
 	var resourceIsMap bool
 	if resourceTyp == properties.ResourceEntryPlural {
@@ -2634,7 +2579,7 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 		"serviceName":           naming.CamelCase("", serviceName, "", false),
 		"paramSpec":             paramSpec.Spec,
 		"resourceSDKName":       resourceSDKName,
-		"locations":             paramSpec.Locations,
+		"locations":             paramSpec.OrderedLocations(),
 	}
 
 	return processTemplate(tmpl, "resource-create-function", data, funcMap)
@@ -2664,11 +2609,7 @@ func DataSourceReadFunction(resourceTyp properties.ResourceType, names *NameProv
 		}
 	}
 
-	listAttributeVariant := &properties.NameVariant{
-		Underscore:     naming.Underscore("", listAttribute, ""),
-		CamelCase:      naming.CamelCase("", listAttribute, "", true),
-		LowerCamelCase: naming.CamelCase("", listAttribute, "", false),
-	}
+	listAttributeVariant := properties.NewNameVariant(listAttribute)
 
 	var resourceIsMap bool
 	if resourceTyp == properties.ResourceEntryPlural {
@@ -2686,7 +2627,7 @@ func DataSourceReadFunction(resourceTyp properties.ResourceType, names *NameProv
 		"dataSourceStructName":  names.DataSourceStructName,
 		"serviceName":           naming.CamelCase("", serviceName, "", false),
 		"resourceSDKName":       resourceSDKName,
-		"locations":             paramSpec.Locations,
+		"locations":             paramSpec.OrderedLocations(),
 	}
 
 	funcMap := template.FuncMap{
@@ -2730,11 +2671,7 @@ func ResourceReadFunction(resourceTyp properties.ResourceType, names *NameProvid
 		}
 	}
 
-	listAttributeVariant := &properties.NameVariant{
-		Underscore:     naming.Underscore("", listAttribute, ""),
-		CamelCase:      naming.CamelCase("", listAttribute, "", true),
-		LowerCamelCase: naming.CamelCase("", listAttribute, "", false),
-	}
+	listAttributeVariant := properties.NewNameVariant(listAttribute)
 
 	var resourceIsMap bool
 	if resourceTyp == properties.ResourceEntryPlural {
@@ -2753,7 +2690,7 @@ func ResourceReadFunction(resourceTyp properties.ResourceType, names *NameProvid
 		"resourceStructName":    names.ResourceStructName,
 		"serviceName":           naming.CamelCase("", serviceName, "", false),
 		"resourceSDKName":       resourceSDKName,
-		"locations":             paramSpec.Locations,
+		"locations":             paramSpec.OrderedLocations(),
 	}
 
 	funcMap := template.FuncMap{
@@ -2797,11 +2734,7 @@ func ResourceUpdateFunction(resourceTyp properties.ResourceType, names *NameProv
 		}
 	}
 
-	listAttributeVariant := &properties.NameVariant{
-		Underscore:     naming.Underscore("", listAttribute, ""),
-		CamelCase:      naming.CamelCase("", listAttribute, "", true),
-		LowerCamelCase: naming.CamelCase("", listAttribute, "", false),
-	}
+	listAttributeVariant := properties.NewNameVariant(listAttribute)
 
 	var resourceIsMap bool
 	if resourceTyp == properties.ResourceEntryPlural {
@@ -2864,11 +2797,7 @@ func ResourceDeleteFunction(resourceTyp properties.ResourceType, names *NameProv
 		}
 	}
 
-	listAttributeVariant := &properties.NameVariant{
-		Underscore:     naming.Underscore("", listAttribute, ""),
-		CamelCase:      naming.CamelCase("", listAttribute, "", true),
-		LowerCamelCase: naming.CamelCase("", listAttribute, "", false),
-	}
+	listAttributeVariant := properties.NewNameVariant(listAttribute)
 
 	var resourceIsMap bool
 	if resourceTyp == properties.ResourceEntryPlural {
@@ -3152,10 +3081,20 @@ func RenderResourceFuncMap(names map[string]properties.TerraformProviderSpecMeta
 	}
 
 	var entries []entry
-	for key, metadata := range names {
+
+	keys := make([]string, 0, len(names))
+	for elt := range names {
+		keys = append(keys, elt)
+	}
+
+	sort.Strings(keys)
+
+	for _, key := range keys {
 		if key == "" {
 			continue
 		}
+
+		metadata := names[key]
 
 		if metadata.Flags&properties.TerraformSpecImportable == 0 {
 			continue

@@ -57,17 +57,17 @@ func specMatchFunctionName(parent []string, param *properties.SpecParam) string 
 func NestedSpecMatchesFunction(spec *properties.Spec) string {
 	var builder strings.Builder
 
-	defineSpecMatchesFunction([]string{}, spec.Params, &builder)
-	defineSpecMatchesFunction([]string{}, spec.OneOf, &builder)
+	defineSpecMatchesFunction([]string{}, spec.SortedParams(), &builder)
+	defineSpecMatchesFunction([]string{}, spec.SortedOneOf(), &builder)
 
 	return builder.String()
 }
 
-func defineSpecMatchesFunction(parent []string, params map[string]*properties.SpecParam, builder *strings.Builder) {
+func defineSpecMatchesFunction(parent []string, params []*properties.SpecParam, builder *strings.Builder) {
 	for _, param := range params {
 		if param.Spec != nil {
-			defineSpecMatchesFunction(append(parent, param.Name.CamelCase), param.Spec.Params, builder)
-			defineSpecMatchesFunction(append(parent, param.Name.CamelCase), param.Spec.OneOf, builder)
+			defineSpecMatchesFunction(append(parent, param.Name.CamelCase), param.Spec.SortedParams(), builder)
+			defineSpecMatchesFunction(append(parent, param.Name.CamelCase), param.Spec.SortedOneOf(), builder)
 
 			renderSpecMatchesFunctionSignature(parent, builder, param)
 			checkIfVariablesAreNil(builder)
@@ -119,10 +119,10 @@ func renderInSpecMatchesFunctionIfToCheckIfVariablesMatches(parent []string, bui
 }
 
 func renderSpecMatchBodyForTypicalParam(parent []string, param *properties.SpecParam, builder *strings.Builder) {
-	for _, subParam := range param.Spec.Params {
+	for _, subParam := range param.Spec.SortedParams() {
 		renderInSpecMatchesFunctionIfToCheckIfVariablesMatches(parent, builder, param, subParam)
 	}
-	for _, subParam := range param.Spec.OneOf {
+	for _, subParam := range param.Spec.SortedOneOf() {
 		renderInSpecMatchesFunctionIfToCheckIfVariablesMatches(parent, builder, param, subParam)
 	}
 }
@@ -130,10 +130,10 @@ func renderSpecMatchBodyForTypicalParam(parent []string, param *properties.SpecP
 func renderSpecMatchBodyForExtendedEntry(parent []string, builder *strings.Builder, param *properties.SpecParam) {
 	builder.WriteString("for _, a := range a {\n")
 	builder.WriteString("for _, b := range b {\n")
-	for _, subParam := range param.Spec.Params {
+	for _, subParam := range param.Spec.SortedParams() {
 		renderInSpecMatchesFunctionIfToCheckIfVariablesMatches(parent, builder, param, subParam)
 	}
-	for _, subParam := range param.Spec.OneOf {
+	for _, subParam := range param.Spec.SortedOneOf() {
 		renderInSpecMatchesFunctionIfToCheckIfVariablesMatches(parent, builder, param, subParam)
 	}
 	builder.WriteString("}\n")

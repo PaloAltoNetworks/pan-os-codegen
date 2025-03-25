@@ -639,7 +639,7 @@ return err
                                     {{- else}}
                     } else if vn.Gte(version{{createGoSuffixFromVersion $version}}) {
                 {{- end}}
-                {{- range $_, $param := $.Spec.Params}}
+                {{- range $_, $param := $.Spec.SortedParams}}
                     {{- if paramSupportedInVersion $param $version}}
                         {{- range $_, $profile := $param.Profiles}}
                             {{- range $_, $xpath := xmlPathSuffixes $param}}
@@ -648,12 +648,12 @@ return err
                         {{- end}}
                     {{- end}}
                 {{- end}}
-                {{- range $_, $param := $.Spec.OneOf}}
+                {{- range $_, $param := $.Spec.SortedOneOf}}
                 {{- end}}
             {{- end}}
         {{- end}}
         } else {
-        {{- range $_, $param := $.Spec.Params}}
+        {{- range $_, $param := $.Spec.SortedParams}}
             {{- if paramSupportedInVersion $param ""}}
                 {{- range $_, $profile := $param.Profiles}}
                     {{- range $_, $xpath := xmlPathSuffixes $param}}
@@ -662,12 +662,12 @@ return err
                 {{- end}}
             {{- end}}
         {{- end}}
-        {{- range $_, $param := $.Spec.OneOf}}
+        {{- range $_, $param := $.Spec.SortedOneOf}}
         {{- end}}
         }
     {{- else}}
         {{- range $version := .SupportedVersionRanges }}
-            {{- range $_, $param := $.Spec.Params}}
+            {{- range $_, $param := $.Spec.SortedParams}}
                 {{- if paramSupportedInVersion $param $version.Minimum}}
                     {{- range $_, $profile := $param.Profiles}}
                         {{- range $_, $xpath := xmlPathSuffixes $param}}
@@ -676,7 +676,7 @@ return err
                     {{- end}}
                 {{- end}}
             {{- end}}
-            {{- range $_, $param := $.Spec.OneOf}}
+            {{- range $_, $param := $.Spec.SortedOneOf}}
             {{- end}}
         {{- end}}
     {{- end}}
