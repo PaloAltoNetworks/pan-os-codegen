@@ -141,11 +141,11 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 		"IsEntry":      func() bool { return spec.HasEntryName() && !spec.HasEntryUuid() },
 		"HasImports":   func() bool { return len(spec.Imports) > 0 },
 
-		"IsCustom":     func() bool { return spec.TerraformProviderConfig.ResourceType == properties.TerraformResourceCustom },
-		"IsUuid":       func() bool { return spec.HasEntryUuid() },
-		"IsConfig":     func() bool { return !spec.HasEntryName() && !spec.HasEntryUuid() },
-		"IsEphemeral":  func() bool { return spec.TerraformProviderConfig.Ephemeral },
-    "ListAttribute": func() *properties.NameVariant {
+		"IsCustom":    func() bool { return spec.TerraformProviderConfig.ResourceType == properties.TerraformResourceCustom },
+		"IsUuid":      func() bool { return spec.HasEntryUuid() },
+		"IsConfig":    func() bool { return !spec.HasEntryName() && !spec.HasEntryUuid() },
+		"IsEphemeral": func() bool { return spec.TerraformProviderConfig.Ephemeral },
+		"ListAttribute": func() *properties.NameVariant {
 			return properties.NewNameVariant(spec.TerraformProviderConfig.PluralName)
 		},
 		"HasLocations": func() bool { return len(spec.Locations) > 0 },
