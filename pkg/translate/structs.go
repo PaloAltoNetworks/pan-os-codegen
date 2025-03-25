@@ -26,23 +26,34 @@ func LocationType(location *properties.Location, pointer bool) string {
 }
 
 // NestedSpecs goes through all params and one ofs (recursively) and returns map of all nested specs.
-func NestedSpecs(spec *properties.Spec) (map[string]*properties.Spec, error) {
-	nestedSpecs := make(map[string]*properties.Spec)
+func NestedSpecs(spec *properties.Spec) (map[string]NestedSpec, error) {
+	nestedSpecs := make(map[string]NestedSpec)
+
+	fmt.Println("HELLO1")
+	if spec == nil {
+		panic("spec == nil")
+	}
 
 	checkNestedSpecs([]string{}, spec, nestedSpecs)
+	fmt.Println("END1")
 
 	return nestedSpecs, nil
 }
 
-func checkNestedSpecs(parent []string, spec *properties.Spec, nestedSpecs map[string]*properties.Spec) {
+type NestedSpec struct {
+	ParentIsList bool
+	Spec         *properties.Spec
+}
+
+func checkNestedSpecs(parent []string, spec *properties.Spec, nestedSpecs map[string]NestedSpec) {
 	for _, param := range spec.SortedParams() {
 		paramKey := append(parent, param.Name.CamelCase)
 		updateNestedSpecs(paramKey, param, nestedSpecs)
 		if len(param.Profiles) > 0 && param.Profiles[0].Type == "entry" && param.Items != nil && param.Items.Type == "entry" {
-			fmt.Printf("UPDATING Params %s\n", strings.Join(paramKey, ">"))
-			spec, modified := addNameAsParamForNestedSpec(paramKey, nestedSpecs)
+			nested, modified := addNameAsParamForNestedSpec(paramKey, nestedSpecs)
+			nested.ParentIsList = true
 			if modified {
-				spec.HackFixInjectedNameSpecOrder()
+				nested.Spec.HackFixInjectedNameSpecOrder()
 			}
 		}
 	}
@@ -50,29 +61,32 @@ func checkNestedSpecs(parent []string, spec *properties.Spec, nestedSpecs map[st
 		paramKey := append(parent, param.Name.CamelCase)
 		updateNestedSpecs(paramKey, param, nestedSpecs)
 		if len(param.Profiles) > 0 && param.Profiles[0].Type == "entry" && param.Items != nil && param.Items.Type == "entry" {
-			fmt.Printf("UPDATING OneOf %s\n", strings.Join(paramKey, ">"))
-			spec, modified := addNameAsParamForNestedSpec(paramKey, nestedSpecs)
+			nested, modified := addNameAsParamForNestedSpec(paramKey, nestedSpecs)
+			nested.ParentIsList = true
 			if modified {
-				spec.HackFixInjectedNameSpecOrder()
+				nested.Spec.HackFixInjectedNameSpecOrder()
 			}
 		}
 	}
 }
 
-func updateNestedSpecs(parent []string, param *properties.SpecParam, nestedSpecs map[string]*properties.Spec) {
+func updateNestedSpecs(parent []string, param *properties.SpecParam, nestedSpecs map[string]NestedSpec) {
 	if param.Spec != nil {
-		nestedSpecs[strings.Join(parent, "")] = param.Spec
+		nestedSpecs[strings.Join(parent, "")] = NestedSpec{
+			Spec: param.Spec,
+		}
+
 		checkNestedSpecs(parent, param.Spec, nestedSpecs)
 	}
 }
 
-func addNameAsParamForNestedSpec(parent []string, nestedSpecs map[string]*properties.Spec) (*properties.Spec, bool) {
-	spec := nestedSpecs[strings.Join(parent, "")]
-	if _, found := spec.Params["name"]; found {
-		return nil, false
+func addNameAsParamForNestedSpec(parent []string, nestedSpecs map[string]NestedSpec) (*NestedSpec, bool) {
+	nested := nestedSpecs[strings.Join(parent, "")]
+	if _, found := nested.Spec.Params["name"]; found {
+		return &nested, false
 	}
 
-	spec.Params["name"] = &properties.SpecParam{
+	nested.Spec.Params["name"] = &properties.SpecParam{
 		Name: &properties.NameVariant{
 			Underscore: "name",
 			CamelCase:  "Name",
@@ -87,7 +101,7 @@ func addNameAsParamForNestedSpec(parent []string, nestedSpecs map[string]*proper
 		},
 	}
 
-	return spec, true
+	return &nested, true
 }
 
 const importLocationStructTmpl = `
@@ -313,17 +327,11 @@ func createImportLocationSpecsForLocation(location properties.ImportLocation) im
 func createImportSpecsForNormalization(spec *properties.Normalization) []importSpec {
 	var specs []importSpec
 
-	if spec.Name == "Ethernet interface" {
-		log.Printf("FOUND")
-	}
-
 	for _, imp := range spec.Imports {
 		var locations []importLocationSpec
-		fmt.Printf("HELLO\n")
 		for _, location := range imp.OrderedLocations() {
 			locations = append(locations, createImportLocationSpecsForLocation(*location))
 		}
-		fmt.Printf("END\n")
 
 		specs = append(specs, importSpec{
 			Variant:   imp.Variant,

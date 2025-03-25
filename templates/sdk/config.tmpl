@@ -117,12 +117,12 @@ return configList, nil
     Misc map[string][]generic.Xml
     }
 
-    {{- range $name, $spec := nestedSpecs $.Spec }}
+    {{- range $name, $nested := nestedSpecs $.Spec }}
         type {{$name}}{{createGoSuffixFromVersion nil}} struct {
-        {{- range $_, $param := $spec.SortedParams}}
+        {{- range $_, $param := $nested.Spec.SortedParams}}
             {{$param.Name.CamelCase}} {{specParamType $name $param}}
         {{- end}}
-        {{- range $_, $param := $spec.SortedOneOf}}
+        {{- range $_, $param := $nested.Spec.SortedOneOf}}
             {{$param.Name.CamelCase}} {{specParamType $name $param}}
         {{- end}}
         }
@@ -139,13 +139,13 @@ return configList, nil
       {{- template "configXmlStructTmpl" Map "Version" $version.Minimum }}
     {{- end}}
 
-    {{- range $name, $spec := nestedSpecs $.Spec }}
-      {{- template "configXmlChildStructTmpl" Map "Name" $name "Spec" $spec "Version" nil }}
+    {{- range $name, $nested := nestedSpecs $.Spec }}
+      {{- template "configXmlChildStructTmpl" Map "Name" $name "ParentIsList" $nested.ParentIsList "Spec" $nested.Spec "Version" nil }}
     {{- end }}
 
     {{- range $version := .SupportedVersionRanges }}
-      {{- range $name, $spec := nestedSpecs $.Spec }}
-        {{- template "configXmlChildStructTmpl" Map "Name" $name "Spec" $spec "Version" $version.Minimum }}
+      {{- range $name, $nested := nestedSpecs $.Spec }}
+        {{- template "configXmlChildStructTmpl" Map "Name" $name "ParentIsList" $nested.ParentIsList "Spec" $nested.Spec "Version" $version.Minimum }}
       {{- end}}
     {{- end}}
 

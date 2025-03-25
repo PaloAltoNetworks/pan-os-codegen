@@ -29,7 +29,7 @@ type entryXml{{createGoSuffixFromVersion $.Version}} struct {
 {{- define "entryXmlChildStructTmpl" }}
 type {{ .Name }}Xml{{createGoSuffixFromVersion $.Version}} struct {
   {{- range $_, $param := $.Spec.Params}}
-    {{- if eq $param.Name.CamelCase "Name"}}
+    {{- if and ($.ParentIsList) (eq $param.Name.CamelCase "Name") }}
 	XMLName xml.Name `xml:"entry"`
     {{- end}}
     {{- if paramSupportedInVersion $param $.Version}}
@@ -129,12 +129,12 @@ return entryList, nil
     Misc map[string][]generic.Xml
     }
 
-    {{ range $name, $spec := nestedSpecs $.Spec }}
+    {{ range $name, $nested := nestedSpecs $.Spec }}
         type {{$name}}{{createGoSuffixFromVersion nil}} struct {
-        {{- range $param := $spec.SortedParams}}
+        {{- range $param := $nested.Spec.SortedParams}}
             {{$param.Name.CamelCase}} {{specParamType $name $param}}
         {{- end}}
-        {{- range $param := $spec.SortedOneOf}}
+        {{- range $param := $nested.Spec.SortedOneOf}}
             {{$param.Name.CamelCase}} {{specParamType $name $param}}
         {{- end}}
         }
@@ -155,13 +155,13 @@ return entryList, nil
         {{- template "entryXmlStructTmpl" Map "Spec" $.Spec "Version" $version.Minimum }}
     {{- end}}
 
-    {{- range $name, $spec := nestedSpecs $.Spec }}
-      {{- template "entryXmlChildStructTmpl" Map "Name" $name "Spec" $spec "Version" nil }}
+    {{- range $name, $nested := nestedSpecs $.Spec }}
+      {{- template "entryXmlChildStructTmpl" Map "Name" $name "ParentIsList" $nested.ParentIsList "Spec" $nested.Spec "Version" nil }}
     {{- end }}
 
     {{- range $version := .SupportedVersionRanges }}
-      {{- range $name, $spec := nestedSpecs $.Spec }}
-        {{- template "entryXmlChildStructTmpl" Map "Name" $name "Spec" $spec "Version" $version.Minimum }}
+      {{- range $name, $nested := nestedSpecs $.Spec }}
+        {{- template "entryXmlChildStructTmpl" Map "Name" $name "ParentIsList" $nested.ParentIsList "Spec" $nested.Spec "Version" $version.Minimum }}
       {{- end }}
     {{- end}}
 

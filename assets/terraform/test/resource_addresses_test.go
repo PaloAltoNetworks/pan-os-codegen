@@ -62,8 +62,7 @@ func TestAccAddresses(t *testing.T) {
 							"disable_override": config.StringVariable("no"),
 						}),
 						fmt.Sprintf("%s-fqdn", prefix): config.ObjectVariable(map[string]config.Variable{
-							"fqdn":             config.StringVariable("example.com"),
-							"disable_override": config.StringVariable("yes"),
+							"fqdn": config.StringVariable("example.com"),
 						}),
 					}),
 				},
@@ -105,7 +104,7 @@ func TestAccAddresses(t *testing.T) {
 							fmt.Sprintf("%s-fqdn", prefix): knownvalue.ObjectExact(map[string]knownvalue.Check{
 								"tags":             knownvalue.Null(),
 								"description":      knownvalue.Null(),
-								"disable_override": knownvalue.StringExact("yes"),
+								"disable_override": knownvalue.Null(),
 								"ip_netmask":       knownvalue.Null(),
 								"ip_range":         knownvalue.Null(),
 								"ip_wildcard":      knownvalue.Null(),
