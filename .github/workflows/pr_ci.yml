@@ -93,6 +93,7 @@ jobs:
           cd ../generated/terraform-provider-panos/
           go build -o terraform-provider-panos
           mkdir -p ~/.terraform.d/plugins/registry.terraform.io/PaloAltoNetworks/panos/1.0.0/linux_amd64
+          mv terraform-provider-panos ~/.terraform.d/plugins/registry.terraform.io/PaloAltoNetworks/panos/1.0.0/linux_amd64
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
