@@ -2,7 +2,7 @@
 resource "panos_security_policy_rules" "name" {
   location = {
     device_group = {
-      name = panos_device_group.parent.name
+      name = panos_device_group.example.name
     }
   }
 
