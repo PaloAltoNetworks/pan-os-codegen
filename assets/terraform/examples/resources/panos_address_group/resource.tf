@@ -10,14 +10,6 @@ resource "panos_address_group" "example" {
   static      = [for k in panos_address.example : k.name]
 }
 
-resource "panos_device_group" "example" {
-  location = {
-    panorama = {}
-  }
-
-  name = "example-device-group"
-}
-
 resource "panos_address" "example" {
   location = {
     device_group = {
@@ -40,4 +32,12 @@ resource "panos_address" "example" {
   description = each.value.description
   ip_netmask  = lookup(each.value, "ip_netmask", null)
   fqdn        = lookup(each.value, "fqdn", null)
+}
+
+resource "panos_device_group" "example" {
+  location = {
+    panorama = {}
+  }
+
+  name = "example-device-group"
 }

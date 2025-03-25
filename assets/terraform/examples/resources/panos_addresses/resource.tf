@@ -17,6 +17,14 @@ resource "panos_addresses" "example" {
   }
 }
 
+resource "panos_device_group" "example" {
+  location = {
+    panorama = {}
+  }
+
+  name = "example-device-group"
+}
+
 # Provider function to get the address values
 
 # Example 1: Get the value of a single address object.

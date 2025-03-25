@@ -14,3 +14,13 @@ resource "panos_interface_management_profile" "name" {
   ]
 
 }
+
+resource "panos_template" "example" {
+
+  location = {
+    panorama = {}
+  }
+  name        = "template-example"
+  description = "example template stack"
+
+}

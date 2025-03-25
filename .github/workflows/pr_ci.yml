@@ -91,8 +91,58 @@ jobs:
       - name: Build provider
         run: |
           cd ../generated/terraform-provider-panos/
-          go build
-          echo "provider_path=$(realpath ../generated/terraform-provider-panos/terraform-provider-panos)" >> $GITHUB_ENV
+          go build -o terraform-provider-panos
+          mkdir -p ~/.terraform.d/plugins/registry.terraform.io/PaloAltoNetworks/panos/1.0.0/linux_amd64
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.11.2'
+
+      - name: Validate Terraform Examples
+        working-directory: terraform/examples
+        run: |
+          # Create provider configuration template
+          cat << EOF > provider.tf.template
+          terraform {
+            required_providers {
+              panos = {
+                source = "PaloAltoNetworks/panos"
+                version = "1.0.0"
+              }
+            }
+          }
+  
+          provider "panos" {
+            alias = "ci"
+          }
+          EOF
+  
+          # Find all directories containing .tf files except ephemeral-resources
+          DIRS=$(find . -type f -name "*.tf" -exec dirname {} \; | sort -u)
+          
+          # Loop through each directory and validate
+          for dir in $DIRS; do
+          
+            # Copy provider configuration for validation
+            cp provider.tf.template $dir/provider.tf
+            
+            echo "Validating configurations in: $dir"
+            cd "$dir"
+
+            # Initialize and validate
+            terraform init -no-color
+            terraform validate -no-color
+            
+            # Clean up provider configuration
+            rm provider.tf
+            
+            # Return to the examples directory
+            cd - > /dev/null
+          done
+          
+          # Clean up template
+          rm provider.tf.template
 
       - name: Workaround actions/upload-artifact#176
         run: |
