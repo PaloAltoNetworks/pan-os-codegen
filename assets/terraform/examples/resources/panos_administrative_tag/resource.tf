@@ -10,3 +10,11 @@ resource "panos_administrative_tag" "example" {
   name  = "foo"
   color = "color1"
 }
+
+resource "panos_device_group" "example" {
+  location = {
+    panorama = {}
+  }
+
+  name = "example-device-group"
+}

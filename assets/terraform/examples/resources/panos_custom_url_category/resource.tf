@@ -13,3 +13,11 @@ resource "panos_custom_url_category" "name" {
   ]
 
 }
+
+resource "panos_device_group" "example" {
+  location = {
+    panorama = {}
+  }
+
+  name = "example-device-group"
+}

@@ -31,3 +31,11 @@ resource "panos_service_group" "example" {
     panos_service.example.name
   ]
 }
+
+resource "panos_device_group" "example" {
+  location = {
+    panorama = {}
+  }
+
+  name = "example-device-group"
+}

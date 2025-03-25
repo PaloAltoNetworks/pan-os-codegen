@@ -26,5 +26,5 @@ provider "panos" {
   hostname = "<hostname>"
   api_key  = ephemeral.panos_api_key.example.api_key
 
-  provider = panos.user1
+  alias = "user1"
 }
