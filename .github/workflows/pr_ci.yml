@@ -100,7 +100,7 @@ jobs:
           terraform_version: '1.11.2'
 
       - name: Validate Terraform Examples
-        working-directory: terraform/examples
+        working-directory: assets/terraform/examples
         run: |
           # Create provider configuration template
           cat << EOF > provider.tf.template
