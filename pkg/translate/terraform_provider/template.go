@@ -1,19 +1,5 @@
 package terraform_provider
 
-const resourceModelNestedStruct = `
-type {{ .structName }}Object struct {
-{{- if .HasEntryName }}
-	Name types.String ` + "`" + `tfsdk:"name"` + "`" + `
-{{- end }}
-	{{- range $pName, $pParam := $.Spec.Params -}}
-		{{- structItems $pName $pParam -}}
-	{{- end}}
-	{{- range $pName, $pParam := $.Spec.OneOf -}}
-		{{- structItems $pName $pParam  -}}
-	{{- end}}
-}
-`
-
 const resourceConfigEntry = `
 {{- range .Entries }}
 	{{- if eq .Type "list" }}

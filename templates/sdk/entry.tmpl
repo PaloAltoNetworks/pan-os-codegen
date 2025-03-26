@@ -29,7 +29,7 @@ type entryXml{{createGoSuffixFromVersion $.Version}} struct {
 {{- define "entryXmlChildStructTmpl" }}
 type {{ .Name }}Xml{{createGoSuffixFromVersion $.Version}} struct {
   {{- range $_, $param := $.Spec.Params}}
-    {{- if eq $param.Name.CamelCase "Name"}}
+    {{- if and ($.ParentIsList) (eq $param.Name.CamelCase "Name") }}
 	XMLName xml.Name `xml:"entry"`
     {{- end}}
     {{- if paramSupportedInVersion $param $.Version}}
@@ -129,12 +129,12 @@ return entryList, nil
     Misc map[string][]generic.Xml
     }
 
-    {{ range $name, $spec := nestedSpecs $.Spec }}
+    {{ range $name, $nested := nestedSpecs $.Spec }}
         type {{$name}}{{createGoSuffixFromVersion nil}} struct {
-        {{- range $_, $param := $spec.Params}}
+        {{- range $param := $nested.Spec.SortedParams}}
             {{$param.Name.CamelCase}} {{specParamType $name $param}}
         {{- end}}
-        {{- range $_, $param := $spec.OneOf}}
+        {{- range $param := $nested.Spec.SortedOneOf}}
             {{$param.Name.CamelCase}} {{specParamType $name $param}}
         {{- end}}
         }
@@ -155,13 +155,13 @@ return entryList, nil
         {{- template "entryXmlStructTmpl" Map "Spec" $.Spec "Version" $version.Minimum }}
     {{- end}}
 
-    {{- range $name, $spec := nestedSpecs $.Spec }}
-      {{- template "entryXmlChildStructTmpl" Map "Name" $name "Spec" $spec "Version" nil }}
+    {{- range $name, $nested := nestedSpecs $.Spec }}
+      {{- template "entryXmlChildStructTmpl" Map "Name" $name "ParentIsList" $nested.ParentIsList "Spec" $nested.Spec "Version" nil }}
     {{- end }}
 
     {{- range $version := .SupportedVersionRanges }}
-      {{- range $name, $spec := nestedSpecs $.Spec }}
-        {{- template "entryXmlChildStructTmpl" Map "Name" $name "Spec" $spec "Version" $version.Minimum }}
+      {{- range $name, $nested := nestedSpecs $.Spec }}
+        {{- template "entryXmlChildStructTmpl" Map "Name" $name "ParentIsList" $nested.ParentIsList "Spec" $nested.Spec "Version" $version.Minimum }}
       {{- end }}
     {{- end}}
 
@@ -178,7 +178,7 @@ return entryList, nil
     return e.Name, nil
     }
 
-    {{- range $_, $param := .Spec.Params}}
+    {{- range $_, $param := .Spec.SortedParams}}
         if v == "{{$param.Name.Underscore}}" || v == "{{$param.Name.CamelCase}}" {
         return e.{{$param.Name.CamelCase}}, nil
         }
@@ -188,7 +188,7 @@ return entryList, nil
             }
         {{- end}}
     {{- end}}
-    {{- range $_, $param := .Spec.OneOf}}
+    {{- range $_, $param := .Spec.SortedOneOf}}
         if v == "{{$param.Name.Underscore}}" || v == "{{$param.Name.CamelCase}}" {
         return e.{{$param.Name.CamelCase}}, nil
         }
@@ -231,12 +231,12 @@ return entryList, nil
     }
 
     // Don't compare Name.
-    {{- range $_, $param := .Spec.Params}}
+    {{- range $_, $param := .Spec.SortedParams}}
         if !{{specMatchesFunction $param}}(a.{{$param.Name.CamelCase}}, b.{{$param.Name.CamelCase}}) {
         return false
         }
     {{- end}}
-    {{- range $_, $param := .Spec.OneOf}}
+    {{- range $_, $param := .Spec.SortedOneOf}}
         if !{{specMatchesFunction $param}}(a.{{$param.Name.CamelCase}}, b.{{$param.Name.CamelCase}}) {
         return false
         }

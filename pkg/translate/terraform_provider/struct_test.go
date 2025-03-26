@@ -1,7 +1,6 @@
 package terraform_provider_test
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -40,27 +39,4 @@ func TestTFIDStruct(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Contains(t, result, "Name     string          `json:\"name\"`")
 	assert.Contains(t, result, "Location TestStruct.Location `json:\"location\"`")
-}
-
-func TestCreateNestedStruct(t *testing.T) {
-	// Given
-	paramName := "nested"
-	paramProp := &properties.SpecParam{
-		Spec: &properties.Spec{
-			Params: map[string]*properties.SpecParam{
-				"inner": {Type: "string"},
-			},
-		},
-	}
-	structName := "Base"
-	nestedStructString := new(strings.Builder)
-	createdStructs := make(map[string]bool)
-
-	// When
-	err := terraform_provider.CreateNestedStruct(paramName, paramProp, structName, nestedStructString, createdStructs)
-
-	// Then
-	assert.NoError(t, err)
-	assert.NotEmpty(t, nestedStructString.String())
-	assert.Contains(t, nestedStructString.String(), "BaseNestedObject")
 }

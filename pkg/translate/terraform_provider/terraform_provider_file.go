@@ -219,7 +219,6 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 			return ResourceImportStateFunction(resourceTyp, names, spec)
 		},
 		"ParamToModelResource": ParamToModelResource,
-		"ModelNestedStruct":    ModelNestedStruct,
 		"ResourceParamToSchema": func(paramName string, paramParameters interface{}) (string, error) {
 			return ParamToSchemaResource(paramName, paramParameters, terraformProvider)
 		},
@@ -497,12 +496,8 @@ func hasVariantsImpl(props []*properties.SpecParam) bool {
 		}
 
 		var params []*properties.SpecParam
-		for _, elt := range elt.Spec.Params {
-			params = append(params, elt)
-		}
-		for _, elt := range elt.Spec.OneOf {
-			params = append(params, elt)
-		}
+		params = append(params, elt.Spec.SortedParams()...)
+		params = append(params, elt.Spec.SortedOneOf()...)
 
 		if hasVariantsImpl(params) {
 			return true
@@ -523,12 +518,8 @@ func conditionallyAddValidators(manager *imports.Manager, spec *properties.Norma
 		}
 
 		var params []*properties.SpecParam
-		for _, elt := range spec.Spec.Params {
-			params = append(params, elt)
-		}
-		for _, elt := range spec.Spec.OneOf {
-			params = append(params, elt)
-		}
+		params = append(params, spec.Spec.SortedParams()...)
+		params = append(params, spec.Spec.SortedOneOf()...)
 		return hasVariantsImpl(params)
 	}
 
@@ -555,7 +546,7 @@ func conditionallyAddModifiers(manager *imports.Manager, spec *properties.Normal
 }
 
 func conditionallyAddDefaults(manager *imports.Manager, spec *properties.Spec) {
-	for _, elt := range spec.Params {
+	for _, elt := range spec.SortedParams() {
 		if elt.Type == "" {
 			conditionallyAddDefaults(manager, elt.Spec)
 		} else if elt.Default != "" {
@@ -565,7 +556,7 @@ func conditionallyAddDefaults(manager *imports.Manager, spec *properties.Spec) {
 		}
 	}
 
-	for _, elt := range spec.OneOf {
+	for _, elt := range spec.SortedOneOf() {
 		if elt.Type == "" {
 			conditionallyAddDefaults(manager, elt.Spec)
 		} else if elt.Default != "" {

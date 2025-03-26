@@ -41,6 +41,7 @@ type Import struct {
 
 type ImportLocation struct {
 	Name           *NameVariant
+	SpecOrder      int
 	Required       bool
 	XpathElements  []string
 	XpathVariables map[string]ImportXpathVariable
@@ -48,6 +49,7 @@ type ImportLocation struct {
 
 type ImportXpathVariable struct {
 	Name        *NameVariant
+	SpecOrder   int
 	Description string
 	Default     string
 }
@@ -84,6 +86,7 @@ type TerraformProviderConfig struct {
 }
 
 type NameVariant struct {
+	Original       string
 	Underscore     string
 	CamelCase      string
 	LowerCamelCase string
@@ -91,6 +94,7 @@ type NameVariant struct {
 
 func NewNameVariant(name string) *NameVariant {
 	return &NameVariant{
+		Original:       name,
 		Underscore:     naming.Underscore("", name, ""),
 		CamelCase:      naming.CamelCase("", name, "", true),
 		LowerCamelCase: naming.CamelCase("", name, "", false),
@@ -99,6 +103,7 @@ func NewNameVariant(name string) *NameVariant {
 
 type Location struct {
 	Name        *NameVariant
+	SpecOrder   int
 	Description string                  `json:"description" yaml:"description"`
 	Device      *LocationDevice         `json:"device" yaml:"device"`
 	Xpath       []string                `json:"xpath" yaml:"xpath"`
@@ -114,6 +119,16 @@ func (o Location) ValidatorType() string {
 	}
 }
 
+func (o *Location) OrderedVars() []*LocationVar {
+	elements := make([]*LocationVar, len(o.Vars))
+
+	for _, elt := range o.Vars {
+		elements[elt.StateOrder] = elt
+	}
+
+	return elements
+}
+
 type LocationDevice struct {
 	Panorama bool `json:"panorama" yaml:"panorama"`
 	Ngfw     bool `json:"ngfw" yaml:"ngfw"`
@@ -121,6 +136,7 @@ type LocationDevice struct {
 
 type LocationVar struct {
 	Name        *NameVariant
+	StateOrder  int
 	Description string                 `json:"description" yaml:"description"`
 	Default     string                 `json:"default" yaml:"default"`
 	Required    bool                   `json:"required" yaml:"required"`
@@ -160,8 +176,14 @@ type ConstValue struct {
 	Value string `json:"value" yaml:"value"`
 }
 
+type EnumValue struct {
+	Name  string
+	Value *string
+}
+
 type SpecParam struct {
 	Name                    *NameVariant
+	SpecOrder               int                               `json:"-" yaml:"-"`
 	Description             string                            `json:"description" yaml:"description"`
 	TerraformProviderConfig *SpecParamTerraformProviderConfig `json:"terraform_provider_config" yaml:"terraform_provider_config"`
 	IsNil                   bool                              `json:"-" yaml:"-"`
@@ -169,7 +191,7 @@ type SpecParam struct {
 	Default                 string                            `json:"default" yaml:"default"`
 	Required                bool                              `json:"required" yaml:"required"`
 	Length                  *SpecParamLength                  `json:"length" yaml:"length,omitempty"`
-	EnumValues              map[string]*string                `json:"enum_values" yaml:"enum_values,omitempty"`
+	EnumValues              []EnumValue                       `json:"enum_values" yaml:"enum_values,omitempty"`
 	Count                   *SpecParamCount                   `json:"count" yaml:"count,omitempty"`
 	Hashing                 *SpecParamHashing                 `json:"hashing" yaml:"hashing,omitempty"`
 	Items                   *SpecParamItems                   `json:"items" yaml:"items,omitempty"`
@@ -218,6 +240,39 @@ type SpecParamProfile struct {
 	Type       string           `json:"type" yaml:"type,omitempty"`
 	MinVersion *version.Version `json:"not_present" yaml:"min_version"`
 	MaxVersion *version.Version `json:"max_version" yaml:"max_version"`
+}
+
+func (o *Spec) HackFixInjectedNameSpecOrder() {
+	for _, elt := range o.Params {
+		if elt.Name.CamelCase != "Name" {
+			elt.SpecOrder += 1
+		}
+	}
+}
+
+func (o *Spec) SortedParams() []*SpecParam {
+	params := make([]*SpecParam, len(o.Params))
+
+	var idx int
+	for _, elt := range o.Params {
+		params[elt.SpecOrder] = elt
+		idx += 1
+	}
+
+	return params
+}
+
+func (o *Spec) SortedOneOf() []*SpecParam {
+	if len(o.OneOf) == 0 {
+		return nil
+	}
+
+	params := make([]*SpecParam, len(o.OneOf))
+	for _, elt := range o.OneOf {
+		params[elt.SpecOrder] = elt
+	}
+
+	return params
 }
 
 func (o *SpecParam) NameVariant() *NameVariant {
@@ -430,19 +485,21 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 		params := make(map[string]*SpecParam)
 		oneofs := make(map[string]*SpecParam)
 
-		for _, elt := range spec.Parameters {
+		for idx, elt := range spec.Parameters {
 			param, err := schemaParameterToSpecParameter(elt)
 			if err != nil {
 				return nil, err
 			}
+			param.SpecOrder = idx
 			params[elt.Name] = param
 		}
 
-		for _, elt := range spec.Variants {
+		for idx, elt := range spec.Variants {
 			param, err := schemaParameterToSpecParameter(elt)
 			if err != nil {
 				return nil, err
 			}
+			param.SpecOrder = idx
 			oneofs[elt.Name] = param
 		}
 
@@ -574,8 +631,9 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 
 func generateXpathVariables(variables []xpathschema.Variable) map[string]*LocationVar {
 	xpathVars := make(map[string]*LocationVar)
-	for _, variable := range variables {
+	for idx, variable := range variables {
 		entry := &LocationVar{
+			StateOrder:  idx,
 			Description: variable.Description,
 			Default:     variable.Default,
 			Required:    variable.Required,
@@ -635,7 +693,7 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 		},
 	}
 
-	for _, location := range object.Locations {
+	for idx, location := range object.Locations {
 		var xpath []string
 
 		schemaXpathVars := make(map[string]xpathschema.Variable)
@@ -676,6 +734,7 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 
 		entry := &Location{
 			Description: location.Description,
+			SpecOrder:   idx,
 			Device:      locationDevice,
 			Xpath:       xpath,
 			Vars:        xpathVars,
@@ -710,17 +769,20 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 	var imports []Import
 	for _, elt := range object.Imports {
 		locations := make(map[string]ImportLocation, len(elt.Locations))
-		for _, location := range elt.Locations {
+		for idx, location := range elt.Locations {
 			schemaXpathVars := make(map[string]xpathschema.Variable, len(location.Xpath.Variables))
 			xpathVars := make(map[string]ImportXpathVariable, len(location.Xpath.Variables))
-			for _, xpathVariable := range location.Xpath.Variables {
+			for variableIdx, xpathVariable := range location.Xpath.Variables {
 				schemaXpathVars[xpathVariable.Name] = xpathVariable
+
+				_, found := xpathVars[xpathVariable.Name]
+				if found {
+					panic(fmt.Sprintf("Variable duplicate: %s", xpathVariable.Name))
+				}
+
 				xpathVars[xpathVariable.Name] = ImportXpathVariable{
-					Name: &NameVariant{
-						Underscore:     naming.Underscore("", xpathVariable.Name, ""),
-						CamelCase:      naming.CamelCase("", xpathVariable.Name, "", true),
-						LowerCamelCase: naming.CamelCase("", xpathVariable.Name, "", false),
-					},
+					Name:        NewNameVariant(xpathVariable.Name),
+					SpecOrder:   variableIdx,
 					Description: xpathVariable.Description,
 					Default:     xpathVariable.Default,
 				}
@@ -730,11 +792,8 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 			xpath = append(xpath, location.Xpath.Elements...)
 
 			locations[location.Name] = ImportLocation{
-				Name: &NameVariant{
-					Underscore:     naming.Underscore("", location.Name, ""),
-					CamelCase:      naming.CamelCase("", location.Name, "", true),
-					LowerCamelCase: naming.CamelCase("", location.Name, "", false),
-				},
+				Name:           NewNameVariant(location.Name),
+				SpecOrder:      idx,
 				Required:       location.Required,
 				XpathVariables: xpathVars,
 				XpathElements:  xpath,
@@ -742,16 +801,8 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 		}
 
 		imports = append(imports, Import{
-			Type: &NameVariant{
-				Underscore:     naming.Underscore("", elt.Type, ""),
-				CamelCase:      naming.CamelCase("", elt.Type, "", true),
-				LowerCamelCase: naming.CamelCase("", elt.Type, "", false),
-			},
-			Variant: &NameVariant{
-				Underscore:     naming.Underscore("", elt.Variant, ""),
-				CamelCase:      naming.CamelCase("", elt.Variant, "", true),
-				LowerCamelCase: naming.CamelCase("", elt.Variant, "", false),
-			},
+			Type:      NewNameVariant(elt.Type),
+			Variant:   NewNameVariant(elt.Variant),
 			Locations: locations,
 		})
 	}
@@ -761,12 +812,13 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 	}
 
 	consts := make(map[string]*Const)
-	for _, param := range object.Spec.Parameters {
+	for idx, param := range object.Spec.Parameters {
 		specParam, err := schemaParameterToSpecParameter(param)
 		if err != nil {
 			return nil, err
 		}
-		enumValues := make(map[string]*string)
+		specParam.SpecOrder = idx
+		var enumValues []EnumValue
 		switch spec := param.Spec.(type) {
 		case *parameter.EnumSpec:
 			constValues := make(map[string]*ConstValue)
@@ -778,7 +830,10 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 					constValue = &elt.Const
 				}
 
-				enumValues[elt.Value] = constValue
+				enumValues = append(enumValues, EnumValue{
+					Name:  elt.Value,
+					Value: constValue,
+				})
 
 				if constValue != nil {
 					constValues[*constValue] = &ConstValue{
@@ -800,11 +855,12 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 		spec.Const = consts
 	}
 
-	for _, param := range object.Spec.Variants {
+	for idx, param := range object.Spec.Variants {
 		specParam, err := schemaParameterToSpecParameter(param)
 		if err != nil {
 			return nil, err
 		}
+		specParam.SpecOrder = idx
 		spec.Spec.OneOf[param.Name] = specParam
 	}
 
@@ -847,21 +903,42 @@ func ParseSpec(input []byte) (*Normalization, error) {
 	return spec, err
 }
 
+func (spec *Normalization) OrderedLocations() []*Location {
+	elements := make([]*Location, len(spec.Locations))
+	for _, elt := range spec.Locations {
+		elements[elt.SpecOrder] = elt
+	}
+
+	return elements
+}
+
+func (o *Import) OrderedLocations() []*ImportLocation {
+	elements := make([]*ImportLocation, len(o.Locations))
+
+	for _, elt := range o.Locations {
+		elements[elt.SpecOrder] = &elt
+	}
+
+	return elements
+}
+
+func (o *ImportLocation) OrderedXpathVariables() []*ImportXpathVariable {
+	elements := make([]*ImportXpathVariable, len(o.XpathVariables))
+
+	for _, elt := range o.XpathVariables {
+		elements[elt.SpecOrder] = &elt
+	}
+
+	return elements
+}
+
 // AddNameVariantsForLocation add name variants for location (under_score and CamelCase).
 func (spec *Normalization) AddNameVariantsForLocation() error {
 	for key, location := range spec.Locations {
-		location.Name = &NameVariant{
-			Underscore:     naming.Underscore("", key, ""),
-			CamelCase:      naming.CamelCase("", key, "", true),
-			LowerCamelCase: naming.CamelCase("", key, "", false),
-		}
+		location.Name = NewNameVariant(key)
 
 		for subkey, variable := range location.Vars {
-			variable.Name = &NameVariant{
-				Underscore:     naming.Underscore("", subkey, ""),
-				CamelCase:      naming.CamelCase("", subkey, "", true),
-				LowerCamelCase: naming.CamelCase("", subkey, "", false),
-			}
+			variable.Name = NewNameVariant(subkey)
 		}
 	}
 
@@ -870,11 +947,7 @@ func (spec *Normalization) AddNameVariantsForLocation() error {
 
 // AddNameVariantsForParams recursively add name variants for params for nested specs.
 func AddNameVariantsForParams(name string, param *SpecParam) error {
-	param.Name = &NameVariant{
-		Underscore:     naming.Underscore("", name, ""),
-		CamelCase:      naming.CamelCase("", name, "", true),
-		LowerCamelCase: naming.CamelCase("", name, "", false),
-	}
+	param.Name = NewNameVariant(name)
 	if param.Spec != nil {
 		for key, childParam := range param.Spec.Params {
 			if err := AddNameVariantsForParams(key, childParam); err != nil {
@@ -911,17 +984,9 @@ func (spec *Normalization) AddNameVariantsForParams() error {
 func (spec *Normalization) AddNameVariantsForTypes() error {
 	if spec.Const != nil {
 		for nameType, customType := range spec.Const {
-			customType.Name = &NameVariant{
-				Underscore:     naming.Underscore("", nameType, ""),
-				CamelCase:      naming.CamelCase("", nameType, "", true),
-				LowerCamelCase: naming.CamelCase("", nameType, "", false),
-			}
+			customType.Name = NewNameVariant(nameType)
 			for nameValue, customValue := range customType.Values {
-				customValue.Name = &NameVariant{
-					Underscore:     naming.Underscore("", nameValue, ""),
-					CamelCase:      naming.CamelCase("", nameValue, "", true),
-					LowerCamelCase: naming.CamelCase("", nameValue, "", false),
-				}
+				customValue.Name = NewNameVariant(nameValue)
 			}
 		}
 	}

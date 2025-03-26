@@ -148,17 +148,6 @@ spec:
         validators: []
         spec:
           params:
-          - name: override
-            type: object
-            profiles:
-            - xpath:
-              - override
-            validators: []
-            spec:
-              params: []
-              variants: []
-            description: override tcp session timeout value
-            required: false
           - name: port
             type: string
             profiles:
@@ -248,17 +237,6 @@ spec:
         validators: []
         spec:
           params:
-          - name: override
-            type: object
-            profiles:
-            - xpath:
-              - override
-            validators: []
-            spec:
-              params: []
-              variants: []
-            description: override udp session timeout value
-            required: false
           - name: port
             type: string
             profiles:

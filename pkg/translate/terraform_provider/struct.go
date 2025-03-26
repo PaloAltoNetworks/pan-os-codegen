@@ -2,11 +2,8 @@ package terraform_provider
 
 import (
 	"fmt"
-	"log"
 	"strings"
-	"text/template"
 
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 )
 
@@ -160,77 +157,4 @@ func ParamToModelResource(paramName string, paramProp *properties.SpecParam, str
     {{- end -}}
 {{- /* Done */ -}}`
 	return processTemplate(templateText, "param-to-model", data, nil)
-}
-
-// ModelNestedStruct manages nested structure definitions.
-func ModelNestedStruct(paramName string, paramProp *properties.SpecParam, structName string) (string, error) {
-	if paramProp.Type == "" && paramProp.Spec != nil {
-		nestedStructsString := strings.Builder{}
-		createdStructs := make(map[string]bool)
-		err := CreateNestedStruct(paramName, paramProp, structName, &nestedStructsString, createdStructs)
-		if err != nil {
-			return "", err
-		}
-		return nestedStructsString.String(), nil
-	}
-
-	return "", nil
-}
-
-// CreateNestedStruct recursively creates nested struct definitions.
-func CreateNestedStruct(paramName string, paramProp *properties.SpecParam, structName string, nestedStructString *strings.Builder, createdStructs map[string]bool) error {
-	nestedStructName := fmt.Sprintf("%s%s", structName, naming.CamelCase("", paramName, "", true))
-	if _, exists := createdStructs[nestedStructName]; exists {
-		return nil // Avoid recreating existing structs to prevent infinite loops
-	}
-	createdStructs[nestedStructName] = true
-
-	nestedStructFuncMap := template.FuncMap{
-		"structItems": func(paramName string, paramProp *properties.SpecParam) (string, error) {
-			return ParamToModelResource(paramName, paramProp, nestedStructName)
-		}}
-
-	data := map[string]interface{}{
-		"Spec":                  paramProp.Spec,
-		"HasEncryptedResources": paramProp.HasEncryptedResources(),
-		"HasEntryName":          paramProp.HasEntryName(),
-		"structName":            nestedStructName,
-	}
-	nestedStruct, err := processTemplate(resourceModelNestedStruct, "model-nested-struct", data, nestedStructFuncMap)
-	if err != nil {
-		log.Printf("[ ERROR ] Executing nested struct template failed: %v", err)
-		return err
-	}
-
-	nestedStructString.WriteString(nestedStruct)
-
-	for nestedIndex, nestedParam := range paramProp.Spec.Params {
-		if nestedParam.Type == "" && nestedParam.Spec != nil {
-			err := CreateNestedStruct(nestedIndex, nestedParam, nestedStructName, nestedStructString, createdStructs)
-			if err != nil {
-				log.Printf("[ ERROR ] Error creating further nested structures: %v", err)
-				return err
-			}
-		}
-
-		if nestedParam.Type == "list" && nestedParam.Items.Type == "entry" && nestedParam.Spec != nil {
-			err := CreateNestedStruct(nestedIndex, nestedParam, nestedStructName, nestedStructString, createdStructs)
-			if err != nil {
-				log.Printf("[ ERROR ] Error creating further nested structures: %v", err)
-				return err
-			}
-		}
-	}
-
-	for nestedIndex, nestedParam := range paramProp.Spec.OneOf {
-		if nestedParam.Type == "" && nestedParam.Spec != nil {
-			err := CreateNestedStruct(nestedIndex, nestedParam, nestedStructName, nestedStructString, createdStructs)
-			if err != nil {
-				log.Printf("[ ERROR ] Error creating further nested structures: %v", err)
-				return err
-			}
-		}
-	}
-
-	return nil
 }
