@@ -122,6 +122,17 @@ func (g *GenerateTerraformProvider) generateTerraformEntityTemplate(resourceTyp 
 	return g.executeTemplate(template, spec, terraformProvider, resourceTyp, schemaTyp, names)
 }
 
+func locationVariablesWithDefaults(locations map[string]*properties.Location) bool {
+	for _, location := range locations {
+		for _, variable := range location.Vars {
+			if variable.Default != "" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // GenerateTerraformResource generates a Terraform resource template.
 func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp properties.ResourceType, spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile) error {
 	names := NewNameProvider(spec, resourceTyp)
@@ -314,7 +325,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 
 			if len(spec.Locations) > 0 {
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/diag", "")
-				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault", "")
+				if locationVariablesWithDefaults(spec.Locations) {
+					terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault", "")
+				}
 				if resourceTyp != properties.ResourceCustom {
 					terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
 				}
@@ -458,7 +471,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/attr", "")
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/diag", "")
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
-		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault", "")
+		if locationVariablesWithDefaults(spec.Locations) {
+			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault", "")
+		}
 
 		names := NewNameProvider(spec, resourceTyp)
 		funcMap := template.FuncMap{
