@@ -1,6 +1,8 @@
 package translate
 
 import (
+	"strings"
+
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/imports"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 )
@@ -33,8 +35,10 @@ func RenderImports(spec *properties.Normalization, templateTypes ...string) (str
 		case "location":
 			manager.AddStandardImport("fmt", "")
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/errors", "")
-			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "")
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/version", "")
+			if locationsHaveEntryXpath(spec) {
+				manager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "")
+			}
 			if spec.ResourceXpathVariablesWithChecks(true) {
 				manager.AddStandardImport("strings", "")
 			}
@@ -65,4 +69,17 @@ func RenderImports(spec *properties.Normalization, templateTypes ...string) (str
 	}
 
 	return manager.RenderImports()
+}
+
+// locationsHaveEntryXpath returns true if any location has an XPath element
+// containing "Entry", which requires the pango/util import for AsEntryXpath.
+func locationsHaveEntryXpath(spec *properties.Normalization) bool {
+	for _, location := range spec.Locations {
+		for _, xpath := range location.Xpath {
+			if strings.Contains(xpath, "Entry") {
+				return true
+			}
+		}
+	}
+	return false
 }

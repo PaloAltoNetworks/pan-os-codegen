@@ -1,0 +1,115 @@
+name: mgt-config-devices
+terraform_provider_config:
+  description: Firewall Devices
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+    - singular
+  suffix: firewall_device
+  plural_description: ""
+go_sdk_config:
+  skip: false
+  package:
+    - panorama
+    - devices
+panos_xpath:
+  path:
+    - mgt-config
+    - devices
+  vars: []
+locations:
+  - name: panorama
+    xpath:
+      path:
+        - config
+      vars: []
+    description: Located in a panorama.
+    validators: []
+    required: false
+    read_only: false
+entries:
+  - name: name
+    description: ""
+    validators: []
+spec:
+  params:
+    - name: auto-push
+      type: bool
+      profiles:
+        - xpath:
+            - auto-push
+      validators: []
+      spec: {}
+      description: ""
+      required: false
+    - name: disable-config-backup
+      type: bool
+      profiles:
+        - xpath:
+            - disable-config-backup
+      validators: []
+      spec: {}
+      description: Enable config back up for this device
+      required: false
+    - name: hostname
+      type: string
+      profiles:
+        - xpath:
+            - hostname
+      validators: []
+      spec: {}
+      description: ip address
+      required: false
+    - name: ip
+      type: string
+      profiles:
+        - xpath:
+            - ip
+      validators: []
+      spec: {}
+      description: ip address
+      required: false
+    - name: to-sw-version
+      type: string
+      profiles:
+        - xpath:
+            - to-sw-version
+      validators:
+        - type: length
+          spec:
+            max: 64
+      spec: {}
+      description: Automatically upgrade software to this version for new deployments
+      required: false
+    - name: vsys
+      type: list
+      profiles:
+        - xpath:
+            - vsys
+            - entry
+          type: entry
+      validators: []
+      spec:
+        type: object
+        items:
+          type: object
+          spec:
+            params:
+              - name: tags
+                type: list
+                profiles:
+                  - xpath:
+                      - tags
+                    type: member
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ""
+                required: false
+            variants: []
+      description: ""
+      required: false
+  variants: []
