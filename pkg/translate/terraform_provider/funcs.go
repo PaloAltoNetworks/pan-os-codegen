@@ -2934,11 +2934,22 @@ func createImportStateStructSpecs(resourceTyp properties.ResourceType, names *Na
 			Type: "string",
 			Tags: "`json:\"name\"`",
 		})
-	case properties.ResourceEntryPlural, properties.ResourceUuid, properties.ResourceUuidPlural:
+	case properties.ResourceEntryPlural, properties.ResourceUuid:
 		fields = append(fields, importStateStructFieldSpec{
 			Name: "Names",
 			Type: "[]string",
 			Tags: "`json:\"names\"`",
+		})
+	case properties.ResourceUuidPlural:
+		fields = append(fields, importStateStructFieldSpec{
+			Name: "Names",
+			Type: "[]string",
+			Tags: "`json:\"names\"`",
+		})
+		fields = append(fields, importStateStructFieldSpec{
+			Name: "Position",
+			Type: "TerraformPositionObject",
+			Tags: "`json:\"position\"`",
 		})
 	case properties.ResourceCustom, properties.ResourceConfig:
 		panic("unreachable")
@@ -2978,6 +2989,7 @@ func ResourceImportStateFunction(resourceTyp properties.ResourceType, names *Nam
 		StructName      string
 		ResourceIsMap   bool
 		ResourceIsList  bool
+		HasPosition     bool
 		HasEntryName    bool
 		ListAttribute   *properties.NameVariant
 		ListStructName  string
@@ -3003,6 +3015,9 @@ func ResourceImportStateFunction(resourceTyp properties.ResourceType, names *Nam
 		data.ListAttribute = properties.NewNameVariant(spec.TerraformProviderConfig.PluralName)
 		data.ListStructName = fmt.Sprintf("%sResource%sObject", names.StructName, listAttribute.CamelCase)
 		data.PangoStructName = fmt.Sprintf("%s.Entry", names.PackageName)
+		if resourceTyp == properties.ResourceUuidPlural {
+			data.HasPosition = true
+		}
 	case properties.ResourceCustom, properties.ResourceConfig:
 		panic("unreachable")
 	}

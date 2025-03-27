@@ -1505,7 +1505,7 @@ func {{ .FuncName }}(ctx context.Context, resource types.Object) ([]byte, error)
 		Location: location,
 		Names: names,
 	}
-{{- else if or (eq .ResourceType "uuid") (eq .ResourceType "uuid-plural") }}
+{{- else if or (eq .ResourceType "uuid") }}
 	itemsAttr, ok := attrs["{{ .ListAttribute.Underscore }}"]
 	if !ok {
 		return nil, fmt.Errorf("{{ .ListAttribute.Underscore }} attribute missing")
@@ -1529,6 +1529,46 @@ func {{ .FuncName }}(ctx context.Context, resource types.Object) ([]byte, error)
 
 	importStruct := {{ .StructNamePrefix }}ImportState{
 		Location: location,
+		Names: names,
+	}
+{{- else if (eq .ResourceType "uuid-plural") }}
+	positionAttr, ok := attrs["position"]
+	if !ok {
+		return nil, fmt.Errorf("position attribute missing")
+	}
+
+	var position TerraformPositionObject
+	switch value := positionAttr.(type) {
+	case types.Object:
+		value.As(ctx, &position, basetypes.ObjectAsOptions{})
+	default:
+		return nil, fmt.Errorf("position attribute expected to be an object")
+	}
+
+	itemsAttr, ok := attrs["{{ .ListAttribute.Underscore }}"]
+	if !ok {
+		return nil, fmt.Errorf("{{ .ListAttribute.Underscore }} attribute missing")
+	}
+
+	var items []*{{ .ListStructName }}
+	switch value := itemsAttr.(type) {
+	case types.List:
+		diags := value.ElementsAs(ctx, &items, false)
+		if diags.HasError() {
+			return nil, fmt.Errorf("Invalid {{ .ListAttribute.Underscore }} attribute element type, expected list of valid objects")
+		}
+	default:
+		return nil, fmt.Errorf("Invalid names attribute type, expected list of strings")
+	}
+
+	var names []string
+	for _, elt := range items {
+		names = append(names, elt.Name.ValueString())
+	}
+
+	importStruct := {{ .StructNamePrefix }}ImportState{
+		Location: location,
+		Position: position,
 		Names: names,
 	}
 {{- end }}
@@ -1568,6 +1608,13 @@ const resourceImportStateFunctionTmpl = `
 	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("{{ .ListAttribute.Underscore }}"), names)...)
 {{- else if .ResourceIsList }}
+  {{- if .HasPosition }}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("position"), obj.Position)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+  {{- end }}
+
 	var names []*{{ .ListStructName }}
 	for _, elt := range obj.Names {
 		object := &{{ .ListStructName }}{}
