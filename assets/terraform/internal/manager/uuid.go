@@ -37,7 +37,7 @@ type SDKUuidService[E UuidObject, L UuidLocation] interface {
 	Create(context.Context, L, E) (E, error)
 	List(context.Context, L, string, string, string) ([]E, error)
 	Delete(context.Context, L, ...string) error
-	MoveGroup(context.Context, L, movement.Position, []E) error
+	MoveGroup(context.Context, L, movement.Position, []E, int) error
 }
 
 type uuidObjectWithState[E EntryObject] struct {
@@ -176,7 +176,7 @@ func (o *UuidObjectManager[E, L, S]) moveExhaustive(ctx context.Context, locatio
 			entries[elt.StateIdx] = elt.Entry
 		}
 
-		err = o.service.MoveGroup(ctx, location, position, entries)
+		err = o.service.MoveGroup(ctx, location, position, entries, o.batchSize)
 		if err != nil {
 			return &Error{err: err, message: "Failed to move group of entries"}
 		}
@@ -211,7 +211,7 @@ func (o *UuidObjectManager[E, L, S]) moveNonExhaustive(ctx context.Context, loca
 		entries[elt.StateIdx] = elt.Entry
 	}
 
-	err := o.service.MoveGroup(ctx, location, sdkPosition, entries)
+	err := o.service.MoveGroup(ctx, location, sdkPosition, entries, o.batchSize)
 	if err != nil {
 		return &Error{err: err, message: "Failed to move group of entries"}
 	}
@@ -232,7 +232,7 @@ func (o *UuidObjectManager[E, L, S]) CreateMany(ctx context.Context, location L,
 		return nil, fmt.Errorf("Failed to list remote entries: %w", err)
 	}
 
-	var operations []*xmlapi.Config
+	updates := xmlapi.NewChunkedMultiConfig(len(planEntries), o.batchSize)
 
 	switch exhaustive {
 	case Exhaustive:
@@ -242,7 +242,7 @@ func (o *UuidObjectManager[E, L, S]) CreateMany(ctx context.Context, location L,
 				return nil, ErrMarshaling
 			}
 
-			operations = append(operations, &xmlapi.Config{
+			updates.Add(&xmlapi.Config{
 				Action: "delete",
 				Xpath:  util.AsXpath(path),
 				Target: o.client.GetTarget(),
@@ -268,7 +268,7 @@ func (o *UuidObjectManager[E, L, S]) CreateMany(ctx context.Context, location L,
 			return nil, ErrMarshaling
 		}
 
-		operations = append(operations, &xmlapi.Config{
+		updates.Add(&xmlapi.Config{
 			Action:  "edit",
 			Xpath:   util.AsXpath(path),
 			Element: xmlEntry,
@@ -276,10 +276,11 @@ func (o *UuidObjectManager[E, L, S]) CreateMany(ctx context.Context, location L,
 		})
 	}
 
-	if len(operations) > 0 {
-		err := ChunkedMultiConfigUpdate(ctx, o.client, operations, o.batchSize)
+	if len(updates.Operations) > 0 {
+		_, err := o.client.ChunkedMultiConfig(ctx, updates, false, nil)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create entries on the server: %w", err)
+			cleanupErr := o.cleanUpIncompleteUpdate(ctx, location, planEntriesByName, exhaustive)
+			return nil, errors.Join(fmt.Errorf("failed to create entries on the server: %w", err), cleanupErr)
 		}
 	}
 
@@ -407,7 +408,7 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 		return nil, &Error{err: err, message: "sdk error while listing resources"}
 	}
 
-	var operations []*xmlapi.Config
+	updates := xmlapi.NewChunkedMultiConfig(len(existing), o.batchSize)
 
 	// Next, we compare existing entries from the server against entries processed in the previous
 	// state to find any required updates.
@@ -431,7 +432,7 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 		// If the existing entry name matches new name for the renamed entry,
 		// we delete it before adding rename commands.
 		if _, found := renamedEntries[existingEntryName]; found {
-			operations = append(operations, &xmlapi.Config{
+			updates.Add(&xmlapi.Config{
 				Action: "delete",
 				Xpath:  util.AsXpath(path),
 				Target: o.client.GetTarget(),
@@ -445,7 +446,7 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 				// If existing entry is not found in the processedStateEntries map,
 				// entry is not managed by terraform. If Exhaustive update has been
 				// called, delete it from the server.
-				operations = append(operations, &xmlapi.Config{
+				updates.Add(&xmlapi.Config{
 					Action: "delete",
 					Xpath:  util.AsXpath(path),
 					Target: o.client.GetTarget(),
@@ -504,14 +505,14 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 				Target:  o.client.GetTarget(),
 			}
 		case entryOutdated:
-			operations = append(operations, &xmlapi.Config{
+			updates.Add(&xmlapi.Config{
 				Action:  "edit",
 				Xpath:   util.AsXpath(path),
 				Element: xmlEntry,
 				Target:  o.client.GetTarget(),
 			})
 		case entryRenamed:
-			operations = append(operations, &xmlapi.Config{
+			updates.Add(&xmlapi.Config{
 				Action:  "rename",
 				Xpath:   util.AsXpath(path),
 				NewName: elt.NewName,
@@ -526,7 +527,7 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 			elt.Entry.SetEntryName(elt.NewName)
 			processedStateEntries[elt.NewName] = elt
 		case entryDeleted:
-			operations = append(operations, &xmlapi.Config{
+			updates.Add(&xmlapi.Config{
 				Action: "delete",
 				Xpath:  util.AsXpath(path),
 				Target: o.client.GetTarget(),
@@ -540,12 +541,12 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 
 	for _, elt := range createOps {
 		if elt != nil {
-			operations = append(operations, elt)
+			updates.Add(elt)
 		}
 	}
 
-	if len(operations) > 0 {
-		if err := ChunkedMultiConfigUpdate(ctx, o.client, operations, o.batchSize); err != nil {
+	if len(updates.Operations) > 0 {
+		if _, err := o.client.ChunkedMultiConfig(ctx, updates, false, nil); err != nil {
 			cleanupErr := o.cleanUpIncompleteUpdate(ctx, location, processedStateEntries, exhaustive)
 			return nil, errors.Join(&Error{err: err, message: "failed to execute MultiConfig command"}, cleanupErr)
 		}
@@ -648,52 +649,12 @@ func (o *UuidObjectManager[E, L, S]) Delete(ctx context.Context, location L, ent
 	return nil
 }
 
-func parseSDKPosition(sdkPosition rule.Position) (position, error) {
-	if sdkPosition.IsValid(false) != nil {
-		return position{}, ErrInvalidPosition
-	}
-
-	if sdkPosition.DirectlyAfter != nil {
-		return position{
-			Directly:   true,
-			Where:      PositionWhereAfter,
-			PivotEntry: *sdkPosition.DirectlyAfter,
-		}, nil
-	} else if sdkPosition.DirectlyBefore != nil {
-		return position{
-			Directly:   true,
-			Where:      PositionWhereBefore,
-			PivotEntry: *sdkPosition.DirectlyBefore,
-		}, nil
-	} else if sdkPosition.SomewhereAfter != nil {
-		return position{
-			Directly:   false,
-			Where:      PositionWhereAfter,
-			PivotEntry: *sdkPosition.SomewhereAfter,
-		}, nil
-	} else if sdkPosition.SomewhereBefore != nil {
-		return position{
-			Directly:   false,
-			Where:      PositionWhereBefore,
-			PivotEntry: *sdkPosition.SomewhereBefore,
-		}, nil
-	} else if sdkPosition.First != nil {
-		return position{
-			Where: PositionWhereFirst,
-		}, nil
-	} else if sdkPosition.Last != nil {
-		return position{
-			Where: PositionWhereLast,
-		}, nil
-	}
-
-	return position{}, ErrInvalidPosition
-}
-
 func (o *UuidObjectManager[E, L, S]) cleanUpIncompleteUpdate(ctx context.Context, location L, entries map[string]uuidObjectWithState[E], exhaustive ExhaustiveType) error {
 	var names []string
 	for _, elt := range entries {
-		names = append(names, elt.Entry.EntryName())
+		if elt.State == entryMissing {
+			names = append(names, elt.Entry.EntryName())
+		}
 	}
 
 	return o.Delete(ctx, location, names, exhaustive)
