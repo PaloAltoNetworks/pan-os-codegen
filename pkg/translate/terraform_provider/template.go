@@ -328,8 +328,6 @@ func (r *{{ resourceStructName }}) Configure(ctx context.Context, req {{ tfresou
 	}
 
 	providerData := req.ProviderData.(*ProviderData)
-	batchSize := providerData.MultiConfigBatchSize
-
 	r.client = providerData.Client
 
 {{- if IsCustom }}
@@ -347,6 +345,7 @@ func (r *{{ resourceStructName }}) Configure(ctx context.Context, req {{ tfresou
 		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
 		return
 	}
+	batchSize := providerData.MultiConfigBatchSize
 	r.manager =  sdkmanager.NewEntryObjectManager(r.client, {{ resourceSDKName }}.NewService(r.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsUuid }}
 	specifier, _, err := {{ resourceSDKName }}.Versioning(r.client.Versioning())
@@ -354,6 +353,7 @@ func (r *{{ resourceStructName }}) Configure(ctx context.Context, req {{ tfresou
 		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
 		return
 	}
+	batchSize := providerData.MultiConfigBatchSize
 	r.manager =  sdkmanager.NewUuidObjectManager(r.client, {{ resourceSDKName }}.NewService(r.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsConfig }}
 	specifier, _, err := {{ resourceSDKName }}.Versioning(r.client.Versioning())
@@ -818,8 +818,6 @@ const resourceReadManyFunction = `
 {{- else }}
   {{- $stateName = "State" }}
 {{- end -}}
-
-
 
 var state {{ .structName }}{{ .ResourceOrDS }}Model
 
@@ -1709,7 +1707,8 @@ func (d *{{ dataSourceStructName }}) Configure(_ context.Context, req datasource
 		return
 	}
 
-	d.client = req.ProviderData.(*pango.Client)
+	providerData := req.ProviderData.(*ProviderData)
+	d.client = providerData.Client
 
 {{- if IsCustom }}
 
@@ -1726,14 +1725,16 @@ func (d *{{ dataSourceStructName }}) Configure(_ context.Context, req datasource
 		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
 		return
 	}
-	d.manager =  sdkmanager.NewEntryObjectManager(d.client, {{ resourceSDKName }}.NewService(d.client), specifier, {{ resourceSDKName }}.SpecMatches)
+	batchSize := providerData.MultiConfigBatchSize
+	d.manager =  sdkmanager.NewEntryObjectManager(d.client, {{ resourceSDKName }}.NewService(d.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsUuid }}
 	specifier, _, err := {{ resourceSDKName }}.Versioning(d.client.Versioning())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
 		return
 	}
-	d.manager =  sdkmanager.NewUuidObjectManager(d.client, {{ resourceSDKName }}.NewService(d.client), specifier, {{ resourceSDKName }}.SpecMatches)
+	batchSize := providerData.MultiConfigBatchSize
+	d.manager =  sdkmanager.NewUuidObjectManager(d.client, {{ resourceSDKName }}.NewService(d.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsConfig }}
 	specifier, _, err := {{ resourceSDKName }}.Versioning(d.client.Versioning())
 	if err != nil {
@@ -1888,8 +1889,21 @@ func (p *PanosProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		}
 	}
 
-	resp.DataSourceData = con
-	resp.ResourceData = con
+	batchSize := config.MultiConfigBatchSize.ValueInt64()
+	if batchSize == 0 {
+		batchSize = 500
+	} else if batchSize < 0 || batchSize > 10000 {
+		resp.Diagnostics.AddError("Failed to configure Terraform provider", fmt.Sprintf("multi_config_batch_size must be between 1 and 10000, value: %d", batchSize))
+		return
+	}
+
+	providerData := &ProviderData{
+		Client: con,
+		MultiConfigBatchSize: int(batchSize),
+	}
+
+	resp.DataSourceData = providerData
+	resp.ResourceData = providerData
 	resp.EphemeralResourceData = con
 
 	// Done.
