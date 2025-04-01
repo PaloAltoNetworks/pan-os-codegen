@@ -8,7 +8,6 @@
 #         }
 #     }
 #
-#     position = { where = "after", directly = true, pivot = "rule-2" }
 #
 #     names = [
 #         "rule-1", <- the first rule in the policy
