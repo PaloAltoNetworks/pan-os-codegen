@@ -18,11 +18,7 @@ func LocationType(location *properties.Location, pointer bool) string {
 	if pointer {
 		prefix = "*"
 	}
-	if location.Vars != nil {
-		return fmt.Sprintf("%s%sLocation", prefix, location.Name.CamelCase)
-	} else {
-		return "bool"
-	}
+	return fmt.Sprintf("%s%sLocation", prefix, location.Name.CamelCase)
 }
 
 // NestedSpecs goes through all params and one ofs (recursively) and returns map of all nested specs.

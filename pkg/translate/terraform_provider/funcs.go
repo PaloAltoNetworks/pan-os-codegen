@@ -678,22 +678,13 @@ func RenderLocationStructs(resourceTyp properties.ResourceType, names *NameProvi
 	for _, data := range spec.OrderedLocations() {
 		structName := fmt.Sprintf("%s%sLocation", names.StructName, data.Name.CamelCase)
 		tfTag := fmt.Sprintf("`tfsdk:\"%s\"`", data.Name.Underscore)
-		var structType string
-		if len(data.Vars) > 0 {
-			structType = fmt.Sprintf("*%s", structName)
-		} else {
-			structType = "types.Bool"
-		}
+		structType := fmt.Sprintf("*%s", structName)
 
 		topLocation.Fields = append(topLocation.Fields, fieldCtx{
 			Name: data.Name.CamelCase,
 			Type: structType,
 			Tags: []string{tfTag},
 		})
-
-		if len(data.Vars) == 0 {
-			continue
-		}
 
 		var fields []fieldCtx
 
@@ -867,13 +858,6 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 
 	var idx int
 	for _, data := range spec.OrderedLocations() {
-		var schemaType string
-		if len(data.Vars) == 0 {
-			schemaType = "rsschema.BoolAttribute"
-		} else {
-			schemaType = "rsschema.SingleNestedAttribute"
-		}
-
 		var variableAttrs []attributeCtx
 
 		for _, i := range spec.Imports {
@@ -913,12 +897,7 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 			variableAttrs = append(variableAttrs, attribute)
 		}
 
-		var modifierType string
-		if len(variableAttrs) > 0 {
-			modifierType = "Object"
-		} else {
-			modifierType = "Bool"
-		}
+		modifierType := "Object"
 
 		var validators *validatorCtx
 		if len(locations) > 1 && idx == 0 {
@@ -945,7 +924,7 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 
 		attribute := attributeCtx{
 			Name:         data.Name,
-			SchemaType:   schemaType,
+			SchemaType:   "rsschema.SingleNestedAttribute",
 			Description:  data.Description,
 			Required:     false,
 			Attributes:   variableAttrs,
@@ -998,15 +977,6 @@ func createLocationMarshallerSpecs(names *NameProvider, spec *properties.Normali
 
 	var topFields []marshallerFieldSpec
 	for _, loc := range spec.OrderedLocations() {
-		if len(loc.Vars) == 0 {
-			topFields = append(topFields, marshallerFieldSpec{
-				Name: loc.Name.CamelCase,
-				Type: "bool",
-				Tags: fmt.Sprintf("`json:\"%s\"`", loc.Name.Underscore),
-			})
-			continue
-		}
-
 		topFields = append(topFields, marshallerFieldSpec{
 			Name:       loc.Name.CamelCase,
 			Type:       "object",
@@ -2037,7 +2007,6 @@ type locationCtx struct {
 	Name                string
 	TerraformStructName string
 	SdkStructName       string
-	IsBool              bool
 	Fields              []locationFieldCtx
 }
 
@@ -2062,7 +2031,6 @@ func renderLocationsGetContext(names *NameProvider, spec *properties.Normalizati
 			Name:                location.Name.CamelCase,
 			TerraformStructName: fmt.Sprintf("%s%sLocation", names.StructName, location.Name.CamelCase),
 			SdkStructName:       fmt.Sprintf("%s.%sLocation", names.PackageName, location.Name.CamelCase),
-			IsBool:              len(location.Vars) == 0,
 			Fields:              fields,
 		})
 	}
@@ -2072,20 +2040,14 @@ func renderLocationsGetContext(names *NameProvider, spec *properties.Normalizati
 
 const locationsPangoToState = `
 {{- range .Locations }}
-  {{- if .IsBool }}
-if {{ $.Source }}.{{ .Name }} {
-	{{ $.Dest }}.{{ .Name }} = types.BoolValue(true)
-}
-  {{- else }}
 if {{ $.Source }}.{{ .Name }} != nil {
 	{{ $.Dest }}.{{ .Name }} = &{{ .TerraformStructName }}{
     {{ $locationName := .Name }}
-    {{- range .Fields }}
+  {{- range .Fields }}
 		{{ .TerraformName }}: types.{{ .Type }}Value({{ $.Source }}.{{ $locationName }}.{{ .PangoName }}),
-    {{- end }}
+  {{- end }}
 	}
 }
-  {{- end }}
 {{- end }}
 `
 
@@ -2101,20 +2063,14 @@ func RenderLocationsPangoToState(names *NameProvider, spec *properties.Normaliza
 
 const locationsStateToPango = `
 {{- range .Locations }}
-  {{- if .IsBool }}
-if !{{ $.Source }}.{{ .Name }}.IsNull() && {{ $.Source }}.{{ .Name }}.ValueBool() {
-	{{ $.Dest }}.{{ .Name }} = true
-}
-  {{- else }}
 if {{ $.Source }}.{{ .Name }} != nil {
 	{{ $.Dest }}.{{ .Name }} = &{{ .SdkStructName }}{
-    {{ $locationName := .Name }}
-    {{- range .Fields }}
+  {{ $locationName := .Name }}
+  {{- range .Fields }}
 		{{ .PangoName }}: {{ $.Source }}.{{ $locationName }}.{{ .TerraformName }}.ValueString(),
-    {{- end }}
+  {{- end }}
 	}
 }
-  {{- end }}
 {{- end }}
 `
 
