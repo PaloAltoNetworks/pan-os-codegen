@@ -786,7 +786,7 @@ func checkSecurityPolicyRulesMove(c *pango.Client, ctx context.Context) {
 	for _, securityPolicyRuleItemToMove := range securityPolicyRulesEntriesToMove {
 		log.Printf("Security policy rule '%s' is going to be moved", securityPolicyRuleItemToMove.Name)
 	}
-	err := securityPolicyRuleApi.MoveGroup(ctx, *securityPolicyRuleLocation, positionBefore7, securityPolicyRulesEntriesToMove)
+	err := securityPolicyRuleApi.MoveGroup(ctx, *securityPolicyRuleLocation, positionBefore7, securityPolicyRulesEntriesToMove, 10)
 	if err != nil {
 		log.Printf("Failed to move security policy rules %v: %s", securityPolicyRulesEntriesToMove, err)
 		return
@@ -796,7 +796,7 @@ func checkSecurityPolicyRulesMove(c *pango.Client, ctx context.Context) {
 	for _, securityPolicyRuleItemToMove := range securityPolicyRulesEntriesToMove {
 		log.Printf("Security policy rule '%s' is going to be moved", securityPolicyRuleItemToMove.Name)
 	}
-	err = securityPolicyRuleApi.MoveGroup(ctx, *securityPolicyRuleLocation, positionLast, securityPolicyRulesEntriesToMove)
+	err = securityPolicyRuleApi.MoveGroup(ctx, *securityPolicyRuleLocation, positionLast, securityPolicyRulesEntriesToMove, 10)
 	if err != nil {
 		log.Printf("Failed to move security policy rules %v: %s", securityPolicyRulesEntriesToMove, err)
 		return
