@@ -159,20 +159,18 @@ func checkSharedObjects(c *pango.Client, ctx context.Context) {
 			IpNetmask:   util.String("1.2.3.4"),
 		}
 
-		addressLocation := address.Location{
-			Shared: true,
-		}
+		addressLocation := address.NewSharedLocation()
 
 		addressApi := address.NewService(c)
 
-		addressReply, err := addressApi.Create(ctx, addressLocation, addressObject)
+		addressReply, err := addressApi.Create(ctx, *addressLocation, addressObject)
 		if err != nil {
 			log.Printf("Failed to create object: %s", err)
 			return
 		}
 		log.Printf("Address '%s=%s' created", addressReply.Name, *addressReply.IpNetmask)
 
-		err = addressApi.Delete(ctx, addressLocation, addressReply.Name)
+		err = addressApi.Delete(ctx, *addressLocation, addressReply.Name)
 		if err != nil {
 			log.Printf("Failed to delete object: %s", err)
 			return
