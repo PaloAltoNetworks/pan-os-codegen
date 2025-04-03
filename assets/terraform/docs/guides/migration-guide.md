@@ -67,6 +67,32 @@ The import ID of a resource is the base64-encoded version of the Terraform resou
    ```
 
 5. Review generated configuration
+
+   ```hcl
+    # __generated__ by Terraform
+    # Please review these resources and move them into your main configuration files.
+
+    # __generated__ by Terraform from "eyJsb2NhdGlvbiI6eyJkZXZpY2VfZ3JvdXAiOnsibmFtZSI6ImltcG9ydC1hZGRyZXNzIiwicGFub3JhbWFfZGV2aWNlIjoibG9jYWxob3N0LmxvY2FsZG9tYWluIn19LCJuYW1lIjoiZXhhbXBsZS1hZGRyZXNzIn0="
+    resource "panos_address" "example" {
+      description      = "example address 1"
+      disable_override = null
+      fqdn             = null
+      ip_netmask       = "10.0.0.1/32"
+      ip_range         = null
+      ip_wildcard      = null
+      location = {
+        device_group = {
+          name            = "import-address"
+          panorama_device = "localhost.localdomain"
+        }
+        shared = null
+        vsys   = null
+      }
+      name = "example-address"
+      tags = null
+    }
+   ```
+
 6. Apply
 
    ```hcl
