@@ -14,17 +14,14 @@ type Location struct {
 {{end}}
 }
 {{range $location := .OrderedLocations}}
-    {{- if $location.Vars}}
         type {{locationType $location false}} struct {
         {{- range $key, $var := $location.Vars}}
             {{$var.Name.CamelCase}} string `json:"{{$var.Name.Underscore}}"`
         {{- end}}
         }
-    {{end}}
 {{- end}}
 
 {{range $location := .OrderedLocations}}
-    {{- if $location.Vars}}
         func New{{locationType $location false}}() *Location {
             return &Location{
                 {{- $location.Name.CamelCase}}: &{{locationType $location false}}{
@@ -34,15 +31,6 @@ type Location struct {
                 },
             }
         }
-    {{- else}}
-        {{- if eq $location.Name.CamelCase "Shared"}}
-        func NewSharedLocation() *Location {
-            return &Location{
-                Shared: true,
-            }
-        }
-        {{- end}}
-    {{- end}}
 {{- end}}
 
 func (o Location) IsValid() error {

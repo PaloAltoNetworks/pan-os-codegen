@@ -112,11 +112,7 @@ type Location struct {
 }
 
 func (o Location) ValidatorType() string {
-	if len(o.Vars) == 0 {
-		return "bool"
-	} else {
-		return "object"
-	}
+	return "object"
 }
 
 func (o *Location) OrderedVars() []*LocationVar {

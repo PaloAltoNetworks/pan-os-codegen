@@ -30,7 +30,7 @@ func TestLocationType(t *testing.T) {
 	// then
 	assert.NotEmpty(t, locationTypes)
 	assert.Contains(t, locationTypes, "*DeviceGroupLocation")
-	assert.Contains(t, locationTypes, "bool")
+	assert.Contains(t, locationTypes, "*SharedLocation")
 }
 
 func TestSpecParamType(t *testing.T) {
