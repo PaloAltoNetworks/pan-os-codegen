@@ -27,6 +27,7 @@ type Parameter struct {
 	Required         bool                  `yaml:"required"`
 	Profiles         []profile.Profile     `yaml:"profiles"`
 	Validators       []validator.Validator `yaml:"validators"`
+	VariantGroupId   int                   `yaml:"variant_group_id"`
 	Spec             any                   `yaml:"-"`
 }
 

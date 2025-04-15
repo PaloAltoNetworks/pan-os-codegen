@@ -193,6 +193,7 @@ type SpecParam struct {
 	Items                   *SpecParamItems                   `json:"items" yaml:"items,omitempty"`
 	Regex                   string                            `json:"regex" yaml:"regex,omitempty"`
 	Profiles                []*SpecParamProfile               `json:"profiles" yaml:"profiles"`
+	VariantGroupId          int                               `json:"variant_group_id" yaml:"variant_group_id"`
 	Spec                    *Spec                             `json:"spec" yaml:"spec"`
 }
 
@@ -585,6 +586,7 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 			VariantCheck: variantCheck,
 		}
 	}
+
 	specParameter := &SpecParam{
 		Description:             schemaSpec.Description,
 		Type:                    specType,
@@ -595,6 +597,7 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 		Hashing:                 specHashing,
 		Profiles:                profiles,
 		Spec:                    innerSpec,
+		VariantGroupId:          schemaSpec.VariantGroupId,
 	}
 
 	for _, v := range schemaSpec.Validators {
