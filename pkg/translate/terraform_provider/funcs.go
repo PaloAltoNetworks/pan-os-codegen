@@ -3016,10 +3016,6 @@ func (o {{ .StructName }}{{ .ModelOrObject }}) EntryName() *string {
 `
 
 func RenderModelAttributeTypesFunction(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider, spec *properties.Normalization) (string, error) {
-	if resourceTyp == properties.ResourceCustom {
-		return "", nil
-	}
-
 	type context struct {
 		Structs []datasourceStructSpec
 	}
