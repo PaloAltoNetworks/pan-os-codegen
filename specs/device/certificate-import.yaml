@@ -1,0 +1,160 @@
+name: certificate-import
+terraform_provider_config:
+  suffix: certificate_import
+  description: Certificate Import
+  resource_type: custom
+  skip_datasource: true
+  custom_functions:
+    ResourceRead: certificateImportResourceRead
+    Create: certificateImportCreate
+    Update: certificateImportUpdate
+    Delete: certificateImportDelete
+go_sdk_config:
+  skip: true
+  package: ["certificateimport"]
+xpath_suffix: []
+locations:
+  - name: "panorama"
+    description: "Located in a specific Panorama."
+    devices:
+      - panorama
+    xpath:
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+      vars:
+        - name: "panorama_device"
+          description: "The Panorama device."
+          default: "localhost.localdomain"
+  - name: vsys
+    xpath:
+      path:
+        - config
+        - devices
+        - $ngfw_device
+        - vsys
+        - $vsys
+      vars:
+        - name: ngfw_device
+          description: The NGFW device name
+          required: false
+          default: localhost.localdomain
+          validators: []
+          type: entry
+        - name: vsys
+          description: The Virtual System name
+          required: false
+          default: vsys1
+          validators:
+            - type: not-values
+              spec:
+                values:
+                  - value: shared
+                    error: The vsys name cannot be "shared". Use the "shared" location instead
+          type: entry
+    description: Located in a specific Virtual System
+    devices:
+      - ngfw
+    validators: []
+    required: false
+    read_only: false
+  - name: device-group
+    xpath:
+      path:
+        - config
+        - devices
+        - $panorama_device
+        - device-group
+        - $device_group
+      vars:
+        - name: panorama_device
+          description: Panorama device name
+          required: false
+          default: localhost.localdomain
+          validators: []
+          type: entry
+        - name: device_group
+          description: Device Group name
+          required: true
+          validators:
+            - type: not-values
+              spec:
+                values:
+                  - value: shared
+                    error:
+                      The device group name cannot be "shared". Use the "shared" location
+                      instead
+          type: entry
+    description: Located in a specific Device Group
+    devices:
+      - panorama
+    validators: []
+    required: false
+    read_only: false
+entries:
+  - name: name
+version: 10.1.0
+spec:
+  params: []
+  variants:
+    - name: local
+      description: Import certificate from local data
+      type: object
+      profiles:
+        - xpath: ["local"]
+      spec:
+        params:
+        variants:
+          - name: pem
+            description: Base64-encoded PEM certificate data
+            type: object
+            profiles:
+              - xpath: ["pem"]
+            spec:
+              params:
+                - name: certificate
+                  type: string
+                  required: true
+                  profiles:
+                    - xpath: ["certificate"]
+                  codegen_overrides:
+                    terraform:
+                      sensitive: false
+                - name: private-key
+                  type: string
+                  profiles:
+                    - xpath: ["certificate"]
+                  codegen_overrides:
+                    terraform:
+                      sensitive: false
+                - name: block-private-key-export
+                  description: Block exporting of the imported private key from the device
+                  type: bool
+                  profiles:
+                    - xpath: ["block-private-key-export"]
+                - name: passphrase
+                  type: string
+                  profiles:
+                    - xpath: ["certificate"]
+                  codegen_overrides:
+                    terraform:
+                      sensitive: true
+          - name: pkcs12
+            type: object
+            profiles:
+              - xpath: ["pkcs12"]
+            spec:
+              params:
+                - name: certificate
+                  type: string
+                  required: true
+                  profiles:
+                    - xpath: ["certificate"]
+                - name: passphrase
+                  type: string
+                  profiles:
+                    - xpath: ["passphrase"]
+                  codegen_overrides:
+                    terraform:
+                      sensitive: true

@@ -3304,4 +3304,12 @@ var customResourceFuncsMap = map[string]map[string]string{
 		"Imports": vmAuthKeyImports,
 		"Open":    vmAuthKeyOpen,
 	},
+	"certificate_import": {
+		"Imports":      certificateImportImports,
+		"ResourceRead": certificateImportResourceRead,
+		"Create":       certificateImportCreate,
+		"Update":       certificateImportUpdate,
+		"Delete":       certificateImportDelete,
+		"Common":       certificateImportCommon,
+	},
 }

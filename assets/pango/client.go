@@ -1038,6 +1038,8 @@ func (c *Client) ExportFile(ctx context.Context, cmd *xmlapi.Export, ans any) (s
 		return "", nil, nil, err
 	}
 
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
 	b, resp, err := c.sendRequest(ctx, req, false, ans)
 	if err != nil {
 		return "", b, resp, err
