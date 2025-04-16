@@ -179,6 +179,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 		"RenderResourceSchema": func() (string, error) {
 			return RenderResourceSchema(resourceTyp, names, spec, terraformProvider.ImportManager)
 		},
+		"RenderModelAttributeTypesFunction": func() (string, error) {
+			return RenderModelAttributeTypesFunction(resourceTyp, properties.SchemaResource, names, spec)
+		},
 		"RenderCopyToPangoFunctions": func() (string, error) {
 			return RenderCopyToPangoFunctions(resourceTyp, names.PackageName, names.ResourceStructName, spec)
 		},
@@ -211,6 +214,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 		},
 		"RenderImportStateStructs": func() (string, error) {
 			return RenderImportStateStructs(resourceTyp, names, spec)
+		},
+		"RenderImportStateMarshallers": func() (string, error) {
+			return RenderImportStateMarshallers(resourceTyp, names, spec)
 		},
 		"RenderImportStateCreator": func() (string, error) {
 			return RenderImportStateCreator(resourceTyp, names, spec)
@@ -366,6 +372,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 			"FunctionSupported": func(function string) (bool, error) {
 				return FunctionSupported(spec, function)
 			},
+			"RenderModelAttributeTypesFunction": func() (string, error) {
+				return RenderModelAttributeTypesFunction(resourceTyp, properties.SchemaDataSource, names, spec)
+			},
 			"RenderCopyToPangoFunctions": func() (string, error) {
 				return RenderCopyToPangoFunctions(resourceTyp, names.PackageName, names.DataSourceStructName, spec)
 			},
@@ -414,7 +423,9 @@ func (g *GenerateTerraformProvider) GenerateCommonCode(resourceTyp properties.Re
 		terraformProvider.ImportManager.AddStandardImport("encoding/base64", "")
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types/basetypes", "")
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
-	case properties.ResourceConfig, properties.ResourceCustom:
+	case properties.ResourceConfig:
+		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types/basetypes", "")
+	case properties.ResourceCustom:
 	}
 
 	names := NewNameProvider(spec, resourceTyp)
@@ -425,7 +436,10 @@ func (g *GenerateTerraformProvider) GenerateCommonCode(resourceTyp properties.Re
 			return RenderLocationSchemaGetter(names, spec, terraformProvider.ImportManager)
 		},
 		"RenderLocationMarshallers": func() (string, error) { return RenderLocationMarshallers(names, spec) },
-		"RenderCustomCommonCode":    func() string { return RenderCustomCommonCode(names, spec) },
+		"RenderLocationAttributeTypes": func() (string, error) {
+			return RenderLocationAttributeTypes(names, spec)
+		},
+		"RenderCustomCommonCode": func() string { return RenderCustomCommonCode(names, spec) },
 	}
 	return g.generateTerraformEntityTemplate(resourceTyp, properties.SchemaCommon, names, spec, terraformProvider, commonTemplate, funcMap)
 }

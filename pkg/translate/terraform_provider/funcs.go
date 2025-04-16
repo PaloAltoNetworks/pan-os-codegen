@@ -642,51 +642,49 @@ const renderLocationTmpl = `
 {{- range .Locations }}
 type {{ .StructName }} struct {
   {{- range .Fields }}
-	{{ .Name }} {{ .Type }} {{ range .Tags }}{{ . }} {{ end }}
+	{{ .Name.CamelCase }} {{ .Type }} {{ range .Tags }}{{ . }} {{ end }}
   {{- end }}
 }
 {{- end }}
 `
 
-func RenderLocationStructs(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
-	type fieldCtx struct {
-		Name string
-		Type string
-		Tags []string
-	}
+type locationStructFieldCtx struct {
+	Name          *properties.NameVariant
+	TerraformType string
+	Type          string
+	Tags          []string
+}
 
-	type locationCtx struct {
-		StructName string
-		Fields     []fieldCtx
-	}
+type locationStructCtx struct {
+	StructName string
+	Fields     []locationStructFieldCtx
+}
 
-	type context struct {
-		Locations []locationCtx
-	}
-
-	var locations []locationCtx
+func getLocationStructsContext(names *NameProvider, spec *properties.Normalization) []locationStructCtx {
+	var locations []locationStructCtx
 
 	if len(spec.Locations) == 0 {
-		return "", nil
+		return nil
 	}
 
 	// Create the top location structure that references other locations
-	topLocation := locationCtx{
+	topLocation := locationStructCtx{
 		StructName: fmt.Sprintf("%sLocation", names.StructName),
 	}
 
 	for _, data := range spec.OrderedLocations() {
 		structName := fmt.Sprintf("%s%sLocation", names.StructName, data.Name.CamelCase)
 		tfTag := fmt.Sprintf("`tfsdk:\"%s\"`", data.Name.Underscore)
-		structType := fmt.Sprintf("*%s", structName)
+		structType := "types.Object"
 
-		topLocation.Fields = append(topLocation.Fields, fieldCtx{
-			Name: data.Name.CamelCase,
-			Type: structType,
-			Tags: []string{tfTag},
+		topLocation.Fields = append(topLocation.Fields, locationStructFieldCtx{
+			Name:          data.Name,
+			TerraformType: structName,
+			Type:          structType,
+			Tags:          []string{tfTag},
 		})
 
-		var fields []fieldCtx
+		var fields []locationStructFieldCtx
 
 		for _, i := range spec.Imports {
 			if i.Type.CamelCase != data.Name.CamelCase {
@@ -695,8 +693,8 @@ func RenderLocationStructs(resourceTyp properties.ResourceType, names *NameProvi
 
 			for _, elt := range i.OrderedLocations() {
 				if elt.Required {
-					fields = append(fields, fieldCtx{
-						Name: elt.Name.CamelCase,
+					fields = append(fields, locationStructFieldCtx{
+						Name: elt.Name,
 						Type: "types.String",
 						Tags: []string{fmt.Sprintf("`tfsdk:\"%s\"`", elt.Name.Underscore)},
 					})
@@ -706,19 +704,19 @@ func RenderLocationStructs(resourceTyp properties.ResourceType, names *NameProvi
 
 		for _, param := range data.OrderedVars() {
 			paramTag := fmt.Sprintf("`tfsdk:\"%s\"`", param.Name.Underscore)
-			name := param.Name.CamelCase
-			if name == data.Name.CamelCase {
-				name = "Name"
+			name := param.Name
+			if name.CamelCase == data.Name.CamelCase {
+				name = properties.NewNameVariant("name")
 				paramTag = "`tfsdk:\"name\"`"
 			}
-			fields = append(fields, fieldCtx{
+			fields = append(fields, locationStructFieldCtx{
 				Name: name,
 				Type: "types.String",
 				Tags: []string{paramTag},
 			})
 		}
 
-		location := locationCtx{
+		location := locationStructCtx{
 			StructName: structName,
 			Fields:     fields,
 		}
@@ -726,6 +724,16 @@ func RenderLocationStructs(resourceTyp properties.ResourceType, names *NameProvi
 	}
 
 	locations = append(locations, topLocation)
+
+	return locations
+}
+
+func RenderLocationStructs(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
+	type context struct {
+		Locations []locationStructCtx
+	}
+
+	locations := getLocationStructsContext(names, spec)
 
 	data := context{
 		Locations: locations,
@@ -961,7 +969,7 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 }
 
 type marshallerFieldSpec struct {
-	Name       string
+	Name       *properties.NameVariant
 	Type       string
 	StructName string
 	Tags       string
@@ -978,25 +986,25 @@ func createLocationMarshallerSpecs(names *NameProvider, spec *properties.Normali
 	var topFields []marshallerFieldSpec
 	for _, loc := range spec.OrderedLocations() {
 		topFields = append(topFields, marshallerFieldSpec{
-			Name:       loc.Name.CamelCase,
-			Type:       "object",
+			Name:       loc.Name,
+			Type:       "types.Object",
 			StructName: fmt.Sprintf("%s%sLocation", names.StructName, loc.Name.CamelCase),
-			Tags:       fmt.Sprintf("`json:\"%s\"`", loc.Name.Underscore),
+			Tags:       fmt.Sprintf("`json:\"%s,omitempty\"`", loc.Name.Underscore),
 		})
 
 		var fields []marshallerFieldSpec
 		for _, field := range loc.OrderedVars() {
-			name := field.Name.CamelCase
+			name := field.Name
 			tag := field.Name.Underscore
-			if name == loc.Name.CamelCase {
-				name = "Name"
+			if name.CamelCase == loc.Name.CamelCase {
+				name = properties.NewNameVariant("name")
 				tag = "name"
 			}
 
 			fields = append(fields, marshallerFieldSpec{
 				Name: name,
 				Type: "string",
-				Tags: fmt.Sprintf("`json:\"%s\"`", tag),
+				Tags: fmt.Sprintf("`json:\"%s,omitempty\"`", tag),
 			})
 		}
 
@@ -1009,7 +1017,7 @@ func createLocationMarshallerSpecs(names *NameProvider, spec *properties.Normali
 			for _, elt := range i.OrderedLocations() {
 				if elt.Required {
 					fields = append(fields, marshallerFieldSpec{
-						Name: elt.Name.CamelCase,
+						Name: elt.Name,
 						Type: "string",
 						Tags: fmt.Sprintf("`tfsdk:\"%s\"`", elt.Name.Underscore),
 					})
@@ -1038,6 +1046,20 @@ func RenderLocationMarshallers(names *NameProvider, spec *properties.Normalizati
 	context.Specs = createLocationMarshallerSpecs(names, spec)
 
 	return processTemplate(locationMarshallersTmpl, "render-location-marshallers", context, commonFuncMap)
+}
+
+func RenderImportStateMarshallers(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
+	// Only singular entries can be imported at the time
+	if resourceTyp == properties.ResourceCustom || resourceTyp == properties.ResourceConfig {
+		return "", nil
+	}
+
+	var context struct {
+		Specs []marshallerSpec
+	}
+	context.Specs = createImportStateMarshallerSpecs(resourceTyp, names, spec)
+
+	return processTemplate(locationMarshallersTmpl, "render-import-state-marshallers", context, commonFuncMap)
 }
 
 func RenderCustomImports(spec *properties.Normalization) string {
@@ -1889,18 +1911,32 @@ func RenderDataSourceSchema(resourceTyp properties.ResourceType, names *NameProv
 }
 
 const importLocationAssignmentTmpl = `
+{
+var terraformLocation {{ .TerraformStructName }}
+resp.Diagnostics.Append({{ $.Source }}.As(ctx, &terraformLocation, basetypes.ObjectAsOptions{})...)
+if resp.Diagnostics.HasError() {
+	return
+}
 {{- range .Specs }}
 {{ $type := . }}
-if {{ $.Source }}.{{ .Name.CamelCase }} != nil {
+{{ $locationName := .Name }}
+if location.{{ .Name.CamelCase }} != nil {
   {{- range .Locations }}
+	{
+	var terraformInnerLocation {{ .TerraformStructName }}
+	resp.Diagnostics.Append(terraformLocation.{{ $locationName.CamelCase }}.As(ctx, &terraformInnerLocation, basetypes.ObjectAsOptions{})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
     {{- $pangoStruct := GetPangoStructForLocation $.Variants $type.Name .Name }}
-	// {{ .Name.CamelCase }}
 	{{ $.Dest }} = {{ $.PackageName }}.New{{ $pangoStruct }}({{ $.PackageName }}.{{ $pangoStruct }}Spec{
     {{- range .Fields }}
-		{{ . }}: {{ $.Source }}.{{ $type.Name.CamelCase }}.{{ . }}.ValueString(),
+		{{ . }}: terraformInnerLocation.{{ . }}.ValueString(),
     {{- end }}
 	})
+	}
   {{- end }}
+}
 }
 {{- end }}
 `
@@ -1915,13 +1951,15 @@ func RenderImportLocationAssignment(names *NameProvider, spec *properties.Normal
 	}
 
 	type importLocationSpec struct {
-		Name   *properties.NameVariant
-		Fields []string
+		TerraformStructName string
+		Name                *properties.NameVariant
+		Fields              []string
 	}
 
 	type importSpec struct {
-		Name      *properties.NameVariant
-		Locations []importLocationSpec
+		TerraformStructName string
+		Name                *properties.NameVariant
+		Locations           []importLocationSpec
 	}
 
 	var importSpecs []importSpec
@@ -1946,11 +1984,13 @@ func RenderImportLocationAssignment(names *NameProvider, spec *properties.Normal
 				fields = append(fields, elt.Name.CamelCase)
 			}
 
+			tfStructName := fmt.Sprintf("%s%sLocation", names.StructName, elt.Type.CamelCase)
 			pangoStructName := fmt.Sprintf("%s%s%sImportLocation", elt.Variant.CamelCase, elt.Type.CamelCase, loc.Name.CamelCase)
 			(*existing.PangoStructNames)[loc.Name.CamelCase] = pangoStructName
 			locations = append(locations, importLocationSpec{
-				Name:   loc.Name,
-				Fields: fields,
+				TerraformStructName: tfStructName,
+				Name:                loc.Name,
+				Fields:              fields,
 			})
 		}
 		variantsByName[elt.Type.CamelCase] = existing
@@ -1962,30 +2002,25 @@ func RenderImportLocationAssignment(names *NameProvider, spec *properties.Normal
 	}
 
 	type context struct {
-		PackageName string
-		Source      string
-		Dest        string
-		Variants    map[string]importVariantSpec
-		Specs       []importSpec
+		TerraformStructName string
+		PackageName         string
+		Source              string
+		Dest                string
+		Variants            map[string]importVariantSpec
+		Specs               []importSpec
 	}
 
 	data := context{
-		PackageName: names.PackageName,
-		Source:      source,
-		Dest:        dest,
-		Variants:    variantsByName,
-		Specs:       importSpecs,
+		TerraformStructName: fmt.Sprintf("%sLocation", names.StructName),
+		PackageName:         names.PackageName,
+		Source:              source,
+		Dest:                dest,
+		Variants:            variantsByName,
+		Specs:               importSpecs,
 	}
 
 	funcMap := template.FuncMap{
 		"GetPangoStructForLocation": func(variants map[string]importVariantSpec, typ *properties.NameVariant, location *properties.NameVariant) (string, error) {
-			log.Printf("len(variants): %d", len(variants))
-			for name, elt := range variants {
-				log.Printf("Type: %s", name)
-				for name, structName := range *elt.PangoStructNames {
-					log.Printf("   Name: %s, StructName: %s", name, structName)
-				}
-			}
 			variantSpec, found := variants[typ.CamelCase]
 			if !found {
 				return "", fmt.Errorf("failed to find variant for type '%s'", typ.CamelCase)
@@ -2011,6 +2046,7 @@ type locationFieldCtx struct {
 
 type locationCtx struct {
 	Name                string
+	PangoStructName     string
 	TerraformStructName string
 	SdkStructName       string
 	Fields              []locationFieldCtx
@@ -2035,6 +2071,7 @@ func renderLocationsGetContext(names *NameProvider, spec *properties.Normalizati
 		}
 		locations = append(locations, locationCtx{
 			Name:                location.Name.CamelCase,
+			PangoStructName:     fmt.Sprintf("%s.%sLocation", names.PackageName, location.Name.CamelCase),
 			TerraformStructName: fmt.Sprintf("%s%sLocation", names.StructName, location.Name.CamelCase),
 			SdkStructName:       fmt.Sprintf("%s.%sLocation", names.PackageName, location.Name.CamelCase),
 			Fields:              fields,
@@ -2068,25 +2105,43 @@ func RenderLocationsPangoToState(names *NameProvider, spec *properties.Normaliza
 }
 
 const locationsStateToPango = `
+{
+var terraformLocation {{ .TerraformStructName }}
+resp.Diagnostics.Append({{ $.Source }}.As(ctx, &terraformLocation, basetypes.ObjectAsOptions{})...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
 {{- range .Locations }}
-if {{ $.Source }}.{{ .Name }} != nil {
-	{{ $.Dest }}.{{ .Name }} = &{{ .SdkStructName }}{
-  {{ $locationName := .Name }}
-  {{- range .Fields }}
-		{{ .PangoName }}: {{ $.Source }}.{{ $locationName }}.{{ .TerraformName }}.ValueString(),
-  {{- end }}
+{{ $locationType := .Name }}
+if !terraformLocation.{{ $locationType }}.IsNull() {
+	{{ $.Dest }}.{{ $locationType }} = &{{ .PangoStructName }}{}
+	var innerLocation {{ .TerraformStructName }}
+	resp.Diagnostics.Append(terraformLocation.{{ .Name }}.As(ctx, &innerLocation, basetypes.ObjectAsOptions{})...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
+  {{- range .Fields }}
+	{{ $.Dest }}.{{ $locationType }}.{{ .PangoName }} = innerLocation.{{ .TerraformName }}.ValueString()
+  {{- end }}
 }
 {{- end }}
+}
 `
 
 func RenderLocationsStateToPango(names *NameProvider, spec *properties.Normalization, source string, dest string) (string, error) {
 	type context struct {
-		Source    string
-		Dest      string
-		Locations []locationCtx
+		TerraformStructName string
+		Source              string
+		Dest                string
+		Locations           []locationCtx
 	}
-	data := context{Locations: renderLocationsGetContext(names, spec), Source: source, Dest: dest}
+	data := context{
+		TerraformStructName: fmt.Sprintf("%sLocation", names.StructName),
+		Locations:           renderLocationsGetContext(names, spec),
+		Source:              source,
+		Dest:                dest,
+	}
 	return processTemplate(locationsStateToPango, "render-locations-state-to-pango", data, commonFuncMap)
 }
 
@@ -2103,16 +2158,17 @@ const dataSourceStructs = `
 {{- range .Structs }}
 type {{ .StructName }}{{ .ModelOrObject }} struct {
   {{- range .Fields }}
-	{{ .Name }} {{ .Type }} {{ range .Tags }}{{ . }} {{ end }}
+	{{ .Name.CamelCase }} {{ .Type }} {{ range .Tags }}{{ . }} {{ end }}
   {{- end }}
 }
 {{- end }}
 `
 
 type datasourceStructFieldSpec struct {
-	Name string
-	Type string
-	Tags []string
+	Name          *properties.NameVariant
+	TerraformType string
+	Type          string
+	Tags          []string
 }
 
 type datasourceStructSpec struct {
@@ -2121,9 +2177,13 @@ type datasourceStructSpec struct {
 	Fields        []datasourceStructFieldSpec
 }
 
-func terraformTypeForProperty(structPrefix string, prop *properties.SpecParam) string {
+func terraformTypeForProperty(structPrefix string, prop *properties.SpecParam, hackStructsAsTypeObjects bool) string {
 	if prop.Type == "" {
-		return fmt.Sprintf("*%s%sObject", structPrefix, prop.NameVariant().CamelCase)
+		if hackStructsAsTypeObjects {
+			return "types.Object"
+		} else {
+			return fmt.Sprintf("*%s%sObject", structPrefix, prop.NameVariant().CamelCase)
+		}
 	}
 
 	switch prop.ComplexType() {
@@ -2150,16 +2210,17 @@ func terraformTypeForProperty(structPrefix string, prop *properties.SpecParam) s
 	return fmt.Sprintf("types.%s", pascalCase(prop.Type))
 }
 
-func structFieldSpec(param *properties.SpecParam, structPrefix string) datasourceStructFieldSpec {
+func structFieldSpec(param *properties.SpecParam, structPrefix string, hackStructsAsTypeObjects bool) datasourceStructFieldSpec {
 	tfTag := fmt.Sprintf("`tfsdk:\"%s\"`", param.NameVariant().Underscore)
 	return datasourceStructFieldSpec{
-		Name: param.NameVariant().CamelCase,
-		Type: terraformTypeForProperty(structPrefix, param),
-		Tags: []string{tfTag},
+		Name:          param.NameVariant(),
+		TerraformType: terraformTypeForProperty(structPrefix, param, false),
+		Type:          terraformTypeForProperty(structPrefix, param, hackStructsAsTypeObjects),
+		Tags:          []string{tfTag},
 	}
 }
 
-func dataSourceStructContextForParam(structPrefix string, param *properties.SpecParam) []datasourceStructSpec {
+func dataSourceStructContextForParam(structPrefix string, param *properties.SpecParam, hackStructsAsTypeObjects bool) []datasourceStructSpec {
 	var structs []datasourceStructSpec
 
 	structName := fmt.Sprintf("%s%s", structPrefix, param.NameVariant().CamelCase)
@@ -2168,7 +2229,7 @@ func dataSourceStructContextForParam(structPrefix string, param *properties.Spec
 
 	if param.HasEntryName() {
 		fields = append(fields, datasourceStructFieldSpec{
-			Name: "Name",
+			Name: properties.NewNameVariant("name"),
 			Type: "types.String",
 			Tags: []string{"`tfsdk:\"name\"`"},
 		})
@@ -2179,14 +2240,14 @@ func dataSourceStructContextForParam(structPrefix string, param *properties.Spec
 			if elt.IsPrivateParameter() {
 				continue
 			}
-			fields = append(fields, structFieldSpec(elt, structName))
+			fields = append(fields, structFieldSpec(elt, structName, hackStructsAsTypeObjects))
 		}
 
 		for _, elt := range param.Spec.SortedOneOf() {
 			if elt.IsPrivateParameter() {
 				continue
 			}
-			fields = append(fields, structFieldSpec(elt, structName))
+			fields = append(fields, structFieldSpec(elt, structName, hackStructsAsTypeObjects))
 		}
 	}
 
@@ -2205,7 +2266,7 @@ func dataSourceStructContextForParam(structPrefix string, param *properties.Spec
 			continue
 		}
 		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
-			structs = append(structs, dataSourceStructContextForParam(structName, elt)...)
+			structs = append(structs, dataSourceStructContextForParam(structName, elt, hackStructsAsTypeObjects)...)
 		}
 	}
 
@@ -2215,23 +2276,24 @@ func dataSourceStructContextForParam(structPrefix string, param *properties.Spec
 		}
 
 		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
-			structs = append(structs, dataSourceStructContextForParam(structName, elt)...)
+			structs = append(structs, dataSourceStructContextForParam(structName, elt, hackStructsAsTypeObjects)...)
 		}
 	}
 
 	return structs
 }
 
-func createStructSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
+func createStructSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, spec *properties.Normalization, names *NameProvider, hackStructsAsTypeObjects bool) []datasourceStructSpec {
 	var structs []datasourceStructSpec
 
 	var fields []datasourceStructFieldSpec
 
 	if len(spec.Locations) > 0 {
 		fields = append(fields, datasourceStructFieldSpec{
-			Name: "Location",
-			Type: fmt.Sprintf("%sLocation", names.StructName),
-			Tags: []string{"`tfsdk:\"location\"`"},
+			Name:          properties.NewNameVariant("location"),
+			TerraformType: fmt.Sprintf("%sLocation", names.StructName),
+			Type:          "types.Object",
+			Tags:          []string{"`tfsdk:\"location\"`"},
 		})
 	}
 
@@ -2240,9 +2302,10 @@ func createStructSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 		position := properties.NewNameVariant("position")
 
 		fields = append(fields, datasourceStructFieldSpec{
-			Name: position.CamelCase,
-			Type: "TerraformPositionObject",
-			Tags: []string{"`tfsdk:\"position\"`"},
+			Name:          position,
+			TerraformType: "TerraformPositionObject",
+			Type:          "types.Object",
+			Tags:          []string{"`tfsdk:\"position\"`"},
 		})
 	}
 
@@ -2261,7 +2324,7 @@ func createStructSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 
 	tag := fmt.Sprintf("`tfsdk:\"%s\"`", listName.Underscore)
 	fields = append(fields, datasourceStructFieldSpec{
-		Name: listName.CamelCase,
+		Name: listName,
 		Type: "types.List",
 		Tags: []string{tag},
 	})
@@ -2273,7 +2336,7 @@ func createStructSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 	})
 
 	structName = fmt.Sprintf("%s%s", structName, listName.CamelCase)
-	fields, normalizationStructs := createStructSpecForNormalization(resourceTyp, structName, spec)
+	fields, normalizationStructs := createStructSpecForNormalization(resourceTyp, structName, spec, hackStructsAsTypeObjects)
 
 	structs = append(structs, datasourceStructSpec{
 		StructName:    structName,
@@ -2286,15 +2349,16 @@ func createStructSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 	return structs
 }
 
-func createStructSpecForEntryListModel(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
+func createStructSpecForEntryListModel(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, spec *properties.Normalization, names *NameProvider, hackStructsAsTypeObjects bool) []datasourceStructSpec {
 	var structs []datasourceStructSpec
 
 	var fields []datasourceStructFieldSpec
 	if len(spec.Locations) > 0 {
 		fields = append(fields, datasourceStructFieldSpec{
-			Name: "Location",
-			Type: fmt.Sprintf("%sLocation", names.StructName),
-			Tags: []string{"`tfsdk:\"location\"`"},
+			Name:          properties.NewNameVariant("location"),
+			TerraformType: fmt.Sprintf("%sLocation", names.StructName),
+			Type:          "types.Object",
+			Tags:          []string{"`tfsdk:\"location\"`"},
 		})
 	}
 
@@ -2313,7 +2377,7 @@ func createStructSpecForEntryListModel(resourceTyp properties.ResourceType, sche
 
 	tag := fmt.Sprintf("`tfsdk:\"%s\"`", listName.Underscore)
 	fields = append(fields, datasourceStructFieldSpec{
-		Name: listName.CamelCase,
+		Name: listName,
 		Type: "types.Map",
 		Tags: []string{tag},
 	})
@@ -2325,7 +2389,7 @@ func createStructSpecForEntryListModel(resourceTyp properties.ResourceType, sche
 	})
 
 	structName = fmt.Sprintf("%s%s", structName, listName.CamelCase)
-	fields, normalizationStructs := createStructSpecForNormalization(resourceTyp, structName, spec)
+	fields, normalizationStructs := createStructSpecForNormalization(resourceTyp, structName, spec, hackStructsAsTypeObjects)
 
 	structs = append(structs, datasourceStructSpec{
 		StructName:    structName,
@@ -2338,16 +2402,17 @@ func createStructSpecForEntryListModel(resourceTyp properties.ResourceType, sche
 	return structs
 }
 
-func createStructSpecForEntryModel(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
+func createStructSpecForEntryModel(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, spec *properties.Normalization, names *NameProvider, hackStructAsTypeObjects bool) []datasourceStructSpec {
 	var structs []datasourceStructSpec
 
 	var fields []datasourceStructFieldSpec
 
 	if len(spec.Locations) > 0 {
 		fields = append(fields, datasourceStructFieldSpec{
-			Name: "Location",
-			Type: fmt.Sprintf("%sLocation", names.StructName),
-			Tags: []string{"`tfsdk:\"location\"`"},
+			Name:          properties.NewNameVariant("location"),
+			TerraformType: fmt.Sprintf("%sLocation", names.StructName),
+			Type:          "types.Object",
+			Tags:          []string{"`tfsdk:\"location\"`"},
 		})
 	}
 
@@ -2361,7 +2426,7 @@ func createStructSpecForEntryModel(resourceTyp properties.ResourceType, schemaTy
 		panic("unreachable")
 	}
 
-	normalizationFields, normalizationStructs := createStructSpecForNormalization(resourceTyp, structName, spec)
+	normalizationFields, normalizationStructs := createStructSpecForNormalization(resourceTyp, structName, spec, hackStructAsTypeObjects)
 	fields = append(fields, normalizationFields...)
 
 	structs = append(structs, datasourceStructSpec{
@@ -2375,24 +2440,24 @@ func createStructSpecForEntryModel(resourceTyp properties.ResourceType, schemaTy
 	return structs
 }
 
-func createStructSpecForModel(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
+func createStructSpecForModel(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, spec *properties.Normalization, names *NameProvider, hackStructsAsTypeObjects bool) []datasourceStructSpec {
 	if spec.Spec == nil {
 		return nil
 	}
 
 	switch resourceTyp {
 	case properties.ResourceEntry, properties.ResourceCustom, properties.ResourceConfig:
-		return createStructSpecForEntryModel(resourceTyp, schemaTyp, spec, names)
+		return createStructSpecForEntryModel(resourceTyp, schemaTyp, spec, names, hackStructsAsTypeObjects)
 	case properties.ResourceEntryPlural:
-		return createStructSpecForEntryListModel(resourceTyp, schemaTyp, spec, names)
+		return createStructSpecForEntryListModel(resourceTyp, schemaTyp, spec, names, hackStructsAsTypeObjects)
 	case properties.ResourceUuid, properties.ResourceUuidPlural:
-		return createStructSpecForUuidModel(resourceTyp, schemaTyp, spec, names)
+		return createStructSpecForUuidModel(resourceTyp, schemaTyp, spec, names, hackStructsAsTypeObjects)
 	default:
 		panic("unreachable")
 	}
 }
 
-func createStructSpecForNormalization(resourceTyp properties.ResourceType, structName string, spec *properties.Normalization) ([]datasourceStructFieldSpec, []datasourceStructSpec) {
+func createStructSpecForNormalization(resourceTyp properties.ResourceType, structName string, spec *properties.Normalization, hackStructAsTypeObjects bool) ([]datasourceStructFieldSpec, []datasourceStructSpec) {
 	var fields []datasourceStructFieldSpec
 	var structs []datasourceStructSpec
 
@@ -2400,7 +2465,7 @@ func createStructSpecForNormalization(resourceTyp properties.ResourceType, struc
 	// represent lists as maps with name being a key.
 	if spec.HasEntryName() && resourceTyp != properties.ResourceEntryPlural {
 		fields = append(fields, datasourceStructFieldSpec{
-			Name: "Name",
+			Name: properties.NewNameVariant("name"),
 			Type: "types.String",
 			Tags: []string{"`tfsdk:\"name\"`"},
 		})
@@ -2411,9 +2476,9 @@ func createStructSpecForNormalization(resourceTyp properties.ResourceType, struc
 			continue
 		}
 
-		fields = append(fields, structFieldSpec(elt, structName))
+		fields = append(fields, structFieldSpec(elt, structName, hackStructAsTypeObjects))
 		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
-			structs = append(structs, dataSourceStructContextForParam(structName, elt)...)
+			structs = append(structs, dataSourceStructContextForParam(structName, elt, hackStructAsTypeObjects)...)
 		}
 	}
 
@@ -2422,15 +2487,15 @@ func createStructSpecForNormalization(resourceTyp properties.ResourceType, struc
 			continue
 		}
 
-		fields = append(fields, structFieldSpec(elt, structName))
+		fields = append(fields, structFieldSpec(elt, structName, hackStructAsTypeObjects))
 		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
-			structs = append(structs, dataSourceStructContextForParam(structName, elt)...)
+			structs = append(structs, dataSourceStructContextForParam(structName, elt, hackStructAsTypeObjects)...)
 		}
 	}
 
 	if spec.HasEncryptedResources() {
 		fields = append(fields, datasourceStructFieldSpec{
-			Name: "EncryptedValues",
+			Name: properties.NewNameVariant("encrypted_values"),
 			Type: "types.Map",
 			Tags: []string{"`tfsdk:\"encrypted_values\"`"},
 		})
@@ -2445,7 +2510,7 @@ func RenderResourceStructs(resourceTyp properties.ResourceType, names *NameProvi
 	}
 
 	data := context{
-		Structs: createStructSpecForModel(resourceTyp, properties.SchemaResource, spec, names),
+		Structs: createStructSpecForModel(resourceTyp, properties.SchemaResource, spec, names, false),
 	}
 
 	return processTemplate(dataSourceStructs, "render-structs", data, commonFuncMap)
@@ -2457,10 +2522,87 @@ func RenderDataSourceStructs(resourceTyp properties.ResourceType, names *NamePro
 	}
 
 	data := context{
-		Structs: createStructSpecForModel(resourceTyp, properties.SchemaDataSource, spec, names),
+		Structs: createStructSpecForModel(resourceTyp, properties.SchemaDataSource, spec, names, false),
 	}
 
 	return processTemplate(dataSourceStructs, "render-structs", data, commonFuncMap)
+}
+
+const attributeTypesTmpl = `
+{{- range .Structs }}
+func (o *{{ .StructName }}{{ .ModelOrObject }}) AttributeTypes() map[string]attr.Type {
+  {{- range .Fields }}
+    {{ if (eq .Type "types.Object") }}
+	var {{ .Name.LowerCamelCase }}Obj {{ .TerraformType }}
+    {{- end }}
+  {{- end }}
+	return map[string]attr.Type{
+  {{- range .Fields }}
+    {{- if eq .Type "types.Object" }}
+	"{{ .Name.Underscore }}": {{ .Type }}Type{
+		AttrTypes: {{ .Name.LowerCamelCase }}Obj.AttributeTypes(),
+	},
+    {{- else if or (eq .Type "types.List") (eq .Type "types.Set") (eq .Type "types.Map") }}
+		"{{ .Name.Underscore }}": {{ .Type }}Type{},
+    {{- else }}
+		"{{ .Name.Underscore }}": {{ .Type }}Type,
+    {{- end }}
+  {{- end }}
+	}
+}
+{{- end }}
+`
+
+func RenderModelAttributeTypesFunction(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider, spec *properties.Normalization) (string, error) {
+	if resourceTyp == properties.ResourceCustom {
+		return "", nil
+	}
+
+	type context struct {
+		Structs []datasourceStructSpec
+	}
+
+	data := context{
+		Structs: createStructSpecForModel(resourceTyp, schemaTyp, spec, names, true),
+	}
+
+	return processTemplate(attributeTypesTmpl, "attribute-types", data, nil)
+}
+
+const locationAttributeTypesTmpl = `
+{{- range .Specs }}
+func (o *{{ .StructName }}) AttributeTypes() map[string]attr.Type{
+  {{- range .Fields }}
+    {{- if eq .Type "types.Object" }}
+	var {{ .Name.LowerCamelCase }}Obj {{ .TerraformType }}
+    {{- end }}
+  {{- end }}
+	return map[string]attr.Type{
+  {{- range .Fields }}
+    {{- if eq .Type "types.Object" }}
+		"{{ .Name.Underscore }}": {{ .Type }}Type{
+			AttrTypes: {{ .Name.LowerCamelCase }}Obj.AttributeTypes(),
+		},
+    {{- else }}
+		"{{ .Name.Underscore }}": {{ .Type }}Type,
+    {{- end }}
+  {{- end }}
+	}
+}
+{{- end }}
+`
+
+func RenderLocationAttributeTypes(names *NameProvider, spec *properties.Normalization) (string, error) {
+	type context struct {
+		Specs []locationStructCtx
+	}
+
+	locations := getLocationStructsContext(names, spec)
+
+	data := context{
+		Specs: locations,
+	}
+	return processTemplate(locationAttributeTypesTmpl, "render-location-structs", data, commonFuncMap)
 }
 
 func getCustomTemplateForFunction(spec *properties.Normalization, function string) (string, error) {
@@ -2869,9 +3011,10 @@ func FunctionSupported(spec *properties.Normalization, function string) (bool, e
 }
 
 type importStateStructFieldSpec struct {
-	Name string
-	Type string
-	Tags string
+	Name          string
+	TerraformType string
+	Type          string
+	Tags          string
 }
 
 type importStateStructSpec struct {
@@ -2884,40 +3027,93 @@ func createImportStateStructSpecs(resourceTyp properties.ResourceType, names *Na
 
 	var fields []importStateStructFieldSpec
 	fields = append(fields, importStateStructFieldSpec{
-		Name: "Location",
-		Type: fmt.Sprintf("%sLocation", names.StructName),
-		Tags: "`json:\"location\"`",
+		Name:          "Location",
+		TerraformType: fmt.Sprintf("%sLocation", names.StructName),
+		Type:          "types.Object",
+		Tags:          "`json:\"location\"`",
 	})
 
 	switch resourceTyp {
 	case properties.ResourceEntry:
 		fields = append(fields, importStateStructFieldSpec{
 			Name: "Name",
-			Type: "string",
+			Type: "types.String",
 			Tags: "`json:\"name\"`",
 		})
 	case properties.ResourceEntryPlural, properties.ResourceUuid:
 		fields = append(fields, importStateStructFieldSpec{
 			Name: "Names",
-			Type: "[]string",
+			Type: "types.List",
 			Tags: "`json:\"names\"`",
 		})
 	case properties.ResourceUuidPlural:
 		fields = append(fields, importStateStructFieldSpec{
 			Name: "Names",
-			Type: "[]string",
+			Type: "types.List",
 			Tags: "`json:\"names\"`",
 		})
 		fields = append(fields, importStateStructFieldSpec{
-			Name: "Position",
-			Type: "TerraformPositionObject",
-			Tags: "`json:\"position\"`",
+			Name:          "Position",
+			TerraformType: "TerraformPositionObject",
+			Type:          "types.Object",
+			Tags:          "`json:\"position\"`",
 		})
 	case properties.ResourceCustom, properties.ResourceConfig:
 		panic("unreachable")
 	}
 
 	specs = append(specs, importStateStructSpec{
+		StructName: fmt.Sprintf("%sImportState", names.StructName),
+		Fields:     fields,
+	})
+
+	return specs
+}
+
+func createImportStateMarshallerSpecs(resourceTyp properties.ResourceType, names *NameProvider, _ *properties.Normalization) []marshallerSpec {
+	var specs []marshallerSpec
+
+	var fields []marshallerFieldSpec
+
+	fields = append(fields, marshallerFieldSpec{
+		Name:       properties.NewNameVariant("location"),
+		Type:       "types.Object",
+		StructName: fmt.Sprintf("%sLocation", names.StructName),
+		Tags:       "`json:\"location\"`",
+	})
+
+	switch resourceTyp {
+	case properties.ResourceEntry:
+		fields = append(fields, marshallerFieldSpec{
+			Name: properties.NewNameVariant("name"),
+			Type: "string",
+			Tags: "`json:\"name\"`",
+		})
+	case properties.ResourceEntryPlural, properties.ResourceUuid:
+		fields = append(fields, marshallerFieldSpec{
+			Name:       properties.NewNameVariant("names"),
+			Type:       "types.List",
+			StructName: "[]string",
+			Tags:       "`json:\"names\"`",
+		})
+	case properties.ResourceUuidPlural:
+		fields = append(fields, marshallerFieldSpec{
+			Name:       properties.NewNameVariant("names"),
+			Type:       "types.List",
+			StructName: "[]string",
+			Tags:       "`json:\"names\"`",
+		})
+		fields = append(fields, marshallerFieldSpec{
+			Name:       properties.NewNameVariant("position"),
+			Type:       "types.Object",
+			StructName: "TerraformPositionObject",
+			Tags:       "`json:\"position\"`",
+		})
+	case properties.ResourceCustom, properties.ResourceConfig:
+		panic(fmt.Sprintf("unreachable state: %s", resourceTyp))
+	}
+
+	specs = append(specs, marshallerSpec{
 		StructName: fmt.Sprintf("%sImportState", names.StructName),
 		Fields:     fields,
 	})
