@@ -1127,6 +1127,10 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 			continue
 		}
 
+		if elt.TerraformProviderConfig != nil && elt.TerraformProviderConfig.VariantCheck != nil {
+			validatorFn = *elt.TerraformProviderConfig.VariantCheck
+		}
+
 		expressions = append(expressions, fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, elt.Name.Underscore))
 	}
 
