@@ -2696,13 +2696,18 @@ func DataSourceReadFunction(resourceTyp properties.ResourceType, names *NameProv
 
 	var tmpl string
 	var listAttribute string
+	var exhaustive bool
 	switch resourceTyp {
 	case properties.ResourceEntry, properties.ResourceConfig:
 		tmpl = resourceReadFunction
 	case properties.ResourceEntryPlural:
 		tmpl = resourceReadEntryListFunction
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
-	case properties.ResourceUuid, properties.ResourceUuidPlural:
+	case properties.ResourceUuid:
+		tmpl = resourceReadManyFunction
+		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
+		exhaustive = true
+	case properties.ResourceUuidPlural:
 		tmpl = resourceReadManyFunction
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 	case properties.ResourceCustom:
@@ -2724,6 +2729,7 @@ func DataSourceReadFunction(resourceTyp properties.ResourceType, names *NameProv
 		"ResourceIsMap":         resourceIsMap,
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
 		"ListAttribute":         listAttributeVariant,
+		"Exhaustive":            exhaustive,
 		"EntryOrConfig":         paramSpec.EntryOrConfig(),
 		"HasEntryName":          paramSpec.HasEntryName(),
 		"structName":            names.StructName,
