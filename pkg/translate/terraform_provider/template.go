@@ -303,17 +303,43 @@ func (r *{{ resourceStructName }}) ValidateConfig(ctx context.Context, req resou
 	}
   {{ $resourceTFStructName := printf "%s%sObject" resourceStructName ListAttribute.CamelCase }}
 	entries := make(map[string]struct{})
-	var elements []{{ $resourceTFStructName }}
-	resource.{{ ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)
+	duplicated := make(map[string]struct{})
+
+	var elements []types.Object
+	resp.Diagnostics.Append(resource.{{ ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, true)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	for _, elt := range elements {
-		entry :=  elt.Name.ValueString()
-		if _, found := entries[entry]; found {
-			resp.Diagnostics.AddError("Failed to validate resource", "List entries must have unique names")
+		var typedElt {{ $resourceTFStructName }}
+		resp.Diagnostics.Append(elt.As(ctx, &typedElt, basetypes.ObjectAsOptions{})...)
+		if resp.Diagnostics.HasError() {
 			return
+		}
+
+		if typedElt.Name.IsUnknown() {
+			continue
+		}
+
+		entry := typedElt.Name.ValueString()
+		if _, found := entries[entry]; found {
+			duplicated[entry] = struct{}{}
 		}
 		entries[entry] = struct{}{}
 	}
+
+	var _ = strings.Join([]string{"a", "b"}, ",")
+
+	if len(duplicated) > 0 {
+		var entries []string
+		for elt := range duplicated {
+			entries = append(entries, fmt.Sprintf("'%s'", elt))
+		}
+		resp.Diagnostics.AddError("Failed to validate resource", fmt.Sprintf("Non-unique entry names in the list: %s", strings.Join(entries, ",")))
+		return
+	}
+
 	}
 {{- end }}
 }
@@ -881,10 +907,24 @@ for _, elt := range elements {
 }
 
 {{ $exhaustive := "sdkmanager.NonExhaustive" }}
-{{ if .Exhaustive }}
+// {{ .Exhaustive }}
+{{- if .Exhaustive }}
   {{ $exhaustive = "sdkmanager.Exhaustive" }}
+position := movement.PositionFirst{}
+{{- else }}
+var positionAttribute TerraformPositionObject
+resp.Diagnostics.Append(state.Position.As(ctx, &positionAttribute, basetypes.ObjectAsOptions{})...)
+if resp.Diagnostics.HasError() {
+	return
+}
+position := positionAttribute.CopyToPango()
 {{- end }}
-readEntries, err := o.manager.ReadMany(ctx, location, entries, {{ $exhaustive }})
+
+{{- if .Exhaustive }}
+readEntries, _, err := o.manager.ReadMany(ctx, location, entries, {{ $exhaustive }}, position)
+{{- else }}
+readEntries, movementRequired, err := o.manager.ReadMany(ctx, location, entries, {{ $exhaustive }}, position)
+{{- end }}
 if err != nil {
 	if errors.Is(err, sdkmanager.ErrObjectNotFound) {
 		resp.State.RemoveResource(ctx)
@@ -904,6 +944,12 @@ for _, elt := range readEntries {
 	}
 	objects = append(objects, object)
 }
+
+{{- if not .Exhaustive }}
+if movementRequired {
+	state.Position = types.ObjectNull(positionAttribute.AttributeTypes())
+}
+{{- end }}
 
 var list_diags diag.Diagnostics
 state.{{ .ListAttribute.CamelCase }}, list_diags = types.ListValueFrom(ctx, state.getTypeFor("{{ .ListAttribute.Underscore }}"), objects)
@@ -1142,7 +1188,7 @@ if resp.Diagnostics.HasError() {
 position := positionAttribute.CopyToPango()
 {{- end }}
 
-existing, err := r.manager.ReadMany(ctx, location, stateEntries, {{ $exhaustive }})
+existing, _, err := r.manager.ReadMany(ctx, location, stateEntries, {{ $exhaustive }}, position)
 if err != nil && !errors.Is(err, sdkmanager.ErrObjectNotFound) {
 	resp.Diagnostics.AddError("Error while reading entries from the server", err.Error())
 	return
