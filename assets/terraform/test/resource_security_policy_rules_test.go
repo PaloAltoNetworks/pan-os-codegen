@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
-	//"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	//"github.com/PaloAltoNetworks/terraform-provider-panos/internal/provider"
 	//"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
@@ -27,10 +27,16 @@ import (
 const securityPolicyRulesImportInitial = `
 variable "prefix" { type = string }
 
+resource "panos_device_group" "example" {
+  location = { panorama = {} }
+
+  name = format("%s-dg", var.prefix)
+}
+
 resource "panos_security_policy_rules" "rules" {
   location = {
     device_group = {
-      name = format("%s-dg", var.prefix)
+      name = panos_device_group.example.name
       ruleset = "pre-ruleset"
     }
   }
@@ -63,8 +69,6 @@ func TestAccSecurityPolicyRulesImport(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccPreCheck(t)
-			securityPolicyRulesPreCheck(prefix)
-
 		},
 		ProtoV6ProviderFactories: testAccProviders,
 		CheckDestroy:             securityPolicyRulesCheckDestroy(prefix),
@@ -76,32 +80,26 @@ func TestAccSecurityPolicyRulesImport(t *testing.T) {
 				},
 			},
 			{
-				Config:            `resource "panos_security_policy_rules" "imported" {}`,
-				ResourceName:      "panos_security_policy_rules.imported",
-				ImportStateIdFunc: securityPolicyRulesGenerateImportID,
-				ImportState:       true,
-				ConfigStateChecks: []statecheck.StateCheck{
-					statecheck.ExpectKnownValue(
-						"panos_security_policy_rules.imported",
-						tfjsonpath.New("position"),
-						knownvalue.ObjectExact(map[string]knownvalue.Check{
-							"where":    knownvalue.StringExact("last"),
-							"directly": knownvalue.Null(),
-							"pivota":   knownvalue.Null(),
-						}),
-					),
+				Config:             `resource "panos_security_policy_rules" "imported" {}`,
+				ResourceName:       "panos_security_policy_rules.imported",
+				ImportStatePersist: true,
+				ImportStateIdFunc:  securityPolicyRulesGenerateImportID,
+				ImportState:        true,
+			},
+			{
+				RefreshState: true,
+				RefreshPlanChecks: resource.RefreshPlanChecks{
+					PostRefresh: []plancheck.PlanCheck{
+						plancheck.ExpectKnownValue(
+							"panos_security_policy_rules.imported",
+							tfjsonpath.New("position"),
+							knownvalue.ObjectExact(map[string]knownvalue.Check{
+								"where":    knownvalue.StringExact("first"),
+								"directly": knownvalue.Null(),
+								"pivota":   knownvalue.Null(),
+							}),
+						)},
 				},
-				// ImportPlanChecks: []plancheck.StateCheck{
-				// 	statecheck.ExpectKnownValue(
-				// 		"panos_security_policy_rules.imported",
-				// 		tfjsonpath.New("position"),
-				// 		knownvalue.ObjectExact(map[string]knownvalue.Check{
-				// 			"where":    knownvalue.StringExact("last"),
-				// 			"directly": knownvalue.Null(),
-				// 			"pivota":   knownvalue.Null(),
-				// 		}),
-				// 	),
-				// },
 			},
 		},
 	})
@@ -429,6 +427,27 @@ func TestAccSecurityPolicyRulesPositioning(t *testing.T) {
 					stateExpectedRuleName(3, "rule-5"),
 					stateExpectedRuleName(4, "rule-6"),
 					ExpectServerSecurityRulesOrder(prefix, []string{"rule-0", "rule-1", "rule-99", "rule-1", "rule-2", "rule-3", "rule-4", "rule-5"}),
+				},
+			},
+		},
+	})
+}
+
+func testSecurityPolicyRulesOrderingDependant(t *testing.T) {
+	t.Parallel()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+
+		},
+		ProtoV6ProviderFactories: testAccProviders,
+		CheckDestroy:             securityPolicyRulesCheckDestroy(prefix),
+		Steps: []resource.TestStep{
+			{
+				Config: securityPolicyRulesOrderingDependantInitial,
+				ConfigVariables: map[string]config.Variable{
+					"prefix": config.StringVariable(prefix),
 				},
 			},
 		},

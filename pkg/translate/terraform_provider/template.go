@@ -877,10 +877,24 @@ for _, elt := range elements {
 }
 
 {{ $exhaustive := "sdkmanager.NonExhaustive" }}
-{{ if .Exhaustive }}
+// {{ .Exhaustive }}
+{{- if .Exhaustive }}
   {{ $exhaustive = "sdkmanager.Exhaustive" }}
+position := movement.PositionFirst{}
+{{- else }}
+var positionAttribute TerraformPositionObject
+resp.Diagnostics.Append(state.Position.As(ctx, &positionAttribute, basetypes.ObjectAsOptions{})...)
+if resp.Diagnostics.HasError() {
+	return
+}
+position := positionAttribute.CopyToPango()
 {{- end }}
-readEntries, err := o.manager.ReadMany(ctx, location, entries, {{ $exhaustive }})
+
+{{- if .Exhaustive }}
+readEntries, _, err := o.manager.ReadMany(ctx, location, entries, {{ $exhaustive }}, position)
+{{- else }}
+readEntries, movementRequired, err := o.manager.ReadMany(ctx, location, entries, {{ $exhaustive }}, position)
+{{- end }}
 if err != nil {
 	if errors.Is(err, sdkmanager.ErrObjectNotFound) {
 		resp.State.RemoveResource(ctx)
@@ -900,6 +914,12 @@ for _, elt := range readEntries {
 	}
 	objects = append(objects, object)
 }
+
+{{- if not .Exhaustive }}
+if movementRequired {
+	state.Position = types.ObjectNull(positionAttribute.AttributeTypes())
+}
+{{- end }}
 
 var list_diags diag.Diagnostics
 state.{{ .ListAttribute.CamelCase }}, list_diags = types.ListValueFrom(ctx, state.getTypeFor("{{ .ListAttribute.Underscore }}"), objects)
@@ -1138,7 +1158,7 @@ if resp.Diagnostics.HasError() {
 position := positionAttribute.CopyToPango()
 {{- end }}
 
-existing, err := r.manager.ReadMany(ctx, location, stateEntries, {{ $exhaustive }})
+existing, _, err := r.manager.ReadMany(ctx, location, stateEntries, {{ $exhaustive }}, position)
 if err != nil && !errors.Is(err, sdkmanager.ErrObjectNotFound) {
 	resp.Diagnostics.AddError("Error while reading entries from the server", err.Error())
 	return
