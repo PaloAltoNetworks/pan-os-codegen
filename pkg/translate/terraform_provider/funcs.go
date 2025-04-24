@@ -1051,6 +1051,36 @@ func RenderCustomCommonCode(names *NameProvider, spec *properties.Normalization)
 
 }
 
+func generateValidatorFnsMapForVariants(variants []*properties.SpecParam) map[int]*validatorFunctionCtx {
+	validatorFns := make(map[int]*validatorFunctionCtx)
+
+	for _, elt := range variants {
+		if elt.IsPrivateParameter() {
+			continue
+		}
+
+		validator, found := validatorFns[elt.VariantGroupId]
+		if !found {
+			validatorFn := "ExactlyOneOf"
+			if elt.TerraformProviderConfig != nil && elt.TerraformProviderConfig.VariantCheck != nil {
+				validatorFn = *elt.TerraformProviderConfig.VariantCheck
+			}
+
+			validator = &validatorFunctionCtx{
+				Type:     "Expressions",
+				Function: validatorFn,
+			}
+		}
+
+		pathExpr := fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, elt.Name.Underscore)
+		validator.Expressions = append(validator.Expressions, pathExpr)
+
+		validatorFns[elt.VariantGroupId] = validator
+	}
+
+	return validatorFns
+}
+
 func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *imports.Manager, structPrefix string, packageName string, param *properties.SpecParam, validators *validatorCtx) []schemaCtx {
 	var schemas []schemaCtx
 
@@ -1120,28 +1150,7 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 	// Generating schema validation for variants. By default, ExactlyOneOf validation
 	// is performed, unless XML API allows for no variant to be provided, in which case
 	// validation is performed by ConflictsWith.
-	validatorFn := "ExactlyOneOf"
-	var expressions []string
-	for _, elt := range param.Spec.SortedOneOf() {
-		if elt.IsPrivateParameter() {
-			continue
-		}
-
-		if elt.TerraformProviderConfig != nil && elt.TerraformProviderConfig.VariantCheck != nil {
-			validatorFn = *elt.TerraformProviderConfig.VariantCheck
-		}
-
-		expressions = append(expressions, fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, elt.Name.Underscore))
-	}
-
-	var variantFns []validatorFunctionCtx
-	if len(expressions) > 0 {
-		variantFns = append(variantFns, validatorFunctionCtx{
-			Type:        "Expressions",
-			Function:    validatorFn,
-			Expressions: expressions,
-		})
-	}
+	validatorFns := generateValidatorFnsMapForVariants(param.Spec.SortedOneOf())
 
 	var idx int
 	for _, elt := range param.Spec.SortedOneOf() {
@@ -1150,15 +1159,20 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		}
 
 		var validators *validatorCtx
-		if idx == 0 && schemaTyp == properties.SchemaResource && len(variantFns) > 0 {
-			log.Printf("variantFns: %v, Name: %s", variantFns, elt.Name)
-			typ := elt.ValidatorType()
-			validatorImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework-validators/%svalidator", typ)
-			manager.AddHashicorpImport(validatorImport, "")
-			validators = &validatorCtx{
-				ListType:  pascalCase(typ),
-				Package:   fmt.Sprintf("%svalidator", typ),
-				Functions: variantFns,
+		if schemaTyp == properties.SchemaResource {
+			validatorFn, found := validatorFns[elt.VariantGroupId]
+			if found {
+				typ := elt.ValidatorType()
+				validatorImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework-validators/%svalidator", typ)
+				manager.AddHashicorpImport(validatorImport, "")
+
+				validators = &validatorCtx{
+					ListType:  pascalCase(typ),
+					Package:   fmt.Sprintf("%svalidator", typ),
+					Functions: []validatorFunctionCtx{*validatorFn},
+				}
+
+				delete(validatorFns, elt.VariantGroupId)
 			}
 		}
 		attributes = append(attributes, createSchemaAttributeForParameter(schemaTyp, manager, packageName, elt, validators))
@@ -1233,18 +1247,25 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		}
 	}
 
+	validatorFns = generateValidatorFnsMapForVariants(param.Spec.SortedOneOf())
+
 	for _, elt := range param.Spec.SortedOneOf() {
 		if elt.IsPrivateParameter() {
 			continue
 		}
 
 		if elt.Type == "" || ((elt.FinalType() == "list" || elt.FinalType() == "set") && elt.Items.Type == "entry") {
-			validatorImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework-validators/%svalidator", "object")
-			manager.AddHashicorpImport(validatorImport, "")
-			validators := &validatorCtx{
-				ListType:  "Object",
-				Package:   "objectvalidator",
-				Functions: variantFns,
+			var validators *validatorCtx
+
+			validatorFn, found := validatorFns[elt.VariantGroupId]
+			if found {
+				validatorImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework-validators/%svalidator", "object")
+				manager.AddHashicorpImport(validatorImport, "")
+				validators = &validatorCtx{
+					ListType:  "Object",
+					Package:   "objectvalidator",
+					Functions: []validatorFunctionCtx{*validatorFn},
+				}
 			}
 			schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, manager, structName, packageName, elt, validators)...)
 		}
@@ -1623,52 +1644,33 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 		schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, manager, structName, packageName, elt, nil)...)
 	}
 
-	validatorFn := "ExactlyOneOf"
-	var expressions []string
-	for _, elt := range spec.Spec.SortedOneOf() {
-		if elt.IsPrivateParameter() {
-			continue
-		}
+	validatorFns := generateValidatorFnsMapForVariants(spec.Spec.SortedOneOf())
 
-		if elt.TerraformProviderConfig != nil && elt.TerraformProviderConfig.VariantCheck != nil {
-			validatorFn = *elt.TerraformProviderConfig.VariantCheck
-		}
-
-		expressions = append(expressions, fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, elt.Name.Underscore))
-	}
-
-	var functions []validatorFunctionCtx
-
-	if len(expressions) > 0 {
-		functions = append(functions, validatorFunctionCtx{
-			Type:        "Expressions",
-			Function:    validatorFn,
-			Expressions: expressions,
-		})
-	}
-
-	var idx int
 	for _, elt := range spec.Spec.SortedOneOf() {
 		if elt.IsPrivateParameter() {
 			continue
 		}
 
 		var validators *validatorCtx
-		if idx == 0 && schemaTyp == properties.SchemaResource && len(functions) > 0 {
-			typ := elt.ValidatorType()
-			validatorImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework-validators/%svalidator", typ)
-			manager.AddHashicorpImport(validatorImport, "")
-			validators = &validatorCtx{
-				ListType:  pascalCase(typ),
-				Package:   fmt.Sprintf("%svalidator", typ),
-				Functions: functions,
+		if schemaTyp == properties.SchemaResource {
+			validatorFn, found := validatorFns[elt.VariantGroupId]
+			if found {
+				typ := elt.ValidatorType()
+				validatorImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework-validators/%svalidator", typ)
+				manager.AddHashicorpImport(validatorImport, "")
+
+				validators = &validatorCtx{
+					ListType:  pascalCase(typ),
+					Package:   fmt.Sprintf("%svalidator", typ),
+					Functions: []validatorFunctionCtx{*validatorFn},
+				}
+
+				delete(validatorFns, elt.VariantGroupId)
 			}
 		}
 
 		attributes = append(attributes, createSchemaAttributeForParameter(schemaTyp, manager, packageName, elt, validators))
 		schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, manager, structName, packageName, elt, validators)...)
-
-		idx += 1
 	}
 
 	return attributes, schemas
