@@ -280,7 +280,13 @@ func (r *{{ resourceStructName }}) ValidateConfig(ctx context.Context, req resou
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	resource.Position.ValidateConfig(resp)
+
+	var positionAttribute TerraformPositionObject
+	resp.Diagnostics.Append(resource.Position.As(ctx, &positionAttribute, basetypes.ObjectAsOptions{})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	positionAttribute.ValidateConfig(resp)
 	}
 {{- end }}
 
@@ -365,6 +371,8 @@ func (r *{{ resourceStructName }}) Configure(ctx context.Context, req {{ tfresou
 {{- end }}
 }
 
+{{ RenderModelAttributeTypesFunction }}
+
 {{ RenderCopyToPangoFunctions }}
 
 {{ RenderCopyFromPangoFunctions }}
@@ -413,6 +421,8 @@ func (r *{{ resourceStructName }}) Open(ctx context.Context, req ephemeral.Close
 {{- end }}
 
 {{ RenderImportStateStructs }}
+
+{{ RenderImportStateMarshallers }}
 
 {{ RenderImportStateCreator }}
 
@@ -564,7 +574,12 @@ if err != nil {
 	return
 }
 {{- else }}
-position := state.Position.CopyToPango()
+var positionAttribute TerraformPositionObject
+resp.Diagnostics.Append(state.Position.As(ctx, &positionAttribute, basetypes.ObjectAsOptions{})...)
+if resp.Diagnostics.HasError() {
+	return
+}
+position := positionAttribute.CopyToPango()
 processed, err := r.manager.CreateMany(ctx, location, entries, sdkmanager.NonExhaustive, position)
 if err != nil {
 	resp.Diagnostics.AddError("Error during CreateMany() call", err.Error())
@@ -1115,7 +1130,12 @@ for idx, elt := range elements {
   {{ $exhaustive = "sdkmanager.Exhaustive" }}
 position := movement.PositionFirst{}
 {{- else }}
-position := plan.Position.CopyToPango()
+var positionAttribute TerraformPositionObject
+resp.Diagnostics.Append(plan.Position.As(ctx, &positionAttribute, basetypes.ObjectAsOptions{})...)
+if resp.Diagnostics.HasError() {
+	return
+}
+position := positionAttribute.CopyToPango()
 {{- end }}
 
 existing, err := r.manager.ReadMany(ctx, location, stateEntries, {{ $exhaustive }})
@@ -1382,37 +1402,91 @@ type {{ .StructName }} struct {
 
 const locationMarshallersTmpl = `
 {{- define "renderMarshallerField" }}
-  {{- if eq .Type "object" }}
-	{{ .Name }}: o.{{ .Name }},
+  {{- if eq .Type "types.Object" }}
+	{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_object,
+  {{- else if eq .Type "types.List" }}
+	{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_list,
   {{- else }}
-	{{ .Name }}: o.{{ .Name }}.Value{{ .Type | CamelCaseName }}Pointer(),
+	{{ .Name.CamelCase }}: o.{{ .Name.CamelCase }}.Value{{ .Type | CamelCaseName }}Pointer(),
   {{- end }}
 {{- end }}
 
 {{- define "renderShadowStructField" }}
-  {{- if eq .Type "object" }}
-    {{ .Name }} *{{ .StructName }} {{ .Tags }}
+  {{- if eq .Type "types.Object" }}
+    {{ .Name.CamelCase }} *{{ .StructName }} {{ .Tags }}
+  {{- else if eq .Type "types.List" }}
+    {{ .Name.CamelCase }} {{ .StructName }} {{ .Tags }}
   {{- else }}
-    {{ .Name }} *{{ .Type }} {{ .Tags }}
+    {{ .Name.CamelCase }} *{{ .Type }} {{ .Tags }}
   {{- end }}
 {{- end }}
 
 {{- define "renderUnmarshallerField" }}
-  {{- if eq .Type "object" }}
-    o.{{ .Name }} = shadow.{{ .Name }}
+  {{- if eq .Type "types.Object" }}
+    o.{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_object
+  {{- else if eq .Type "types.List" }}
+    o.{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_list
   {{- else }}
-    o.{{ .Name }} = types.{{ .Type | CamelCaseName }}PointerValue(shadow.{{ .Name }})
+    o.{{ .Name.CamelCase }} = types.{{ .Type | CamelCaseName }}PointerValue(shadow.{{ .Name.CamelCase }})
+  {{- end }}
+{{- end }}
+
+{{- define "renderPangoObjectConversion" -}}
+  {{- if eq .Type "types.Object" }}
+	var {{ .Name.LowerCamelCase }}_object types.Object
+	{
+		var diags_tmp diag.Diagnostics
+		{{ .Name.LowerCamelCase }}_object, diags_tmp = types.ObjectValueFrom(context.TODO(), shadow.{{ .Name.CamelCase }}.AttributeTypes(), shadow.{{ .Name.CamelCase }})
+		if diags_tmp.HasError() {
+			return NewDiagnosticsError("Failed to unmarshal JSON document into {{ .Name.Underscore }}", diags_tmp.Errors())
+		}
+	}
+  {{- else if eq .Type "types.List" }}
+	var {{ .Name.LowerCamelCase }}_list types.List
+	{
+		var diags_tmp diag.Diagnostics
+		{{ .Name.LowerCamelCase }}_list, diags_tmp = types.ListValueFrom(context.TODO(), types.StringType, shadow.{{ .Name.CamelCase }})
+		if diags_tmp.HasError() {
+			return NewDiagnosticsError("Failed to unmarshal JSON document into {{ .Name.Underscore }}", diags_tmp.Errors())
+		}
+	}
+  {{- end }}
+{{- end }}
+
+{{- define "renderTfObjectConversion" -}}
+  {{- if eq .Type "types.Object" }}
+	var {{ .Name.LowerCamelCase }}_object *{{ .StructName }}
+        {
+		diags := o.{{ .Name.CamelCase }}.As(context.TODO(), &{{ .Name.LowerCamelCase }}_object, basetypes.ObjectAsOptions{})
+		if diags.HasError() {
+			return nil, NewDiagnosticsError("Failed to marshal {{ .Name.Underscore }} into JSON document", diags.Errors())
+		}
+        }
+  {{- else if eq .Type "types.List" }}
+	var {{ .Name.LowerCamelCase }}_list {{ .StructName }}
+	{
+		diags := o.{{ .Name.CamelCase }}.ElementsAs(context.TODO(), &{{ .Name.LowerCamelCase }}_list, false)
+		if diags.HasError() {
+			return nil, NewDiagnosticsError("Failed to marshal {{ .Name.Underscore }} into JSON document", diags.Errors())
+		}
+	}
   {{- end }}
 {{- end }}
 
 {{- range .Specs }}
   {{- $spec := . }}
 func (o {{ .StructName }}) MarshalJSON() ([]byte, error) {
-	obj := struct {
+	type shadow struct {
   {{- range .Fields }}
     {{- template "renderShadowStructField" . }}
   {{- end }}
-	}{
+	}
+
+  {{-  range .Fields }}
+    {{- template "renderTfObjectConversion" . }}
+  {{- end }}
+
+	obj := shadow{
   {{- range .Fields }}
     {{- template "renderMarshallerField" . }}
   {{- end }}
@@ -1432,6 +1506,9 @@ func (o *{{ .StructName }}) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
+  {{- range .Fields }}
+    {{- template "renderPangoObjectConversion" . }}
+  {{- end }}
 
   {{- range .Fields }}
     {{- template "renderUnmarshallerField" . }}
@@ -1454,10 +1531,10 @@ func {{ .FuncName }}(ctx context.Context, resource types.Object) ([]byte, error)
 		return nil, fmt.Errorf("location attribute missing")
 	}
 
-	var location {{ .StructNamePrefix }}Location
+	var location types.Object
 	switch value := locationAttr.(type) {
 	case types.Object:
-		value.As(ctx, &location, basetypes.ObjectAsOptions{})
+		location = value
 	default:
 		return nil, fmt.Errorf("location attribute expected to be an object")
 	}
@@ -1468,10 +1545,10 @@ func {{ .FuncName }}(ctx context.Context, resource types.Object) ([]byte, error)
 		return nil, fmt.Errorf("name attribute missing")
 	}
 
-	var name string
+	var name types.String
 	switch value := nameAttr.(type) {
 	case types.String:
-		name = value.ValueString()
+		name = value
 	default:
 		return nil, fmt.Errorf("name attribute expected to be a string")
 	}
@@ -1502,9 +1579,18 @@ func {{ .FuncName }}(ctx context.Context, resource types.Object) ([]byte, error)
 		names = append(names, key)
 	}
 
+	var namesObj types.List
+	{
+		var diags_err diag.Diagnostics
+		namesObj, diags_err = types.ListValueFrom(ctx, types.StringType, names)
+		if diags_err.HasError() {
+			return nil, NewDiagnosticsError("Failed to generate a list of names for the import ID", diags_err.Errors())
+		}
+	}
+
 	importStruct := {{ .StructNamePrefix }}ImportState{
 		Location: location,
-		Names: names,
+		Names: namesObj,
 	}
 {{- else if or (eq .ResourceType "uuid") }}
 	itemsAttr, ok := attrs["{{ .ListAttribute.Underscore }}"]
@@ -1528,9 +1614,15 @@ func {{ .FuncName }}(ctx context.Context, resource types.Object) ([]byte, error)
 		names = append(names, elt.Name.ValueString())
 	}
 
+	var namesObject types.List
+	namesObject, diags_tmp := types.ListValueFrom(ctx, types.StringType, names)
+	if diags_tmp.HasError() {
+		return nil, NewDiagnosticsError("Failed to generate import ID", diags_tmp.Errors())
+	}
+
 	importStruct := {{ .StructNamePrefix }}ImportState{
 		Location: location,
-		Names: names,
+		Names: namesObject,
 	}
 {{- else if (eq .ResourceType "uuid-plural") }}
 	positionAttr, ok := attrs["position"]
@@ -1538,10 +1630,10 @@ func {{ .FuncName }}(ctx context.Context, resource types.Object) ([]byte, error)
 		return nil, fmt.Errorf("position attribute missing")
 	}
 
-	var position TerraformPositionObject
+	var position types.Object
 	switch value := positionAttr.(type) {
 	case types.Object:
-		value.As(ctx, &position, basetypes.ObjectAsOptions{})
+		position = value
 	default:
 		return nil, fmt.Errorf("position attribute expected to be an object")
 	}
@@ -1567,10 +1659,16 @@ func {{ .FuncName }}(ctx context.Context, resource types.Object) ([]byte, error)
 		names = append(names, elt.Name.ValueString())
 	}
 
+	var namesObject types.List
+	namesObject, diags_tmp := types.ListValueFrom(ctx, types.StringType, names)
+	if diags_tmp.HasError() {
+		return nil, NewDiagnosticsError("Failed to generate import ID", diags_tmp.Errors())
+	}
+
 	importStruct := {{ .StructNamePrefix }}ImportState{
 		Location: location,
 		Position: position,
-		Names: names,
+		Names: namesObject,
 	}
 {{- end }}
 
@@ -1588,7 +1686,12 @@ const resourceImportStateFunctionTmpl = `
 
 	err = json.Unmarshal(data, &obj)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to unmarshal Import ID", err.Error())
+		var diagsErr *DiagnosticsError
+		if errors.As(err, &diagsErr) {
+			resp.Diagnostics.Append(diagsErr.Diagnostics()...)
+		} else {
+			resp.Diagnostics.AddError("Failed to unmarshal Import ID", err.Error())
+		}
 		return
 	}
 
@@ -1599,7 +1702,13 @@ const resourceImportStateFunctionTmpl = `
 
 {{- if .ResourceIsMap }}
 	names := make(map[string]*{{ .ListStructName }})
-	for _, elt := range obj.Names {
+
+	var objectNames []string
+	resp.Diagnostics.Append(obj.Names.ElementsAs(ctx, &objectNames, false)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	for _, elt := range objectNames {
 		object := &{{ .ListStructName }}{}
 		resp.Diagnostics.Append(object.CopyFromPango(ctx, &{{ .PangoStructName }}{}, nil)...)
 		if resp.Diagnostics.HasError() {
@@ -1617,7 +1726,12 @@ const resourceImportStateFunctionTmpl = `
   {{- end }}
 
 	var names []*{{ .ListStructName }}
-	for _, elt := range obj.Names {
+	var objectNames []string
+	resp.Diagnostics.Append(obj.Names.ElementsAs(ctx, &objectNames, false)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	for _, elt := range objectNames {
 		object := &{{ .ListStructName }}{}
 		resp.Diagnostics.Append(object.CopyFromPango(ctx, &{{ .PangoStructName }}{}, nil)...)
 		if resp.Diagnostics.HasError() {
@@ -1639,6 +1753,8 @@ const commonTemplate = `
 {{- RenderLocationSchemaGetter }}
 
 {{- RenderLocationMarshallers }}
+
+{{- RenderLocationAttributeTypes }}
 {{- end }}
 
 {{- RenderCustomCommonCode }}
@@ -1678,6 +1794,8 @@ type {{ dataSourceStructName }}Filter struct {
 }
 
 {{ RenderDataSourceStructs }}
+
+{{ RenderModelAttributeTypesFunction }}
 
 {{ RenderCopyToPangoFunctions }}
 

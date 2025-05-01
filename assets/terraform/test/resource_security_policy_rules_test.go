@@ -17,7 +17,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	//"github.com/hashicorp/terraform-plugin-testing/plancheck"
-	"github.com/PaloAltoNetworks/terraform-provider-panos/internal/provider"
+	//"github.com/PaloAltoNetworks/terraform-provider-panos/internal/provider"
+	//"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
@@ -79,6 +80,17 @@ func TestAccSecurityPolicyRulesImport(t *testing.T) {
 				ResourceName:      "panos_security_policy_rules.imported",
 				ImportStateIdFunc: securityPolicyRulesGenerateImportID,
 				ImportState:       true,
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue(
+						"panos_security_policy_rules.imported",
+						tfjsonpath.New("position"),
+						knownvalue.ObjectExact(map[string]knownvalue.Check{
+							"where":    knownvalue.StringExact("last"),
+							"directly": knownvalue.Null(),
+							"pivota":   knownvalue.Null(),
+						}),
+					),
+				},
 				// ImportPlanChecks: []plancheck.StateCheck{
 				// 	statecheck.ExpectKnownValue(
 				// 		"panos_security_policy_rules.imported",
@@ -118,37 +130,16 @@ func securityPolicyRulesGenerateImportID(state *terraform.State) (string, error)
 		},
 	}
 
-	locationJSON, err := json.Marshal(locationData)
-	if err != nil {
-		return "", fmt.Errorf("Failed to marshal location into JSON: %w", err)
-	}
-
-	var location *provider.SecurityPolicyRulesLocation
-	err = json.Unmarshal(locationJSON, &location)
-	if err != nil {
-		return "", fmt.Errorf("Failed to unmarshal: %w", err)
-	}
-
 	positionData := map[string]any{
 		"where": "last",
 	}
 
-	positionJSON, err := json.Marshal(positionData)
-	if err != nil {
-		return "", fmt.Errorf("Failed to marshal position into JSON: %w", err)
-	}
-
-	var position *provider.TerraformPositionObject
-	err = json.Unmarshal(positionJSON, &position)
-	if err != nil {
-		return "", fmt.Errorf("Failed to unmarshal position: %w", err)
-	}
-
 	names := []string{"rule-2", "rule-3", "rule-4"}
-	importState := provider.SecurityPolicyRulesImportState{
-		Location: *location,
-		Position: *position,
-		Names:    names,
+
+	importState := map[string]any{
+		"position": positionData,
+		"location": locationData,
+		"names":    names,
 	}
 
 	marshalled, err := json.Marshal(importState)
@@ -160,13 +151,14 @@ func securityPolicyRulesGenerateImportID(state *terraform.State) (string, error)
 }
 
 const securityPolicyRulesPositionFirst = `
+variable "where" { type = string }
 variable "prefix" { type = string }
 variable "rule_names" { type = list(string) }
 
 resource "panos_security_policy_rules" "policy" {
   location = { device_group = { name = format("%s-dg", var.prefix), rulebase = "pre-rulebase" } }
 
-  position = { where = "first" }
+  position = { where = var.where }
 
   rules = [
     for index, name in var.rule_names: {
@@ -350,6 +342,7 @@ func TestAccSecurityPolicyRulesPositioning(t *testing.T) {
 				ConfigVariables: map[string]config.Variable{
 					"rule_names": config.ListVariable([]config.Variable{}...),
 					"prefix":     config.StringVariable(prefix),
+					"where":      config.StringVariable("first"),
 				},
 			},
 			{
@@ -357,6 +350,7 @@ func TestAccSecurityPolicyRulesPositioning(t *testing.T) {
 				ConfigVariables: map[string]config.Variable{
 					"rule_names": config.ListVariable([]config.Variable{}...),
 					"prefix":     config.StringVariable(prefix),
+					"where":      config.StringVariable("first"),
 				},
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
@@ -366,6 +360,7 @@ func TestAccSecurityPolicyRulesPositioning(t *testing.T) {
 				ConfigVariables: map[string]config.Variable{
 					"rule_names": config.ListVariable(withPrefix(ruleNames)...),
 					"prefix":     config.StringVariable(prefix),
+					"where":      config.StringVariable("first"),
 				},
 				ConfigStateChecks: []statecheck.StateCheck{
 					stateExpectedRuleName(0, "rule-2"),
