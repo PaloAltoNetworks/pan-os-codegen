@@ -334,6 +334,9 @@ spec:
               variants: []
             description: Set Global Administrative Distances
             required: false
+            codegen_overrides:
+              terraform:
+                name: administrative-distances
           - name: rib-filter
             type: object
             profiles:
@@ -1624,6 +1627,9 @@ spec:
                             spec: {}
                             description: adminitrative distance
                             required: false
+                            codegen_overrides:
+                              terraform:
+                                name: administrative-distance
                           - name: metric
                             type: int64
                             profiles:
@@ -1900,6 +1906,9 @@ spec:
                             spec: {}
                             description: adminitrative distance
                             required: false
+                            codegen_overrides:
+                              terraform:
+                                name: administrative-distance
                           - name: metric
                             type: int64
                             profiles:
@@ -3771,6 +3780,9 @@ spec:
                 description: Maxmum number of ECMP paths supported, change this configuration
                   will result in a virtual router restart
                 required: false
+                codegen_overrides:
+                  terraform:
+                    name: max-paths
               - name: symmetric-return
                 type: bool
                 profiles:
@@ -5104,6 +5116,9 @@ spec:
                       variants: []
                 description: ''
                 required: false
+                codegen_overrides:
+                  terraform:
+                    name: interfaces
               variants: []
             description: RIP configuration
             required: false
