@@ -257,7 +257,7 @@ func createListAndLoopForNestedEntry(parent []*properties.SpecParam, param *prop
 	}
 
 	startFromDot := true
-	if len(parent) == 2 && parent[0].Type == "list" && parent[0].Items.Type == "entry" {
+	if len(parent) >= 2 && parent[0].Type == "list" && parent[0].Items.Type == "entry" {
 		startFromDot = false
 	}
 
