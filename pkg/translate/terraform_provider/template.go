@@ -275,18 +275,22 @@ func {{ resourceStructName }}LocationSchema() rsschema.Attribute {
 func (r *{{ resourceStructName }}) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
 {{- if HasPosition }}
 	{
+
 	var resource {{ resourceStructName }}Model
 	resp.Diagnostics.Append(req.Config.Get(ctx, &resource)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	var positionAttribute TerraformPositionObject
-	resp.Diagnostics.Append(resource.Position.As(ctx, &positionAttribute, basetypes.ObjectAsOptions{})...)
-	if resp.Diagnostics.HasError() {
-		return
+        if !resource.Position.IsUnknown() {
+		var positionAttribute TerraformPositionObject
+		resp.Diagnostics.Append(resource.Position.As(ctx, &positionAttribute, basetypes.ObjectAsOptions{})...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		positionAttribute.ValidateConfig(resp)
 	}
-	positionAttribute.ValidateConfig(resp)
+
 	}
 {{- end }}
 
