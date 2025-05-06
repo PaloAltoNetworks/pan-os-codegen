@@ -51,9 +51,20 @@ type TerraformConfig struct {
 	PluralDescription     string                     `yaml:"plural_description"`
 }
 
+type GoSdkMethod string
+
+const (
+	GoSdkMethodCreate = "create"
+	GoSdkMethodUpdate = "update"
+	GoSdkMethodDelete = "delete"
+	GoSdkMethodRead   = "read"
+	GoSdkMethodList   = "list"
+)
+
 type GoSdkConfig struct {
-	Skip    bool     `yaml:"skip"`
-	Package []string `yaml:"package"`
+	Skip             bool          `yaml:"skip"`
+	SupportedMethods []GoSdkMethod `yaml:"supported_methods"`
+	Package          []string      `yaml:"package"`
 }
 
 type Entry struct {
@@ -111,8 +122,19 @@ func (o *Object) UnmarshalYAML(n *yaml.Node) error {
 	}
 
 	obj := &S{O: (*O)(o)}
+
 	if err := n.Decode(obj); err != nil {
 		return err
+	}
+
+	if o.GoSdkConfig == nil || o.GoSdkConfig.SupportedMethods == nil {
+		o.GoSdkConfig.SupportedMethods = []GoSdkMethod{
+			GoSdkMethodCreate,
+			GoSdkMethodDelete,
+			GoSdkMethodRead,
+			GoSdkMethodList,
+			GoSdkMethodUpdate,
+		}
 	}
 
 	switch obj.TerraformConfig.ResourceType {

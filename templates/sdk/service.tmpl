@@ -108,6 +108,9 @@ func (s *Service) Create(ctx context.Context, loc Location, config *Config) (*Co
   {{- end }}
 
 func (s *Service) {{ $funcDef }} {
+  {{- if not (SupportedMethod "create") }}
+	return errors.UnsupportedMethodError
+  {{- else }}
 	vn := s.client.Versioning()
 	specifier, _, err := Versioning(vn)
 	if err != nil {
@@ -135,6 +138,7 @@ func (s *Service) {{ $funcDef }} {
 	}
 
 	return nil
+  {{- end }}
 }
 
 {{- if .Imports }}
@@ -301,6 +305,9 @@ func (s *Service) UnimportFromLocations(ctx context.Context, loc Location, impor
     {{ $funcDef = "ReadWithXpath(ctx context.Context, xpath string, action string) (*Config, error)" }}
   {{- end }}
 func (s *Service) {{ $funcDef }} {
+{{- if not (SupportedMethod "read") }}
+	return errors.UnsupportedMethodError
+{{- else }}
 	vn := s.client.Versioning()
 	_, normalizer, err := Versioning(vn)
 	if err != nil {
@@ -328,6 +335,7 @@ func (s *Service) {{ $funcDef }} {
 	}
 
 	return list[0], nil
+{{- end }}
 }
 
   {{if .Entry}}
@@ -413,6 +421,9 @@ func (s *Service) UpdateWithXpath(ctx context.Context, xpath string, entry *{{ $
 {{- else }}
 func (s *Service) UpdateWithXpath(ctx context.Context, xpath string, entry *{{ $object }}) error {
 {{- end }}
+{{- if not (SupportedMethod "update") }}
+	return errors.UnsupportedMethodError
+{{- else }}
 	vn := s.client.Versioning()
 	updates := xmlapi.NewMultiConfig(2)
 	specifier, _, err := Versioning(vn)
@@ -496,6 +507,7 @@ func (s *Service) UpdateWithXpath(ctx context.Context, xpath string, entry *{{ $
 	}
 
 	return nil
+{{- end }}
 }
 
 // Delete deletes the given item.
@@ -548,6 +560,9 @@ func (s *Service) UpdateWithXpath(ctx context.Context, xpath string, entry *{{ $
 {{- else}}
     func (s *Service) delete(ctx context.Context, loc Location, config *Config) error {
 {{- end}}
+{{- if not (SupportedMethod "delete") }}
+	return errors.UnsupportedMethodError
+{{- else }}
 {{- if .Entry}}
     {{- if $.Spec.Params.uuid}}
         for _, value := range values {
@@ -676,6 +691,7 @@ return err
     }
     return nil
 {{- end}}
+{{- end }}
 }
 
 {{- if false }}
@@ -721,6 +737,9 @@ func (s *Service) list(ctx context.Context, loc Location, action, filter, quote 
 }
 
 func (s *Service) ListWithXpath(ctx context.Context, xpath string, action, filter, quote string) ([]*Entry, error) {
+{{- if not (SupportedMethod "list") }}
+	return errors.UnsupportedMethodError
+{{- else }}
 	var logic *filtering.Group
 	if filter != "" {
         	var err error
@@ -767,6 +786,7 @@ func (s *Service) ListWithXpath(ctx context.Context, xpath string, action, filte
     	}
 
 	return filtered, nil
+{{- end }}
 }
 
 {{- if $.Spec.Params.uuid}}

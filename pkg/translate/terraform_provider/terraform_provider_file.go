@@ -377,9 +377,24 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types", "")
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource", "")
 
+		terraformProvider.ImportManager.AddStandardImport("context", "")
+		terraformProvider.ImportManager.AddStandardImport("fmt", "")
+		terraformProvider.ImportManager.AddStandardImport("errors", "")
+		terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "")
+		if spec.TerraformProviderConfig.ResourceType != properties.TerraformResourceCustom {
+			terraformProvider.ImportManager.AddOtherImport("github.com/PaloAltoNetworks/terraform-provider-panos/internal/manager", "sdkmanager")
+		}
+
 		conditionallyAddValidators(terraformProvider.ImportManager, spec)
 		conditionallyAddModifiers(terraformProvider.ImportManager, spec)
 
+		if !spec.GoSdkSkip {
+			terraformProvider.ImportManager.AddSdkImport(sdkPkgPath(spec), "")
+		}
+
+		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
+		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/attr", "")
+		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/diag", "")
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault", "")
 
@@ -465,12 +480,17 @@ func (g *GenerateTerraformProvider) GenerateCommonCode(resourceTyp properties.Re
 	// Imports required by resources that can be imported into state
 	switch resourceTyp {
 	case properties.ResourceEntry, properties.ResourceEntryPlural, properties.ResourceUuid, properties.ResourceUuidPlural:
-		terraformProvider.ImportManager.AddStandardImport("encoding/base64", "")
+		if !spec.TerraformProviderConfig.SkipResource {
+			terraformProvider.ImportManager.AddStandardImport("encoding/base64", "")
+		}
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types/basetypes", "")
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
 	case properties.ResourceConfig:
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types/basetypes", "")
 	case properties.ResourceCustom:
+		if len(spec.Locations) > 0 {
+			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types/basetypes", "")
+		}
 	}
 
 	names := NewNameProvider(spec, resourceTyp)
