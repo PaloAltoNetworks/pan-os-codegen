@@ -178,13 +178,14 @@ resource "panos_security_policy_rules" "policy" {
 `
 
 const securityPolicyRulesPositionIndirectlyBefore = `
+variable "position" { type = any }
 variable "rule_names" { type = list(string) }
 variable "prefix" { type = string }
 
 resource "panos_security_policy_rules" "policy" {
   location = { device_group = { name = format("%s-dg", var.prefix), rulebase = "pre-rulebase" }}
 
-  position = { where = "before", directly = false, pivot = format("%s-rule-99", var.prefix) }
+  position = var.position
 
   rules = [
     for index, name in var.rule_names: {
@@ -291,6 +292,19 @@ resource "panos_security_policy_rules" "policy" {
 }
 `
 
+func prefixed(prefix string, name string) string {
+	return fmt.Sprintf("%s-%s", prefix, name)
+}
+
+func withPrefix(prefix string, rules []string) []config.Variable {
+	var result []config.Variable
+	for _, elt := range rules {
+		result = append(result, config.StringVariable(prefixed(prefix, elt)))
+	}
+
+	return result
+}
+
 func TestAccSecurityPolicyRulesPositioning(t *testing.T) {
 	t.Parallel()
 
@@ -299,24 +313,11 @@ func TestAccSecurityPolicyRulesPositioning(t *testing.T) {
 
 	ruleNames := []string{"rule-2", "rule-3", "rule-4", "rule-5", "rule-6"}
 
-	prefixed := func(name string) string {
-		return fmt.Sprintf("%s-%s", prefix, name)
-	}
-
-	withPrefix := func(rules []string) []config.Variable {
-		var result []config.Variable
-		for _, elt := range rules {
-			result = append(result, config.StringVariable(prefixed(elt)))
-		}
-
-		return result
-	}
-
 	stateExpectedRuleName := func(idx int, value string) statecheck.StateCheck {
 		return statecheck.ExpectKnownValue(
 			"panos_security_policy_rules.policy",
 			tfjsonpath.New("rules").AtSliceIndex(idx).AtMapKey("name"),
-			knownvalue.StringExact(prefixed(value)),
+			knownvalue.StringExact(prefixed(prefix, value)),
 		)
 	}
 
@@ -324,7 +325,7 @@ func TestAccSecurityPolicyRulesPositioning(t *testing.T) {
 	// 	return plancheck.ExpectKnownValue(
 	// 		"panos_security_policy_rules.policy",
 	// 		tfjsonpath.New("rules").AtSliceIndex(idx).AtMapKey("name"),
-	// 		knownvalue.StringExact(prefixed(value)),
+	// 		knownvalue.StringExact(prefixed(prefix, value)),
 	// 	)
 	// }
 
@@ -362,7 +363,7 @@ func TestAccSecurityPolicyRulesPositioning(t *testing.T) {
 			{
 				Config: securityPolicyRulesPositionFirst,
 				ConfigVariables: map[string]config.Variable{
-					"rule_names": config.ListVariable(withPrefix(ruleNames)...),
+					"rule_names": config.ListVariable(withPrefix(prefix, ruleNames)...),
 					"prefix":     config.StringVariable(prefix),
 					"position": config.ObjectVariable(map[string]config.Variable{
 						"where": config.StringVariable("first"),
@@ -380,8 +381,13 @@ func TestAccSecurityPolicyRulesPositioning(t *testing.T) {
 			{
 				Config: securityPolicyRulesPositionIndirectlyBefore,
 				ConfigVariables: map[string]config.Variable{
-					"rule_names": config.ListVariable(withPrefix(ruleNames)...),
+					"rule_names": config.ListVariable(withPrefix(prefix, ruleNames)...),
 					"prefix":     config.StringVariable(prefix),
+					"position": config.ObjectVariable(map[string]config.Variable{
+						"where":    config.StringVariable("before"),
+						"directly": config.BoolVariable(false),
+						"pivot":    config.StringVariable(fmt.Sprintf("%s-rule-99", prefix)),
+					}),
 				},
 				ConfigStateChecks: []statecheck.StateCheck{
 					stateExpectedRuleName(0, "rule-2"),
@@ -395,7 +401,7 @@ func TestAccSecurityPolicyRulesPositioning(t *testing.T) {
 			{
 				Config: securityPolicyRulesPositionDirectlyBefore,
 				ConfigVariables: map[string]config.Variable{
-					"rule_names": config.ListVariable(withPrefix(ruleNames)...),
+					"rule_names": config.ListVariable(withPrefix(prefix, ruleNames)...),
 					"prefix":     config.StringVariable(prefix),
 				},
 				ConfigStateChecks: []statecheck.StateCheck{
@@ -410,7 +416,7 @@ func TestAccSecurityPolicyRulesPositioning(t *testing.T) {
 			{
 				Config: securityPolicyRulesPositionDirectlyAfter,
 				ConfigVariables: map[string]config.Variable{
-					"rule_names": config.ListVariable(withPrefix(ruleNames)...),
+					"rule_names": config.ListVariable(withPrefix(prefix, ruleNames)...),
 					"prefix":     config.StringVariable(prefix),
 				},
 				ConfigStateChecks: []statecheck.StateCheck{
@@ -425,7 +431,7 @@ func TestAccSecurityPolicyRulesPositioning(t *testing.T) {
 			{
 				Config: securityPolicyRulesPositionLast,
 				ConfigVariables: map[string]config.Variable{
-					"rule_names": config.ListVariable(withPrefix(ruleNames)...),
+					"rule_names": config.ListVariable(withPrefix(prefix, ruleNames)...),
 					"prefix":     config.StringVariable(prefix),
 				},
 				ConfigStateChecks: []statecheck.StateCheck{
@@ -440,6 +446,84 @@ func TestAccSecurityPolicyRulesPositioning(t *testing.T) {
 		},
 	})
 }
+
+func TestAccSecurityPolicyRulesPositionAsVariable(t *testing.T) {
+	t.Parallel()
+
+	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
+	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
+
+	ruleNames := []string{"rule-2", "rule-3"}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			securityPolicyRulesPreCheck(prefix)
+
+		},
+		ProtoV6ProviderFactories: testAccProviders,
+		CheckDestroy:             securityPolicyRulesCheckDestroy(prefix),
+		Steps: []resource.TestStep{
+			{
+				Config: securityPolicyRulesPositionAsVariableTmpl,
+				ConfigVariables: map[string]config.Variable{
+					"rule_names": config.ListVariable(withPrefix(prefix, ruleNames)...),
+					"prefix":     config.StringVariable(prefix),
+					"position": config.ObjectVariable(map[string]config.Variable{
+						"where":    config.StringVariable("before"),
+						"directly": config.BoolVariable(true),
+						"pivot":    config.StringVariable(fmt.Sprintf("%s-rule-1", prefix)),
+					}),
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					ExpectServerSecurityRulesOrder(prefix, []string{"rule-0", "rule-2", "rule-3", "rule-1", "rule-99"}),
+				},
+			},
+			{
+				Config: securityPolicyRulesPositionAsVariableTmpl,
+				ConfigVariables: map[string]config.Variable{
+					"rule_names": config.ListVariable(withPrefix(prefix, ruleNames)...),
+					"prefix":     config.StringVariable(prefix),
+					"position": config.ObjectVariable(map[string]config.Variable{
+						"where":    config.StringVariable("before"),
+						"directly": config.BoolVariable(true),
+						"pivot":    config.StringVariable(fmt.Sprintf("%s-rule-99", prefix)),
+					}),
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					ExpectServerSecurityRulesOrder(prefix, []string{"rule-0", "rule-1", "rule-2", "rule-3", "rule-99"}),
+				},
+			},
+		},
+	})
+}
+
+const securityPolicyRulesPositionAsVariableTmpl = `
+variable "position" { type = any }
+variable "prefix" { type = string }
+variable "rule_names" { type = list(string) }
+
+resource "panos_security_policy_rules" "policy" {
+  location = { device_group = { name = format("%s-dg", var.prefix), rulebase = "pre-rulebase" } }
+
+  position = var.position
+
+  rules = [
+    for index, name in var.rule_names: {
+      name = name
+
+      source_zones     = ["any"]
+      source_addresses = ["any"]
+
+      destination_zones     = ["any"]
+      destination_addresses = ["any"]
+
+      services = ["any"]
+      applications = ["any"]
+    }
+  ]
+}
+`
 
 func securityPolicyRulesPreCheck(prefix string) {
 	service := security.NewService(sdkClient)
