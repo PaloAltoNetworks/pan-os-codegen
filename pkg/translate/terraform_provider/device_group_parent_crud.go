@@ -4,8 +4,6 @@ const deviceGroupParentImports = `
 import (
   "encoding/xml"
 
-  "github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-
   sdkerrors "github.com/PaloAltoNetworks/pango/errors"
   "github.com/PaloAltoNetworks/pango/util"
   "github.com/PaloAltoNetworks/pango/xmlapi"
@@ -15,6 +13,8 @@ import (
 const deviceGroupParentCommon = `
 var _ = tflog.Warn
 type _ = diag.Diagnostics
+var _ = errors.ErrUnsupported
+
 type dgpReq struct {
 	XMLName xml.Name ` + "`" + `xml:"show"` + "`" + `
 	Cmd     string   ` + "`" + `xml:"dg-hierarchy"` + "`" + `

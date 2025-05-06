@@ -3635,7 +3635,8 @@ func RenderResourceFuncMap(names map[string]properties.TerraformProviderSpecMeta
 
 		metadata := names[key]
 
-		if metadata.Flags&properties.TerraformSpecImportable == 0 {
+		// If the spec is either explicitly marked as non-importable, or spec only generates datasource don't generate import code
+		if metadata.Flags&properties.TerraformSpecImportable == 0 || metadata.Flags&properties.TerraformSpecResource == 0 {
 			continue
 		}
 
