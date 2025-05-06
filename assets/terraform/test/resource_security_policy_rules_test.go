@@ -151,14 +151,14 @@ func securityPolicyRulesGenerateImportID(state *terraform.State) (string, error)
 }
 
 const securityPolicyRulesPositionFirst = `
-variable "where" { type = string }
+variable "position" { type = any }
 variable "prefix" { type = string }
 variable "rule_names" { type = list(string) }
 
 resource "panos_security_policy_rules" "policy" {
   location = { device_group = { name = format("%s-dg", var.prefix), rulebase = "pre-rulebase" } }
 
-  position = { where = var.where }
+  position = var.position
 
   rules = [
     for index, name in var.rule_names: {
@@ -342,7 +342,9 @@ func TestAccSecurityPolicyRulesPositioning(t *testing.T) {
 				ConfigVariables: map[string]config.Variable{
 					"rule_names": config.ListVariable([]config.Variable{}...),
 					"prefix":     config.StringVariable(prefix),
-					"where":      config.StringVariable("first"),
+					"position": config.ObjectVariable(map[string]config.Variable{
+						"where": config.StringVariable("first"),
+					}),
 				},
 			},
 			{
@@ -350,7 +352,9 @@ func TestAccSecurityPolicyRulesPositioning(t *testing.T) {
 				ConfigVariables: map[string]config.Variable{
 					"rule_names": config.ListVariable([]config.Variable{}...),
 					"prefix":     config.StringVariable(prefix),
-					"where":      config.StringVariable("first"),
+					"position": config.ObjectVariable(map[string]config.Variable{
+						"where": config.StringVariable("first"),
+					}),
 				},
 				PlanOnly:           true,
 				ExpectNonEmptyPlan: false,
@@ -360,7 +364,9 @@ func TestAccSecurityPolicyRulesPositioning(t *testing.T) {
 				ConfigVariables: map[string]config.Variable{
 					"rule_names": config.ListVariable(withPrefix(ruleNames)...),
 					"prefix":     config.StringVariable(prefix),
-					"where":      config.StringVariable("first"),
+					"position": config.ObjectVariable(map[string]config.Variable{
+						"where": config.StringVariable("first"),
+					}),
 				},
 				ConfigStateChecks: []statecheck.StateCheck{
 					stateExpectedRuleName(0, "rule-2"),
