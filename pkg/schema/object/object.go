@@ -40,9 +40,19 @@ type TerraformConfig struct {
 	PluralDescription     string                     `yaml:"plural_description"`
 }
 
+type GoSdkMethod string
+
+const (
+	GoSdkMethodCreate = "create"
+	GoSdkMethodUpdate = "update"
+	GoSdkMethodDelete = "delete"
+	GoSdkMethodRead   = "read"
+)
+
 type GoSdkConfig struct {
-	Skip    bool     `yaml:"skip"`
-	Package []string `yaml:"package"`
+	Skip             bool          `yaml:"skip"`
+	SupportedMethods []GoSdkMethod `yaml:"supported_methods"`
+	Package          []string      `yaml:"package"`
 }
 
 type Entry struct {
@@ -68,6 +78,26 @@ type Object struct {
 	Entries         []Entry             `yaml:"entries"`
 	Imports         []imports.Import    `yaml:"imports"`
 	Spec            *Spec               `yaml:"spec"`
+}
+
+func (o *Object) UnmarshalYAML(n *yaml.Node) error {
+
+	o.GoSdkConfig = &GoSdkConfig{
+		SupportedMethods: []GoSdkMethod{
+			GoSdkMethodCreate,
+			GoSdkMethodDelete,
+			GoSdkMethodRead,
+			GoSdkMethodUpdate,
+		},
+	}
+
+	type O Object
+	type S struct {
+		*O `yaml:",inline"`
+	}
+
+	obj := &S{O: (*O)(o)}
+	return n.Decode(obj)
 }
 
 func NewFromBytes(name string, objectBytes []byte) (*Object, error) {

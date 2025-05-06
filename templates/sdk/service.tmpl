@@ -63,6 +63,10 @@ client: client,
     func (s *Service) Create(ctx context.Context, loc Location, config *Config) (*Config, error) {
 {{- end}}
 
+{{- if not (.SupportedMethod "create") }}
+return nil, errors.UnsupportedMethodError
+{{- else }}
+
 {{- if .Entry}}
     if entry.Name == "" {
     return nil, errors.NameNotSpecifiedError
@@ -117,6 +121,8 @@ if err != nil {
 {{- else}}
     return s.Read(ctx, loc, "get")
 {{- end}}
+
+{{- end }}
 }
 
 {{- if .Imports }}
@@ -317,6 +323,10 @@ func (s *Service) unimportFromLocations(ctx context.Context, loc Location, impor
 {{- else}}
     func (s *Service) read(ctx context.Context, loc Location, action string, usePanosConfig bool) (*Config, error) {
 {{- end}}
+
+{{- if not (.SupportedMethod "read") }}
+return nil, errors.UnsupportedMethodError
+{{- else }}
 vn := s.client.Versioning()
 _, normalizer, err := Versioning(vn)
 if err != nil {
@@ -368,6 +378,7 @@ return nil, fmt.Errorf("expected to %q 1 entry, got %d", action, len(list))
 }
 
 return list[0], nil
+{{- end }}
 }
 
 {{ $object := "Config" }}
@@ -413,6 +424,9 @@ return list[0], nil
 {{- else }}
 func (s *Service) Update(ctx context.Context, loc Location, entry *{{ $object }}) (*{{ $object }}, error) {
 {{- end }}
+{{- if not (.SupportedMethod "update") }}
+return nil, errors.UnsupportedMethodError
+{{- else }}
 
     vn := s.client.Versioning()
     updates := xmlapi.NewMultiConfig(2)
@@ -508,6 +522,7 @@ func (s *Service) Update(ctx context.Context, loc Location, entry *{{ $object }}
   {{- else }}
         return s.Read(ctx, loc, "get")
   {{- end }}
+{{- end }}
 }
 
 // Delete deletes the given item.
@@ -560,6 +575,9 @@ func (s *Service) Update(ctx context.Context, loc Location, entry *{{ $object }}
 {{- else}}
     func (s *Service) delete(ctx context.Context, loc Location, config *Config) error {
 {{- end}}
+{{- if not (.SupportedMethod "delete") }}
+return errors.UnsupportedMethodError
+{{- else }}
 {{- if .Entry}}
     {{- if $.Spec.Params.uuid}}
         for _, value := range values {
@@ -695,6 +713,7 @@ return err
     }
     }
     return nil
+{{- end }}
 {{- end}}
 }
 
