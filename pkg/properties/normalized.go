@@ -24,6 +24,7 @@ type Normalization struct {
 	TerraformProviderConfig TerraformProviderConfig `json:"terraform_provider_config" yaml:"terraform_provider_config"`
 	GoSdkSkip               bool                    `json:"go_sdk_skip" yaml:"go_sdk_skip"`
 	GoSdkPath               []string                `json:"go_sdk_path" yaml:"go_sdk_path"`
+	GoSdkSupportedMethods   []object.GoSdkMethod    `json:"go_sdk_supported_methods" yaml:"go_sdk_supported_methods"`
 	XpathSuffix             []string                `json:"xpath_suffix" yaml:"xpath_suffix"`
 	Locations               map[string]*Location    `json:"locations" yaml:"locations"`
 	Entry                   *Entry                  `json:"entry" yaml:"entry"`
@@ -665,6 +666,7 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 	for _, elt := range object.TerraformConfig.ResourceVariants {
 		resourceVariants = append(resourceVariants, TerraformResourceVariant(elt))
 	}
+
 	spec := &Normalization{
 		Name: object.DisplayName,
 		TerraformProviderConfig: TerraformProviderConfig{
@@ -681,11 +683,12 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 			PluralName:            object.TerraformConfig.PluralName,
 			PluralDescription:     object.TerraformConfig.PluralDescription,
 		},
-		Locations:   make(map[string]*Location),
-		GoSdkSkip:   object.GoSdkConfig.Skip,
-		GoSdkPath:   object.GoSdkConfig.Package,
-		XpathSuffix: object.XpathSuffix,
-		Version:     object.Version,
+		Locations:             make(map[string]*Location),
+		GoSdkSkip:             object.GoSdkConfig.Skip,
+		GoSdkPath:             object.GoSdkConfig.Package,
+		GoSdkSupportedMethods: object.GoSdkConfig.SupportedMethods,
+		XpathSuffix:           object.XpathSuffix,
+		Version:               object.Version,
 		Spec: &Spec{
 			Params: make(map[string]*SpecParam),
 			OneOf:  make(map[string]*SpecParam),
@@ -900,6 +903,16 @@ func ParseSpec(input []byte) (*Normalization, error) {
 	}
 
 	return spec, err
+}
+
+func (spec *Normalization) SupportedMethod(method object.GoSdkMethod) bool {
+	for _, elt := range spec.GoSdkSupportedMethods {
+		if method == elt {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (spec *Normalization) OrderedLocations() []*Location {
