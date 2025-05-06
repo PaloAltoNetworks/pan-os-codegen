@@ -26,6 +26,7 @@ type Normalization struct {
 	TerraformProviderConfig TerraformProviderConfig `json:"terraform_provider_config" yaml:"terraform_provider_config"`
 	GoSdkSkip               bool                    `json:"go_sdk_skip" yaml:"go_sdk_skip"`
 	GoSdkPath               []string                `json:"go_sdk_path" yaml:"go_sdk_path"`
+	GoSdkSupportedMethods   []object.GoSdkMethod    `json:"go_sdk_supported_methods" yaml:"go_sdk_supported_methods"`
 	PanosXpath              PanosXpath              `json:"panos_xpath" yaml:"panos_xpath"`
 	Locations               map[string]*Location    `json:"locations" yaml:"locations"`
 	Entry                   *Entry                  `json:"entry" yaml:"entry"`
@@ -701,11 +702,12 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 			PluralType:            object.TerraformConfig.PluralType,
 			PluralDescription:     object.TerraformConfig.PluralDescription,
 		},
-		Locations:  make(map[string]*Location),
-		GoSdkSkip:  object.GoSdkConfig.Skip,
-		GoSdkPath:  object.GoSdkConfig.Package,
-		PanosXpath: panosXpath,
-		Version:    object.Version,
+		Locations:             make(map[string]*Location),
+		GoSdkSkip:             object.GoSdkConfig.Skip,
+		GoSdkPath:             object.GoSdkConfig.Package,
+		GoSdkSupportedMethods: object.GoSdkConfig.SupportedMethods,
+		PanosXpath:            panosXpath,
+		Version:               object.Version,
 		Spec: &Spec{
 			Params: make(map[string]*SpecParam),
 			OneOf:  make(map[string]*SpecParam),
@@ -920,6 +922,10 @@ func ParseSpec(input []byte) (*Normalization, error) {
 	}
 
 	return spec, err
+}
+
+func (spec *Normalization) SupportedMethod(method object.GoSdkMethod) bool {
+	return slices.Contains(spec.GoSdkSupportedMethods, method)
 }
 
 func (spec *Normalization) OrderedLocations() []*Location {
