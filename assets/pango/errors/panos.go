@@ -15,6 +15,7 @@ var RelativePositionWithRemoveEverythingElseError = stderr.New("cannot do relati
 var UnrecognizedOperatorError = stderr.New("unsupported filter operator")
 var UnsupportedFilterTypeError = stderr.New("unsupported type for filtering")
 var UuidNotSpecifiedError = stderr.New("uuid is not specified")
+var UnsupportedMethodError = stderr.New("method is not supported")
 
 // Panos is an error returned from PAN-OS.
 //
