@@ -875,11 +875,23 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 
 			for _, elt := range i.OrderedLocations() {
 				if elt.Required {
+					var defaultValue *defaultCtx
+					for varName, variable := range elt.XpathVariables {
+						if varName == elt.Name.Original && variable.Default != "" {
+							defaultValue = &defaultCtx{
+								Type:  "stringdefault.StaticString",
+								Value: fmt.Sprintf(`"%s"`, variable.Default),
+							}
+						}
+					}
 					variableAttrs = append(variableAttrs, attributeCtx{
 						Name:         elt.Name,
 						SchemaType:   "rsschema.StringAttribute",
-						Required:     true,
+						Required:     defaultValue == nil,
+						Optional:     defaultValue != nil,
+						Computed:     defaultValue != nil,
 						ModifierType: "String",
+						Default:      defaultValue,
 					})
 				}
 			}
