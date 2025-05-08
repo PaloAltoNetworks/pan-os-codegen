@@ -2275,6 +2275,9 @@ spec:
                     description: enable/disable strict LSA checking. Abort GR if lsa
                       change is detected
                     required: false
+                    codegen_overrides:
+                      terraform:
+                        name: strict-lsa-checking
                   - name: max-neighbor-restart-time
                     type: int64
                     profiles:
@@ -3086,6 +3089,9 @@ spec:
                     description: enable/disable strict LSA checking. Abort GR if lsa
                       change is detected
                     required: false
+                    codegen_overrides:
+                      terraform:
+                        name: strict-lsa-checking
                   - name: max-neighbor-restart-time
                     type: int64
                     profiles:
