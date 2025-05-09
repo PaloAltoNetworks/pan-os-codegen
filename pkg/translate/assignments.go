@@ -390,6 +390,7 @@ func renderNestedVariableName(params []*properties.SpecParam, useDot, searchForP
 			searchForParamWithEntry && i >= indexOfLastParamWithExtendedEntry) {
 			builder.WriteString(".")
 		}
+
 		builder.WriteString(param.Name.CamelCase)
 		if useDot && i < len(params)-1 && (!searchForParamWithEntry ||
 			searchForParamWithEntry && i >= indexOfLastParamWithExtendedEntry) {

@@ -526,3 +526,150 @@ func checkIfDeviceVersionSupportedByProfile(param *properties.SpecParam, deviceV
 	}
 	return false
 }
+
+type entryStructFieldContext struct {
+	Name *properties.NameVariant
+	Type string
+	Tags string
+}
+
+type entryStructContext struct {
+	Name   *properties.NameVariant
+	Fields []entryStructFieldContext
+}
+
+func createEntryXmlStructSpecsForParameter(parentPrefix *properties.NameVariant, param *properties.SpecParam) []entryStructContext {
+	var fields []entryStructFieldContext
+	var entries []entryStructContext
+
+	for _, elt := range param.Spec.Params {
+		fields = append(fields, entryStructFieldContext{
+			Name: elt.Name,
+			Type: XmlParamType(parentPrefix.LowerCamelCase, elt),
+			Tags: XmlTag(elt),
+		})
+
+		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
+			entries = append(entries, createEntryXmlStructSpecsForParameter(parentPrefix, elt)...)
+		}
+	}
+
+	for _, elt := range param.Spec.OneOf {
+		fields = append(fields, entryStructFieldContext{
+			Name: elt.Name,
+			Type: XmlParamType(parentPrefix.LowerCamelCase, elt),
+			Tags: XmlTag(elt),
+		})
+
+		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
+			entries = append(entries, createEntryXmlStructSpecsForParameter(parentPrefix, elt)...)
+		}
+	}
+
+	fields = append(fields, entryStructFieldContext{
+		Name: properties.NewNameVariant("misc"),
+		Type: "[]generic.Xml",
+		Tags: "`xml:\",any\"`",
+	})
+
+	structName := parentPrefix.Original + "-" + param.Name.Original + "-xml"
+	entries = append(entries, entryStructContext{
+		Name:   properties.NewNameVariant(structName),
+		Fields: fields,
+	})
+
+	return entries
+}
+
+func createEntryXmlStructSpecsForNormalization(parentPrefix *properties.NameVariant, spec *properties.Normalization, suffix string) []entryStructContext {
+	var entries []entryStructContext
+	fields := []entryStructFieldContext{
+		{
+			Name: &properties.NameVariant{
+				Original:       "xml-name",
+				LowerCamelCase: "xmlName",
+				CamelCase:      "XMLName",
+				Underscore:     "xml_name",
+			},
+			Type: "xml.Name",
+			Tags: "`xml:\"entry\"`",
+		},
+		{
+			Name: properties.NewNameVariant("name"),
+			Type: "string",
+			Tags: "`xml:\"name\"`",
+		},
+	}
+
+	for _, elt := range spec.Spec.Params {
+		fields = append(fields, entryStructFieldContext{
+			Name: elt.Name,
+			Type: XmlParamType(parentPrefix.LowerCamelCase, elt),
+			Tags: XmlTag(elt),
+		})
+
+		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
+			entries = append(entries, createEntryXmlStructSpecsForParameter(properties.NewNameVariant(""), elt)...)
+		}
+	}
+
+	for _, elt := range spec.Spec.OneOf {
+		fields = append(fields, entryStructFieldContext{
+			Name: elt.Name,
+			Type: XmlParamType(parentPrefix.LowerCamelCase, elt),
+			Tags: XmlTag(elt),
+		})
+
+		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
+			entries = append(entries, createEntryXmlStructSpecsForParameter(properties.NewNameVariant(""), elt)...)
+		}
+	}
+
+	fields = append(fields, entryStructFieldContext{
+		Name: properties.NewNameVariant("misc"),
+		Type: "[]generic.Xml",
+		Tags: "`xml:\",any\"`",
+	})
+
+	entries = append(entries, entryStructContext{
+		Name:   properties.NewNameVariant("entry-xml"),
+		Fields: fields,
+	})
+
+	return entries
+}
+
+func createEntryStructSpecsForXmlEntry(spec *properties.Normalization) []entryStructContext {
+	var entries []entryStructContext
+	entries = append(entries, createEntryXmlStructSpecsForNormalization(properties.NewNameVariant(""), spec, "")...)
+
+	return entries
+}
+
+const entryXmlStructsTmpl = `
+{{- range .Specs }}
+type {{ .Name.LowerCamelCase }} struct{
+  {{- range .Fields }}
+    {{ .Name.CamelCase }} {{ .Type }} {{ .Tags }}
+  {{- end }}
+}
+{{- end }}
+`
+
+func RenderEntryXmlStructs(spec *properties.Normalization) (string, error) {
+	tmpl := template.Must(template.New("render-entry-xml-structs").Parse(entryXmlStructsTmpl))
+
+	specs := createEntryStructSpecsForXmlEntry(spec)
+	type context struct {
+		Specs []entryStructContext
+	}
+
+	data := context{Specs: specs}
+
+	var builder strings.Builder
+	if err := tmpl.Execute(&builder, data); err != nil {
+		return "", err
+	}
+
+	return builder.String(), nil
+}

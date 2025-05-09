@@ -101,6 +101,10 @@ func NewNameVariant(name string) *NameVariant {
 	}
 }
 
+func (o *NameVariant) Components() []string {
+	return strings.Split(o.Original, "-")
+}
+
 type Location struct {
 	Name        *NameVariant
 	SpecOrder   int
