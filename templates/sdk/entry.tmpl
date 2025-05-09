@@ -148,20 +148,7 @@ return entryList, nil
         }
     {{- end}}
 
-    {{- template "entryXmlStructTmpl" Map "Spec" $.Spec "Version" nil }}
-    {{- range $version := .SupportedVersionRanges }}
-        {{- template "entryXmlStructTmpl" Map "Spec" $.Spec "Version" $version.Minimum }}
-    {{- end}}
-
-    {{- range $name, $nested := nestedSpecs $.Spec }}
-      {{- template "entryXmlChildStructTmpl" Map "Name" $name "ParentIsList" $nested.ParentIsList "Spec" $nested.Spec "Version" nil }}
-    {{- end }}
-
-    {{- range $version := .SupportedVersionRanges }}
-      {{- range $name, $nested := nestedSpecs $.Spec }}
-        {{- template "entryXmlChildStructTmpl" Map "Name" $name "ParentIsList" $nested.ParentIsList "Spec" $nested.Spec "Version" $version.Minimum }}
-      {{- end }}
-    {{- end}}
+    {{ RenderEntryXmlStructs $ }}
 
     {{ range $name, $const := .Const}}
         const (

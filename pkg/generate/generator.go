@@ -271,8 +271,11 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		"subtract": func(a, b int) int {
 			return a - b
 		},
-		"generateEntryXpath":        translate.GenerateEntryXpath,
-		"nestedSpecs":               translate.NestedSpecs,
+		"generateEntryXpath": translate.GenerateEntryXpath,
+		"nestedSpecs":        translate.NestedSpecs,
+		"RenderEntryXmlStructs": func(spec *properties.Normalization) (string, error) {
+			return translate.RenderEntryXmlStructs(spec)
+		},
 		"createGoSuffixFromVersion": translate.CreateGoSuffixFromVersionTmpl,
 		"paramSupportedInVersion":   translate.ParamSupportedInVersionTmpl,
 		"xmlPathSuffixes":           translate.XmlPathSuffixes,
