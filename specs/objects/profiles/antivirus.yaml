@@ -17,6 +17,7 @@ go_sdk_config:
   - profiles
   - antivirus
 xpath_suffix:
+- profiles
 - virus
 locations:
 - name: shared
@@ -93,7 +94,6 @@ locations:
   description: Located in a specific Virtual System
   devices:
   - ngfw
-  - panorama
   validators: []
   required: false
   read_only: false
