@@ -1,0 +1,401 @@
+name: ldap-profile
+terraform_provider_config:
+  description: LDAP Server Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: ldap_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - device
+  - profiles
+  - ldap
+xpath_suffix:
+- server-profile
+- ldap
+locations:
+- name: panorama
+  xpath:
+    path:
+    - config
+    - panorama
+    vars: []
+  description: Located in a panorama.
+  validators: []
+  required: false
+  read_only: false
+- name: vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: ngfw_device
+      description: The NGFW device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The Virtual System name
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys name cannot be "shared". Use the "shared" location instead
+      type: entry
+  description: Located in a specific Virtual System
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: base
+    type: string
+    profiles:
+    - xpath:
+      - base
+    validators:
+    - type: length
+      spec:
+        max: 255
+    spec: {}
+    description: Default base distinguished name (DN) to use for searches
+    required: false
+  - name: bind-dn
+    type: string
+    profiles:
+    - xpath:
+      - bind-dn
+    validators:
+    - type: length
+      spec:
+        max: 255
+    spec: {}
+    description: bind distinguished name
+    required: false
+  - name: bind-password
+    type: string
+    profiles:
+    - xpath:
+      - bind-password
+    validators:
+    - type: length
+      spec:
+        max: 121
+    spec: {}
+    description: bind password
+    required: false
+    codegen_overrides:
+      terraform:
+        sensitive: true
+    hashing:
+      type: solo
+  - name: bind-timelimit
+    type: int64
+    profiles:
+    - xpath:
+      - bind-timelimit
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 60
+    spec:
+      default: 30
+    description: number of seconds to use for connecting to servers
+    required: false
+  - name: disabled
+    type: bool
+    profiles:
+    - xpath:
+      - disabled
+    validators: []
+    spec: {}
+    description: ''
+    required: false
+  - name: ldap-type
+    type: enum
+    profiles:
+    - xpath:
+      - ldap-type
+    validators:
+    - type: values
+      spec:
+        values:
+        - active-directory
+        - e-directory
+        - sun
+        - other
+    spec:
+      default: other
+      values:
+      - value: active-directory
+      - value: e-directory
+      - value: sun
+      - value: other
+    description: ''
+    required: false
+  - name: retry-interval
+    type: int64
+    profiles:
+    - xpath:
+      - retry-interval
+    validators:
+    - type: length
+      spec:
+        min: 60
+        max: 3600
+    spec:
+      default: 60
+    description: Interval (seconds) for reconnecting LDAP server
+    required: false
+  - name: server
+    type: list
+    profiles:
+    - xpath:
+      - server
+      - entry
+      type: entry
+    validators: []
+    spec:
+      type: object
+      items:
+        type: object
+        spec:
+          params:
+          - name: address
+            type: string
+            profiles:
+            - xpath:
+              - address
+            validators: []
+            spec: {}
+            description: ldap server ip or host name.
+            required: false
+          - name: port
+            type: int64
+            profiles:
+            - xpath:
+              - port
+            validators:
+            - type: length
+              spec:
+                min: 1
+                max: 65535
+            spec:
+              default: 389
+            description: default 389 for LDAP, 636 for LDAPS
+            required: false
+          variants: []
+    description: ''
+    required: false
+    codegen_overrides:
+      terraform:
+        name: servers
+  - name: ssl
+    type: bool
+    profiles:
+    - xpath:
+      - ssl
+    validators: []
+    spec: {}
+    description: ''
+    required: false
+  - name: timelimit
+    type: int64
+    profiles:
+    - xpath:
+      - timelimit
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 30
+    spec:
+      default: 30
+    description: number of seconds to wait for performing searches
+    required: false
+  - name: verify-server-certificate
+    type: bool
+    profiles:
+    - xpath:
+      - verify-server-certificate
+    validators: []
+    spec: {}
+    description: Verify server certificate for SSL sessions
+    required: false
+  variants: []
