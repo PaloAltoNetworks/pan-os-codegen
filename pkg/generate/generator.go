@@ -278,6 +278,7 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		"xmlPathSuffixes":           translate.XmlPathSuffixes,
 		"underscore":                naming.Underscore,
 		"camelCase":                 naming.CamelCase,
+		"lowerCamelCase":            naming.LowerCamelCase,
 	}
 	return template.New(templateName).Funcs(funcMap).ParseFiles(templatePath)
 }

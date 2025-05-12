@@ -21,13 +21,12 @@ type entryXml{{createGoSuffixFromVersion $.Version}} struct {
       {{- end}}
     {{- end}}
   {{- end}}
-
 	Misc []generic.Xml `xml:",any"`
 }
 {{- end }}
 
 {{- define "entryXmlChildStructTmpl" }}
-type {{ .Name }}Xml{{createGoSuffixFromVersion $.Version}} struct {
+type {{ .Name | lowerCamelCase }}Xml{{createGoSuffixFromVersion $.Version}} struct {
   {{- range $_, $param := $.Spec.Params}}
     {{- if and ($.ParentIsList) (eq $param.Name.CamelCase "Name") }}
 	XMLName xml.Name `xml:"entry"`
@@ -50,7 +49,6 @@ type {{ .Name }}Xml{{createGoSuffixFromVersion $.Version}} struct {
       {{- end}}
     {{- end}}
   {{- end}}
-
 	Misc []generic.Xml `xml:",any"`
 }
 {{- end }}

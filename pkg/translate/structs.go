@@ -6,6 +6,7 @@ import (
 	"log"
 	"strings"
 	"text/template"
+	"unicode"
 
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
@@ -423,7 +424,11 @@ func calculateNestedSpecType(parent string, param *properties.SpecParam) string 
 }
 
 func calculateNestedXmlSpecType(parent string, param *properties.SpecParam) string {
-	return fmt.Sprintf("%s%sXml", parent, naming.CamelCase("", param.Name.CamelCase, "", true))
+	xmlType := fmt.Sprintf("%s%sXml", parent, naming.CamelCase("", param.Name.CamelCase, "", true))
+	r := []rune(xmlType)
+	r[0] = unicode.ToLower(r[0])
+
+	return string(r)
 }
 
 // XmlName creates a string with xml name (e.g. `description`).
