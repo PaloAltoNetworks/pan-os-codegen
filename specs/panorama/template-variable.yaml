@@ -1,5 +1,6 @@
 name: "Template Variable"
 terraform_provider_config:
+  resource_type: entry
   suffix: "template_variable"
 go_sdk_config:
   package:
