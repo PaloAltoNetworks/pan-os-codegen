@@ -27,13 +27,12 @@ type configXml{{createGoSuffixFromVersion $.Version}} struct {
       {{- end}}
     {{- end}}
   {{- end}}
-
 	Misc []generic.Xml `xml:",any"`
 }
 {{- end }}
 
 {{- define "configXmlChildStructTmpl" }}
-type {{ $.Name }}Xml{{ createGoSuffixFromVersion $.Version }} struct {
+type {{ $.Name | lowerCamelCase }}Xml{{ createGoSuffixFromVersion $.Version }} struct {
 {{- range $_, $param := $.Spec.Params}}
   {{- if paramSupportedInVersion $param $.Version}}
     {{- if $param.Spec}}
@@ -53,7 +52,6 @@ type {{ $.Name }}Xml{{ createGoSuffixFromVersion $.Version }} struct {
     {{- end}}
   {{- end}}
 {{- end}}
-
 	Misc []generic.Xml `xml:",any"`
 }
 {{- end }}

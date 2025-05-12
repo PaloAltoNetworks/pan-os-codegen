@@ -203,15 +203,21 @@ func declareRootOfNestedObject(parent []*properties.SpecParam, builder *strings.
 	if suffix != "" {
 		vstr = CreateGoSuffixFromVersion(version)
 	}
+
+	paramName := renderNestedVariableName(parent, false, false, false)
+	if prefix == "" && suffix == "Xml" {
+		paramName = properties.NewNameVariant(paramName).LowerCamelCase
+	}
+
 	if isNestedListHack {
 		builder.WriteString(fmt.Sprintf("var nested%sCol []%s%s%s%s\n",
 			renderNestedVariableName(parent, true, true, false), prefix,
-			renderNestedVariableName(parent, false, false, false), suffix,
+			paramName, suffix,
 			vstr))
 	} else if len(parent) == 1 {
 		builder.WriteString(fmt.Sprintf("var nested%s *%s%s%s%s\n",
 			renderNestedVariableName(parent, true, true, false), prefix,
-			renderNestedVariableName(parent, false, false, false), suffix,
+			paramName, suffix,
 			vstr))
 	}
 }
@@ -232,9 +238,15 @@ func createStructForParamWithSpec(parent []*properties.SpecParam, builder *strin
 	if suffix != "" {
 		vstr = CreateGoSuffixFromVersion(version)
 	}
+
+	paramName := renderNestedVariableName(parent, false, false, false)
+	if prefix == "" && suffix == "Xml" {
+		paramName = properties.NewNameVariant(paramName).LowerCamelCase
+	}
+
 	builder.WriteString(fmt.Sprintf("nested%s = &%s%s%s%s{}\n",
 		renderNestedVariableName(parent, true, true, false), prefix,
-		renderNestedVariableName(parent, false, false, false), suffix,
+		paramName, suffix,
 		vstr))
 }
 
@@ -244,15 +256,20 @@ func createListAndLoopForNestedEntry(parent []*properties.SpecParam, param *prop
 		vstr = CreateGoSuffixFromVersion(version)
 	}
 
+	paramName := renderNestedVariableName(parent, false, false, false)
+	if prefix == "" && suffix == "Xml" {
+		paramName = properties.NewNameVariant(paramName).LowerCamelCase
+	}
+
 	if len(parent) == 1 && parent[0].Type == "list" && parent[0].Items.Type == "entry" {
 		builder.WriteString(fmt.Sprintf("nested%sCol = []%s%s%s%s{}\n",
 			renderNestedVariableName(parent, true, true, false), prefix,
-			renderNestedVariableName(parent, false, false, false), suffix,
+			paramName, suffix,
 			vstr))
 	} else {
 		builder.WriteString(fmt.Sprintf("nested%s = []%s%s%s%s{}\n",
 			renderNestedVariableName(parent, true, true, false), prefix,
-			renderNestedVariableName(parent, false, false, false), suffix,
+			paramName, suffix,
 			vstr))
 	}
 
@@ -266,7 +283,7 @@ func createListAndLoopForNestedEntry(parent []*properties.SpecParam, param *prop
 		renderNestedVariableName(parent, true, true, startFromDot)))
 	builder.WriteString(fmt.Sprintf("nested%s := %s%s%s%s{}\n",
 		renderNestedVariableName(parent, false, false, false),
-		prefix, renderNestedVariableName(parent, false, false, false), suffix,
+		prefix, paramName, suffix,
 		vstr))
 }
 
