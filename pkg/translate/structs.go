@@ -607,11 +607,20 @@ func getFieldTypeForParam(param *properties.SpecParam) string {
 	return "simple"
 }
 
-func createEntryXmlStructSpecsForParameter(parentPrefix *properties.NameVariant, param *properties.SpecParam, version *version.Version) []entryStructContext {
+func createEntryXmlStructSpecsForParameter(structTyp structType, parentPrefix *properties.NameVariant, param *properties.SpecParam, version *version.Version) []entryStructContext {
 	var fields []entryStructFieldContext
 	var entries []entryStructContext
 
 	if param.Type == "list" && param.Items.Type == "entry" {
+		if structTyp == structXmlType {
+			fields = append(fields, entryStructFieldContext{
+				IsInternal: true,
+				FieldType:  "internal",
+				Name:       xmlNameVariant,
+				XmlType:    "xml.Name",
+				Tags:       "`xml:\"entry\"`",
+			})
+		}
 		fields = append(fields, entryStructFieldContext{
 			Name:      properties.NewNameVariant("name"),
 			Required:  true,
@@ -643,7 +652,7 @@ func createEntryXmlStructSpecsForParameter(parentPrefix *properties.NameVariant,
 		})
 
 		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
-			entries = append(entries, createEntryXmlStructSpecsForParameter(parentPrefix.WithSuffix(param.Name), elt, version)...)
+			entries = append(entries, createEntryXmlStructSpecsForParameter(structTyp, parentPrefix.WithSuffix(param.Name), elt, version)...)
 		}
 	}
 
@@ -668,7 +677,7 @@ func createEntryXmlStructSpecsForParameter(parentPrefix *properties.NameVariant,
 		})
 
 		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
-			entries = append(entries, createEntryXmlStructSpecsForParameter(parentPrefix.WithSuffix(param.Name), elt, version)...)
+			entries = append(entries, createEntryXmlStructSpecsForParameter(structTyp, parentPrefix.WithSuffix(param.Name), elt, version)...)
 		}
 	}
 
@@ -690,28 +699,31 @@ func createEntryXmlStructSpecsForParameter(parentPrefix *properties.NameVariant,
 	return entries
 }
 
-func creasteStructSpecsForNormalization(parentPrefix *properties.NameVariant, spec *properties.Normalization, version *version.Version) []entryStructContext {
+func creasteStructSpecsForNormalization(structTyp structType, parentPrefix *properties.NameVariant, spec *properties.Normalization, version *version.Version) []entryStructContext {
 	var entries []entryStructContext
 	var fields []entryStructFieldContext
 
-	var xmlTags string
-	switch spec.TerraformProviderConfig.ResourceType {
-	case properties.TerraformResourceEntry, properties.TerraformResourceUuid:
-		xmlTags = "`xml:\"entry\"`"
-	case properties.TerraformResourceConfig:
-		xmlTags = "`xml:\"system\"`"
-	case properties.TerraformResourceCustom:
-		fallthrough
-	default:
-		panic(fmt.Sprintf("unreachable resource type: '%s'", spec.TerraformProviderConfig.ResourceType))
+	if structTyp == structXmlType {
+		var xmlTags string
+		switch spec.TerraformProviderConfig.ResourceType {
+		case properties.TerraformResourceEntry, properties.TerraformResourceUuid:
+			xmlTags = "`xml:\"entry\"`"
+		case properties.TerraformResourceConfig:
+			xmlTags = "`xml:\"system\"`"
+		case properties.TerraformResourceCustom:
+			fallthrough
+		default:
+			panic(fmt.Sprintf("unreachable resource type: '%s'", spec.TerraformProviderConfig.ResourceType))
+		}
+
+		fields = append(fields, entryStructFieldContext{
+			IsInternal: true,
+			FieldType:  "internal",
+			Name:       xmlNameVariant,
+			XmlType:    "xml.Name",
+			Tags:       xmlTags,
+		})
 	}
-	fields = append(fields, entryStructFieldContext{
-		IsInternal: true,
-		FieldType:  "internal",
-		Name:       xmlNameVariant,
-		XmlType:    "xml.Name",
-		Tags:       xmlTags,
-	})
 
 	switch spec.TerraformProviderConfig.ResourceType {
 	case properties.TerraformResourceEntry, properties.TerraformResourceUuid:
@@ -751,7 +763,7 @@ func creasteStructSpecsForNormalization(parentPrefix *properties.NameVariant, sp
 		})
 
 		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
-			entries = append(entries, createEntryXmlStructSpecsForParameter(properties.NewNameVariant(""), elt, version)...)
+			entries = append(entries, createEntryXmlStructSpecsForParameter(structTyp, properties.NewNameVariant(""), elt, version)...)
 		}
 	}
 
@@ -776,7 +788,7 @@ func creasteStructSpecsForNormalization(parentPrefix *properties.NameVariant, sp
 		})
 
 		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
-			entries = append(entries, createEntryXmlStructSpecsForParameter(properties.NewNameVariant(""), elt, version)...)
+			entries = append(entries, createEntryXmlStructSpecsForParameter(structTyp, properties.NewNameVariant(""), elt, version)...)
 		}
 	}
 
@@ -810,8 +822,8 @@ func creasteStructSpecsForNormalization(parentPrefix *properties.NameVariant, sp
 	return entries
 }
 
-func createStructSpecs(spec *properties.Normalization, version *version.Version) []entryStructContext {
-	return creasteStructSpecsForNormalization(properties.NewNameVariant(""), spec, version)
+func createStructSpecs(structTyp structType, spec *properties.Normalization, version *version.Version) []entryStructContext {
+	return creasteStructSpecsForNormalization(structTyp, properties.NewNameVariant(""), spec, version)
 }
 
 const apiStructsTmpl = `
@@ -829,7 +841,7 @@ type {{ .StructName }} struct{
 func RenderEntryApiStructs(spec *properties.Normalization) (string, error) {
 	tmpl := template.Must(template.New("render-entry-api-structs").Parse(apiStructsTmpl))
 
-	specs := createStructSpecs(spec, nil)
+	specs := createStructSpecs(structApiType, spec, nil)
 	type context struct {
 		Specs []entryStructContext
 	}
@@ -858,9 +870,9 @@ type {{ .XmlStructName }} struct{
 func RenderEntryXmlStructs(spec *properties.Normalization) (string, error) {
 	tmpl := template.Must(template.New("render-entry-xml-structs").Parse(xmlStructsTmpl))
 
-	specs := createStructSpecs(spec, nil)
+	specs := createStructSpecs(structXmlType, spec, nil)
 	for _, elt := range spec.SupportedVersionRanges() {
-		specs = append(specs, createStructSpecs(spec, &elt.Minimum)...)
+		specs = append(specs, createStructSpecs(structXmlType, spec, &elt.Minimum)...)
 	}
 
 	type context struct {
@@ -951,9 +963,9 @@ func (o {{ .XmlStructName }}) UnmarshalToObject() *{{ .StructName }} {
 func RenderToXmlMarshalers(spec *properties.Normalization) (string, error) {
 	tmpl := template.Must(template.New("render-to-xml-marsrhallers").Parse(structToXmlMarshalersTmpl))
 
-	specs := createStructSpecs(spec, nil)
+	specs := createStructSpecs(structXmlType, spec, nil)
 	for _, elt := range spec.SupportedVersionRanges() {
-		specs = append(specs, createStructSpecs(spec, &elt.Minimum)...)
+		specs = append(specs, createStructSpecs(structXmlType, spec, &elt.Minimum)...)
 	}
 	type context struct {
 		EntryOrConfig string
@@ -995,9 +1007,9 @@ func (o *{{ .XmlContainerStructName }}) Normalize() ([]*{{ $.EntryOrConfig }}, e
 func RenderXmlContainerNormalizers(spec *properties.Normalization) (string, error) {
 	tmpl := template.Must(template.New("render-xml-container-normalizers").Parse(xmlContainerNormalizersTmpl))
 
-	specs := createStructSpecs(spec, nil)
+	specs := createStructSpecs(structXmlType, spec, nil)
 	for _, elt := range spec.SupportedVersionRanges() {
-		specs = append(specs, createStructSpecs(spec, &elt.Minimum)...)
+		specs = append(specs, createStructSpecs(structXmlType, spec, &elt.Minimum)...)
 	}
 	type context struct {
 		EntryOrConfig string
@@ -1036,9 +1048,9 @@ func {{ .SpecifierFuncName $.EntryOrConfig }}(source *{{ $.EntryOrConfig }}) (an
 func RenderXmlContainerSpecifiers(spec *properties.Normalization) (string, error) {
 	tmpl := template.Must(template.New("render-xml-container-specifiers").Parse(xmlContainerSpecifiersTmpl))
 
-	specs := createStructSpecs(spec, nil)
+	specs := createStructSpecs(structXmlType, spec, nil)
 	for _, elt := range spec.SupportedVersionRanges() {
-		specs = append(specs, createStructSpecs(spec, &elt.Minimum)...)
+		specs = append(specs, createStructSpecs(structXmlType, spec, &elt.Minimum)...)
 	}
 	type context struct {
 		EntryOrConfig string
@@ -1148,7 +1160,7 @@ func (o *{{ .StructName }}) matches(other *{{ .StructName }}) bool {
 func RenderSpecMatchers(spec *properties.Normalization) (string, error) {
 	tmpl := template.Must(template.New("render-spec-matchers").Parse(specMatchersTmpl))
 
-	specs := createStructSpecs(spec, nil)
+	specs := createStructSpecs(structApiType, spec, nil)
 	type context struct {
 		EntryOrConfig string
 		Specs         []entryStructContext
