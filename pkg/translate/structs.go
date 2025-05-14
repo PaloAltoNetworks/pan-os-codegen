@@ -390,6 +390,10 @@ func calculateNestedXmlSpecType(structTyp structType, parentName *properties.Nam
 // XmlName creates a string with xml name (e.g. `description`).
 func XmlName(param *properties.SpecParam) string {
 	if len(param.Profiles) > 0 {
+		// FIXME: lists of objects have an extra "entry" element on their xpath
+		if param.Type == "list" && param.Items.Type == "entry" {
+			return param.Profiles[0].Xpath[0]
+		}
 		return strings.Join(param.Profiles[0].Xpath, ">")
 	}
 
@@ -484,16 +488,17 @@ func checkIfDeviceVersionSupportedByProfile(param *properties.SpecParam, deviceV
 }
 
 type entryStructFieldContext struct {
-	Name         *properties.NameVariant
-	IsInternal   bool
-	Required     bool
-	FieldType    string
-	Type         string
-	ItemsType    string
-	XmlType      string
-	ItemsXmlType string
-	Tags         string
-	version      *version.Version
+	Name             *properties.NameVariant
+	IsInternal       bool
+	Required         bool
+	FieldType        string
+	Type             string
+	ItemsType        string
+	XmlType          string
+	XmlContainerType string
+	ItemsXmlType     string
+	Tags             string
+	version          *version.Version
 }
 
 func (o entryStructFieldContext) FinalType() string {
@@ -516,7 +521,11 @@ func (o entryStructFieldContext) FinalType() string {
 func (o entryStructFieldContext) FinalXmlType() string {
 	switch o.FieldType {
 	case "list-entry":
-		return o.ItemsXmlType
+		if o.XmlContainerType != "" {
+			return "*" + o.XmlContainerType
+		} else {
+			return o.ItemsXmlType
+		}
 	case "list-member":
 		return "*" + o.ItemsXmlType
 	case "object", "simple":
@@ -533,8 +542,9 @@ func (o entryStructFieldContext) FinalXmlType() string {
 }
 
 type entryStructContext struct {
-	TopLevel bool
-	Fields   []entryStructFieldContext
+	TopLevel       bool
+	IsXmlContainer bool
+	Fields         []entryStructFieldContext
 
 	version *version.Version
 	name    *properties.NameVariant
@@ -564,7 +574,7 @@ func (o entryStructContext) SpecifierFuncName(suffix string) string {
 	return "specify" + suffix + o.versionSuffix()
 }
 
-func getTypesForParam(structTyp structType, parent *properties.NameVariant, param *properties.SpecParam, version *version.Version) (string, string) {
+func getTypesForParam(structTyp structType, parent *properties.NameVariant, param *properties.SpecParam, version *version.Version, overrideForXmlContainer bool) (string, string, string) {
 	var versionSuffix string
 	if version != nil {
 		versionSuffix = fmt.Sprintf("_%s", strings.ReplaceAll(version.String(), ".", "_"))
@@ -578,7 +588,11 @@ func getTypesForParam(structTyp structType, parent *properties.NameVariant, para
 		} else if param.Type == "list" && param.Items.Type == "entry" {
 			itemsType = "[]" + typ
 		}
-		return typ, itemsType
+		var xmlContainerType string
+		if overrideForXmlContainer {
+			xmlContainerType = parent.WithSuffix(param.Name).WithSuffix(properties.NewNameVariant("container")).WithSuffix(properties.NewNameVariant("xml")).WithLiteralSuffix(versionSuffix).LowerCamelCase
+		}
+		return typ, itemsType, xmlContainerType
 	} else {
 		typ := ParamType(structApiType, parent, param, "")
 		var itemsType string
@@ -587,7 +601,7 @@ func getTypesForParam(structTyp structType, parent *properties.NameVariant, para
 		} else if param.Type == "list" && param.Items.Type == "entry" {
 			itemsType = "[]" + typ
 		}
-		return typ, itemsType
+		return typ, itemsType, ""
 	}
 }
 
@@ -605,6 +619,33 @@ func getFieldTypeForParam(param *properties.SpecParam) string {
 	}
 
 	return "simple"
+}
+
+func createStructSpecForXmlListContainer(prefix *properties.NameVariant, param *properties.SpecParam, version *version.Version) []entryStructContext {
+	typ, itemsType, _ := getTypesForParam(structApiType, prefix, param, version, false)
+	xmlType, itemsXmlType, _ := getTypesForParam(structXmlType, prefix, param, version, false)
+	fieldType := "list-entry"
+
+	fields := []entryStructFieldContext{
+		{
+			Name:         properties.NewNameVariant("entries"),
+			Required:     false,
+			FieldType:    fieldType,
+			Type:         typ,
+			ItemsType:    itemsType,
+			XmlType:      xmlType,
+			ItemsXmlType: itemsXmlType,
+			Tags:         "`xml:\"entry\"`",
+			version:      version,
+		},
+	}
+
+	return []entryStructContext{{
+		IsXmlContainer: true,
+		Fields:         fields,
+		name:           prefix.WithSuffix(param.Name).WithSuffix(properties.NewNameVariant("container")),
+		version:        version,
+	}}
 }
 
 func createEntryXmlStructSpecsForParameter(structTyp structType, parentPrefix *properties.NameVariant, param *properties.SpecParam, version *version.Version) []entryStructContext {
@@ -631,54 +672,47 @@ func createEntryXmlStructSpecsForParameter(structTyp structType, parentPrefix *p
 		})
 	}
 
-	for _, elt := range param.Spec.SortedParams() {
-		if !ParamSupportedInVersion(elt, version) {
-			continue
+	processParameter := func(prefix *properties.NameVariant, param *properties.SpecParam) {
+		if !ParamSupportedInVersion(param, version) {
+			return
 		}
 
-		typ, itemsType := getTypesForParam(structApiType, parentPrefix.WithSuffix(param.Name), elt, version)
-		xmlType, itemsXmlType := getTypesForParam(structXmlType, parentPrefix.WithSuffix(param.Name), elt, version)
+		var overrideTypeForXmlContainer bool
+		if structTyp == structXmlType && param.Type == "list" && param.Items.Type == "entry" {
+			overrideTypeForXmlContainer = true
+			entries = append(entries, createStructSpecForXmlListContainer(prefix, param, version)...)
+		}
+
+		typ, itemsType, _ := getTypesForParam(structApiType, prefix, param, version, overrideTypeForXmlContainer)
+		xmlType, itemsXmlType, xmlContainerType := getTypesForParam(structXmlType, prefix, param, version, overrideTypeForXmlContainer)
+		fieldType := getFieldTypeForParam(param)
 
 		fields = append(fields, entryStructFieldContext{
-			Name:         elt.Name,
-			Required:     elt.Required,
-			FieldType:    getFieldTypeForParam(elt),
-			Type:         typ,
-			ItemsType:    itemsType,
-			XmlType:      xmlType,
-			ItemsXmlType: itemsXmlType,
-			Tags:         XmlTag(elt),
-			version:      version,
+			Name:             param.Name,
+			Required:         param.Required,
+			FieldType:        fieldType,
+			Type:             typ,
+			ItemsType:        itemsType,
+			XmlType:          xmlType,
+			XmlContainerType: xmlContainerType,
+			ItemsXmlType:     itemsXmlType,
+			Tags:             XmlTag(param),
+			version:          version,
 		})
 
-		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
-			entries = append(entries, createEntryXmlStructSpecsForParameter(structTyp, parentPrefix.WithSuffix(param.Name), elt, version)...)
+		if param.Type == "" || (param.Type == "list" && param.Items.Type == "entry") {
+			entries = append(entries, createEntryXmlStructSpecsForParameter(structTyp, prefix, param, version)...)
 		}
+
+	}
+
+	prefixName := parentPrefix.WithSuffix(param.Name)
+	for _, elt := range param.Spec.SortedParams() {
+		processParameter(prefixName, elt)
 	}
 
 	for _, elt := range param.Spec.SortedOneOf() {
-		if !ParamSupportedInVersion(elt, version) {
-			continue
-		}
-
-		typ, itemsType := getTypesForParam(structApiType, parentPrefix.WithSuffix(param.Name), elt, version)
-		xmlType, itemsXmlType := getTypesForParam(structXmlType, parentPrefix.WithSuffix(param.Name), elt, version)
-
-		fields = append(fields, entryStructFieldContext{
-			Name:         elt.Name,
-			Required:     elt.Required,
-			FieldType:    getFieldTypeForParam(elt),
-			Type:         typ,
-			ItemsType:    itemsType,
-			XmlType:      xmlType,
-			ItemsXmlType: itemsXmlType,
-			Tags:         XmlTag(elt),
-			version:      version,
-		})
-
-		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
-			entries = append(entries, createEntryXmlStructSpecsForParameter(structTyp, parentPrefix.WithSuffix(param.Name), elt, version)...)
-		}
+		processParameter(prefixName, elt)
 	}
 
 	fields = append(fields, entryStructFieldContext{
@@ -742,54 +776,45 @@ func creasteStructSpecsForNormalization(structTyp structType, parentPrefix *prop
 		panic(fmt.Sprintf("unreachable resource type: '%s'", spec.TerraformProviderConfig.ResourceType))
 	}
 
-	for _, elt := range spec.Spec.SortedParams() {
-		if !ParamSupportedInVersion(elt, version) {
-			continue
+	processParameter := func(prefix *properties.NameVariant, param *properties.SpecParam) {
+		if !ParamSupportedInVersion(param, version) {
+			return
 		}
 
-		typ, itemsType := getTypesForParam(structApiType, parentPrefix, elt, version)
-		xmlType, itemsXmlType := getTypesForParam(structXmlType, parentPrefix, elt, version)
+		var overrideTypeForXmlContainer bool
+		if structTyp == structXmlType && param.Type == "list" && param.Items.Type == "entry" {
+			overrideTypeForXmlContainer = true
+			entries = append(entries, createStructSpecForXmlListContainer(prefix, param, version)...)
+		}
+
+		typ, itemsType, _ := getTypesForParam(structApiType, prefix, param, version, overrideTypeForXmlContainer)
+		xmlType, itemsXmlType, xmlContainerType := getTypesForParam(structXmlType, prefix, param, version, overrideTypeForXmlContainer)
+		fieldType := getFieldTypeForParam(param)
 
 		fields = append(fields, entryStructFieldContext{
-			Name:         elt.Name,
-			Required:     elt.Required,
-			FieldType:    getFieldTypeForParam(elt),
-			Type:         typ,
-			ItemsType:    itemsType,
-			XmlType:      xmlType,
-			ItemsXmlType: itemsXmlType,
-			Tags:         XmlTag(elt),
-			version:      version,
+			Name:             param.Name,
+			Required:         param.Required,
+			FieldType:        fieldType,
+			Type:             typ,
+			ItemsType:        itemsType,
+			XmlType:          xmlType,
+			XmlContainerType: xmlContainerType,
+			ItemsXmlType:     itemsXmlType,
+			Tags:             XmlTag(param),
+			version:          version,
 		})
 
-		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
-			entries = append(entries, createEntryXmlStructSpecsForParameter(structTyp, properties.NewNameVariant(""), elt, version)...)
+		if param.Type == "" || (param.Type == "list" && param.Items.Type == "entry") {
+			entries = append(entries, createEntryXmlStructSpecsForParameter(structTyp, properties.NewNameVariant(""), param, version)...)
 		}
 	}
 
+	for _, elt := range spec.Spec.SortedParams() {
+		processParameter(parentPrefix, elt)
+	}
+
 	for _, elt := range spec.Spec.SortedOneOf() {
-		if !ParamSupportedInVersion(elt, version) {
-			continue
-		}
-
-		typ, itemsType := getTypesForParam(structApiType, parentPrefix, elt, version)
-		xmlType, itemsXmlType := getTypesForParam(structXmlType, parentPrefix, elt, version)
-
-		fields = append(fields, entryStructFieldContext{
-			Name:         elt.Name,
-			Required:     elt.Required,
-			FieldType:    getFieldTypeForParam(elt),
-			Type:         typ,
-			ItemsType:    itemsType,
-			XmlType:      xmlType,
-			ItemsXmlType: itemsXmlType,
-			Tags:         XmlTag(elt),
-			version:      version,
-		})
-
-		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
-			entries = append(entries, createEntryXmlStructSpecsForParameter(structTyp, properties.NewNameVariant(""), elt, version)...)
-		}
+		processParameter(parentPrefix, elt)
 	}
 
 	fields = append(fields, entryStructFieldContext{
@@ -891,6 +916,7 @@ func RenderEntryXmlStructs(spec *properties.Normalization) (string, error) {
 
 const structToXmlMarshalersTmpl = `
 {{- range .Specs }}
+  {{- if .IsXmlContainer }}{{ continue }}{{ end }}
 func (o *{{ .XmlStructName }}) MarshalFromObject(s {{ .StructName }}) {
   {{- range .Fields }}
     {{- if .IsInternal }}{{ continue }}{{- end }}
@@ -912,7 +938,7 @@ func (o *{{ .XmlStructName }}) MarshalFromObject(s {{ .StructName }}) {
 			obj.MarshalFromObject(elt)
 			objs = append(objs, obj)
 		}
-		o.{{ .Name.CamelCase }} = objs
+		o.{{ .Name.CamelCase }} = &{{ .XmlContainerType }}{ Entries: objs }
 	}
     {{- else if and (eq .FieldType "simple") (eq .Type "bool") }}
 	o.{{ .Name.CamelCase }} = util.YesNo(s.{{ .Name.CamelCase }}, nil)
@@ -937,8 +963,10 @@ func (o {{ .XmlStructName }}) UnmarshalToObject() *{{ .StructName }} {
 	}
     {{- else if eq .FieldType "list-entry" }}
 	var {{ .Name.LowerCamelCase }}Val {{ .FinalType }}
-	for _, elt := range o.{{ .Name.CamelCase }} {
-		{{ .Name.LowerCamelCase }}Val = append({{ .Name.LowerCamelCase }}Val, *elt.UnmarshalToObject())
+	if o.{{ .Name.CamelCase }} != nil {
+		for _, elt := range o.{{ .Name.CamelCase }}.Entries {
+			{{ .Name.LowerCamelCase }}Val = append({{ .Name.LowerCamelCase }}Val, *elt.UnmarshalToObject())
+		}
 	}
     {{- end }}
   {{- end }}
@@ -1089,7 +1117,8 @@ func SpecMatches(a, b *{{ .EntryOrConfig }}) bool {
 }
 
 {{- range .Specs }}
-{{ $spec := . }}
+  {{ if .IsXmlContainer }}{{ continue }}{{ end }}
+  {{ $spec := . }}
 func (o *{{ .StructName }}) matches(other *{{ .StructName }}) bool {
 	if o == nil && other == nil {
 		return true

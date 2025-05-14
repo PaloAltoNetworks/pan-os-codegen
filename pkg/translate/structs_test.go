@@ -373,23 +373,39 @@ var _ = Describe("createEntryXmlStructSpecsForParameter", func() {
 			}
 
 			result := createEntryXmlStructSpecsForParameter(structXmlType, parent, param, nil)
-			Expect(result).To(HaveLen(2))
+			Expect(result).To(HaveLen(3))
 
 			Expect(result[0].StructName()).To(Equal("ParentParam"))
 			Expect(result[0].XmlStructName()).To(Equal("parentParamXml"))
 			Expect(result[0].Fields[0]).To(Equal(entryStructFieldContext{
-				Name:         properties.NewNameVariant("child-param"),
-				FieldType:    "list-entry",
-				Type:         "ParentParamChildParam",
-				ItemsType:    "[]ParentParamChildParam",
-				XmlType:      "parentParamChildParamXml",
-				ItemsXmlType: "[]parentParamChildParamXml",
-				Tags:         "`xml:\"child-param,omitempty\"`",
+				Name:             properties.NewNameVariant("child-param"),
+				FieldType:        "list-entry",
+				Type:             "ParentParamChildParam",
+				ItemsType:        "[]ParentParamChildParam",
+				XmlType:          "parentParamChildParamXml",
+				XmlContainerType: "parentParamChildParamContainerXml",
+				ItemsXmlType:     "[]parentParamChildParamXml",
+				Tags:             "`xml:\"child-param,omitempty\"`",
+			}))
+			Expect(result[0].Fields[0].FinalXmlType()).To(Equal("*parentParamChildParamContainerXml"))
+
+			Expect(result[1].IsXmlContainer).To(BeTrue())
+			Expect(result[1].XmlStructName()).To(Equal("parentParamChildParamContainerXml"))
+			Expect(result[1].Fields).To(HaveExactElements([]entryStructFieldContext{
+				{
+					Name:         properties.NewNameVariant("entries"),
+					FieldType:    "list-entry",
+					Type:         "ParentParamChildParam",
+					ItemsType:    "[]ParentParamChildParam",
+					XmlType:      "parentParamChildParamXml",
+					ItemsXmlType: "[]parentParamChildParamXml",
+					Tags:         "`xml:\"entry\"`",
+				},
 			}))
 
-			Expect(result[1].StructName()).To(Equal("ParentParamChildParam"))
-			Expect(result[1].XmlStructName()).To(Equal("parentParamChildParamXml"))
-			Expect(result[1].Fields).To(HaveExactElements([]entryStructFieldContext{
+			Expect(result[2].StructName()).To(Equal("ParentParamChildParam"))
+			Expect(result[2].XmlStructName()).To(Equal("parentParamChildParamXml"))
+			Expect(result[2].Fields).To(HaveExactElements([]entryStructFieldContext{
 				{
 					Name:         xmlNameVariant,
 					IsInternal:   true,
@@ -718,7 +734,7 @@ var _ = Describe("createStructSpecs", func() {
 			It("should create a parent spec and two child specs", func() {
 				result := createStructSpecs(structXmlType, spec, nil)
 
-				Expect(result).To(HaveLen(2))
+				Expect(result).To(HaveLen(3))
 				Expect(result[0].name).To(Equal(properties.NewNameVariant("entry")))
 				Expect(result[0].Fields).To(Equal([]entryStructFieldContext{
 					{
@@ -737,13 +753,14 @@ var _ = Describe("createStructSpecs", func() {
 						Tags:      "`xml:\"name,attr\"`",
 					},
 					{
-						Name:         properties.NewNameVariant("param-one"),
-						FieldType:    "list-entry",
-						Type:         "ParamOne",
-						ItemsType:    "[]ParamOne",
-						XmlType:      "paramOneXml",
-						ItemsXmlType: "[]paramOneXml",
-						Tags:         "`xml:\"param-one,omitempty\"`",
+						Name:             properties.NewNameVariant("param-one"),
+						FieldType:        "list-entry",
+						Type:             "ParamOne",
+						ItemsType:        "[]ParamOne",
+						XmlType:          "paramOneXml",
+						XmlContainerType: "paramOneContainerXml",
+						ItemsXmlType:     "[]paramOneXml",
+						Tags:             "`xml:\"param-one,omitempty\"`",
 					},
 					{
 						Name:      properties.NewNameVariant("misc"),
@@ -753,8 +770,22 @@ var _ = Describe("createStructSpecs", func() {
 						Tags:      "`xml:\",any\"`",
 					},
 				}))
-				Expect(result[1].name).To(Equal(properties.NewNameVariant("param-one")))
+
+				Expect(result[1].name).To(Equal(properties.NewNameVariant("param-one-container")))
 				Expect(result[1].Fields).To(Equal([]entryStructFieldContext{
+					{
+						Name:         properties.NewNameVariant("entries"),
+						FieldType:    "list-entry",
+						Type:         "ParamOne",
+						ItemsType:    "[]ParamOne",
+						XmlType:      "paramOneXml",
+						ItemsXmlType: "[]paramOneXml",
+						Tags:         "`xml:\"entry\"`",
+					},
+				}))
+
+				Expect(result[2].name).To(Equal(properties.NewNameVariant("param-one")))
+				Expect(result[2].Fields).To(Equal([]entryStructFieldContext{
 					{
 						Name:       xmlNameVariant,
 						FieldType:  "internal",
