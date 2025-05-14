@@ -1,103 +1,3 @@
-{{- define "entryXmlStructTmpl" }}
-type entryXml{{createGoSuffixFromVersion $.Version}} struct {
-	XMLName xml.Name `xml:"entry"`
-	Name string `xml:"name,attr"`
-  {{- range $_, $param := $.Spec.Params}}
-    {{- if paramSupportedInVersion $param $.Version}}
-      {{- if $param.Spec}}
-        {{$param.Name.CamelCase}} {{xmlParamType "" $param}}{{createGoSuffixFromVersion $.Version}} {{xmlTag $param}}
-      {{- else}}
-        {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
-      {{- end}}
-    {{- end}}
-  {{- end}}
-
-  {{- range $_, $param := $.Spec.OneOf}}
-    {{- if paramSupportedInVersion $param $.Version}}
-      {{- if $param.Spec}}
-        {{$param.Name.CamelCase}} {{xmlParamType "" $param}}{{createGoSuffixFromVersion $.Version}} {{xmlTag $param}}
-      {{- else}}
-        {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
-      {{- end}}
-    {{- end}}
-  {{- end}}
-	Misc []generic.Xml `xml:",any"`
-}
-{{- end }}
-
-{{- define "entryXmlChildStructTmpl" }}
-type {{ .Name | lowerCamelCase }}Xml{{createGoSuffixFromVersion $.Version}} struct {
-  {{- range $_, $param := $.Spec.Params}}
-    {{- if and ($.ParentIsList) (eq $param.Name.CamelCase "Name") }}
-	XMLName xml.Name `xml:"entry"`
-    {{- end}}
-    {{- if paramSupportedInVersion $param $.Version}}
-      {{- if $param.Spec}}
-	{{$param.Name.CamelCase}} {{xmlParamType $.Name $param}}{{createGoSuffixFromVersion $.Version}} {{xmlTag $param}}
-      {{- else}}
-	{{$param.Name.CamelCase}} {{xmlParamType $.Name $param}} {{xmlTag $param}}
-      {{- end}}
-    {{- end}}
-  {{- end}}
-
-  {{- range $_, $param := $.Spec.OneOf}}
-    {{- if paramSupportedInVersion $param $.Version}}
-      {{- if $param.Spec}}
-	{{$param.Name.CamelCase}} {{xmlParamType $.Name $param}}{{createGoSuffixFromVersion $.Version}} {{xmlTag $param}}
-      {{- else}}
-	{{$param.Name.CamelCase}} {{xmlParamType $.Name $param}} {{xmlTag $param}}
-      {{- end}}
-    {{- end}}
-  {{- end}}
-	Misc []generic.Xml `xml:",any"`
-}
-{{- end }}
-
-{{- define "SpecifyEntryTmpl" }}
-func specifyEntry{{ createGoSuffixFromVersion $.Version }}(o *Entry) (any, error) {
-	entry := entryXml{{ createGoSuffixFromVersion $.Version }}{}
-	entry.Name = o.Name
-
-  {{- range $_, $param := $.Spec.Params}}
-    {{ specifyEntryAssignment "entry" $param $.Version }}
-  {{- end}}
-
-  {{- range $_, $param := $.Spec.OneOf}}
-    {{ specifyEntryAssignment "entry" $param $.Version }}
-  {{- end}}
-
-	entry.Misc = o.Misc["Entry"]
-
-	return entry, nil
-}
-
-{{- end }}
-
-{{- define "NormalizeTmpl" }}
-func (c *entryXmlContainer{{ createGoSuffixFromVersion $.Version }}) Normalize() ([]*Entry, error) {
-	entryList := make([]*Entry, 0, len(c.Answer))
-	for _, o := range c.Answer {
-		entry := &Entry{
-		Misc: make(map[string][]generic.Xml),
-	}
-	entry.Name = o.Name
-  {{- range $_, $param := $.Spec.Params}}
-	{{normalizeAssignment "entry" $param $.Version }}
-  {{- end}}
-
-  {{- range $_, $param := $.Spec.OneOf}}
-	{{normalizeAssignment "entry" $param $.Version }}
-  {{- end}}
-
-	entry.Misc["Entry"] = o.Misc
-
-	entryList = append(entryList, entry)
-}
-
-return entryList, nil
-}
-{{- end }}
-
 {{- if .Entry}}
     package {{packageName .GoSdkPath}}
 
@@ -115,28 +15,7 @@ return entryList, nil
     {{- end}}}
     )
 
-    type Entry{{createGoSuffixFromVersion nil}} struct {
-    Name string
-    {{- range $_, $param := $.Spec.Params}}
-        {{$param.Name.CamelCase}} {{specParamType "" $param}}
-    {{- end}}
-    {{- range $_, $param := $.Spec.OneOf}}
-        {{$param.Name.CamelCase}} {{specParamType "" $param}}
-    {{- end}}
-
-    Misc map[string][]generic.Xml
-    }
-
-    {{ range $name, $nested := nestedSpecs $.Spec }}
-        type {{$name}}{{createGoSuffixFromVersion nil}} struct {
-        {{- range $param := $nested.Spec.SortedParams}}
-            {{$param.Name.CamelCase}} {{specParamType $name $param}}
-        {{- end}}
-        {{- range $param := $nested.Spec.SortedOneOf}}
-            {{$param.Name.CamelCase}} {{specParamType $name $param}}
-        {{- end}}
-        }
-    {{- end}}
+    {{ RenderApiStructs $ }}
 
 	type entryXmlContainer{{createGoSuffixFromVersion nil}} struct {
 		        Answer []entryXml{{createGoSuffixFromVersion nil}} `xml:"entry"`
@@ -148,7 +27,13 @@ return entryList, nil
         }
     {{- end}}
 
-    {{ RenderEntryXmlStructs $ }}
+    {{ RenderXmlContainerNormalizers $ }}
+
+    {{ RenderXmlContainerSpecifiers $ }}
+
+    {{ RenderXmlStructs $ }}
+
+    {{ RenderToXmlMarshallers $ }}
 
     {{ range $name, $const := .Const}}
         const (
@@ -196,41 +81,7 @@ return entryList, nil
     return specifyEntry, &entryXmlContainer{}, nil
     }
 
-
-    {{- template "SpecifyEntryTmpl" Map "Spec" $.Spec "Version" nil }}
-
-    {{ range $version := .SupportedVersionRanges }}
-      	{{- template "SpecifyEntryTmpl" Map "Spec" $.Spec "Version" $version.Minimum }}
-    {{- end}}
-
-    {{- template "NormalizeTmpl" Map "Spec" $.Spec "Version" nil }}
-    {{- range $version := .SupportedVersionRanges }}
-      {{- template "NormalizeTmpl" Map "Spec" $.Spec "Version" $version.Minimum }}
-    {{- end}}
-
-    func SpecMatches(a, b *Entry) bool {
-    if a == nil && b != nil || a != nil && b == nil {
-    return false
-    } else if a == nil && b == nil {
-    return true
-    }
-
-    // Don't compare Name.
-    {{- range $_, $param := .Spec.SortedParams}}
-        if !{{specMatchesFunction $param}}(a.{{$param.Name.CamelCase}}, b.{{$param.Name.CamelCase}}) {
-        return false
-        }
-    {{- end}}
-    {{- range $_, $param := .Spec.SortedOneOf}}
-        if !{{specMatchesFunction $param}}(a.{{$param.Name.CamelCase}}, b.{{$param.Name.CamelCase}}) {
-        return false
-        }
-    {{- end}}
-
-    return true
-    }
-
-    {{nestedSpecMatchesFunction $.Spec}}
+    {{-  RenderSpecMatchers $ }}
 
     func (o *Entry) EntryName() string {
         return o.Name
