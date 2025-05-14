@@ -5,126 +5,12 @@ type configXmlContainer{{createGoSuffixFromVersion $.Version }} struct {
 }
 {{- end }}
 
-{{- define "configXmlStructTmpl" }}
-type configXml{{createGoSuffixFromVersion $.Version}} struct {
-	XMLName xml.Name `xml:"system"`
-  {{- range $_, $param := $.Spec.Params}}
-    {{- if paramSupportedInVersion $param $.Version}}
-      {{- if $param.Spec}}
-        {{$param.Name.CamelCase}} {{xmlParamType "" $param}}{{createGoSuffixFromVersion $.Version}} {{xmlTag $param}}
-      {{- else}}
-        {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
-      {{- end}}
-    {{- end}}
-  {{- end}}
-
-  {{- range $_, $param := $.Spec.OneOf}}
-    {{- if paramSupportedInVersion $param $.Version}}
-      {{- if $param.Spec}}
-        {{$param.Name.CamelCase}} {{xmlParamType "" $param}}{{createGoSuffixFromVersion $.Version}} {{xmlTag $param}}
-      {{- else}}
-        {{$param.Name.CamelCase}} {{xmlParamType "" $param}} {{xmlTag $param}}
-      {{- end}}
-    {{- end}}
-  {{- end}}
-	Misc []generic.Xml `xml:",any"`
-}
-{{- end }}
-
-{{- define "configXmlChildStructTmpl" }}
-type {{ $.Name | lowerCamelCase }}Xml{{ createGoSuffixFromVersion $.Version }} struct {
-{{- range $_, $param := $.Spec.Params}}
-  {{- if paramSupportedInVersion $param $.Version}}
-    {{- if $param.Spec}}
-	{{$param.Name.CamelCase}} {{xmlParamType $.Name $param}}{{createGoSuffixFromVersion $.Version}} {{xmlTag $param}}
-    {{- else}}
-	{{$param.Name.CamelCase}} {{xmlParamType $.Name $param}} {{xmlTag $param}}
-    {{- end}}
-  {{- end}}
-{{- end}}
-
-{{- range $_, $param := $.Spec.OneOf}}
-  {{- if paramSupportedInVersion $param $.Version}}
-    {{- if $param.Spec}}
-	{{$param.Name.CamelCase}} {{xmlParamType $.Name $param}}{{createGoSuffixFromVersion $.Version}} {{xmlTag $param}}
-    {{- else}}
-	{{$param.Name.CamelCase}} {{xmlParamType $.Name $param}} {{xmlTag $param}}
-    {{- end}}
-  {{- end}}
-{{- end}}
-	Misc []generic.Xml `xml:",any"`
-}
-{{- end }}
-
-{{- define "SpecifyConfigTmpl" }}
-func specifyConfig{{createGoSuffixFromVersion $.Version}}(o *Config) (any, error) {
-	config := configXml{{createGoSuffixFromVersion $.Version}}{}
-
-  {{- range $_, $param := $.Spec.Params}}
-    {{ specifyEntryAssignment "config" $param $.Version }}
-  {{- end}}
-
-  {{- range $_, $param := $.Spec.OneOf}}
-    {{ specifyEntryAssignment "config" $param $.Version }}
-  {{- end}}
-
-	config.Misc = o.Misc["Config"]
-
-	return config, nil
-}
-{{- end }}
-
-{{- define "NormalizeTmpl" }}
-func (c *configXmlContainer{{createGoSuffixFromVersion $.Version }}) Normalize() ([]*Config, error) {
-	configList := make([]*Config, 0, len(c.Answer))
-	for _, o := range c.Answer {
-		config := &Config{
-			Misc: make(map[string][]generic.Xml),
-		}
-
-  {{- range $_, $param := $.Spec.Params}}
-    {{normalizeAssignment "config" $param $.Version}}
-  {{- end}}
-
-  {{- range $_, $param := $.Spec.OneOf}}
-    {{normalizeAssignment "config" $param $.Version}}
-  {{- end}}
-
-	config.Misc["Config"] = o.Misc
-
-	configList = append(configList, config)
-}
-
-return configList, nil
-}
-{{- end }}
-
 {{- if not .Entry}}
     package {{packageName .GoSdkPath}}
 
     {{renderImports "config"}}
 
-    type Config{{createGoSuffixFromVersion nil}} struct {
-    {{- range $_, $param := $.Spec.SortedParams}}
-        {{$param.Name.CamelCase}} {{specParamType "" $param}}
-    {{- end}}
-    {{- range $_, $param := $.Spec.SortedOneOf}}
-        {{$param.Name.CamelCase}} {{specParamType "" $param}}
-    {{- end}}
-
-    Misc map[string][]generic.Xml
-    }
-
-    {{- range $name, $nested := nestedSpecs $.Spec }}
-        type {{$name}}{{createGoSuffixFromVersion nil}} struct {
-        {{- range $_, $param := $nested.Spec.SortedParams}}
-            {{$param.Name.CamelCase}} {{specParamType $name $param}}
-        {{- end}}
-        {{- range $_, $param := $nested.Spec.SortedOneOf}}
-            {{$param.Name.CamelCase}} {{specParamType $name $param}}
-        {{- end}}
-        }
-    {{- end}}
+    {{- RenderApiStructs $ }}
 
     {{- template "configXmlContainerStructTmpl" Map "Version" nil }}
 
@@ -132,20 +18,13 @@ return configList, nil
       {{- template "configXmlContainerStructTmpl" Map "Version" $version.Minimum }}
     {{- end}}
 
-    {{- template "configXmlStructTmpl" Map "Spec" $.Spec "Version" nil }}
-    {{- range $version := .SupportedVersionRanges }}
-      {{- template "configXmlStructTmpl" Map "Version" $version.Minimum }}
-    {{- end}}
+    {{ RenderXmlContainerNormalizers $ }}
 
-    {{- range $name, $nested := nestedSpecs $.Spec }}
-      {{- template "configXmlChildStructTmpl" Map "Name" $name "ParentIsList" $nested.ParentIsList "Spec" $nested.Spec "Version" nil }}
-    {{- end }}
+    {{ RenderXmlContainerSpecifiers $ }}
 
-    {{- range $version := .SupportedVersionRanges }}
-      {{- range $name, $nested := nestedSpecs $.Spec }}
-        {{- template "configXmlChildStructTmpl" Map "Name" $name "ParentIsList" $nested.ParentIsList "Spec" $nested.Spec "Version" $version.Minimum }}
-      {{- end}}
-    {{- end}}
+    {{- RenderXmlStructs $ }}
+
+    {{ RenderToXmlMarshallers $ }}
 
     func Versioning(vn version.Number) (Specifier, Normalizer, error) {
     {{- $numberOfVersions := len .SupportedVersions }}
@@ -177,38 +56,5 @@ return configList, nil
     {{- end}}
     }
 
-    {{- template "SpecifyConfigTmpl" Map "Spec" $.Spec "Version" nil }}
-
-    {{- range $version := .SupportedVersionRanges }}
-      {{- template "SpecifyConfigTmpl" Map "Spec" $.Spec "Version" nil }}
-    {{- end }}
-
-    {{- template "NormalizeTmpl" Map "Spec" $.Spec "Version" nil }}
-    {{- range $version := .SupportedVersionRanges }}
-      {{- template "NormalizeTmpl" Map "Spec" $.Spec "Version" $version.Minimum }}
-    {{- end}}
-
-    func SpecMatches(a, b *Config) bool {
-    if a == nil && b != nil || a != nil && b == nil {
-    return false
-    } else if a == nil && b == nil {
-    return true
-    }
-
-    // Don't compare Name.
-    {{- range $_, $param := .Spec.SortedParams}}
-        if !{{specMatchesFunction $param}}(a.{{$param.Name.CamelCase}}, b.{{$param.Name.CamelCase}}) {
-        return false
-        }
-    {{- end}}
-    {{- range $_, $param := .Spec.SortedOneOf}}
-        if !{{specMatchesFunction $param}}(a.{{$param.Name.CamelCase}}, b.{{$param.Name.CamelCase}}) {
-        return false
-        }
-    {{- end}}
-
-    return true
-    }
-
-    {{nestedSpecMatchesFunction $.Spec}}
+    {{- RenderSpecMatchers $ }}
 {{- end}}

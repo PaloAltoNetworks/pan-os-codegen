@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/content"
-	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/object"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/parameter"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/validator"
@@ -83,26 +82,6 @@ type TerraformProviderConfig struct {
 	PluralSuffix          string                     `json:"plural_suffix" yaml:"plural_suffix"`
 	PluralName            string                     `json:"plural_name" yaml:"plural_name"`
 	PluralDescription     string                     `json:"plural_description" yaml:"plural_description"`
-}
-
-type NameVariant struct {
-	Original       string
-	Underscore     string
-	CamelCase      string
-	LowerCamelCase string
-}
-
-func NewNameVariant(name string) *NameVariant {
-	return &NameVariant{
-		Original:       name,
-		Underscore:     naming.Underscore("", name, ""),
-		CamelCase:      naming.CamelCase("", name, "", true),
-		LowerCamelCase: naming.CamelCase("", name, "", false),
-	}
-}
-
-func (o *NameVariant) Components() []string {
-	return strings.Split(o.Original, "-")
 }
 
 type Location struct {

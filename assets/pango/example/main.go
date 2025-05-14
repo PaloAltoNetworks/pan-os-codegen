@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/xml"
 	"fmt"
 	"log"
 
@@ -1038,21 +1037,6 @@ func checkService(c *pango.Client, ctx context.Context) {
 		return
 	}
 
-	readDescription := ""
-	if serviceReply.Description != nil {
-		readDescription = *serviceReply.Description
-	}
-
-	keys := make([]string, 0, len(serviceReply.Misc))
-	xmls := make([]string, 0, len(serviceReply.Misc))
-	for key := range serviceReply.Misc {
-		keys = append(keys, key)
-		data, _ := xml.Marshal(serviceReply.Misc[key])
-		xmls = append(xmls, string(data))
-	}
-	log.Printf("Service '%s=%s, description: %s misc XML: %s, misc keys: %s' read",
-		serviceReply.Name, *serviceReply.Protocol.Tcp.Port, readDescription, xmls, keys)
-
 	// SERVICE - UPDATE 3
 	serviceReply.Description = util.String("some text changed now")
 
@@ -1061,21 +1045,6 @@ func checkService(c *pango.Client, ctx context.Context) {
 		log.Printf("Failed to update object: %s", err)
 		return
 	}
-
-	readDescription = ""
-	if serviceReply.Description != nil {
-		readDescription = *serviceReply.Description
-	}
-
-	keys = make([]string, 0, len(serviceReply.Misc))
-	xmls = make([]string, 0, len(serviceReply.Misc))
-	for key := range serviceReply.Misc {
-		keys = append(keys, key)
-		data, _ := xml.Marshal(serviceReply.Misc[key])
-		xmls = append(xmls, string(data))
-	}
-	log.Printf("Service '%s=%s, description: %s misc XML: %s, misc keys: %s' update",
-		serviceReply.Name, *serviceReply.Protocol.Tcp.Port, readDescription, xmls, keys)
 }
 
 func checkNtp(c *pango.Client, ctx context.Context) {

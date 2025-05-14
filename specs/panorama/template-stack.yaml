@@ -59,7 +59,7 @@ spec:
         items:
           type: string
       profiles:
-        - type: entry
+        - type: member
           xpath: ["devices"]
     - name: default-vsys
       description: "Default virtual system"

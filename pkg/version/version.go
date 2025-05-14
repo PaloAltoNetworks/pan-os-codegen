@@ -14,6 +14,15 @@ type Version struct {
 	Hotfix              string
 }
 
+func MustNewVersionFromString(version string) *Version {
+	result, err := NewVersionFromString(version)
+	if err != nil {
+		panic(err)
+	}
+
+	return &result
+}
+
 // NewVersionFromString creates a new Version value from a given string
 func NewVersionFromString(version string) (Version, error) {
 	parts := strings.Split(version, ".")
