@@ -13,6 +13,7 @@ import (
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/imports"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/object"
 )
 
 type Entry struct {
@@ -55,9 +56,14 @@ type spec struct {
 func renderSpecsForParams(params []*properties.SpecParam, parentNames []string) []parameterSpec {
 	var specs []parameterSpec
 	for _, elt := range params {
+		if elt.IsTerraformOnly() {
+			continue
+		}
+
 		if elt.IsPrivateParameter() {
 			continue
 		}
+
 		var encryptionSpec *parameterEncryptionSpec
 		if elt.Hashing != nil {
 			path := strings.Join(append(parentNames, elt.Name.Underscore), " | ")
@@ -636,6 +642,63 @@ func RenderCopyFromPangoFunctions(resourceTyp properties.ResourceType, pkgName s
 		"PascalCase": pascalCase,
 	})
 	return processTemplate(copyFromPangoTmpl, "copy-from-pango", data, funcMap)
+}
+
+const xpathComponentsGetterTmpl = `
+func (o *{{ .StructName }}Model) resourceXpathComponents() ([]string, error) {
+	var components []string
+{{- range .Components }}
+	components = append(components, (o.{{ .Name.CamelCase }}.ValueString()))
+{{- end }}
+	return components, nil
+}
+`
+
+func RenderXpathComponentsGetter(structName string, property *properties.Normalization) (string, error) {
+	type componentSpec struct {
+		Type     string
+		Name     *properties.NameVariant
+		Variants []*properties.NameVariant
+	}
+
+	explicitNameComponent := false
+	var components []componentSpec
+	for _, elt := range property.PanosXpath.Variables {
+		if elt.Name == "name" {
+			explicitNameComponent = true
+		}
+		switch elt.Spec.Type {
+		case object.PanosXpathVariableValue:
+			components = append(components, componentSpec{
+				Type: "value",
+				Name: properties.NewNameVariant(elt.Name),
+			})
+		case object.PanosXpathVariableEntry:
+			components = append(components, componentSpec{
+				Type: "entry",
+				Name: properties.NewNameVariant(elt.Name),
+			})
+		default:
+			panic(fmt.Sprintf("invalid panos xpath variable type: '%s'", elt.Spec.Type))
+		}
+	}
+
+	if !explicitNameComponent && property.Entry != nil {
+		components = append(components, componentSpec{
+			Type: "value",
+			Name: properties.NewNameVariant("name"),
+		})
+	}
+
+	data := struct {
+		StructName string
+		Components []componentSpec
+	}{
+		StructName: structName,
+		Components: components,
+	}
+
+	return processTemplate(xpathComponentsGetterTmpl, "xpath-components", data, commonFuncMap)
 }
 
 const renderLocationTmpl = `
@@ -2684,18 +2747,19 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 		resourceIsMap = true
 	}
 	data := map[string]interface{}{
-		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
-		"HasImports":            len(paramSpec.Imports) > 0,
-		"Exhaustive":            exhaustive,
-		"ResourceIsMap":         resourceIsMap,
-		"ListAttribute":         listAttributeVariant,
-		"EntryOrConfig":         paramSpec.EntryOrConfig(),
-		"HasEntryName":          paramSpec.HasEntryName(),
-		"structName":            names.ResourceStructName,
-		"serviceName":           naming.CamelCase("", serviceName, "", false),
-		"paramSpec":             paramSpec.Spec,
-		"resourceSDKName":       resourceSDKName,
-		"locations":             paramSpec.OrderedLocations(),
+		"HasEncryptedResources":         paramSpec.HasEncryptedResources(),
+		"AttributesFromXpathComponents": paramSpec.AttributesFromXpathComponents(),
+		"HasImports":                    len(paramSpec.Imports) > 0,
+		"Exhaustive":                    exhaustive,
+		"ResourceIsMap":                 resourceIsMap,
+		"ListAttribute":                 listAttributeVariant,
+		"EntryOrConfig":                 paramSpec.EntryOrConfig(),
+		"HasEntryName":                  paramSpec.HasEntryName(),
+		"structName":                    names.ResourceStructName,
+		"serviceName":                   naming.CamelCase("", serviceName, "", false),
+		"paramSpec":                     paramSpec.Spec,
+		"resourceSDKName":               resourceSDKName,
+		"locations":                     paramSpec.OrderedLocations(),
 	}
 
 	return processTemplate(tmpl, "resource-create-function", data, funcMap)
@@ -2800,19 +2864,20 @@ func ResourceReadFunction(resourceTyp properties.ResourceType, names *NameProvid
 		resourceIsMap = true
 	}
 	data := map[string]interface{}{
-		"ResourceOrDS":          "Resource",
-		"ResourceIsMap":         resourceIsMap,
-		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
-		"ListAttribute":         listAttributeVariant,
-		"Exhaustive":            exhaustive,
-		"EntryOrConfig":         paramSpec.EntryOrConfig(),
-		"HasEntryName":          paramSpec.HasEntryName(),
-		"structName":            names.StructName,
-		"datasourceStructName":  names.DataSourceStructName,
-		"resourceStructName":    names.ResourceStructName,
-		"serviceName":           naming.CamelCase("", serviceName, "", false),
-		"resourceSDKName":       resourceSDKName,
-		"locations":             paramSpec.OrderedLocations(),
+		"ResourceOrDS":                  "Resource",
+		"ResourceIsMap":                 resourceIsMap,
+		"HasEncryptedResources":         paramSpec.HasEncryptedResources(),
+		"AttributesFromXpathComponents": paramSpec.AttributesFromXpathComponents(),
+		"ListAttribute":                 listAttributeVariant,
+		"Exhaustive":                    exhaustive,
+		"EntryOrConfig":                 paramSpec.EntryOrConfig(),
+		"HasEntryName":                  paramSpec.HasEntryName(),
+		"structName":                    names.StructName,
+		"datasourceStructName":          names.DataSourceStructName,
+		"resourceStructName":            names.ResourceStructName,
+		"serviceName":                   naming.CamelCase("", serviceName, "", false),
+		"resourceSDKName":               resourceSDKName,
+		"locations":                     paramSpec.OrderedLocations(),
 	}
 
 	funcMap := template.FuncMap{

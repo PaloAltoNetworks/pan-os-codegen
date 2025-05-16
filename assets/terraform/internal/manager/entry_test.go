@@ -32,7 +32,7 @@ var _ = Describe("Entry", func() {
 	Context("Read()", func() {
 		When("reading entry that does not exist", func() {
 			It("should return nil object and ErrObjectNotFound error", func() {
-				object, err := sdk.Read(ctx, location, "4")
+				object, err := sdk.Read(ctx, location, []string{"4"})
 				Expect(err).To(HaveOccurred())
 				Expect(err).To(MatchError(MatchRegexp("Object not found")))
 				Expect(object).To(BeNil())
@@ -40,7 +40,7 @@ var _ = Describe("Entry", func() {
 		})
 		When("reading entry that exists", func() {
 			It("should return nil error and the existing entry", func() {
-				object, err := sdk.Read(ctx, location, "1")
+				object, err := sdk.Read(ctx, location, []string{"1"})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(object.Name).To(Equal("1"))
 			})
@@ -74,7 +74,7 @@ var _ = Describe("Entry", func() {
 			Context("when the entry already exists on the server", func() {
 				It("should return an error back to the caller", func() {
 					entry := &MockEntryObject{Name: "1", Value: "A"}
-					processed, err := sdk.Create(ctx, location, entry)
+					processed, err := sdk.Create(ctx, location, []string{entry.EntryName()}, entry)
 					Expect(err).To(MatchError(MatchRegexp("already exists")))
 					Expect(processed).To(BeNil())
 
@@ -83,7 +83,7 @@ var _ = Describe("Entry", func() {
 			Context("when there is no conflict between plan and remote state", func() {
 				It("should return a pointer to the created object", func() {
 					entry := &MockEntryObject{Name: "4", Value: "D"}
-					processed, err := sdk.Create(ctx, location, entry)
+					processed, err := sdk.Create(ctx, location, []string{entry.EntryName()}, entry)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(processed).ToNot(BeNil())
 					Expect(processed.EntryName()).To(Equal(entry.Name))

@@ -14,8 +14,10 @@ go_sdk_config:
   package:
   - device
   - adminrole
-xpath_suffix:
-- admin-role
+panos_xpath:
+  path:
+  - admin-role
+  vars: []
 locations:
 - name: template
   xpath:
@@ -2338,6 +2340,27 @@ spec:
                       - value: disable
                     description: ''
                     required: false
+                  - name: dhcp-syslog-server
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - dhcp-syslog-server
+                      min_version: 11.0.2
+                      max_version: 11.0.3
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - enable
+                        - read-only
+                        - disable
+                    spec:
+                      values:
+                      - value: enable
+                      - value: read-only
+                      - value: disable
+                    description: ''
+                    required: false
                   - name: dynamic-updates
                     type: enum
                     profiles:
@@ -3325,27 +3348,6 @@ spec:
                     profiles:
                     - xpath:
                       - vm-info-source
-                    validators:
-                    - type: values
-                      spec:
-                        values:
-                        - enable
-                        - read-only
-                        - disable
-                    spec:
-                      values:
-                      - value: enable
-                      - value: read-only
-                      - value: disable
-                    description: ''
-                    required: false
-                  - name: dhcp-syslog-server
-                    type: enum
-                    profiles:
-                    - xpath:
-                      - dhcp-syslog-server
-                      min_version: 11.0.2
-                      max_version: 11.0.3
                     validators:
                     - type: values
                       spec:
@@ -5125,6 +5127,27 @@ spec:
                       - value: disable
                     description: ''
                     required: false
+                  - name: secure-web-gateway
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - secure-web-gateway
+                      min_version: 11.0.2
+                      max_version: 11.0.3
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - enable
+                        - read-only
+                        - disable
+                    spec:
+                      values:
+                      - value: enable
+                      - value: read-only
+                      - value: disable
+                    description: ''
+                    required: false
                   - name: virtual-routers
                     type: enum
                     profiles:
@@ -5187,27 +5210,6 @@ spec:
                     profiles:
                     - xpath:
                       - zones
-                    validators:
-                    - type: values
-                      spec:
-                        values:
-                        - enable
-                        - read-only
-                        - disable
-                    spec:
-                      values:
-                      - value: enable
-                      - value: read-only
-                      - value: disable
-                    description: ''
-                    required: false
-                  - name: secure-web-gateway
-                    type: enum
-                    profiles:
-                    - xpath:
-                      - secure-web-gateway
-                      min_version: 11.0.2
-                      max_version: 11.0.3
                     validators:
                     - type: values
                       spec:
@@ -6416,6 +6418,25 @@ spec:
                 validators: []
                 spec:
                   params:
+                  - name: object-level-changes
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - object-level-changes
+                      min_version: 11.0.2
+                      max_version: 11.0.3
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - enable
+                        - disable
+                    spec:
+                      values:
+                      - value: enable
+                      - value: disable
+                    description: ''
+                    required: false
                   - name: partial-save
                     type: enum
                     profiles:
@@ -6438,25 +6459,6 @@ spec:
                     profiles:
                     - xpath:
                       - save-for-other-admins
-                    validators:
-                    - type: values
-                      spec:
-                        values:
-                        - enable
-                        - disable
-                    spec:
-                      values:
-                      - value: enable
-                      - value: disable
-                    description: ''
-                    required: false
-                  - name: object-level-changes
-                    type: enum
-                    profiles:
-                    - xpath:
-                      - object-level-changes
-                      min_version: 11.0.2
-                      max_version: 11.0.3
                     validators:
                     - type: values
                       spec:
@@ -6956,11 +6958,13 @@ spec:
                       - value: disable
                     description: ''
                     required: false
-                  - name: zones
+                  - name: sdwan-interface-profiles
                     type: enum
                     profiles:
                     - xpath:
-                      - zones
+                      - sdwan-interface-profiles
+                      min_version: 11.0.2
+                      max_version: 11.0.3
                     validators:
                     - type: values
                       spec:
@@ -6975,13 +6979,11 @@ spec:
                       - value: disable
                     description: ''
                     required: false
-                  - name: sdwan-interface-profiles
+                  - name: zones
                     type: enum
                     profiles:
                     - xpath:
-                      - sdwan-interface-profiles
-                      min_version: 11.0.2
-                      max_version: 11.0.3
+                      - zones
                     validators:
                     - type: values
                       spec:
@@ -8336,6 +8338,27 @@ spec:
                       - value: disable
                     description: ''
                     required: false
+                  - name: dhcp-syslog-server
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - dhcp-syslog-server
+                      min_version: 11.0.2
+                      max_version: 11.0.3
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - enable
+                        - read-only
+                        - disable
+                    spec:
+                      values:
+                      - value: enable
+                      - value: read-only
+                      - value: disable
+                    description: ''
+                    required: false
                   - name: local-user-database
                     type: object
                     profiles:
@@ -9033,27 +9056,6 @@ spec:
                     profiles:
                     - xpath:
                       - vm-info-source
-                    validators:
-                    - type: values
-                      spec:
-                        values:
-                        - enable
-                        - read-only
-                        - disable
-                    spec:
-                      values:
-                      - value: enable
-                      - value: read-only
-                      - value: disable
-                    description: ''
-                    required: false
-                  - name: dhcp-syslog-server
-                    type: enum
-                    profiles:
-                    - xpath:
-                      - dhcp-syslog-server
-                      min_version: 11.0.2
-                      max_version: 11.0.3
                     validators:
                     - type: values
                       spec:
@@ -11319,6 +11321,25 @@ spec:
                 validators: []
                 spec:
                   params:
+                  - name: object-level-changes
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - object-level-changes
+                      min_version: 11.0.2
+                      max_version: 11.0.3
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - enable
+                        - disable
+                    spec:
+                      values:
+                      - value: enable
+                      - value: disable
+                    description: ''
+                    required: false
                   - name: partial-save
                     type: enum
                     profiles:
@@ -11341,25 +11362,6 @@ spec:
                     profiles:
                     - xpath:
                       - save-for-other-admins
-                    validators:
-                    - type: values
-                      spec:
-                        values:
-                        - enable
-                        - disable
-                    spec:
-                      values:
-                      - value: enable
-                      - value: disable
-                    description: ''
-                    required: false
-                  - name: object-level-changes
-                    type: enum
-                    profiles:
-                    - xpath:
-                      - object-level-changes
-                      min_version: 11.0.2
-                      max_version: 11.0.3
                     validators:
                     - type: values
                       spec:

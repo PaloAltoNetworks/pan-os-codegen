@@ -17,9 +17,11 @@ go_sdk_config:
   - policies
   - rules
   - decryption
-xpath_suffix:
-- decryption
-- rules
+panos_xpath:
+  path:
+  - decryption
+  - rules
+  vars: []
 locations:
 - name: shared
   xpath:

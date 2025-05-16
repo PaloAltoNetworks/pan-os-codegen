@@ -9,6 +9,7 @@
     "name",
     "terraform_provider_config",
     "go_sdk_config",
+    "panos_xpath",
     "locations",
     "spec"
   ],
@@ -67,10 +68,16 @@
         }
       }
     },
-    "xpath_suffix": {
-      "type": "array",
-      "items": {
-        "type": "string"
+    "panos_xpath": {
+      "type": "object",
+      "required": ["path"],
+      "properties": {
+        "path": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       }
     },
     "locations": {

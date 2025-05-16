@@ -17,9 +17,11 @@ go_sdk_config:
   - policies
   - rules
   - security
-xpath_suffix:
-- security
-- rules
+panos_xpath:
+  path:
+  - security
+  - rules
+  vars: []
 locations:
 - name: shared
   xpath:
@@ -232,6 +234,16 @@ spec:
     validators: []
     spec: {}
     description: ''
+    required: false
+  - name: disable-server-response-inspection
+    type: bool
+    profiles:
+    - xpath:
+      - option
+      - disable-server-response-inspection
+    validators: []
+    spec: {}
+    description: Disable inspection of server side traffic
     required: false
   - name: disabled
     type: bool
@@ -778,14 +790,4 @@ spec:
     codegen_overrides:
       terraform:
         private: true
-  - name: disable-server-response-inspection
-    type: bool
-    profiles:
-    - xpath:
-      - option
-      - disable-server-response-inspection
-    validators: []
-    spec: {}
-    description: Disable inspection of server side traffic
-    required: false
   variants: []
