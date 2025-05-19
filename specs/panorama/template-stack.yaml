@@ -6,8 +6,9 @@ go_sdk_config:
   package:
     - "panorama"
     - "template_stack"
-xpath_suffix:
-  - "template-stack"
+panos_xpath:
+  path:
+    - "template-stack"
 locations:
   - name: "panorama"
     description: "Located in a specific Panorama."

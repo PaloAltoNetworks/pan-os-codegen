@@ -16,9 +16,11 @@ go_sdk_config:
   - device
   - profiles
   - ldap
-xpath_suffix:
-- server-profile
-- ldap
+panos_xpath:
+  path:
+  - server-profile
+  - ldap
+  vars: []
 locations:
 - name: panorama
   xpath:

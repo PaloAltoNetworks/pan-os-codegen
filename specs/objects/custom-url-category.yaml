@@ -16,9 +16,11 @@ go_sdk_config:
   - objects
   - profiles
   - customurlcategory
-xpath_suffix:
-- profiles
-- custom-url-category
+panos_xpath:
+  path:
+  - profiles
+  - custom-url-category
+  vars: []
 locations:
 - name: shared
   xpath:
@@ -62,7 +64,6 @@ locations:
   description: Located in a specific Virtual System
   devices:
   - ngfw
-  - panorama
   validators: []
   required: false
   read_only: false

@@ -15,8 +15,10 @@ go_sdk_config:
   package:
   - objects
   - service
-xpath_suffix:
-- service
+panos_xpath:
+  path:
+  - service
+  vars: []
 locations:
 - name: shared
   xpath:
@@ -60,7 +62,6 @@ locations:
   description: Located in a specific Virtual System
   devices:
   - ngfw
-  - panorama
   validators: []
   required: false
   read_only: false
@@ -148,33 +149,6 @@ spec:
         validators: []
         spec:
           params:
-          - name: port
-            type: string
-            profiles:
-            - xpath:
-              - port
-            validators:
-            - type: length
-              spec:
-                max: 1023
-            spec: {}
-            description: ''
-            required: false
-            codegen_overrides:
-              terraform:
-                name: destination-port
-          - name: source-port
-            type: string
-            profiles:
-            - xpath:
-              - source-port
-            validators:
-            - type: length
-              spec:
-                max: 1023
-            spec: {}
-            description: ''
-            required: false
           - name: override
             type: object
             profiles:
@@ -226,17 +200,6 @@ spec:
               variants: []
             description: ''
             required: false
-          variants: []
-        description: ''
-        required: false
-      - name: udp
-        type: object
-        profiles:
-        - xpath:
-          - udp
-        validators: []
-        spec:
-          params:
           - name: port
             type: string
             profiles:
@@ -264,6 +227,17 @@ spec:
             spec: {}
             description: ''
             required: false
+          variants: []
+        description: ''
+        required: false
+      - name: udp
+        type: object
+        profiles:
+        - xpath:
+          - udp
+        validators: []
+        spec:
+          params:
           - name: override
             type: object
             profiles:
@@ -288,6 +262,33 @@ spec:
                 description: udp session timeout value (in second)
                 required: false
               variants: []
+            description: ''
+            required: false
+          - name: port
+            type: string
+            profiles:
+            - xpath:
+              - port
+            validators:
+            - type: length
+              spec:
+                max: 1023
+            spec: {}
+            description: ''
+            required: false
+            codegen_overrides:
+              terraform:
+                name: destination-port
+          - name: source-port
+            type: string
+            profiles:
+            - xpath:
+              - source-port
+            validators:
+            - type: length
+              spec:
+                max: 1023
+            spec: {}
             description: ''
             required: false
           variants: []

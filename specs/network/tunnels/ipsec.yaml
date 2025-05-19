@@ -16,10 +16,12 @@ go_sdk_config:
   - network
   - tunnel
   - ipsec
-xpath_suffix:
-- network
-- tunnel
-- ipsec
+panos_xpath:
+  path:
+  - network
+  - tunnel
+  - ipsec
+  vars: []
 locations:
 - name: template
   xpath:
@@ -185,6 +187,26 @@ spec:
     spec: {}
     description: allow GRE over IPSec
     required: false
+  - name: ipsec-mode
+    type: enum
+    profiles:
+    - xpath:
+      - ipsec-mode
+      min_version: 11.0.2
+      max_version: 11.0.3
+    validators:
+    - type: values
+      spec:
+        values:
+        - tunnel
+        - transport
+    spec:
+      default: tunnel
+      values:
+      - value: tunnel
+      - value: transport
+    description: ''
+    required: false
   - name: ipv6
     type: bool
     profiles:
@@ -249,26 +271,6 @@ spec:
         required: false
       variants: []
     description: Monitor tunnel status
-    required: false
-  - name: ipsec-mode
-    type: enum
-    profiles:
-    - xpath:
-      - ipsec-mode
-      min_version: 11.0.2
-      max_version: 11.0.3
-    validators:
-    - type: values
-      spec:
-        values:
-        - tunnel
-        - transport
-    spec:
-      default: tunnel
-      values:
-      - value: tunnel
-      - value: transport
-    description: ''
     required: false
   variants:
   - name: auto-key
@@ -605,6 +607,7 @@ spec:
       variants: []
     description: IKE VPN options
     required: false
+    variant_group_id: 0
   - name: global-protect-satellite
     type: object
     profiles:
@@ -702,6 +705,7 @@ spec:
               variants: []
             description: Floating IP address in HA Active-Active configuration
             required: false
+            variant_group_id: 0
           - name: ip
             type: object
             profiles:
@@ -732,6 +736,7 @@ spec:
               variants: []
             description: specify exact IP address if interface has multiple addresses
             required: false
+            variant_group_id: 0
         description: Satellite outgoing interface configuration
         required: false
       - name: portal-address
@@ -782,6 +787,7 @@ spec:
       variants: []
     description: Satellite side of Global Protect Satellite tunnel
     required: false
+    variant_group_id: 0
   - name: manual-key
     type: object
     profiles:
@@ -817,6 +823,7 @@ spec:
             spec: {}
             description: Floating IP address in HA Active-Active configuration
             required: false
+            variant_group_id: 0
           - name: ip
             type: string
             profiles:
@@ -829,6 +836,7 @@ spec:
             spec: {}
             description: specify exact IP address if interface has multiple addresses
             required: false
+            variant_group_id: 0
         description: Tunnel local IP configuration
         required: false
       - name: local-spi
@@ -902,6 +910,7 @@ spec:
               variants: []
             description: key is 128 bit
             required: false
+            variant_group_id: 0
           - name: sha1
             type: object
             profiles:
@@ -925,6 +934,7 @@ spec:
               variants: []
             description: key is 160 bit
             required: false
+            variant_group_id: 0
           - name: sha256
             type: object
             profiles:
@@ -948,6 +958,7 @@ spec:
               variants: []
             description: key is 256 bit
             required: false
+            variant_group_id: 0
           - name: sha384
             type: object
             profiles:
@@ -971,6 +982,7 @@ spec:
               variants: []
             description: key is 384 bit
             required: false
+            variant_group_id: 0
           - name: sha512
             type: object
             profiles:
@@ -994,8 +1006,10 @@ spec:
               variants: []
             description: key is 512 bit
             required: false
+            variant_group_id: 0
         description: AH options
         required: false
+        variant_group_id: 0
       - name: esp
         type: object
         profiles:
@@ -1036,6 +1050,7 @@ spec:
                   variants: []
                 description: key is 128 bit
                 required: false
+                variant_group_id: 0
               - name: none
                 type: object
                 profiles:
@@ -1047,6 +1062,7 @@ spec:
                   variants: []
                 description: no authentication
                 required: false
+                variant_group_id: 0
               - name: sha1
                 type: object
                 profiles:
@@ -1070,6 +1086,7 @@ spec:
                   variants: []
                 description: key is 160 bit
                 required: false
+                variant_group_id: 0
               - name: sha256
                 type: object
                 profiles:
@@ -1093,6 +1110,7 @@ spec:
                   variants: []
                 description: key is 256 bit
                 required: false
+                variant_group_id: 0
               - name: sha384
                 type: object
                 profiles:
@@ -1116,6 +1134,7 @@ spec:
                   variants: []
                 description: key is 384 bit
                 required: false
+                variant_group_id: 0
               - name: sha512
                 type: object
                 profiles:
@@ -1139,6 +1158,7 @@ spec:
                   variants: []
                 description: key is 512 bit
                 required: false
+                variant_group_id: 0
             description: authentication algorithm
             required: false
           - name: encryption
@@ -1194,5 +1214,7 @@ spec:
           variants: []
         description: ESP options
         required: false
+        variant_group_id: 0
     description: Manual-key options
     required: false
+    variant_group_id: 0

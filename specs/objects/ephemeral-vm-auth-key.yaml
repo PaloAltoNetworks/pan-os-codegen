@@ -10,7 +10,8 @@ terraform_provider_config:
 go_sdk_config:
   skip: true
   package: ["vmauthkey"] # unused
-xpath_suffix: ["vmauthkey"] # unused
+panos_xpath:
+  path: ["vmauthkey"] # unused
 locations: []
 entries: []
 imports: []

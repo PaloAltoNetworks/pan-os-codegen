@@ -12,8 +12,9 @@ terraform_provider_config:
 go_sdk_config:
   skip: true
   package: ["device_group_parent"]
-xpath_suffix:
-  - device-group
+panos_xpath:
+  path:
+    - device-group
 locations:
   - name: "panorama"
     description: "Located in a specific Panorama."

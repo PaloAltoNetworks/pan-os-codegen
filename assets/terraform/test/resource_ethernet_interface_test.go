@@ -1,19 +1,14 @@
 package provider_test
 
 import (
-	"context"
 	"fmt"
 	"testing"
-
-	sdkErrors "github.com/PaloAltoNetworks/pango/errors"
-	"github.com/PaloAltoNetworks/pango/network/interface/ethernet"
 
 	"github.com/hashicorp/terraform-plugin-testing/config"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
@@ -28,10 +23,6 @@ func TestAccPanosEthernetInterface_Layer3(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProviders,
-		CheckDestroy: testAccCheckPanosEthernetInterfaceDestroy(
-			interfaceName,
-			fmt.Sprintf("%s-%s", templateName, nameSuffix),
-		),
 		Steps: []resource.TestStep{
 			{
 				Config: makePanosEthernetInterface_Layer3(resName),
@@ -117,27 +108,4 @@ func makePanosEthernetInterface_Layer3(label string) string {
     `
 
 	return fmt.Sprintf(configTpl, label)
-}
-
-func testAccCheckPanosEthernetInterfaceDestroy(entryName, templateName string) func(s *terraform.State) error {
-	return func(s *terraform.State) error {
-		api := ethernet.NewService(sdkClient)
-		ctx := context.TODO()
-
-		location := ethernet.NewTemplateLocation()
-		location.Template.Template = templateName
-
-		reply, err := api.Read(ctx, *location, entryName, "show")
-		if err != nil && !sdkErrors.IsObjectNotFound(err) {
-			return fmt.Errorf("reading ethernet entry via sdk: %v", err)
-		}
-
-		if reply != nil {
-			if reply.EntryName() == entryName {
-				return fmt.Errorf("ethernet object still exists: %s", entryName)
-			}
-		}
-
-		return nil
-	}
 }

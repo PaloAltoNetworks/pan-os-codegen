@@ -15,10 +15,12 @@ go_sdk_config:
   - network
   - profiles
   - interface_management
-xpath_suffix:
-- network
-- profiles
-- interface-management-profile
+panos_xpath:
+  path:
+  - network
+  - profiles
+  - interface-management-profile
+  vars: []
 locations:
 - name: ngfw
   xpath:

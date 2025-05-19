@@ -16,11 +16,13 @@ go_sdk_config:
   - network
   - interface
   - tunnel
-xpath_suffix:
-- network
-- interface
-- tunnel
-- units
+panos_xpath:
+  path:
+  - network
+  - interface
+  - tunnel
+  - units
+  vars: []
 locations:
 - name: shared
   xpath:

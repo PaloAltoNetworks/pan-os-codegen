@@ -12,10 +12,10 @@ func TestGenerateEntryXpath(t *testing.T) {
 	// given
 
 	// when
-	asEntryXpath, _ := GenerateEntryXpath("util.AsEntryXpath([]string{", "})", "DeviceGroup", "{{ Entry $panorama_device }}")
+	asEntryXpath, _ := GenerateEntryXpath("util.AsEntryXpath(", ")", "DeviceGroup", "{{ Entry $panorama_device }}")
 
 	// then
-	assert.Equal(t, "util.AsEntryXpath([]string{o.DeviceGroup.PanoramaDevice}),", asEntryXpath)
+	assert.Equal(t, "util.AsEntryXpath(o.DeviceGroup.PanoramaDevice),", asEntryXpath)
 }
 
 func TestSpecMatchesFunction(t *testing.T) {

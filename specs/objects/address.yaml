@@ -16,8 +16,10 @@ go_sdk_config:
   package:
   - objects
   - address
-xpath_suffix:
-- address
+panos_xpath:
+  path:
+  - address
+  vars: []
 locations:
 - name: shared
   xpath:
@@ -61,7 +63,6 @@ locations:
   description: Located in a specific Virtual System
   devices:
   - ngfw
-  - panorama
   validators: []
   required: false
   read_only: false
@@ -164,6 +165,7 @@ spec:
     spec: {}
     description: The FQDN value.
     required: false
+    variant_group_id: 0
   - name: ip-netmask
     type: string
     profiles:
@@ -173,6 +175,7 @@ spec:
     spec: {}
     description: The IP netmask value.
     required: false
+    variant_group_id: 0
   - name: ip-range
     type: string
     profiles:
@@ -182,6 +185,7 @@ spec:
     spec: {}
     description: The IP range value.
     required: false
+    variant_group_id: 0
   - name: ip-wildcard
     type: string
     profiles:
@@ -191,3 +195,4 @@ spec:
     spec: {}
     description: The IP wildcard value.
     required: false
+    variant_group_id: 0

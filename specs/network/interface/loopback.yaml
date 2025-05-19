@@ -16,11 +16,13 @@ go_sdk_config:
   - network
   - interface
   - loopback
-xpath_suffix:
-- network
-- interface
-- loopback
-- units
+panos_xpath:
+  path:
+  - network
+  - interface
+  - loopback
+  - units
+  vars: []
 locations:
 - name: ngfw
   xpath:

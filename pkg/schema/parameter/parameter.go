@@ -3,6 +3,7 @@ package parameter
 import (
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 
@@ -50,17 +51,23 @@ const (
 	VariantCheckExactlyOneOf  VariantCheckType = "ExactlyOneOf"
 )
 
+type CodegenOverridesGoSdk struct {
+	Skip *bool `yaml:"skip"`
+}
+
 type CodegenOverridesTerraform struct {
-	Name         *string           `yaml:"name"`
-	Type         *string           `yaml:"type"`
-	Private      *bool             `yaml:"private"`
-	Sensitive    *bool             `yaml:"sensitive"`
-	Computed     *bool             `yaml:"computed"`
-	Required     *bool             `yaml:"required"`
-	VariantCheck *VariantCheckType `yaml:"variant_check"`
+	Name          *string           `yaml:"name"`
+	Type          *string           `yaml:"type"`
+	Private       *bool             `yaml:"private"`
+	Sensitive     *bool             `yaml:"sensitive"`
+	Computed      *bool             `yaml:"computed"`
+	Required      *bool             `yaml:"required"`
+	VariantCheck  *VariantCheckType `yaml:"variant_check"`
+	XpathVariable *string           `yaml:"xpath_variable"`
 }
 
 type CodegenOverrides struct {
+	GoSdk     CodegenOverridesGoSdk     `yaml:"gosdk"`
 	Terraform CodegenOverridesTerraform `yaml:"terraform"`
 }
 
@@ -148,6 +155,9 @@ func (p *Parameter) UnmarshalYAML(n *yaml.Node) error {
 	default:
 		return errors.NewSchemaError(fmt.Sprintf("unsupported parameter type: '%s'", p.Type))
 	}
+
+	// Escape value of a description, making sure all backslashes are handled properly
+	obj.Description = strings.ReplaceAll(obj.Description, "\\", "\\\\")
 
 	// Finally, decode obj.Spec (which is yaml.Node type) into the parameter
 	// spec structure
