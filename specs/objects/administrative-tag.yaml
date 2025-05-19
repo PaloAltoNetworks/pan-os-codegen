@@ -15,8 +15,10 @@ go_sdk_config:
   package:
   - objects
   - admintag
-xpath_suffix:
-- tag
+panos_xpath:
+  path:
+  - tag
+  vars: []
 locations:
 - name: shared
   xpath:
@@ -60,7 +62,6 @@ locations:
   description: Located in a specific Virtual System
   devices:
   - ngfw
-  - panorama
   validators: []
   required: false
   read_only: false

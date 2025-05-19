@@ -14,8 +14,14 @@
         "additionalProperties": false,
         "properties": {
           "name": { "type": "string" },
+          "description": { "type": "string" },
+          "read_only": { "type": "boolean" },
           "required": { "type": "boolean", "default": false },
-          "xpath": { "$ref": "xpath.schema.json" }
+          "xpath": { "$ref": "xpath.schema.json" },
+          "validators": {
+            "type": "array",
+            "items": { "$ref": "validator.schema.json" }
+          }
         }
       }
     }

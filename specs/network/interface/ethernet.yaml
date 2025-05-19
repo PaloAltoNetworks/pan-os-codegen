@@ -16,10 +16,12 @@ go_sdk_config:
   - network
   - interface
   - ethernet
-xpath_suffix:
-- network
-- interface
-- ethernet
+panos_xpath:
+  path:
+  - network
+  - interface
+  - ethernet
+  vars: []
 locations:
 - name: shared
   xpath:
@@ -388,6 +390,7 @@ spec:
     spec: {}
     description: Aggregate interface group
     required: false
+    variant_group_id: 0
   - name: decrypt-mirror
     type: object
     profiles:
@@ -399,6 +402,7 @@ spec:
       variants: []
     description: Interface to mirror decrypted packet
     required: false
+    variant_group_id: 0
   - name: ha
     type: object
     profiles:
@@ -410,6 +414,7 @@ spec:
       variants: []
     description: HA mode interface
     required: false
+    variant_group_id: 0
   - name: layer2
     type: object
     profiles:
@@ -482,6 +487,7 @@ spec:
       variants: []
     description: Layer2 interface
     required: false
+    variant_group_id: 0
   - name: layer3
     type: object
     profiles:
@@ -606,6 +612,17 @@ spec:
             required: false
           variants: []
         description: Bonjour configuration
+        required: false
+      - name: cluster-interconnect
+        type: bool
+        profiles:
+        - xpath:
+          - cluster-interconnect
+          min_version: 11.0.2
+          max_version: 11.0.3
+        validators: []
+        spec: {}
+        description: ''
         required: false
       - name: ddns-config
         type: object
@@ -985,367 +1002,6 @@ spec:
             codegen_overrides:
               terraform:
                 name: addresses
-          - name: enabled
-            type: bool
-            profiles:
-            - xpath:
-              - enabled
-            validators: []
-            spec: {}
-            description: Enable IPv6 on the interface
-            required: false
-          - name: interface-id
-            type: string
-            profiles:
-            - xpath:
-              - interface-id
-            validators: []
-            spec:
-              default: EUI-64
-            description: ''
-            required: false
-          - name: neighbor-discovery
-            type: object
-            profiles:
-            - xpath:
-              - neighbor-discovery
-            validators: []
-            spec:
-              params:
-              - name: dad-attempts
-                type: int64
-                profiles:
-                - xpath:
-                  - dad-attempts
-                validators:
-                - type: length
-                  spec:
-                    min: 0
-                    max: 10
-                spec:
-                  default: 1
-                description: Number of consecutive neighbor solicitation messages
-                  sent for duplicate address detection
-                required: false
-              - name: enable-dad
-                type: bool
-                profiles:
-                - xpath:
-                  - enable-dad
-                validators: []
-                spec: {}
-                description: Enable Duplicate ADdress Detection (DAD)
-                required: false
-              - name: enable-ndp-monitor
-                type: bool
-                profiles:
-                - xpath:
-                  - enable-ndp-monitor
-                validators: []
-                spec: {}
-                description: Enable NDP Monitoring
-                required: false
-              - name: neighbor
-                type: list
-                profiles:
-                - xpath:
-                  - neighbor
-                  - entry
-                  type: entry
-                validators: []
-                spec:
-                  type: object
-                  items:
-                    type: object
-                    spec:
-                      params:
-                      - name: hw-address
-                        type: string
-                        profiles:
-                        - xpath:
-                          - hw-address
-                        validators: []
-                        spec: {}
-                        description: MAC address (format xx:xx:xx:xx:xx:xx)
-                        required: false
-                      variants: []
-                description: Static entries in neighbor cache
-                required: false
-              - name: ns-interval
-                type: int64
-                profiles:
-                - xpath:
-                  - ns-interval
-                validators:
-                - type: length
-                  spec:
-                    min: 1
-                    max: 3600
-                spec:
-                  default: 1
-                description: Interval (in seconds) between consecutive neighbor solicitation
-                  messages
-                required: false
-              - name: reachable-time
-                type: int64
-                profiles:
-                - xpath:
-                  - reachable-time
-                validators:
-                - type: length
-                  spec:
-                    min: 10
-                    max: 36000
-                spec:
-                  default: 30
-                description: Time (in seconds) that the Reachable status for a neighbor
-                  can be maintained
-                required: false
-              - name: router-advertisement
-                type: object
-                profiles:
-                - xpath:
-                  - router-advertisement
-                validators: []
-                spec:
-                  params:
-                  - name: dns-support
-                    type: object
-                    profiles:
-                    - xpath:
-                      - dns-support
-                    validators: []
-                    spec:
-                      params:
-                      - name: enable
-                        type: bool
-                        profiles:
-                        - xpath:
-                          - enable
-                        validators: []
-                        spec: {}
-                        description: ''
-                        required: false
-                      - name: server
-                        type: list
-                        profiles:
-                        - xpath:
-                          - server
-                          - entry
-                          type: entry
-                        validators: []
-                        spec:
-                          type: object
-                          items:
-                            type: object
-                            spec:
-                              params:
-                              - name: lifetime
-                                type: int64
-                                profiles:
-                                - xpath:
-                                  - lifetime
-                                validators:
-                                - type: length
-                                  spec:
-                                    min: 4
-                                    max: 3600
-                                spec:
-                                  default: 1200
-                                description: Router Lifetime (in seconds) advertised
-                                  in Router Advertisement messages
-                                required: false
-                              variants: []
-                        description: ''
-                        required: false
-                      - name: suffix
-                        type: list
-                        profiles:
-                        - xpath:
-                          - suffix
-                          - entry
-                          type: entry
-                        validators: []
-                        spec:
-                          type: object
-                          items:
-                            type: object
-                            spec:
-                              params:
-                              - name: lifetime
-                                type: int64
-                                profiles:
-                                - xpath:
-                                  - lifetime
-                                validators:
-                                - type: length
-                                  spec:
-                                    min: 4
-                                    max: 3600
-                                spec:
-                                  default: 1200
-                                description: Router Lifetime (in seconds) advertised
-                                  in Router Advertisement messages
-                                required: false
-                              variants: []
-                        description: ''
-                        required: false
-                      variants: []
-                    description: DNS configuration support
-                    required: false
-                  - name: enable
-                    type: bool
-                    profiles:
-                    - xpath:
-                      - enable
-                    validators: []
-                    spec: {}
-                    description: ''
-                    required: false
-                  - name: enable-consistency-check
-                    type: bool
-                    profiles:
-                    - xpath:
-                      - enable-consistency-check
-                    validators: []
-                    spec: {}
-                    description: check consistency of RA messages from other routers.
-                    required: false
-                  - name: hop-limit
-                    type: string
-                    profiles:
-                    - xpath:
-                      - hop-limit
-                    validators: []
-                    spec:
-                      default: '64'
-                    description: Current Hop Limit advertised in Router Advertisement
-                      messages
-                    required: false
-                  - name: lifetime
-                    type: int64
-                    profiles:
-                    - xpath:
-                      - lifetime
-                    validators:
-                    - type: length
-                      spec:
-                        min: 0
-                        max: 9000
-                    spec:
-                      default: 1800
-                    description: Router Lifetime (in seconds) advertised in Router
-                      Advertisement messages
-                    required: false
-                  - name: link-mtu
-                    type: string
-                    profiles:
-                    - xpath:
-                      - link-mtu
-                    validators: []
-                    spec:
-                      default: unspecified
-                    description: value of MTU option in Router Advertisement messages,
-                      upto 9216 in Jumbo-Frame mode, up to 1500 otherwise
-                    required: false
-                  - name: managed-flag
-                    type: bool
-                    profiles:
-                    - xpath:
-                      - managed-flag
-                    validators: []
-                    spec: {}
-                    description: Set the Managed Configuration Flag (M-bit) in Router
-                      Advertisement messages
-                    required: false
-                  - name: max-interval
-                    type: int64
-                    profiles:
-                    - xpath:
-                      - max-interval
-                    validators:
-                    - type: length
-                      spec:
-                        min: 4
-                        max: 1800
-                    spec:
-                      default: 600
-                    description: Maximum interval (seconds) between consecutive unsolicited
-                      Router Advertisement messages
-                    required: false
-                  - name: min-interval
-                    type: int64
-                    profiles:
-                    - xpath:
-                      - min-interval
-                    validators:
-                    - type: length
-                      spec:
-                        min: 3
-                        max: 1350
-                    spec:
-                      default: 200
-                    description: Minimum interval (seconds) between consecutive unsolicited
-                      Router Advertisement messages
-                    required: false
-                  - name: other-flag
-                    type: bool
-                    profiles:
-                    - xpath:
-                      - other-flag
-                    validators: []
-                    spec: {}
-                    description: Set the Other Stateful Configuration Flag (O-bit)
-                      in Router Advertisement messages
-                    required: false
-                  - name: reachable-time
-                    type: string
-                    profiles:
-                    - xpath:
-                      - reachable-time
-                    validators: []
-                    spec:
-                      default: unspecified
-                    description: Reachable Time (in milliseconds) advertised in Router
-                      Advertisement messages
-                    required: false
-                  - name: retransmission-timer
-                    type: string
-                    profiles:
-                    - xpath:
-                      - retransmission-timer
-                    validators: []
-                    spec:
-                      default: unspecified
-                    description: Retransmission Timer (in milliseconds) advertised
-                      in Router Advertisement messages
-                    required: false
-                  - name: router-preference
-                    type: enum
-                    profiles:
-                    - xpath:
-                      - router-preference
-                    validators:
-                    - type: values
-                      spec:
-                        values:
-                        - High
-                        - Medium
-                        - Low
-                    spec:
-                      default: Medium
-                      values:
-                      - value: High
-                      - value: Medium
-                      - value: Low
-                    description: Router Preference
-                    required: false
-                  variants: []
-                description: Router Advertisement configuration
-                required: false
-              variants: []
-            description: Neighbor Discovery configuration
-            required: false
           - name: dhcp-client
             type: object
             profiles:
@@ -1857,6 +1513,15 @@ spec:
                 required: false
               variants: []
             description: Configure DHCPv6 Client
+            required: false
+          - name: enabled
+            type: bool
+            profiles:
+            - xpath:
+              - enabled
+            validators: []
+            spec: {}
+            description: Enable IPv6 on the interface
             required: false
           - name: inherited
             type: object
@@ -2601,6 +2266,358 @@ spec:
               variants: []
             description: Configure to inherit properties from another interface
             required: false
+          - name: interface-id
+            type: string
+            profiles:
+            - xpath:
+              - interface-id
+            validators: []
+            spec:
+              default: EUI-64
+            description: ''
+            required: false
+          - name: neighbor-discovery
+            type: object
+            profiles:
+            - xpath:
+              - neighbor-discovery
+            validators: []
+            spec:
+              params:
+              - name: dad-attempts
+                type: int64
+                profiles:
+                - xpath:
+                  - dad-attempts
+                validators:
+                - type: length
+                  spec:
+                    min: 0
+                    max: 10
+                spec:
+                  default: 1
+                description: Number of consecutive neighbor solicitation messages
+                  sent for duplicate address detection
+                required: false
+              - name: enable-dad
+                type: bool
+                profiles:
+                - xpath:
+                  - enable-dad
+                validators: []
+                spec: {}
+                description: Enable Duplicate ADdress Detection (DAD)
+                required: false
+              - name: enable-ndp-monitor
+                type: bool
+                profiles:
+                - xpath:
+                  - enable-ndp-monitor
+                validators: []
+                spec: {}
+                description: Enable NDP Monitoring
+                required: false
+              - name: neighbor
+                type: list
+                profiles:
+                - xpath:
+                  - neighbor
+                  - entry
+                  type: entry
+                validators: []
+                spec:
+                  type: object
+                  items:
+                    type: object
+                    spec:
+                      params:
+                      - name: hw-address
+                        type: string
+                        profiles:
+                        - xpath:
+                          - hw-address
+                        validators: []
+                        spec: {}
+                        description: MAC address (format xx:xx:xx:xx:xx:xx)
+                        required: false
+                      variants: []
+                description: Static entries in neighbor cache
+                required: false
+              - name: ns-interval
+                type: int64
+                profiles:
+                - xpath:
+                  - ns-interval
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 3600
+                spec:
+                  default: 1
+                description: Interval (in seconds) between consecutive neighbor solicitation
+                  messages
+                required: false
+              - name: reachable-time
+                type: int64
+                profiles:
+                - xpath:
+                  - reachable-time
+                validators:
+                - type: length
+                  spec:
+                    min: 10
+                    max: 36000
+                spec:
+                  default: 30
+                description: Time (in seconds) that the Reachable status for a neighbor
+                  can be maintained
+                required: false
+              - name: router-advertisement
+                type: object
+                profiles:
+                - xpath:
+                  - router-advertisement
+                validators: []
+                spec:
+                  params:
+                  - name: dns-support
+                    type: object
+                    profiles:
+                    - xpath:
+                      - dns-support
+                    validators: []
+                    spec:
+                      params:
+                      - name: enable
+                        type: bool
+                        profiles:
+                        - xpath:
+                          - enable
+                        validators: []
+                        spec: {}
+                        description: ''
+                        required: false
+                      - name: server
+                        type: list
+                        profiles:
+                        - xpath:
+                          - server
+                          - entry
+                          type: entry
+                        validators: []
+                        spec:
+                          type: object
+                          items:
+                            type: object
+                            spec:
+                              params:
+                              - name: lifetime
+                                type: int64
+                                profiles:
+                                - xpath:
+                                  - lifetime
+                                validators:
+                                - type: length
+                                  spec:
+                                    min: 4
+                                    max: 3600
+                                spec:
+                                  default: 1200
+                                description: Router Lifetime (in seconds) advertised
+                                  in Router Advertisement messages
+                                required: false
+                              variants: []
+                        description: ''
+                        required: false
+                      - name: suffix
+                        type: list
+                        profiles:
+                        - xpath:
+                          - suffix
+                          - entry
+                          type: entry
+                        validators: []
+                        spec:
+                          type: object
+                          items:
+                            type: object
+                            spec:
+                              params:
+                              - name: lifetime
+                                type: int64
+                                profiles:
+                                - xpath:
+                                  - lifetime
+                                validators:
+                                - type: length
+                                  spec:
+                                    min: 4
+                                    max: 3600
+                                spec:
+                                  default: 1200
+                                description: Router Lifetime (in seconds) advertised
+                                  in Router Advertisement messages
+                                required: false
+                              variants: []
+                        description: ''
+                        required: false
+                      variants: []
+                    description: DNS configuration support
+                    required: false
+                  - name: enable
+                    type: bool
+                    profiles:
+                    - xpath:
+                      - enable
+                    validators: []
+                    spec: {}
+                    description: ''
+                    required: false
+                  - name: enable-consistency-check
+                    type: bool
+                    profiles:
+                    - xpath:
+                      - enable-consistency-check
+                    validators: []
+                    spec: {}
+                    description: check consistency of RA messages from other routers.
+                    required: false
+                  - name: hop-limit
+                    type: string
+                    profiles:
+                    - xpath:
+                      - hop-limit
+                    validators: []
+                    spec:
+                      default: '64'
+                    description: Current Hop Limit advertised in Router Advertisement
+                      messages
+                    required: false
+                  - name: lifetime
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - lifetime
+                    validators:
+                    - type: length
+                      spec:
+                        min: 0
+                        max: 9000
+                    spec:
+                      default: 1800
+                    description: Router Lifetime (in seconds) advertised in Router
+                      Advertisement messages
+                    required: false
+                  - name: link-mtu
+                    type: string
+                    profiles:
+                    - xpath:
+                      - link-mtu
+                    validators: []
+                    spec:
+                      default: unspecified
+                    description: value of MTU option in Router Advertisement messages,
+                      upto 9216 in Jumbo-Frame mode, up to 1500 otherwise
+                    required: false
+                  - name: managed-flag
+                    type: bool
+                    profiles:
+                    - xpath:
+                      - managed-flag
+                    validators: []
+                    spec: {}
+                    description: Set the Managed Configuration Flag (M-bit) in Router
+                      Advertisement messages
+                    required: false
+                  - name: max-interval
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - max-interval
+                    validators:
+                    - type: length
+                      spec:
+                        min: 4
+                        max: 1800
+                    spec:
+                      default: 600
+                    description: Maximum interval (seconds) between consecutive unsolicited
+                      Router Advertisement messages
+                    required: false
+                  - name: min-interval
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - min-interval
+                    validators:
+                    - type: length
+                      spec:
+                        min: 3
+                        max: 1350
+                    spec:
+                      default: 200
+                    description: Minimum interval (seconds) between consecutive unsolicited
+                      Router Advertisement messages
+                    required: false
+                  - name: other-flag
+                    type: bool
+                    profiles:
+                    - xpath:
+                      - other-flag
+                    validators: []
+                    spec: {}
+                    description: Set the Other Stateful Configuration Flag (O-bit)
+                      in Router Advertisement messages
+                    required: false
+                  - name: reachable-time
+                    type: string
+                    profiles:
+                    - xpath:
+                      - reachable-time
+                    validators: []
+                    spec:
+                      default: unspecified
+                    description: Reachable Time (in milliseconds) advertised in Router
+                      Advertisement messages
+                    required: false
+                  - name: retransmission-timer
+                    type: string
+                    profiles:
+                    - xpath:
+                      - retransmission-timer
+                    validators: []
+                    spec:
+                      default: unspecified
+                    description: Retransmission Timer (in milliseconds) advertised
+                      in Router Advertisement messages
+                    required: false
+                  - name: router-preference
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - router-preference
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - High
+                        - Medium
+                        - Low
+                    spec:
+                      default: Medium
+                      values:
+                      - value: High
+                      - value: Medium
+                      - value: Low
+                    description: Router Preference
+                    required: false
+                  variants: []
+                description: Router Advertisement configuration
+                required: false
+              variants: []
+            description: Neighbor Discovery configuration
+            required: false
           variants: []
         description: Interface IPv6 configuration
         required: false
@@ -2945,6 +2962,7 @@ spec:
                   variants: []
                 description: DDNS derives upstream NAT IP
                 required: false
+                variant_group_id: 0
               - name: static-ip
                 type: object
                 profiles:
@@ -2966,6 +2984,7 @@ spec:
                     spec: {}
                     description: Upstream NAT address FQDN name configuration
                     required: false
+                    variant_group_id: 0
                   - name: ip-address
                     type: string
                     profiles:
@@ -2975,32 +2994,14 @@ spec:
                     spec: {}
                     description: Upstream NAT IP address
                     required: false
+                    variant_group_id: 0
                 description: Upstream NAT IP address
                 required: false
+                variant_group_id: 0
             description: Upstream NAT IP config
             required: false
           variants: []
         description: Sdwan related settings
-        required: false
-      - name: untagged-sub-interface
-        type: bool
-        profiles:
-        - xpath:
-          - untagged-sub-interface
-        validators: []
-        spec: {}
-        description: Enable untagged sub-interface
-        required: false
-      - name: cluster-interconnect
-        type: bool
-        profiles:
-        - xpath:
-          - cluster-interconnect
-          min_version: 11.0.2
-          max_version: 11.0.3
-        validators: []
-        spec: {}
-        description: ''
         required: false
       - name: traffic-interconnect
         type: bool
@@ -3013,9 +3014,19 @@ spec:
         spec: {}
         description: ''
         required: false
+      - name: untagged-sub-interface
+        type: bool
+        profiles:
+        - xpath:
+          - untagged-sub-interface
+        validators: []
+        spec: {}
+        description: Enable untagged sub-interface
+        required: false
       variants: []
     description: Layer 3 interface
     required: false
+    variant_group_id: 0
   - name: log-card
     type: object
     profiles:
@@ -3072,6 +3083,7 @@ spec:
       variants: []
     description: log card parameters
     required: false
+    variant_group_id: 0
   - name: tap
     type: object
     profiles:
@@ -3095,6 +3107,7 @@ spec:
       variants: []
     description: Tap mode interface
     required: false
+    variant_group_id: 0
   - name: virtual-wire
     type: object
     profiles:
@@ -3199,3 +3212,4 @@ spec:
       variants: []
     description: Virtual-wire interface
     required: false
+    variant_group_id: 0

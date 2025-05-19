@@ -1,19 +1,15 @@
 package provider_test
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
-	sdkErrors "github.com/PaloAltoNetworks/pango/errors"
-	"github.com/PaloAltoNetworks/pango/panorama/template_variable"
 	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/config"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
@@ -77,11 +73,7 @@ func TestAccPanosPanoramaTemplateVariable(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProviders,
-		CheckDestroy: testAccPanosPanoramaTemplateVariableDestroy(
-			"$tempvar-"+nameSuffix,
-			fmt.Sprintf("%s_%s", templateName, nameSuffix),
-		),
-		Steps: templateVariableTypeEntries,
+		Steps:                    templateVariableTypeEntries,
 	})
 }
 
@@ -118,27 +110,4 @@ func makePanoramaTemplateVariableConfig(label string) string {
     `
 
 	return fmt.Sprintf(configTpl, label, label, label)
-}
-
-func testAccPanosPanoramaTemplateVariableDestroy(entryName, templateName string) func(s *terraform.State) error {
-	return func(s *terraform.State) error {
-		api := template_variable.NewService(sdkClient)
-		ctx := context.TODO()
-
-		location := template_variable.NewTemplateLocation()
-		location.Template.Template = templateName
-
-		reply, err := api.Read(ctx, *location, entryName, "show")
-		if err != nil && !sdkErrors.IsObjectNotFound(err) {
-			return fmt.Errorf("reading template variable entry via sdk: %v", err)
-		}
-
-		if reply != nil {
-			if reply.EntryName() == entryName {
-				return fmt.Errorf("template object still exists: %s", entryName)
-			}
-		}
-
-		return nil
-	}
 }

@@ -16,8 +16,10 @@ go_sdk_config:
   - objects
   - service
   - group
-xpath_suffix:
-- service-group
+panos_xpath:
+  path:
+  - service-group
+  vars: []
 locations:
 - name: shared
   xpath:
@@ -61,7 +63,6 @@ locations:
   description: Located in a specific Virtual System
   devices:
   - ngfw
-  - panorama
   validators: []
   required: false
   read_only: false

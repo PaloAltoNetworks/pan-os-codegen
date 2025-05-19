@@ -670,8 +670,8 @@ func checkSecurityPolicyRules(c *pango.Client, ctx context.Context) {
 	log.Printf("Security policy rule '%s:%s' with description '%s' read by id", *securityPolicyRuleReply.Uuid, securityPolicyRuleReply.Name, *securityPolicyRuleReply.Description)
 
 	// SECURITY POLICY RULE - UPDATE 2
-	securityPolicyRuleEntry.Description = util.String("changed by id description")
-	securityPolicyRuleReply, err = securityPolicyRuleApi.UpdateById(ctx, *securityPolicyRuleLocation, securityPolicyRuleEntry, *securityPolicyRuleReply.Uuid)
+	securityPolicyRuleEntry.Description = util.String("changed by name description")
+	securityPolicyRuleReply, err = securityPolicyRuleApi.Update(ctx, *securityPolicyRuleLocation, securityPolicyRuleEntry, securityPolicyRuleReply.Name)
 	if err != nil {
 		log.Printf("Failed to update security policy rule: %s", err)
 		return

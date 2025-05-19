@@ -14,7 +14,9 @@ go_sdk_config:
   package:
   - device
   - ssldecrypt
-xpath_suffix: []
+panos_xpath:
+  path: []
+  vars: []
 locations:
 - name: panorama
   xpath:
@@ -213,6 +215,58 @@ spec:
         type: string
     description: List of disabled predefined exclude certificates.
     required: false
+  - name: forward-trust-certificate-ecdsa
+    type: string
+    profiles:
+    - xpath:
+      - forward-trust-certificate
+      - ecdsa
+    validators:
+    - type: length
+      spec:
+        max: 63
+    spec: {}
+    description: Forward trust ECDSA certificate.
+    required: false
+  - name: forward-trust-certificate-rsa
+    type: string
+    profiles:
+    - xpath:
+      - forward-trust-certificate
+      - rsa
+    validators:
+    - type: length
+      spec:
+        max: 63
+    spec: {}
+    description: Forward trust RSA certificate.
+    required: false
+  - name: forward-untrust-certificate-ecdsa
+    type: string
+    profiles:
+    - xpath:
+      - forward-untrust-certificate
+      - ecdsa
+    validators:
+    - type: length
+      spec:
+        max: 63
+    spec: {}
+    description: Forward untrust ECDSA certificate.
+    required: false
+  - name: forward-untrust-certificate-rsa
+    type: string
+    profiles:
+    - xpath:
+      - forward-untrust-certificate
+      - rsa
+    validators:
+    - type: length
+      spec:
+        max: 63
+    spec: {}
+    description: Forward untrust RSA certificate.
+    required: false
   - name: root-ca-exclude-list
     type: list
     profiles:
@@ -277,57 +331,5 @@ spec:
       items:
         type: string
     description: List of trusted root CAs.
-    required: false
-  - name: forward-trust-certificate-ecdsa
-    type: string
-    profiles:
-    - xpath:
-      - forward-trust-certificate
-      - ecdsa
-    validators:
-    - type: length
-      spec:
-        max: 63
-    spec: {}
-    description: Forward trust ECDSA certificate.
-    required: false
-  - name: forward-trust-certificate-rsa
-    type: string
-    profiles:
-    - xpath:
-      - forward-trust-certificate
-      - rsa
-    validators:
-    - type: length
-      spec:
-        max: 63
-    spec: {}
-    description: Forward trust RSA certificate.
-    required: false
-  - name: forward-untrust-certificate-ecdsa
-    type: string
-    profiles:
-    - xpath:
-      - forward-untrust-certificate
-      - ecdsa
-    validators:
-    - type: length
-      spec:
-        max: 63
-    spec: {}
-    description: Forward untrust ECDSA certificate.
-    required: false
-  - name: forward-untrust-certificate-rsa
-    type: string
-    profiles:
-    - xpath:
-      - forward-untrust-certificate
-      - rsa
-    validators:
-    - type: length
-      spec:
-        max: 63
-    spec: {}
-    description: Forward untrust RSA certificate.
     required: false
   variants: []

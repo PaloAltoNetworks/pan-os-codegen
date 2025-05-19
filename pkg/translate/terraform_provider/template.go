@@ -374,7 +374,9 @@ func (r *{{ resourceStructName }}) Configure(ctx context.Context, req {{ tfresou
 		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
 		return
 	}
-	r.manager =  sdkmanager.NewImportableEntryObjectManager(r.client, {{ resourceSDKName }}.NewService(r.client), specifier, {{ resourceSDKName }}.SpecMatches)
+
+	batchSize := providerData.MultiConfigBatchSize
+	r.manager =  sdkmanager.NewImportableEntryObjectManager(r.client, {{ resourceSDKName }}.NewService(r.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsEntry }}
 	specifier, _, err := {{ resourceSDKName }}.Versioning(r.client.Versioning())
 	if err != nil {
@@ -382,7 +384,7 @@ func (r *{{ resourceStructName }}) Configure(ctx context.Context, req {{ tfresou
 		return
 	}
 	batchSize := providerData.MultiConfigBatchSize
-	r.manager =  sdkmanager.NewEntryObjectManager(r.client, {{ resourceSDKName }}.NewService(r.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
+	r.manager =  sdkmanager.NewEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](r.client, {{ resourceSDKName }}.NewService(r.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsUuid }}
 	specifier, _, err := {{ resourceSDKName }}.Versioning(r.client.Versioning())
 	if err != nil {
@@ -390,7 +392,7 @@ func (r *{{ resourceStructName }}) Configure(ctx context.Context, req {{ tfresou
 		return
 	}
 	batchSize := providerData.MultiConfigBatchSize
-	r.manager =  sdkmanager.NewUuidObjectManager(r.client, {{ resourceSDKName }}.NewService(r.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
+	r.manager =  sdkmanager.NewUuidObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](r.client, {{ resourceSDKName }}.NewService(r.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsConfig }}
 	specifier, _, err := {{ resourceSDKName }}.Versioning(r.client.Versioning())
 	if err != nil {
@@ -406,6 +408,8 @@ func (r *{{ resourceStructName }}) Configure(ctx context.Context, req {{ tfresou
 {{ RenderCopyToPangoFunctions }}
 
 {{ RenderCopyFromPangoFunctions }}
+
+{{ RenderXpathComponentsGetter }}
 
 {{- if FunctionSupported "Create" }}
 func (r *{{ resourceStructName }}) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -493,6 +497,7 @@ type entryWithState struct {
 	StateIdx int
 }
 
+{{ if eq .PluralType "map" }}
 var elements map[string]{{ $resourceTFStructName }}
 resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
 if resp.Diagnostics.HasError() {
@@ -511,13 +516,38 @@ for name, elt := range elements {
 	entries[idx] = entry
 	idx++
 }
+{{ else if or (eq .PluralType "list") (eq .PluralType "set") }}
+var elements []{{ $resourceTFStructName }}
+resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
+if resp.Diagnostics.HasError() {
+	return
+}
 
-created, err := r.manager.CreateMany(ctx, location, entries)
+entries := make([]*{{ $resourceSDKStructName }}, len(elements))
+for idx, elt := range elements {
+	var entry *{{ .resourceSDKName }}.{{ .EntryOrConfig }}
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, &entry, {{ $ev }})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	entry.Name = elt.Name.ValueString()
+	entries[idx] = entry
+}
+{{- end }}
+
+components, err := state.resourceXpathParentComponents()
+if err != nil {
+	resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
+	return
+}
+
+created, err := r.manager.CreateMany(ctx, location, components, entries)
 if err != nil {
 	resp.Diagnostics.AddError("Failed to create new entries", err.Error())
 	return
 }
 
+{{ if eq .PluralType "map" }}
 for _, elt := range created {
 	if _, found := elements[elt.Name]; !found {
 		continue
@@ -536,6 +566,37 @@ resp.Diagnostics.Append(map_diags...)
 if resp.Diagnostics.HasError() {
 	return
 }
+{{ else if or (eq .PluralType "list") (eq .PluralType "set") }}
+elementsByName := make(map[string]int)
+for idx, elt := range elements {
+	elementsByName[elt.Name.ValueString()] = idx
+}
+
+for _, elt := range created {
+	idx, found := elementsByName[elt.Name]
+	if !found {
+		continue
+	}
+
+	var object {{ $resourceTFStructName }}
+	resp.Diagnostics.Append(object.CopyFromPango(ctx, elt, {{ $ev }})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	elements[idx] = object
+}
+
+var list_diags diag.Diagnostics
+  {{ if eq .PluralType "list" }}
+state.{{ .ListAttribute.CamelCase }}, list_diags = types.ListValueFrom(ctx, state.getTypeFor("{{ .ListAttribute.Underscore }}"), elements)
+  {{ else if eq .PluralType "set" }}
+state.{{ .ListAttribute.CamelCase }}, list_diags = types.SetValueFrom(ctx, state.getTypeFor("{{ .ListAttribute.Underscore }}"), elements)
+  {{- end }}
+resp.Diagnostics.Append(list_diags...)
+if resp.Diagnostics.HasError() {
+	return
+}
+{{- end }}
 
 {{- if .HasEncryptedResources }}
 	ev_map, ev_diags := types.MapValueFrom(ctx, types.StringType, ev)
@@ -591,14 +652,14 @@ for idx, elt := range elements {
 	entries[idx] = entry
 }
 
-{{- if .ResourceIsMap }}
-processed, err := o.manager.CreateMany(ctx, location, entries)
+components, err := state.resourceXpathParentComponents()
 if err != nil {
-	resp.Diagnostics.AddError("Error during CreateMany() call", err.Error())
+	resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
 	return
 }
-{{- else if .Exhaustive }}
-processed, err := r.manager.CreateMany(ctx, location, entries, sdkmanager.Exhaustive, movement.PositionFirst{})
+
+{{- if .Exhaustive }}
+processed, err := r.manager.CreateMany(ctx, location, components, entries, sdkmanager.Exhaustive, movement.PositionFirst{})
 if err != nil {
 	resp.Diagnostics.AddError("Error during CreateMany() call", err.Error())
 	return
@@ -610,33 +671,12 @@ if resp.Diagnostics.HasError() {
 	return
 }
 position := positionAttribute.CopyToPango()
-processed, err := r.manager.CreateMany(ctx, location, entries, sdkmanager.NonExhaustive, position)
+processed, err := r.manager.CreateMany(ctx, location, components, entries, sdkmanager.NonExhaustive, position)
 if err != nil {
 	resp.Diagnostics.AddError("Error during CreateMany() call", err.Error())
 	return
 }
 {{- end }}
-
-
-{{- if .ResourceIsMap }}
-objects := make(map[string]{{ $resourceTFStructName }}, len(processed))
-for _, elt := range processed {
-	var object {{ $resourceTFStructName }}
-	copy_diags := object.CopyFromPango(ctx, elt, {{ $ev }})
-	resp.Diagnostics.Append(copy_diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	objects[elt.Name] = object
-}
-
-var map_diags diag.Diagnostics
-state.{{ .ListAttribute.CamelCase }}, map_diags = types.MapValueFrom(ctx, state.getTypeFor("{{ .ListAttribute.Underscore }}"), objects)
-resp.Diagnostics.Append(list_diags...)
-if resp.Diagnostics.HasError() {
-	return
-}
-{{- else }}
 objects := make([]{{ $resourceTFStructName }}, len(processed))
 for idx, elt := range processed {
 	var object {{ $resourceTFStructName }}
@@ -654,7 +694,6 @@ resp.Diagnostics.Append(list_diags...)
 if resp.Diagnostics.HasError() {
 	return
 }
-{{- end }}
 
 {{- if .HasEncryptedResources }}
 	ev_map, ev_diags := types.MapValueFrom(ctx, types.StringType, ev)
@@ -720,17 +759,35 @@ const resourceCreateFunction = `
 	*/
 
 	// Perform the operation.
+
+	components, err := state.resourceXpathParentComponents()
+	if err != nil {
+		resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
+		return
+	}
+
 {{- if .HasImports }}
 	var importLocation {{ .resourceSDKName }}.ImportLocation
 	{{ RenderImportLocationAssignment "state.Location" "importLocation" }}
-	created, err := r.manager.Create(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, obj)
-{{- else }}
-	created, err := r.manager.Create(ctx, location, obj)
-{{- end }}
+	created, err := r.manager.Create(ctx, location, components, obj)
 	if err != nil {
 		resp.Diagnostics.AddError("Error in create", err.Error())
 		return
 	}
+
+	err = r.manager.ImportToLocations(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, obj.Name)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to import resource into location", err.Error())
+		return
+	}
+{{- else }}
+	created, err := r.manager.Create(ctx, location, components, obj)
+	if err != nil {
+		resp.Diagnostics.AddError("Error in create", err.Error())
+		return
+	}
+{{- end }}
+
 
 	resp.Diagnostics.Append(state.CopyFromPango(ctx, created, {{ $ev }})...)
 	if resp.Diagnostics.HasError() {
@@ -743,10 +800,6 @@ const resourceCreateFunction = `
 	if resp.Diagnostics.HasError() {
 		return
 	}
-{{- end }}
-
-{{- if .HasEntryName }}
-	state.Name = types.StringValue(created.Name)
 {{- end }}
 
 	// Done.
@@ -800,6 +853,7 @@ if resp.Diagnostics.HasError() {
 }
 {{- end }}
 
+{{- if eq .PluralType "map" }}
 elements := make(map[string]{{ $resourceTFStructName }})
 resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
 if len(elements) == 0 || resp.Diagnostics.HasError() {
@@ -816,8 +870,31 @@ for name, elt := range elements {
 	entry.Name = name
 	entries = append(entries, entry)
 }
+{{- else if or (eq .PluralType "list") (eq .PluralType "set") }}
+var elements []{{ $resourceTFStructName }}
+resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
+if resp.Diagnostics.HasError() {
+	return
+}
 
-readEntries, err := o.manager.ReadMany(ctx, location, entries)
+entries := make([]*{{ $resourceSDKStructName }}, 0, len(elements))
+for _, elt := range elements {
+	var entry *{{ $resourceSDKStructName }}
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, &entry, {{ $ev }})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	entries = append(entries, entry)
+}
+{{- end }}
+
+components, err := state.resourceXpathParentComponents()
+if err != nil {
+	resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
+	return
+}
+
+readEntries, err := o.manager.ReadMany(ctx, location, components, entries)
 if err != nil {
 	if errors.Is(err, sdkmanager.ErrObjectNotFound) {
 		resp.State.RemoveResource(ctx)
@@ -827,6 +904,7 @@ if err != nil {
 	return
 }
 
+{{- if eq .PluralType "map" }}
 objects := make(map[string]{{ $resourceTFStructName }})
 for _, elt := range readEntries {
 	var object {{ $resourceTFStructName }}
@@ -836,13 +914,44 @@ for _, elt := range readEntries {
 	}
 	objects[elt.Name] = object
 }
+{{- else if or (eq .PluralType "list") (eq .PluralType "set") }}
+objects := make([]{{ $resourceTFStructName }}, len(readEntries))
+for idx, elt := range readEntries {
+	var object {{ $resourceTFStructName }}
+	resp.Diagnostics.Append(object.CopyFromPango(ctx, elt, {{ $ev }})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	objects[idx] = object
+}
+{{- end }}
 
+{{ if eq .PluralType "map" }}
 var map_diags diag.Diagnostics
 state.{{ .ListAttribute.CamelCase }}, map_diags = types.MapValueFrom(ctx, state.getTypeFor("{{ .ListAttribute.Underscore }}"), objects)
 resp.Diagnostics.Append(map_diags...)
 if resp.Diagnostics.HasError() {
 	return
 }
+{{- else if eq .PluralType "list" }}
+var list_diags diag.Diagnostics
+state.{{ .ListAttribute.CamelCase }}, list_diags = types.ListValueFrom(ctx, state.getTypeFor("{{ .ListAttribute.Underscore }}"), objects)
+resp.Diagnostics.Append(list_diags...)
+if resp.Diagnostics.HasError() {
+	return
+}
+{{- else if eq .PluralType "set" }}
+var list_diags diag.Diagnostics
+state.{{ .ListAttribute.CamelCase }}, list_diags = types.SetValueFrom(ctx, state.getTypeFor("{{ .ListAttribute.Underscore }}"), objects)
+resp.Diagnostics.Append(list_diags...)
+if resp.Diagnostics.HasError() {
+	return
+}
+{{- end }}
+
+{{- if .ResourceXpathVariablesWithChecks }}
+{{ AttributesFromXpathComponents "state" }}
+{{- end }}
 
 resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 `
@@ -995,12 +1104,16 @@ const resourceReadFunction = `
 {{- end }}
 	})
 
+	components, err := savestate.resourceXpathParentComponents()
+	if err != nil {
+		resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
+		return
+	}
 
-	// Perform the operation.
 {{- if .HasEntryName }}
-	object, err := o.manager.Read(ctx, location, savestate.Name.ValueString())
+	object, err := o.manager.Read(ctx, location, components, savestate.Name.ValueString())
 {{- else }}
-	object, err := o.manager.Read(ctx, location)
+	object, err := o.manager.Read(ctx, location, components)
 {{- end }}
 	if err != nil {
 		if errors.Is(err, sdkmanager.ErrObjectNotFound) {
@@ -1032,6 +1145,7 @@ const resourceReadFunction = `
         resp.Diagnostics.Append(ev_diags...)
 {{- end }}
 
+{{ AttributesFromXpathComponents "state" }}
 
 	// Done.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -1063,6 +1177,17 @@ tflog.Info(ctx, "performing resource update", map[string]any{
 	"function":      "Update",
 })
 
+{{ $ev := "nil" }}
+{{ if .HasEncryptedResources }}
+  {{- $ev = "&ev" }}
+ev := make(map[string]types.String, len(state.EncryptedValues.Elements()))
+resp.Diagnostics.Append(state.EncryptedValues.ElementsAs(ctx, &ev, false)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+{{- end }}
+
+{{ if eq .PluralType "map" }}
 var elements map[string]{{ $resourceTFStructName }}
 resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
 if resp.Diagnostics.HasError() {
@@ -1072,17 +1197,40 @@ if resp.Diagnostics.HasError() {
 stateEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
 idx := 0
 for name, elt := range elements {
-	var entry *{{ $resourceSDKStructName }}
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, &entry, nil)...)
+	var entry *{{ .resourceSDKName }}.{{ .EntryOrConfig }}
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, &entry, {{ $ev }})...)
 	if resp.Diagnostics.HasError() {
-		 return
+		return
 	}
 	entry.Name = name
 	stateEntries[idx] = entry
 	idx++
 }
+{{ else if or (eq .PluralType "list") (eq .PluralType "set") }}
+var elements []{{ $resourceTFStructName }}
+resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
+if resp.Diagnostics.HasError() {
+	return
+}
 
-existing, err := r.manager.ReadMany(ctx, location, stateEntries)
+stateEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
+for idx, elt := range elements {
+	var entry *{{ $resourceSDKStructName }}
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, &entry, nil)...)
+	if resp.Diagnostics.HasError() {
+		 return
+	}
+	stateEntries[idx] = entry
+}
+{{- end }}
+
+components, err := state.resourceXpathParentComponents()
+if err != nil {
+	resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
+	return
+}
+
+existing, err := r.manager.ReadMany(ctx, location, components, stateEntries)
 if err != nil && !errors.Is(err, sdkmanager.ErrObjectNotFound) {
 	resp.Diagnostics.AddError("Error while reading entries from the server", err.Error())
 	return
@@ -1098,6 +1246,7 @@ if resp.Diagnostics.HasError() {
 	return
 }
 
+{{ if eq .PluralType "map" }}
 planEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
 idx = 0
 for name, elt := range elements {
@@ -1111,13 +1260,26 @@ for name, elt := range elements {
 	planEntries[idx] = entry
 	idx++
 }
+{{ else if or (eq .PluralType "list") (eq .PluralType "set") }}
+var planEntries []*{{ $resourceSDKStructName }}
+for _, elt := range elements {
+	existingEntry, _ := existingEntriesByName[elt.Name.ValueString()]
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, &existingEntry, nil)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-processed, err := r.manager.UpdateMany(ctx, location, stateEntries, planEntries)
+	planEntries = append(planEntries, existingEntry)
+}
+{{- end }}
+
+processed, err := r.manager.UpdateMany(ctx, location, components, stateEntries, planEntries)
 if err != nil {
 	resp.Diagnostics.AddError("Error while updating entries", err.Error())
 	return
 }
 
+{{- if eq .PluralType "map" }}
 objects := make(map[string]*{{ $resourceTFStructName }}, len(processed))
 for _, elt := range processed {
 	var object {{ $resourceTFStructName }}
@@ -1129,9 +1291,27 @@ for _, elt := range processed {
 
 	objects[elt.Name] = &object
 }
+{{- else if or (eq .PluralType "list") (eq .PluralType "set") }}
+objects := make([]*{{ $resourceTFStructName }}, len(processed))
+for idx, elt := range processed {
+	var object {{ $resourceTFStructName }}
+	resp.Diagnostics.Append(object.CopyFromPango(ctx, elt, {{ $ev }})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	objects[idx] = &object
+}
+{{- end }}
 
 var list_diags diag.Diagnostics
+{{ if eq .PluralType "map" }}
 plan.{{ .ListAttribute.CamelCase }}, list_diags = types.MapValueFrom(ctx, state.getTypeFor("{{ .ListAttribute.Underscore }}"), objects)
+{{ else if eq .PluralType "list" }}
+plan.{{ .ListAttribute.CamelCase }}, list_diags = types.ListValueFrom(ctx, state.getTypeFor("{{ .ListAttribute.Underscore }}"), objects)
+{{ else if eq .PluralType "set" }}
+plan.{{ .ListAttribute.CamelCase }}, list_diags = types.SetValueFrom(ctx, state.getTypeFor("{{ .ListAttribute.Underscore }}"), objects)
+{{- end }}
 resp.Diagnostics.Append(list_diags...)
 if resp.Diagnostics.HasError() {
 	return
@@ -1214,7 +1394,13 @@ for idx, elt := range elements {
 	planEntries[idx] = entry
 }
 
-processed, err := r.manager.UpdateMany(ctx, location, stateEntries, planEntries, {{ $exhaustive }}, position)
+components, err := state.resourceXpathParentComponents()
+if err != nil {
+	resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
+	return
+}
+
+processed, err := r.manager.UpdateMany(ctx, location, components, stateEntries, planEntries, {{ $exhaustive }}, position)
 if err != nil {
 	resp.Diagnostics.AddError("Failed to udpate entries", err.Error())
 }
@@ -1275,10 +1461,16 @@ const resourceUpdateFunction = `
 		return
 	}
 
+	components, err := state.resourceXpathParentComponents()
+	if err != nil {
+		resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
+		return
+	}
+
 {{- if .HasEntryName }}
-	obj, err := r.manager.Read(ctx, location, plan.Name.ValueString())
+	obj, err := r.manager.Read(ctx, location, components, plan.Name.ValueString())
 {{- else }}
-	obj, err := r.manager.Read(ctx, location)
+	obj, err := r.manager.Read(ctx, location, components)
 {{- end }}
 	if err != nil {
 		resp.Diagnostics.AddError("Error in update", err.Error())
@@ -1290,12 +1482,17 @@ const resourceUpdateFunction = `
 		return
 	}
 
-	// Perform the operation.
-{{- if .HasEntryName }}
-	updated, err := r.manager.Update(ctx, location, obj, obj.Name)
-{{- else }}
-	updated, err := r.manager.Update(ctx, location, obj)
-{{- end }}
+	components, err = plan.resourceXpathParentComponents()
+	if err != nil {
+		resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
+		return
+	}
+
+{{ if .HasEntryName }}
+	updated, err := r.manager.Update(ctx, location, components, obj, obj.Name)
+{{ else }}
+	updated, err := r.manager.Update(ctx, location, components, obj)
+{{ end }}
 	if err != nil {
 		resp.Diagnostics.AddError("Error in update", err.Error())
 		return
@@ -1341,13 +1538,13 @@ tflog.Info(ctx, "performing resource delete", map[string]any{
 	"function":      "Delete",
 })
 
-{{- if .ResourceIsMap }}
+{{- if eq .PluralType "map" }}
 elements := make(map[string]{{ $resourceTFStructName }}, len(state.{{ .ListAttribute.CamelCase }}.Elements()))
 resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
 if resp.Diagnostics.HasError() {
 	return
 }
-{{- else }}
+{{- else if or (eq .PluralType "list") (eq .PluralType "set") }}
 var elements []{{ $resourceTFStructName }}
 resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
 if resp.Diagnostics.HasError() {
@@ -1359,22 +1556,28 @@ var location {{ .resourceSDKName }}.Location
 {{ RenderLocationsStateToPango "state.Location" "location" }}
 
 var names []string
-{{- if .ResourceIsMap }}
+{{- if eq .PluralType "map" }}
 for name, _ := range elements {
 	names = append(names, name)
 }
-{{- else }}
+{{- else if or (eq .PluralType "list") (eq .PluralType "set") }}
 for _, elt := range elements {
 	names = append(names, elt.Name.ValueString())
 }
 {{- end }}
 
-{{- if .ResourceIsMap }}
-err := r.manager.Delete(ctx, location, names)
-{{- else if .Exhaustive }}
-err := r.manager.Delete(ctx, location, names, sdkmanager.Exhaustive)
+components, err := state.resourceXpathParentComponents()
+if err != nil {
+	resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
+	return
+}
+
+{{- if eq .Exhaustive "exhaustive" }}
+err = r.manager.Delete(ctx, location, components, names, sdkmanager.Exhaustive)
+{{- else if eq .Exhaustive "non-exhaustive" }}
+err = r.manager.Delete(ctx, location, components, names, sdkmanager.NonExhaustive)
 {{- else }}
-err := r.manager.Delete(ctx, location, names, sdkmanager.NonExhaustive)
+err = r.manager.Delete(ctx, location, components, names)
 {{- end }}
 if err != nil {
 	resp.Diagnostics.AddError("error while deleting entries", err.Error())
@@ -1410,15 +1613,26 @@ const resourceDeleteFunction = `
 	{{ RenderLocationsStateToPango "state.Location" "location" }}
 
 {{- if .HasEntryName }}
+	components, err := state.resourceXpathParentComponents()
+	if err != nil {
+		resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
+		return
+	}
   {{- if .HasImports }}
 	var importLocation {{ .resourceSDKName }}.ImportLocation
 	{{ RenderImportLocationAssignment "state.Location" "importLocation" }}
-	err := r.manager.Delete(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, []string{state.Name.ValueString()}, sdkmanager.NonExhaustive)
+	err = r.manager.UnimportFromLocations(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, state.Name.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Error in delete", err.Error())
+		return
+	}
+	err = r.manager.Delete(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, components, []string{state.Name.ValueString()})
   {{- else }}
-	err := r.manager.Delete(ctx, location, []string{state.Name.ValueString()})
+	err = r.manager.Delete(ctx, location, components, []string{state.Name.ValueString()})
   {{- end }}
 	if err != nil && !errors.Is(err, sdkmanager.ErrObjectNotFound) {
 		resp.Diagnostics.AddError("Error in delete", err.Error())
+		return
 	}
 {{- else }}
 
@@ -1436,6 +1650,7 @@ const resourceDeleteFunction = `
 	err := r.manager.Delete(ctx, location, obj)
 	if err != nil && errors.Is(err, sdkmanager.ErrObjectNotFound) {
 		resp.Diagnostics.AddError("Error in delete", err.Error())
+		return
 	}
 {{- end }}
 `
@@ -1608,6 +1823,25 @@ func {{ .FuncName }}(ctx context.Context, resource types.Object) ([]byte, error)
 		Name: name,
 	}
 {{- else if eq .ResourceType "entry-plural" }}
+  {{- if .HasParent }}
+	parentAttr, ok := attrs["{{ .ParentAttribute.Underscore }}"]
+	if !ok {
+		return nil, fmt.Errorf("{{ .ParentAttribute.Underscore }} attribute missing")
+	}
+
+	var parent types.String
+	switch value := parentAttr.(type) {
+	case types.String:
+		parent = value
+	default:
+		return nil, fmt.Errorf("{{ .ParentAttribute.Underscore }} expected to be a map")
+	}
+
+	importStruct := {{ .StructNamePrefix }}ImportState{
+		Location: location,
+		{{ .ParentAttribute.CamelCase }}: parent,
+	}
+  {{- else }}
 	itemsAttr, ok := attrs["{{ .ListAttribute.Underscore }}"]
 	if !ok {
 		return nil, fmt.Errorf("{{ .ListAttribute.Underscore }} attribute missing")
@@ -1642,6 +1876,7 @@ func {{ .FuncName }}(ctx context.Context, resource types.Object) ([]byte, error)
 		Location: location,
 		Names: namesObj,
 	}
+  {{- end }}
 {{- else if or (eq .ResourceType "uuid") }}
 	itemsAttr, ok := attrs["{{ .ListAttribute.Underscore }}"]
 	if !ok {
@@ -1749,8 +1984,12 @@ const resourceImportStateFunctionTmpl = `
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-{{- if .ResourceIsMap }}
+{{- if .HasParent }}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("{{ .ParentAttribute.Underscore }}"), obj.{{ .ParentAttribute.CamelCase }})...)
+  {{- if eq .PluralType "" }}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), obj.Name)...)
+  {{- end }}
+{{- else if eq .PluralType "map" }}
 	names := make(map[string]*{{ .ListStructName }})
 
 	var objectNames []string
@@ -1767,7 +2006,7 @@ const resourceImportStateFunctionTmpl = `
 		names[elt] = object
 	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("{{ .ListAttribute.Underscore }}"), names)...)
-{{- else if .ResourceIsList }}
+{{- else if eq .PluralType "list" }}
   {{- if .HasPosition }}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("position"), obj.Position)...)
 	if resp.Diagnostics.HasError() {
@@ -1851,6 +2090,8 @@ type {{ dataSourceStructName }}Filter struct {
 
 {{ RenderCopyFromPangoFunctions }}
 
+{{ RenderXpathComponentsGetter }}
+
 {{ RenderDataSourceSchema }}
 
 {{- if HasLocations }}
@@ -1886,7 +2127,8 @@ func (d *{{ dataSourceStructName }}) Configure(_ context.Context, req datasource
 		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
 		return
 	}
-	d.manager =  sdkmanager.NewImportableEntryObjectManager(d.client, {{ resourceSDKName }}.NewService(d.client), specifier, {{ resourceSDKName }}.SpecMatches)
+	batchSize := providerData.MultiConfigBatchSize
+	d.manager =  sdkmanager.NewImportableEntryObjectManager(d.client, {{ resourceSDKName }}.NewService(d.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsEntry }}
 	specifier, _, err := {{ resourceSDKName }}.Versioning(d.client.Versioning())
 	if err != nil {
@@ -1894,7 +2136,7 @@ func (d *{{ dataSourceStructName }}) Configure(_ context.Context, req datasource
 		return
 	}
 	batchSize := providerData.MultiConfigBatchSize
-	d.manager =  sdkmanager.NewEntryObjectManager(d.client, {{ resourceSDKName }}.NewService(d.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
+	d.manager =  sdkmanager.NewEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](d.client, {{ resourceSDKName }}.NewService(d.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsUuid }}
 	specifier, _, err := {{ resourceSDKName }}.Versioning(d.client.Versioning())
 	if err != nil {
@@ -1902,7 +2144,7 @@ func (d *{{ dataSourceStructName }}) Configure(_ context.Context, req datasource
 		return
 	}
 	batchSize := providerData.MultiConfigBatchSize
-	d.manager =  sdkmanager.NewUuidObjectManager(d.client, {{ resourceSDKName }}.NewService(d.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
+	d.manager =  sdkmanager.NewUuidObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](d.client, {{ resourceSDKName }}.NewService(d.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsConfig }}
 	specifier, _, err := {{ resourceSDKName }}.Versioning(d.client.Versioning())
 	if err != nil {

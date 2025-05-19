@@ -16,9 +16,11 @@ go_sdk_config:
   - security
   - profiles
   - spyware
-xpath_suffix:
-- profiles
-- spyware
+panos_xpath:
+  path:
+  - profiles
+  - spyware
+  vars: []
 locations:
 - name: shared
   xpath:
@@ -62,7 +64,6 @@ locations:
   description: Located in a specific Virtual System
   devices:
   - ngfw
-  - panorama
   validators: []
   required: false
   read_only: false
@@ -292,6 +293,73 @@ spec:
               variants: []
         description: ''
         required: false
+      - name: rtype-action
+        type: object
+        profiles:
+        - xpath:
+          - rtype-action
+          min_version: 11.0.2
+          max_version: 11.0.3
+        validators: []
+        spec:
+          params:
+          - name: any
+            type: enum
+            profiles:
+            - xpath:
+              - any
+            validators:
+            - type: values
+              spec:
+                values:
+                - allow
+                - block
+            spec:
+              default: allow
+              values:
+              - value: allow
+              - value: block
+            description: ANY(255)
+            required: false
+          - name: https
+            type: enum
+            profiles:
+            - xpath:
+              - https
+            validators:
+            - type: values
+              spec:
+                values:
+                - allow
+                - block
+            spec:
+              default: allow
+              values:
+              - value: allow
+              - value: block
+            description: HTTPS(65)
+            required: false
+          - name: svcb
+            type: enum
+            profiles:
+            - xpath:
+              - svcb
+            validators:
+            - type: values
+              spec:
+                values:
+                - allow
+                - block
+            spec:
+              default: allow
+              values:
+              - value: allow
+              - value: block
+            description: SVCB(64)
+            required: false
+          variants: []
+        description: Action for specific record types
+        required: false
       - name: sinkhole
         type: object
         profiles:
@@ -369,73 +437,6 @@ spec:
                 required: false
               variants: []
         description: ''
-        required: false
-      - name: rtype-action
-        type: object
-        profiles:
-        - xpath:
-          - rtype-action
-          min_version: 11.0.2
-          max_version: 11.0.3
-        validators: []
-        spec:
-          params:
-          - name: any
-            type: enum
-            profiles:
-            - xpath:
-              - any
-            validators:
-            - type: values
-              spec:
-                values:
-                - allow
-                - block
-            spec:
-              default: allow
-              values:
-              - value: allow
-              - value: block
-            description: ANY(255)
-            required: false
-          - name: https
-            type: enum
-            profiles:
-            - xpath:
-              - https
-            validators:
-            - type: values
-              spec:
-                values:
-                - allow
-                - block
-            spec:
-              default: allow
-              values:
-              - value: allow
-              - value: block
-            description: HTTPS(65)
-            required: false
-          - name: svcb
-            type: enum
-            profiles:
-            - xpath:
-              - svcb
-            validators:
-            - type: values
-              spec:
-                values:
-                - allow
-                - block
-            spec:
-              default: allow
-              values:
-              - value: allow
-              - value: block
-            description: SVCB(64)
-            required: false
-          variants: []
-        description: Action for specific record types
         required: false
       variants: []
     description: ''
