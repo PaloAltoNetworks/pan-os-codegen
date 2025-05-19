@@ -17,9 +17,11 @@ go_sdk_config:
   - policies
   - rules
   - nat
-xpath_suffix:
-- nat
-- rules
+panos_xpath:
+  path:
+  - nat
+  - rules
+  vars: []
 locations:
 - name: shared
   xpath:
@@ -317,6 +319,7 @@ spec:
                     spec: {}
                     description: Floating IP address in HA Active-Active configuration
                     required: false
+                    variant_group_id: 0
                   - name: ip
                     type: string
                     profiles:
@@ -327,8 +330,10 @@ spec:
                     description: specify exact IP address if interface has multiple
                       addresses
                     required: false
+                    variant_group_id: 0
                 description: Use interface address as translated address
                 required: false
+                variant_group_id: 0
               - name: translated-address
                 type: list
                 profiles:
@@ -342,6 +347,7 @@ spec:
                     type: string
                 description: ''
                 required: false
+                variant_group_id: 0
             description: Fallback Dynamic IP and port translation
             required: false
           - name: translated-address
@@ -360,6 +366,7 @@ spec:
           variants: []
         description: Dynamic IP-only translation
         required: false
+        variant_group_id: 0
       - name: dynamic-ip-and-port
         type: object
         profiles:
@@ -399,6 +406,7 @@ spec:
                 spec: {}
                 description: Floating IP address in HA Active-Active configuration
                 required: false
+                variant_group_id: 0
               - name: ip
                 type: string
                 profiles:
@@ -408,8 +416,10 @@ spec:
                 spec: {}
                 description: specify exact IP address if interface has multiple addresses
                 required: false
+                variant_group_id: 0
             description: Use interface address as translated address
             required: false
+            variant_group_id: 0
           - name: translated-address
             type: list
             profiles:
@@ -423,8 +433,10 @@ spec:
                 type: string
             description: ''
             required: false
+            variant_group_id: 0
         description: Dynamic IP and port translation
         required: false
+        variant_group_id: 0
       - name: static-ip
         type: object
         profiles:
@@ -464,6 +476,7 @@ spec:
           variants: []
         description: static IP translation via IP shifting
         required: false
+        variant_group_id: 0
     description: ''
     required: false
   - name: tag
@@ -599,28 +612,6 @@ spec:
     validators: []
     spec:
       params:
-      - name: translated-address
-        type: string
-        profiles:
-        - xpath:
-          - translated-address
-        validators: []
-        spec: {}
-        description: ''
-        required: false
-      - name: translated-port
-        type: int64
-        profiles:
-        - xpath:
-          - translated-port
-        validators:
-        - type: length
-          spec:
-            min: 1
-            max: 65535
-        spec: {}
-        description: ''
-        required: false
       - name: dns-rewrite
         type: object
         profiles:
@@ -650,12 +641,36 @@ spec:
           variants: []
         description: ''
         required: false
+        variant_group_id: 0
+      - name: translated-address
+        type: string
+        profiles:
+        - xpath:
+          - translated-address
+        validators: []
+        spec: {}
+        description: ''
+        required: false
+      - name: translated-port
+        type: int64
+        profiles:
+        - xpath:
+          - translated-port
+        validators:
+        - type: length
+          spec:
+            min: 1
+            max: 65535
+        spec: {}
+        description: ''
+        required: false
       variants: []
     description: ''
     required: false
     codegen_overrides:
       terraform:
         variant_check: ConflictsWith
+    variant_group_id: 0
   - name: dynamic-destination-translation
     type: object
     profiles:
@@ -716,3 +731,4 @@ spec:
     codegen_overrides:
       terraform:
         variant_check: ConflictsWith
+    variant_group_id: 0

@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 )
 
 func TestRenderImports(t *testing.T) {
@@ -18,7 +20,13 @@ import (
 )`
 
 	// when
-	actualImports, _ := RenderImports("location")
+	spec := &properties.Normalization{
+		PanosXpath: properties.PanosXpath{
+			Path: []string{"test"},
+		},
+	}
+
+	actualImports, _ := RenderImports(spec, "location")
 
 	// then
 	assert.NotNil(t, actualImports)

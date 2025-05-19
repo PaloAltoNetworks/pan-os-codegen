@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+var ObjectExists = stderr.New("object already exists")
 var InvalidFilterError = stderr.New("filter is improperly formatted")
 var NameNotSpecifiedError = stderr.New("name is not specified")
 var NoLocationSpecifiedError = stderr.New("no location specified")
@@ -149,5 +150,19 @@ func (e *errorCheck) CodeError() string {
 		return "Session timed out"
 	default:
 		return fmt.Sprintf("(%d) Unknown failure code, operation failed", e.Code)
+	}
+}
+
+type InvalidXpathComponentError struct {
+	Message string
+}
+
+func (o InvalidXpathComponentError) Error() string {
+	return o.Message
+}
+
+func NewInvalidXpathComponentError(message string) *InvalidXpathComponentError {
+	return &InvalidXpathComponentError{
+		Message: message,
 	}
 }

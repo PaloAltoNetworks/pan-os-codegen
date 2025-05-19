@@ -16,8 +16,10 @@ go_sdk_config:
   - device
   - profile
   - ssltls
-xpath_suffix:
-- ssl-tls-service-profile
+panos_xpath:
+  path:
+  - ssl-tls-service-profile
+  vars: []
 locations:
 - name: shared
   xpath:
@@ -51,7 +53,8 @@ locations:
     - template
     - $template
     - config
-    - shared
+    - devices
+    - $ngfw_device
     vars:
     - name: panorama_device
       description: Specific Panorama device
@@ -64,13 +67,19 @@ locations:
       required: true
       validators: []
       type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
   description: Located in a specific template
   devices:
   - panorama
   validators: []
   required: false
   read_only: false
-- name: template_vsys
+- name: template-vsys
   xpath:
     path:
     - config
@@ -128,7 +137,8 @@ locations:
     - template-stack
     - $template_stack
     - config
-    - shared
+    - devices
+    - $ngfw_device
     vars:
     - name: panorama_device
       description: Specific Panorama device
@@ -137,11 +147,17 @@ locations:
       validators: []
       type: entry
     - name: template_stack
-      description: The template stack
+      description: Specific Panorama template stack
       required: true
       validators: []
       type: entry
-  description: Located in a specific template
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
   devices:
   - panorama
   validators: []
@@ -226,33 +242,6 @@ spec:
     validators: []
     spec:
       params:
-      - name: allow-authentication-sha1
-        type: bool
-        profiles:
-        - xpath:
-          - auth-algo-sha1
-        validators: []
-        spec: {}
-        description: Allow authentication SHA1
-        required: false
-      - name: allow-authentication-sha256
-        type: bool
-        profiles:
-        - xpath:
-          - auth-algo-sha256
-        validators: []
-        spec: {}
-        description: Allow authentication SHA256
-        required: false
-      - name: allow-authentication-sha384
-        type: bool
-        profiles:
-        - xpath:
-          - auth-algo-sha384
-        validators: []
-        spec: {}
-        description: Allow authentication SHA384
-        required: false
       - name: allow-algorithm-3des
         type: bool
         profiles:
@@ -298,15 +287,6 @@ spec:
         spec: {}
         description: Allow algorithm AES-256-GCM
         required: false
-      - name: allow-algorithm-rc4
-        type: bool
-        profiles:
-        - xpath:
-          - enc-algo-rc4
-        validators: []
-        spec: {}
-        description: Allow algorithm RC4
-        required: false
       - name: allow-algorithm-dhe
         type: bool
         profiles:
@@ -325,6 +305,15 @@ spec:
         spec: {}
         description: Allow algorithm ECDHE
         required: false
+      - name: allow-algorithm-rc4
+        type: bool
+        profiles:
+        - xpath:
+          - enc-algo-rc4
+        validators: []
+        spec: {}
+        description: Allow algorithm RC4
+        required: false
       - name: allow-algorithm-rsa
         type: bool
         profiles:
@@ -333,6 +322,33 @@ spec:
         validators: []
         spec: {}
         description: Allow algorithm RSA
+        required: false
+      - name: allow-authentication-sha1
+        type: bool
+        profiles:
+        - xpath:
+          - auth-algo-sha1
+        validators: []
+        spec: {}
+        description: Allow authentication SHA1
+        required: false
+      - name: allow-authentication-sha256
+        type: bool
+        profiles:
+        - xpath:
+          - auth-algo-sha256
+        validators: []
+        spec: {}
+        description: Allow authentication SHA256
+        required: false
+      - name: allow-authentication-sha384
+        type: bool
+        profiles:
+        - xpath:
+          - auth-algo-sha384
+        validators: []
+        spec: {}
+        description: Allow authentication SHA384
         required: false
       - name: max-version
         type: enum

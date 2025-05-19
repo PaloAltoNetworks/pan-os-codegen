@@ -15,9 +15,11 @@ go_sdk_config:
   package:
   - network
   - logical_router
-xpath_suffix:
-- network
-- logical-router
+panos_xpath:
+  path:
+  - network
+  - logical-router
+  vars: []
 locations:
 - name: vsys
   xpath:

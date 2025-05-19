@@ -1,6 +1,8 @@
 package object
 
 import (
+	"fmt"
+
 	"gopkg.in/yaml.v3"
 
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/imports"
@@ -25,6 +27,14 @@ const (
 	TerraformResourcePlural   TerraformResourceVariant = "plural"
 )
 
+type TerraformPluralType string
+
+const (
+	TerraformPluralListType TerraformPluralType = "list"
+	TerraformPluralMapType  TerraformPluralType = "map"
+	TerraformPluralSetType  TerraformPluralType = "set"
+)
+
 type TerraformConfig struct {
 	Description           string                     `yaml:"description"`
 	Epheneral             bool                       `yaml:"ephemeral"`
@@ -37,6 +47,7 @@ type TerraformConfig struct {
 	Suffix                string                     `yaml:"suffix"`
 	PluralSuffix          string                     `yaml:"plural_suffix"`
 	PluralName            string                     `yaml:"plural_name"`
+	PluralType            TerraformPluralType        `yaml:"plural_type"`
 	PluralDescription     string                     `yaml:"plural_description"`
 }
 
@@ -57,10 +68,33 @@ type Spec struct {
 	Variants   []*parameter.Parameter `yaml:"variants"`
 }
 
+type PanosXpathVariableType string
+
+const (
+	PanosXpathVariableStatic PanosXpathVariableType = "static"
+	PanosXpathVariableValue  PanosXpathVariableType = "value"
+	PanosXpathVariableEntry  PanosXpathVariableType = "entry"
+)
+
+type PanosXpathVariableSpec struct {
+	Type  PanosXpathVariableType `yaml:"type"`
+	Xpath string                 `yaml:"xpath"`
+}
+
+type PanosXpathVariable struct {
+	Name string                 `yaml:"name"`
+	Spec PanosXpathVariableSpec `yaml:"spec"`
+}
+
+type PanosXpath struct {
+	Path      []string             `yaml:"path"`
+	Variables []PanosXpathVariable `yaml:"vars"`
+}
+
 type Object struct {
 	Name            string              `yaml:"-"`
 	DisplayName     string              `yaml:"name"`
-	XpathSuffix     []string            `yaml:"xpath_suffix"`
+	PanosXpath      PanosXpath          `yaml:"panos_xpath"`
 	TerraformConfig *TerraformConfig    `yaml:"terraform_provider_config"`
 	Version         string              `yaml:"version"`
 	GoSdkConfig     *GoSdkConfig        `yaml:"go_sdk_config"`
@@ -68,6 +102,47 @@ type Object struct {
 	Entries         []Entry             `yaml:"entries"`
 	Imports         []imports.Import    `yaml:"imports"`
 	Spec            *Spec               `yaml:"spec"`
+}
+
+func (o *Object) UnmarshalYAML(n *yaml.Node) error {
+	type O Object
+	type S struct {
+		*O `yaml:",inline"`
+	}
+
+	obj := &S{O: (*O)(o)}
+	if err := n.Decode(obj); err != nil {
+		return err
+	}
+
+	switch obj.TerraformConfig.ResourceType {
+	case TerraformResourceEntry, TerraformResourceUuid:
+		if obj.PanosXpath.Path[len(obj.PanosXpath.Path)-1] != "$name" {
+			obj.PanosXpath.Path = append(obj.PanosXpath.Path, "$name")
+			obj.PanosXpath.Variables = append(obj.PanosXpath.Variables, PanosXpathVariable{
+				Name: "name",
+				Spec: PanosXpathVariableSpec{
+					Type:  PanosXpathVariableEntry,
+					Xpath: "/params[@name=\"name\"]",
+				},
+			})
+		}
+	case TerraformResourceCustom, TerraformResourceConfig:
+	}
+
+	if obj.TerraformConfig.PluralType == "" {
+		switch obj.TerraformConfig.ResourceType {
+		case TerraformResourceUuid:
+			obj.TerraformConfig.PluralType = TerraformPluralListType
+		case TerraformResourceEntry:
+			obj.TerraformConfig.PluralType = TerraformPluralMapType
+		case TerraformResourceConfig, TerraformResourceCustom:
+		}
+	} else if obj.TerraformConfig.ResourceType == TerraformResourceUuid && obj.TerraformConfig.PluralType != "list" {
+		return fmt.Errorf("failed to unmarshal yaml spec: plural_type must be list for uuid resource types")
+	}
+
+	return nil
 }
 
 func NewFromBytes(name string, objectBytes []byte) (*Object, error) {

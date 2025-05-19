@@ -15,7 +15,10 @@ go_sdk_config:
   - device
   - profile
   - certificate
-xpath_suffix: []
+panos_xpath:
+  path:
+  - certificate
+  vars: []
 locations:
 - name: panorama
   xpath:
@@ -204,6 +207,44 @@ entries:
 imports: []
 spec:
   params:
+  - name: block-expired-certificate
+    type: bool
+    profiles:
+    - xpath:
+      - block-expired-cert
+    validators: []
+    spec: {}
+    description: Whether to block a session if certificate status is expired.
+    required: false
+  - name: block-timeout-certificate
+    type: bool
+    profiles:
+    - xpath:
+      - block-timeout-cert
+    validators: []
+    spec: {}
+    description: Whether to block a session if cert. status can't be retrieved within
+      timeout.
+    required: false
+  - name: block-unauthenticated-certificate
+    type: bool
+    profiles:
+    - xpath:
+      - block-unauthenticated-cert
+    validators: []
+    spec: {}
+    description: Whether to block session if the certificate was not issued to the
+      authenticating device.
+    required: false
+  - name: block-unknown-certificate
+    type: bool
+    profiles:
+    - xpath:
+      - block-unknown-cert
+    validators: []
+    spec: {}
+    description: Whether to block a session if cert. status is unknown.
+    required: false
   - name: certificate
     type: list
     profiles:
@@ -258,44 +299,6 @@ spec:
             required: false
           variants: []
     description: CA Certificate to assign to the profile.
-    required: false
-  - name: block-expired-certificate
-    type: bool
-    profiles:
-    - xpath:
-      - block-expired-cert
-    validators: []
-    spec: {}
-    description: Whether to block a session if certificate status is expired.
-    required: false
-  - name: block-timeout-certificate
-    type: bool
-    profiles:
-    - xpath:
-      - block-timeout-cert
-    validators: []
-    spec: {}
-    description: Whether to block a session if cert. status can't be retrieved within
-      timeout.
-    required: false
-  - name: block-unauthenticated-certificate
-    type: bool
-    profiles:
-    - xpath:
-      - block-unauthenticated-cert
-    validators: []
-    spec: {}
-    description: Whether to block session if the certificate was not issued to the
-      authenticating device.
-    required: false
-  - name: block-unknown-certificate
-    type: bool
-    profiles:
-    - xpath:
-      - block-unknown-cert
-    validators: []
-    spec: {}
-    description: Whether to block a session if cert. status is unknown.
     required: false
   - name: certificate-status-timeout
     type: int64
