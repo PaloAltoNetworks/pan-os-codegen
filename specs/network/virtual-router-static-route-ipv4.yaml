@@ -1,0 +1,463 @@
+name: Virtual Router IPv4 Static Route
+terraform_provider_config:
+  description: Virtual Router
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+    - singular
+    - plural
+  suffix: virtual_router_static_route_ipv4
+  plural_suffix: virtual_router_static_routes_ipv4
+  plural_name: static-routes
+  plural_description: ""
+  plural_type: list
+go_sdk_config:
+  skip: false
+  package:
+    - network
+    - virtual_router
+    - ipv4
+    - staticroute
+panos_xpath:
+  path:
+    - network
+    - virtual-router
+    - $parent
+    - routing-table
+    - ip
+    - static-route
+    - $name
+  vars:
+    - name: parent
+      spec:
+        type: entry
+        xpath: /params[@name="virtual-router"]
+    - name: name
+      spec:
+        type: entry
+        xpath: /params[@name="name"]
+locations:
+  - name: ngfw
+    xpath:
+      path:
+        - config
+        - devices
+        - $ngfw_device
+      vars:
+        - name: ngfw_device
+          description: The NGFW device
+          required: false
+          default: localhost.localdomain
+          validators: []
+          type: entry
+    description: Located in a specific NGFW device
+    devices:
+      - ngfw
+    validators: []
+    required: false
+    read_only: false
+  - name: template
+    xpath:
+      path:
+        - config
+        - devices
+        - $panorama_device
+        - template
+        - $template
+        - config
+        - devices
+        - $ngfw_device
+      vars:
+        - name: panorama_device
+          description: Specific Panorama device
+          required: false
+          default: localhost.localdomain
+          validators: []
+          type: entry
+        - name: template
+          description: Specific Panorama template
+          required: true
+          validators: []
+          type: entry
+        - name: ngfw_device
+          description: The NGFW device
+          required: false
+          default: localhost.localdomain
+          validators: []
+          type: entry
+    description: Located in a specific template
+    devices:
+      - panorama
+    validators: []
+    required: false
+    read_only: false
+  - name: template-stack
+    xpath:
+      path:
+        - config
+        - devices
+        - $panorama_device
+        - template-stack
+        - $template_stack
+        - config
+        - devices
+        - $ngfw_device
+      vars:
+        - name: panorama_device
+          description: Specific Panorama device
+          required: false
+          default: localhost.localdomain
+          validators: []
+          type: entry
+        - name: template_stack
+          description: Specific Panorama template stack
+          required: true
+          validators: []
+          type: entry
+        - name: ngfw_device
+          description: The NGFW device
+          required: false
+          default: localhost.localdomain
+          validators: []
+          type: entry
+    description: Located in a specific template stack
+    devices:
+      - panorama
+    validators: []
+    required: false
+    read_only: false
+entries:
+  - name: name
+    description: ""
+    validators: []
+imports: []
+spec:
+  params:
+    - name: virtual-router
+      type: string
+      profiles:
+        - xpath: []
+      codegen_overrides:
+        gosdk:
+          skip: true
+        terraform:
+          xpath_variable: virtual-router
+    - name: admin-dist
+      type: int64
+      profiles:
+        - xpath:
+            - admin-dist
+      validators:
+        - type: length
+          spec:
+            min: 10
+            max: 240
+      spec: {}
+      description: adminitrative distance
+      required: false
+    - name: bfd
+      type: object
+      profiles:
+        - xpath:
+            - bfd
+      validators: []
+      spec:
+        params:
+          - name: profile
+            type: string
+            profiles:
+              - xpath:
+                  - profile
+            validators: []
+            spec:
+              default: None
+            description: BFD profile
+            required: false
+        variants: []
+      description: BFD configuration
+      required: false
+    - name: destination
+      type: string
+      profiles:
+        - xpath:
+            - destination
+      validators: []
+      spec: {}
+      description: Destination IP address/prefix
+      required: false
+    - name: interface
+      type: string
+      profiles:
+        - xpath:
+            - interface
+      validators: []
+      spec: {}
+      description: ""
+      required: false
+    - name: metric
+      type: int64
+      profiles:
+        - xpath:
+            - metric
+      validators:
+        - type: length
+          spec:
+            min: 1
+            max: 65535
+      spec:
+        default: 10
+      description: metric value (path cost)
+      required: false
+    - name: nexthop
+      type: object
+      profiles:
+        - xpath:
+            - nexthop
+      validators: []
+      spec:
+        params: []
+        variants:
+          - name: discard
+            type: object
+            profiles:
+              - xpath:
+                  - discard
+            validators: []
+            spec:
+              params: []
+              variants: []
+            description: Discard packet
+            required: false
+          - name: fqdn
+            type: string
+            profiles:
+              - xpath:
+                  - fqdn
+            validators:
+              - type: length
+                spec:
+                  max: 255
+            spec: {}
+            description: nexthop address FQDN address object configuration
+            required: false
+          - name: ip-address
+            type: string
+            profiles:
+              - xpath:
+                  - ip-address
+            validators: []
+            spec: {}
+            description: Next hop IP address
+            required: false
+          - name: next-vr
+            type: string
+            profiles:
+              - xpath:
+                  - next-vr
+            validators: []
+            spec: {}
+            description: Next hop virtual router
+            required: false
+          - name: receive
+            type: object
+            profiles:
+              - xpath:
+                  - receive
+            validators: []
+            spec:
+              params: []
+              variants: []
+            description: Forward packet to host
+            required: false
+      description: Next hop to destination
+      required: false
+    - name: path-monitor
+      type: object
+      profiles:
+        - xpath:
+            - path-monitor
+      validators: []
+      spec:
+        params:
+          - name: enable
+            type: bool
+            profiles:
+              - xpath:
+                  - enable
+            validators: []
+            spec: {}
+            description: ""
+            required: false
+          - name: failure-condition
+            type: enum
+            profiles:
+              - xpath:
+                  - failure-condition
+            validators:
+              - type: values
+                spec:
+                  values:
+                    - any
+                    - all
+            spec:
+              default: any
+              values:
+                - value: any
+                - value: all
+            description: failure condition
+            required: false
+          - name: hold-time
+            type: int64
+            profiles:
+              - xpath:
+                  - hold-time
+            validators:
+              - type: length
+                spec:
+                  min: 0
+                  max: 1440
+            spec:
+              default: 2
+            description: hold time (minutes)
+            required: false
+          - name: monitor-destinations
+            type: list
+            profiles:
+              - xpath:
+                  - monitor-destinations
+                  - entry
+                type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                    - name: enable
+                      type: bool
+                      profiles:
+                        - xpath:
+                            - enable
+                      validators: []
+                      spec: {}
+                      description: ""
+                      required: false
+                    - name: source
+                      type: string
+                      profiles:
+                        - xpath:
+                            - source
+                      validators: []
+                      spec: {}
+                      description: Source IP address
+                      required: false
+                    - name: destination
+                      type: string
+                      profiles:
+                        - xpath:
+                            - destination
+                      validators:
+                        - type: length
+                          spec:
+                            max: 63
+                      spec: {}
+                      description: Destination IP address
+                      required: false
+                    - name: interval
+                      type: int64
+                      profiles:
+                        - xpath:
+                            - interval
+                      validators:
+                        - type: length
+                          spec:
+                            min: 1
+                            max: 60
+                      spec:
+                        default: 3
+                      description: ping interval
+                      required: false
+                    - name: count
+                      type: int64
+                      profiles:
+                        - xpath:
+                            - count
+                      validators:
+                        - type: length
+                          spec:
+                            min: 3
+                            max: 10
+                      spec:
+                        default: 5
+                      description: ping count
+                      required: false
+                  variants: []
+            description: ""
+            required: false
+        variants: []
+      description: Static Route Path Monitoring
+      required: false
+    - name: route-table
+      type: object
+      profiles:
+        - xpath:
+            - route-table
+      validators: []
+      spec:
+        params: []
+        variants:
+          - name: both
+            type: object
+            profiles:
+              - xpath:
+                  - both
+            validators: []
+            spec:
+              params: []
+              variants: []
+            description: Install route into both unicast and multicast routing table
+            required: false
+            variant_group_id: 0
+          - name: multicast
+            type: object
+            profiles:
+              - xpath:
+                  - multicast
+            validators: []
+            spec:
+              params: []
+              variants: []
+            description:
+              Install route into multicast routing table, this will create
+              multicast routing table if not exists
+            required: false
+            variant_group_id: 0
+          - name: no-install
+            type: object
+            profiles:
+              - xpath:
+                  - no-install
+            validators: []
+            spec:
+              params: []
+              variants: []
+            description: Do not install route into forwarding table
+            required: false
+            variant_group_id: 0
+          - name: unicast
+            type: object
+            profiles:
+              - xpath:
+                  - unicast
+            validators: []
+            spec:
+              params: []
+              variants: []
+            description: Install route into unicast routing table
+            required: false
+            variant_group_id: 0
+      description: target routing table to install the route
+      required: false
+  variants: []
