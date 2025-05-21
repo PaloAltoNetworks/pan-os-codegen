@@ -256,11 +256,9 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		"packageName":               translate.PackageName,
 		"locationType":              translate.LocationType,
 		"specParamType":             translate.SpecParamType,
-		"xmlParamType":              translate.XmlParamType,
 		"xmlName":                   translate.XmlName,
+		"xmlParamType":              translate.XmlParamType,
 		"xmlTag":                    translate.XmlTag,
-		"specifyEntryAssignment":    translate.SpecifyEntryAssignmentTmpl,
-		"normalizeAssignment":       translate.NormalizeAssignmentTmpl,
 		"specMatchesFunction":       translate.SpecMatchesFunction,
 		"nestedSpecMatchesFunction": translate.NestedSpecMatchesFunction,
 		"omitEmpty":                 translate.OmitEmpty,
@@ -271,13 +269,31 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		"subtract": func(a, b int) int {
 			return a - b
 		},
-		"generateEntryXpath":        translate.GenerateEntryXpath,
-		"nestedSpecs":               translate.NestedSpecs,
+		"generateEntryXpath": translate.GenerateEntryXpath,
+		"RenderApiStructs": func(spec *properties.Normalization) (string, error) {
+			return translate.RenderEntryApiStructs(spec)
+		},
+		"RenderXmlStructs": func(spec *properties.Normalization) (string, error) {
+			return translate.RenderEntryXmlStructs(spec)
+		},
+		"RenderXmlContainerNormalizers": func(spec *properties.Normalization) (string, error) {
+			return translate.RenderXmlContainerNormalizers(spec)
+		},
+		"RenderXmlContainerSpecifiers": func(spec *properties.Normalization) (string, error) {
+			return translate.RenderXmlContainerSpecifiers(spec)
+		},
+		"RenderToXmlMarshallers": func(spec *properties.Normalization) (string, error) {
+			return translate.RenderToXmlMarshalers(spec)
+		},
+		"RenderSpecMatchers": func(spec *properties.Normalization) (string, error) {
+			return translate.RenderSpecMatchers(spec)
+		},
 		"createGoSuffixFromVersion": translate.CreateGoSuffixFromVersionTmpl,
 		"paramSupportedInVersion":   translate.ParamSupportedInVersionTmpl,
 		"xmlPathSuffixes":           translate.XmlPathSuffixes,
 		"underscore":                naming.Underscore,
 		"camelCase":                 naming.CamelCase,
+		"lowerCamelCase":            naming.LowerCamelCase,
 	}
 	return template.New(templateName).Funcs(funcMap).ParseFiles(templatePath)
 }
