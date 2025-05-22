@@ -3,9 +3,17 @@
 *.dll
 *.so
 *.dylib
+/target/*
+
+# Archives
+/*.tar*
 
 # Test binary, build with `go test -c`
 *.test
+
+# Test-related patterns
+/*.log
+/test-logs/
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
@@ -36,3 +44,17 @@ yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
 .npm
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+
+# Makefile-related patterns
+/Makefile
+/*-stamp
+/panos-creds.txt
+/config.yaml
+/generated
+>>>>>>> d179053 (chore: update .gitignore for cleaner git state)
