@@ -3,9 +3,17 @@
 *.dll
 *.so
 *.dylib
+/target/codegen
+
+# Archives
+/*.tar*
 
 # Test binary, build with `go test -c`
 *.test
+
+# Test-related patterns
+/*.log
+/test-logs/
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
@@ -20,3 +28,13 @@
 
 # IDE
 .idea/
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+
+# Makefile-related patterns
+/*-stamp
+/panos-creds.txt
