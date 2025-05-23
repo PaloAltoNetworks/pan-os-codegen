@@ -12,6 +12,92 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
+func TestAccEthernetInterface_Concurrent(t *testing.T) {
+	t.Parallel()
+
+	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
+	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
+
+	location := config.ObjectVariable(map[string]config.Variable{
+		"template": config.ObjectVariable(map[string]config.Variable{
+			"name": config.StringVariable(prefix),
+		}),
+	})
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: ethernetInterface_Concurrent_Tmpl,
+				ConfigVariables: map[string]config.Variable{
+					"prefix":   config.StringVariable(prefix),
+					"location": location,
+				},
+			},
+		},
+	})
+}
+
+const ethernetInterface_Concurrent_Tmpl = `
+variable "prefix" { type = string }
+variable "location" { type = any }
+
+resource "panos_template" "example" {
+  location = { panorama = {} }
+
+  name = var.prefix
+}
+
+resource "panos_ethernet_interface" "example1" {
+  depends_on = [panos_template.example]
+  location = var.location
+
+  name = "ethernet1/1"
+  layer3 = {}
+}
+
+resource "panos_ethernet_interface" "example2" {
+  depends_on = [panos_template.example]
+  location = var.location
+
+  name = "ethernet1/2"
+  layer3 = {}
+}
+
+resource "panos_ethernet_interface" "example3" {
+  depends_on = [panos_template.example]
+  location = var.location
+
+  name = "ethernet1/3"
+  layer3 = {}
+}
+
+resource "panos_ethernet_interface" "example4" {
+  depends_on = [panos_template.example]
+  location = var.location
+
+  name = "ethernet1/4"
+  layer3 = {}
+}
+
+resource "panos_ethernet_interface" "example5" {
+  depends_on = [panos_template.example]
+  location = var.location
+
+  name = "ethernet1/5"
+  layer3 = {}
+}
+
+resource "panos_ethernet_interface" "example6" {
+  depends_on = [panos_template.example]
+  location = var.location
+
+  name = "ethernet1/6"
+  layer3 = {}
+}
+`
+
 func TestAccPanosEthernetInterface_Layer3(t *testing.T) {
 	t.Parallel()
 
