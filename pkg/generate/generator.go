@@ -14,6 +14,7 @@ import (
 
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/object"
 	codegentmpl "github.com/paloaltonetworks/pan-os-codegen/pkg/template"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate/terraform_provider"
@@ -254,6 +255,7 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		"renderImports": func(templateTypes ...string) (string, error) {
 			return translate.RenderImports(c.Spec, templateTypes...)
 		},
+		"SupportedMethod":           func(method object.GoSdkMethod) bool { return c.Spec.SupportedMethod(method) },
 		"RenderEntryImportStructs":  func() (string, error) { return translate.RenderEntryImportStructs(c.Spec) },
 		"packageName":               translate.PackageName,
 		"locationType":              translate.LocationType,
