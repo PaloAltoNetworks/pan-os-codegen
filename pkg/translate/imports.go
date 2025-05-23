@@ -12,7 +12,7 @@ func RenderImports(spec *properties.Normalization, templateTypes ...string) (str
 	for _, templateType := range templateTypes {
 		switch templateType {
 		case "sync":
-			manager.AddStandardImport("sync", "")
+			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/locking", "")
 		case "config":
 			//manager.AddStandardImport("fmt", "")
 			manager.AddStandardImport("encoding/xml", "")
