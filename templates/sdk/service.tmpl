@@ -22,28 +22,6 @@ package {{packageName .GoSdkPath}}
     {{- end}}
 {{- end}}
 
-{{- if and $.Imports .Entry }}
-var (
-	importsMutexMap     = make(map[string]*sync.Mutex)
-	importsMutexMapLock = sync.Mutex{}
-)
-
-func (s *Service) getImportMutex(xpath string) *sync.Mutex {
-	importsMutexMapLock.Lock()
-	defer importsMutexMapLock.Unlock()
-
-	var importMutex *sync.Mutex
-	var ok bool
-	importMutex, ok = importsMutexMap[xpath]
-	if !ok {
-		importMutex = &sync.Mutex{}
-		importsMutexMap[xpath] = importMutex
-	}
-
-	return importMutex
-}
-{{- end }}
-
 type Service struct {
 client util.PangoClient
 }
@@ -152,7 +130,7 @@ func (s *Service) ImportToLocations(ctx context.Context, loc Location, importLoc
 			return err
 		}
 
-		mutex := s.getImportMutex(util.AsXpath(xpath))
+		mutex := locking.GetMutex(locking.XpathLockCategory, util.AsXpath(xpath))
                 mutex.Lock()
                 defer mutex.Unlock()
 
@@ -221,7 +199,7 @@ func (s *Service) UnimportFromLocations(ctx context.Context, loc Location, impor
 			return err
 		}
 
-		mutex := s.getImportMutex(util.AsXpath(xpath))
+		mutex := locking.GetMutex(locking.XpathLockCategory, util.AsXpath(xpath))
                 mutex.Lock()
                 defer mutex.Unlock()
 
