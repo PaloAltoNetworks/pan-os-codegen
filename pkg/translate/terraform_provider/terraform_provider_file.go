@@ -36,12 +36,12 @@ func (g *GenerateTerraformProvider) executeTemplate(template *template.Template,
 		return fmt.Errorf("error executing %v template: %v", resourceTyp, err)
 	}
 	renderedTemplate.WriteString("\n")
-	return g.updateProviderFile(&renderedTemplate, terraformProvider, resourceTyp, schemaTyp, names)
+	return g.updateProviderFile(spec, &renderedTemplate, terraformProvider, resourceTyp, schemaTyp, names)
 }
 
 // updateProviderFile updates the Terraform provider file by appending the rendered template
 // to the appropriate slice in the TerraformProviderFile based on the provided resourceType.
-func (g *GenerateTerraformProvider) updateProviderFile(renderedTemplate *strings.Builder, terraformProvider *properties.TerraformProviderFile, resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider) error {
+func (g *GenerateTerraformProvider) updateProviderFile(spec *properties.Normalization, renderedTemplate *strings.Builder, terraformProvider *properties.TerraformProviderFile, resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider) error {
 	if schemaTyp == properties.SchemaProvider {
 		terraformProvider.Code = renderedTemplate
 	} else {
@@ -50,12 +50,12 @@ func (g *GenerateTerraformProvider) updateProviderFile(renderedTemplate *strings
 			return fmt.Errorf("error writing %v template: %v", resourceTyp, err)
 		}
 	}
-	return g.appendResourceType(terraformProvider, resourceTyp, schemaTyp, names)
+	return g.appendResourceType(spec, terraformProvider, resourceTyp, schemaTyp, names)
 }
 
 // appendResourceType appends the given struct name to the appropriate slice in the TerraformProviderFile
 // based on the provided resourceType.
-func (g *GenerateTerraformProvider) appendResourceType(terraformProvider *properties.TerraformProviderFile, resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider) error {
+func (g *GenerateTerraformProvider) appendResourceType(spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider) error {
 	var flags properties.TerraformSpecFlags
 	switch schemaTyp {
 	case properties.SchemaDataSource:
@@ -72,7 +72,9 @@ func (g *GenerateTerraformProvider) appendResourceType(terraformProvider *proper
 
 	switch resourceTyp {
 	case properties.ResourceEntry, properties.ResourceEntryPlural, properties.ResourceUuid, properties.ResourceUuidPlural:
-		flags |= properties.TerraformSpecImportable
+		if !spec.TerraformProviderConfig.SkipResource {
+			flags |= properties.TerraformSpecImportable
+		}
 	case properties.ResourceCustom, properties.ResourceConfig:
 	}
 
@@ -246,10 +248,17 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 
 	if !spec.TerraformProviderConfig.SkipResource {
 		terraformProvider.ImportManager.AddStandardImport("context", "")
+
 		terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "")
 
-		if spec.TerraformProviderConfig.ResourceType != properties.TerraformResourceCustom {
+		switch spec.TerraformProviderConfig.ResourceType {
+		case properties.TerraformResourceEntry, properties.TerraformResourceUuid:
+			terraformProvider.ImportManager.AddStandardImport("encoding/base64", "")
 			terraformProvider.ImportManager.AddOtherImport("github.com/PaloAltoNetworks/terraform-provider-panos/internal/manager", "sdkmanager")
+		case properties.TerraformResourceConfig:
+			terraformProvider.ImportManager.AddOtherImport("github.com/PaloAltoNetworks/terraform-provider-panos/internal/manager", "sdkmanager")
+		case properties.TerraformResourceCustom:
+
 		}
 
 		// entry or uuid style resource
@@ -373,6 +382,22 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 	}
 
 	if !spec.TerraformProviderConfig.SkipDatasource {
+		terraformProvider.ImportManager.AddStandardImport("context", "")
+		terraformProvider.ImportManager.AddStandardImport("fmt", "")
+
+		if spec.TerraformProviderConfig.ResourceType != properties.TerraformResourceCustom {
+			terraformProvider.ImportManager.AddStandardImport("errors", "")
+			terraformProvider.ImportManager.AddOtherImport("github.com/PaloAltoNetworks/terraform-provider-panos/internal/manager", "sdkmanager")
+		}
+
+		terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "")
+		if !spec.GoSdkSkip {
+			terraformProvider.ImportManager.AddSdkImport(sdkPkgPath(spec), "")
+		}
+
+		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
+		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/attr", "")
+		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/diag", "")
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource/schema", "dsschema")
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types", "")
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource", "")
