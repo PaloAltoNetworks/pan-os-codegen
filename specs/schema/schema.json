@@ -8,7 +8,7 @@
     "name",
     "terraform_provider_config",
     "go_sdk_config",
-    "xpath_suffix",
+    "panos_xpath",
     "locations",
     "entries",
     "version",
@@ -26,6 +26,13 @@
           "type": "string"
         }
       }
+    },
+    "panos_xpath": {
+      "type": "object",
+      "required": ["path"],
+      "properties": [
+        "path": { "type": "array" }
+      ]
     }
   }
 }

@@ -8,7 +8,7 @@
     )
 
     var (
-    Suffix = []string{
+    suffix = []string{
     {{- $length := subtract (len .XpathSuffix) 1 }}
     {{- range $index, $suffix := .XpathSuffix}}"
     {{- $suffix}}"{{- if lt $index $length}},{{- end}}
@@ -49,6 +49,7 @@
     }
 
     {{- range $_, $param := .Spec.SortedParams}}
+      {{- if not (paramNotSkipped $param) }}{{ continue }}{{- end }}
         if v == "{{$param.Name.Underscore}}" || v == "{{$param.Name.CamelCase}}" {
         return e.{{$param.Name.CamelCase}}, nil
         }

@@ -2,10 +2,11 @@ package translate
 
 import (
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/imports"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 )
 
 // RenderImports render string, which contains import required in entry, location or service template.
-func RenderImports(templateTypes ...string) (string, error) {
+func RenderImports(spec *properties.Normalization, templateTypes ...string) (string, error) {
 	manager := imports.NewManager()
 
 	for _, templateType := range templateTypes {
@@ -30,6 +31,9 @@ func RenderImports(templateTypes ...string) (string, error) {
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/errors", "")
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "")
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/version", "")
+			if spec.ResourceXpathVariablesWithChecks(true) {
+				manager.AddStandardImport("strings", "")
+			}
 		case "service":
 			manager.AddStandardImport("context", "")
 			manager.AddStandardImport("fmt", "")

@@ -250,8 +250,10 @@ func writeContentToFile(content *bytes.Buffer, file *os.File) error {
 func (c *Creator) parseTemplate(templateName string) (*template.Template, error) {
 	templatePath := filepath.Join(c.TemplatesDir, templateName)
 	funcMap := template.FuncMap{
-		"Map":                       codegentmpl.TemplateMap,
-		"renderImports":             translate.RenderImports,
+		"Map": codegentmpl.TemplateMap,
+		"renderImports": func(templateTypes ...string) (string, error) {
+			return translate.RenderImports(c.Spec, templateTypes...)
+		},
 		"RenderEntryImportStructs":  func() (string, error) { return translate.RenderEntryImportStructs(c.Spec) },
 		"packageName":               translate.PackageName,
 		"locationType":              translate.LocationType,
@@ -289,6 +291,7 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 			return translate.RenderSpecMatchers(spec)
 		},
 		"createGoSuffixFromVersion": translate.CreateGoSuffixFromVersionTmpl,
+		"paramNotSkipped":           translate.ParamNotSkippedTmpl,
 		"paramSupportedInVersion":   translate.ParamSupportedInVersionTmpl,
 		"xmlPathSuffixes":           translate.XmlPathSuffixes,
 		"underscore":                naming.Underscore,

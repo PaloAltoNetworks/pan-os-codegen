@@ -15,9 +15,11 @@ go_sdk_config:
   - objects
   - profiles
   - logforwarding
-xpath_suffix:
-- log-settings
-- profiles
+panos_xpath:
+  path:
+  - log-settings
+  - profiles
+  vars: []
 locations:
 - name: shared
   xpath:

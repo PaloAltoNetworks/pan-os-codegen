@@ -15,11 +15,13 @@ go_sdk_config:
   - objects
   - profiles
   - ipseccrypto
-xpath_suffix:
-- network
-- ike
-- crypto-profiles
-- ipsec-crypto-profiles
+panos_xpath:
+  path:
+  - network
+  - ike
+  - crypto-profiles
+  - ipsec-crypto-profiles
+  vars: []
 locations:
 - name: ngfw
   xpath:
@@ -317,6 +319,7 @@ spec:
       variants: []
     description: AH only
     required: false
+    variant_group_id: 0
   - name: esp
     type: object
     profiles:
@@ -375,3 +378,4 @@ spec:
       variants: []
     description: ESP options
     required: false
+    variant_group_id: 0

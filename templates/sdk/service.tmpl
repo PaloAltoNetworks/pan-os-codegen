@@ -55,73 +55,91 @@ client: client,
 }
 
 // Create adds new item, then returns the result.
-{{- if and (.Entry) (.Imports)}}
-    func (s *Service) Create(ctx context.Context, loc Location, importLocations []ImportLocation, entry *Entry) (*Entry, error) {
-{{- else if (.Entry) }}
-    func (s *Service) Create(ctx context.Context, loc Location, entry *Entry) (*Entry, error) {
-{{- else }}
-    func (s *Service) Create(ctx context.Context, loc Location, config *Config) (*Config, error) {
-{{- end}}
+  {{- if and (.Entry) (.Imports)}}
+func (s *Service) Create(ctx context.Context, loc Location, importLocations []ImportLocation, entry *Entry) (*Entry, error) {
+  {{- else if (.Entry) }}
+func (s *Service) Create(ctx context.Context, loc Location, entry *Entry) (*Entry, error) {
+  {{- else }}
+func (s *Service) Create(ctx context.Context, loc Location, config *Config) (*Config, error) {
+  {{- end}}
 
-{{- if .Entry}}
-    if entry.Name == "" {
-    return nil, errors.NameNotSpecifiedError
-    }
-{{- end}}
+  {{- if .Entry}}
+	if entry.Name == "" {
+		return nil, errors.NameNotSpecifiedError
+	}
+  {{- end}}
 
-vn := s.client.Versioning()
+	vn := s.client.Versioning()
 
-specifier, _, err := Versioning(vn)
-if err != nil {
-return nil, err
+  {{- if .Entry}}
+	path, err := loc.XpathWithComponents(vn, util.AsEntryXpath(entry.Name))
+  {{- else}}
+	path, err := loc.XpathWithComponents(vn)
+  {{- end}}
+	if err != nil {
+		return nil, err
+	}
+
+  {{- if .Entry}}
+	err = s.CreateWithXpath(ctx, util.AsXpath(path[:len(path)-1]), entry)
+  {{- else}}
+	err = s.CreateWithXpath(ctx, util.AsXpath(path[:len(path)-1]), config)
+  {{- end}}
+	if err != nil {
+		return nil, err
+	}
+
+  {{- if .Imports }}
+	err = s.ImportToLocations(ctx, loc, importLocations, entry.Name)
+	if err != nil {
+		return nil, err
+	}
+  {{- end }}
+
+	return s.ReadWithXpath(ctx, util.AsXpath(path), "get")
 }
 
-{{- if .Entry}}
-    path, err := loc.XpathWithEntryName(vn, entry.Name)
-{{- else}}
-    path, err := loc.Xpath(vn)
-{{- end}}
-if err != nil {
-return nil, err
-}
 
-{{- if .Entry}}
-    createSpec, err := specifier(entry)
-{{- else}}
-    createSpec, err := specifier(config)
-{{- end}}
-if err != nil {
-return nil, err
-}
+  {{ $funcDef := "" }}
+  {{- if .Entry }}
+    {{ $funcDef = "CreateWithXpath(ctx context.Context, xpath string, entry *Entry) error" }}
+  {{- else }}
+    {{ $funcDef = "CreateWithXpath(ctx context.Context, xpath string, config *Config) error" }}
+  {{- end }}
 
-cmd := &xmlapi.Config{
-Action:  "set",
-Xpath:   util.AsXpath(path[:len(path)-1]),
-Element: createSpec,
-Target:  s.client.GetTarget(),
-}
+func (s *Service) {{ $funcDef }} {
+	vn := s.client.Versioning()
+	specifier, _, err := Versioning(vn)
+	if err != nil {
+		return err
+	}
 
-if _, _, err = s.client.Communicate(ctx, cmd, false, nil); err != nil {
-return nil, err
+  {{- if .Entry}}
+	createSpec, err := specifier(entry)
+  {{- else}}
+	createSpec, err := specifier(config)
+  {{- end}}
+	if err != nil {
+		return err
+	}
+
+	cmd := &xmlapi.Config{
+		Action:  "set",
+		Xpath:   xpath,
+		Element: createSpec,
+		Target:  s.client.GetTarget(),
+	}
+
+	if _, _, err = s.client.Communicate(ctx, cmd, false, nil); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 {{- if .Imports }}
-err = s.importToLocations(ctx, loc, importLocations, entry.Name)
-if err != nil {
-	return nil, err
-}
-{{- end }}
 
-{{- if .Entry}}
-    return s.Read(ctx, loc, entry.Name, "get")
-{{- else}}
-    return s.Read(ctx, loc, "get")
-{{- end}}
-}
-
-{{- if .Imports }}
-
-func (s *Service) importToLocations(ctx context.Context, loc Location, importLocations []ImportLocation, entryName string) error {
+func (s *Service) ImportToLocations(ctx context.Context, loc Location, importLocations []ImportLocation, entryName string) error {
 	vn := s.client.Versioning()
 
 	importToLocation := func(il ImportLocation) error {
@@ -186,7 +204,7 @@ func (s *Service) importToLocations(ctx context.Context, loc Location, importLoc
 	return nil
 }
 
-func (s *Service) unimportFromLocations(ctx context.Context, loc Location, importLocations []ImportLocation, values []string) error {
+func (s *Service) UnimportFromLocations(ctx context.Context, loc Location, importLocations []ImportLocation, values []string) error {
 	vn := s.client.Versioning()
 	valuesByName := make(map[string]bool)
 	for _, elt := range values {
@@ -259,115 +277,96 @@ func (s *Service) unimportFromLocations(ctx context.Context, loc Location, impor
 {{- if .Entry}}
     func (s *Service) Read(ctx context.Context, loc Location, name, action string) (*Entry, error) {
     {{- if $.Spec.Params.uuid}}
-        return s.read(ctx, loc, name, action, true, false)
+        return s.read(ctx, loc, name, action, true)
     {{- else}}
-        return s.read(ctx, loc, name, action, false)
+        return s.read(ctx, loc, name, action)
     {{- end}}
     }
     {{- if $.Spec.Params.uuid}}
         // ReadById returns the given config object with specified ID, using the specified action ("get" or "show").
         func (s *Service) ReadById(ctx context.Context, loc Location, uuid, action string) (*Entry, error) {
-        return s.read(ctx, loc, uuid, action, false, false)
+        return s.read(ctx, loc, uuid, action, false)
         }
     {{- end}}
 {{- else}}
     func (s *Service) Read(ctx context.Context, loc Location, action string) (*Config, error) {
-    return s.read(ctx, loc, action, false)
+    return s.read(ctx, loc, action)
     }
 {{- end}}
 
-// ReadFromConfig returns the given config object from the loaded XML config.
-// Requires that client.LoadPanosConfig() has been invoked.
-{{- if .Entry}}
-    func (s *Service) ReadFromConfig(ctx context.Context, loc Location, name string) (*Entry, error) {
-    {{- if $.Spec.Params.uuid}}
-        return s.read(ctx, loc, name, "", true, true)
-    {{- else}}
-        return s.read(ctx, loc, name, "", true)
-    {{- end}}
-    }
-    {{- if $.Spec.Params.uuid}}
-        // ReadFromConfigById returns the given config object with specified ID from the loaded XML config.
-        // Requires that client.LoadPanosConfig() has been invoked.
-        func (s *Service) ReadFromConfigById(ctx context.Context, loc Location, uuid string) (*Entry, error) {
-        return s.read(ctx, loc, uuid, "", false, true)
-        }
-    {{- end}}
-{{- else}}
-    func (s *Service) ReadFromConfig(ctx context.Context, loc Location) (*Config, error) {
-    return s.read(ctx, loc, "", true)
-    }
-{{- end}}
+  {{ $funcDef := "" }}
+  {{- if .Entry }}
+    {{ $funcDef = "ReadWithXpath(ctx context.Context, xpath string, action string) (*Entry, error)" }}
+  {{- else }}
+    {{ $funcDef = "ReadWithXpath(ctx context.Context, xpath string, action string) (*Config, error)" }}
+  {{- end }}
+func (s *Service) {{ $funcDef }} {
+	vn := s.client.Versioning()
+	_, normalizer, err := Versioning(vn)
+	if err != nil {
+		return nil, err
+	}
 
-{{if .Entry}}
+	cmd := &xmlapi.Config{
+		Action: action,
+		Xpath:  xpath,
+		Target: s.client.GetTarget(),
+	}
+
+	if _, _, err = s.client.Communicate(ctx, cmd, true, normalizer); err != nil {
+		if err.Error() == "No such node" && action == "show" {
+			return nil, errors.ObjectNotFound()
+		}
+		return nil, err
+	}
+
+	list, err := normalizer.Normalize()
+	if err != nil {
+		return nil, err
+	} else if len(list) != 1 {
+		return nil, fmt.Errorf("expected to %q 1 entry, got %d", action, len(list))
+	}
+
+	return list[0], nil
+}
+
+  {{if .Entry}}
     {{- if $.Spec.Params.uuid}}
-        func (s *Service) read(ctx context.Context, loc Location, value, action string, byName, usePanosConfig bool) (*Entry, error) {
+func (s *Service) read(ctx context.Context, loc Location, value, action string, byName bool) (*Entry, error) {
         if byName && value == "" {
-        return nil, errors.NameNotSpecifiedError
+		return nil, errors.NameNotSpecifiedError
         }
-        if !byName && value == "" {
-        return nil, errors.UuidNotSpecifiedError
-        }
+
+	if !byName && value == "" {
+		return nil, errors.UuidNotSpecifiedError
+	}
     {{- else}}
-        func (s *Service) read(ctx context.Context, loc Location, value, action string, usePanosConfig bool) (*Entry, error) {
+func (s *Service) read(ctx context.Context, loc Location, value, action string) (*Entry, error) {
         if value == "" {
         return nil, errors.NameNotSpecifiedError
         }
     {{- end}}
-{{- else}}
-    func (s *Service) read(ctx context.Context, loc Location, action string, usePanosConfig bool) (*Config, error) {
-{{- end}}
-vn := s.client.Versioning()
-_, normalizer, err := Versioning(vn)
-if err != nil {
-return nil, err
-}
+  {{- else}}
+func (s *Service) read(ctx context.Context, loc Location, action string) (*Config, error) {
+  {{- end}}
+	vn := s.client.Versioning()
 
-{{- if .Entry}}
-    var path []string
+  {{- if .Entry}}
+	var path []string
+        var err error
     {{- if $.Spec.Params.uuid}}
-        if byName {
-        path, err = loc.XpathWithEntryName(vn, value)
-        } else {
-        path, err = loc.XpathWithUuid(vn, value)
-        }
+	path, err = loc.XpathWithComponents(vn, value)
     {{- else}}
-        path, err = loc.XpathWithEntryName(vn, value)
+	path, err = loc.XpathWithComponents(vn, value)
     {{- end}}
-{{- else}}
-    path, err := loc.Xpath(vn)
-{{- end}}
-if err != nil {
-return nil, err
-}
+  {{- else}}
+	path, err := loc.XpathWithComponents(vn)
+  {{- end}}
+	if err != nil {
+		return nil, err
+	}
 
-if usePanosConfig {
-if _, err = s.client.ReadFromConfig(ctx, path, true, normalizer); err != nil {
-return nil, err
-}
-} else {
-cmd := &xmlapi.Config{
-Action: action,
-Xpath:  util.AsXpath(path),
-Target: s.client.GetTarget(),
-}
-
-if _, _, err = s.client.Communicate(ctx, cmd, true, normalizer); err != nil {
-if err.Error() == "No such node" && action == "show" {
-return nil, errors.ObjectNotFound()
-}
-return nil, err
-}
-}
-
-list, err := normalizer.Normalize()
-if err != nil {
-return nil, err
-} else if len(list) != 1 {
-return nil, fmt.Errorf("expected to %q 1 entry, got %d", action, len(list))
-}
-
-return list[0], nil
+	return s.ReadWithXpath(ctx, util.AsXpath(path), action)
 }
 
 {{ $object := "Config" }}
@@ -376,138 +375,127 @@ return list[0], nil
 {{- end }}
 
 {{- if .Entry }}
-    // Update updates the given config object, then returns the result.
-    func (s *Service) Update(ctx context.Context, loc Location, entry *{{ $object }}, name string) (*{{ $object }}, error) {
-  {{- if $.Spec.Params.uuid}}
-        return s.update(ctx, loc, entry, name, true)
-  {{- else}}
-        return s.update(ctx, loc, entry, name)
-  {{- end}}
-    }
+func (s *Service) Update(ctx context.Context, loc Location, entry *{{ $object }}, name string) (*{{ $object }}, error) {
+	if entry.Name == "" {
+		return nil, errors.NameNotSpecifiedError
+	}
 
-  {{- if $.Spec.Params.uuid}}
-        // UpdateById updates the given config object, then returns the result.
-        func (s *Service) UpdateById(ctx context.Context, loc Location, entry *{{ $object }}, uuid string) (*{{ $object }}, error) {
-        return s.update(ctx, loc, entry, uuid, false)
-        }
-  {{- end}}
+	xpath, err := loc.XpathWithComponents(s.client.Versioning(), entry.Name)
+        if err != nil {
+        	return nil, err
+	}
 
-  {{- if $.Spec.Params.uuid}}
-        func (s *Service) update(ctx context.Context, loc Location, entry *{{ $object }}, value string, byName bool) (*{{ $object }}, error) {
-  {{- if .Entry }}
-        if byName && entry.Name == "" {
-        return nil, errors.NameNotSpecifiedError
-        }
-        if !byName && value == "" {
-        return nil, errors.UuidNotSpecifiedError
-        }
-  {{- end }}
-  {{- else}}
-        func (s *Service) update(ctx context.Context, loc Location, entry *{{ $object }}, value string) (*{{ $object }}, error) {
-    {{- if .Entry }}
-        if entry.Name == "" {
-        return nil, errors.NameNotSpecifiedError
-        }
-    {{- end }}
-  {{- end}}
+	err = s.UpdateWithXpath(ctx, util.AsXpath(xpath), entry, name)
+        if err != nil {
+        	return nil, err
+	}
+
+	return s.ReadWithXpath(ctx, util.AsXpath(xpath), "get")
+}
 {{- else }}
-func (s *Service) Update(ctx context.Context, loc Location, entry *{{ $object }}) (*{{ $object }}, error) {
+func (s *Service) Update(ctx context.Context, loc Location, entry *{{ $object }}, name string) (*{{ $object }}, error) {
+	xpath, err := loc.XpathWithComponents(s.client.Versioning())
+        if err != nil {
+        	return nil, err
+	}
+
+	err = s.UpdateWithXpath(ctx, util.AsXpath(xpath), entry)
+        if err != nil {
+        	return nil, err
+	}
+
+	return s.ReadWithXpath(ctx, util.AsXpath(xpath), "get")
+}
 {{- end }}
 
-    vn := s.client.Versioning()
-    updates := xmlapi.NewMultiConfig(2)
-    specifier, _, err := Versioning(vn)
-    if err != nil {
-        return nil, err
-    }
+{{- if .Entry }}
+func (s *Service) UpdateWithXpath(ctx context.Context, xpath string, entry *{{ $object }}, name string) error {
+{{- else }}
+func (s *Service) UpdateWithXpath(ctx context.Context, xpath string, entry *{{ $object }}) error {
+{{- end }}
+	vn := s.client.Versioning()
+	updates := xmlapi.NewMultiConfig(2)
+	specifier, _, err := Versioning(vn)
+	if err != nil {
+		return err
+	}
 
 
-  {{- if .Entry }}
-    var old *{{ $object }}
-    {{- if $.Spec.Params.uuid}}
-        if byName {
-    {{- end}}
-    if value != "" && value != entry.Name {
-        path, err := loc.XpathWithEntryName(vn, value)
-        if err != nil {
-            return nil, err
-        }
-
-        old, err = s.Read(ctx, loc, value, "get")
-
-        updates.Add(&xmlapi.Config{
-            Action:  "rename",
-            Xpath:   util.AsXpath(path),
-            NewName: entry.Name,
-            Target:  s.client.GetTarget(),
-        })
-    } else {
-        old, err = s.Read(ctx, loc, entry.Name, "get")
-    }
-    {{- if $.Spec.Params.uuid}}
-        } else {
-        old, err = s.ReadById(ctx, loc, value, "get")
-        }
-    {{- end}}
-    if err != nil {
-        return nil, err
-    } else if old == nil {
-        return nil, fmt.Errorf("previous object doesn't exist for update")
-    }
-  {{- else }}
-    var old *{{ $object }}
-    old, err = s.Read(ctx, loc, "get")
-    if err != nil {
-        return nil, err
-    } else if old == nil {
-        return nil, fmt.Errorf("previous object doesn't exist for update")
-    }
-  {{- end }}
+	var old *{{ $object }}
 
   {{- if .Entry }}
-    if !SpecMatches(entry, old) {
-        path, err := loc.XpathWithEntryName(vn, entry.Name)
+	if name != "" && name != entry.Name {
+		old, err = s.ReadWithXpath(ctx, xpath, "get")
+		if err != nil {
+			return err
+		}
+
+		if old != nil {
+			return errors.ObjectExists
+		}
+
+		updates.Add(&xmlapi.Config{
+			Action:  "rename",
+			Xpath:   util.AsXpath(xpath),
+			NewName: entry.Name,
+			Target:  s.client.GetTarget(),
+		})
+	} else {
+		old, err = s.ReadWithXpath(ctx, xpath, "get")
+		if err != nil {
+			return err
+		}
+
+		if old == nil {
+        		return errors.ObjectNotFound()
+		}
+
+		if SpecMatches(entry, old) {
+        		return nil
+		}
+
+			updateSpec, err := specifier(entry)
+		if err != nil {
+			return err
+		}
+
+		updates.Add(&xmlapi.Config{
+			Action:  "edit",
+			Xpath:   util.AsXpath(xpath),
+			Element: updateSpec,
+			Target:  s.client.GetTarget(),
+		})
+	}
   {{- else }}
-    if !SpecMatches(entry, old) {
-        path, err := loc.Xpath(vn)
-  {{- end }}
+	old, err = s.ReadWithXpath(ctx, xpath, "get")
         if err != nil {
-            return nil, err
-        }
+        	return err
+	}
 
+	if SpecMatches(entry, old) {
+        	return nil
+	}
 
-        updateSpec, err := specifier(entry)
-        if err != nil {
-            return nil, err
-        }
+	updateSpec, err := specifier(entry)
+	if err != nil {
+		return err
+	}
 
-        updates.Add(&xmlapi.Config{
-            Action:  "edit",
-            Xpath:   util.AsXpath(path),
-            Element: updateSpec,
-            Target:  s.client.GetTarget(),
-        })
-    }
-
-    if len(updates.Operations) != 0 {
-        if _, _, _, err = s.client.MultiConfig(ctx, updates, false, nil); err != nil {
-            return nil, err
-        }
-    }
-
-  {{- if .Entry }}
-    {{- if $.Spec.Params.uuid}}
-        if byName {
-            return s.Read(ctx, loc, entry.Name, "get")
-        } else {
-            return s.ReadById(ctx, loc, value, "get")
-        }
-    {{- else}}
-        return s.Read(ctx, loc, entry.Name, "get")
-    {{- end}}
-  {{- else }}
-        return s.Read(ctx, loc, "get")
+	updates.Add(&xmlapi.Config{
+		Action:  "edit",
+		Xpath:   util.AsXpath(xpath),
+		Element: updateSpec,
+		Target:  s.client.GetTarget(),
+	})
   {{- end }}
+
+	if len(updates.Operations) != 0 {
+		if _, _, _, err = s.client.MultiConfig(ctx, updates, false, nil); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Delete deletes the given item.
@@ -585,24 +573,16 @@ vn := s.client.Versioning()
     var err error
     deletes := xmlapi.NewMultiConfig(len(values))
   {{- if .Imports }}
-    err = s.unimportFromLocations(ctx, loc, importLocations, values)
+    err = s.UnimportFromLocations(ctx, loc, importLocations, values)
     if err != nil {
         return err
     }
   {{- end }}
     for _, value := range values {
     var path []string
-    {{- if $.Spec.Params.uuid}}
-        if byName {
-        path, err = loc.XpathWithEntryName(vn, value)
-        } else {
-        path, err = loc.XpathWithUuid(vn, value)
-        }
-    {{- else}}
-        path, err = loc.XpathWithEntryName(vn, value)
-    {{- end}}
+        path, err = loc.XpathWithComponents(vn, util.AsEntryXpath(value))
 {{- else}}
-    path, err := loc.Xpath(vn)
+    path, err := loc.XpathWithComponents(vn)
 {{- end}}
 if err != nil {
 return err
@@ -725,85 +705,75 @@ func (s *Service) RemoveFromImport(ctx context.Context, loc Location, entry Entr
 {{- end}}
 
 {{- if .Entry}}
-    // List returns a list of objects using the given action ("get" or "show").
-    // Params filter and quote are for client side filtering.
-    func (s *Service) List(ctx context.Context, loc Location, action, filter, quote string) ([]*Entry, error) {
-    return s.list(ctx, loc, action, filter, quote, false)
-    }
+// List returns a list of objects using the given action ("get" or "show").
+// Params filter and quote are for client side filtering.
+func (s *Service) List(ctx context.Context, loc Location, action, filter, quote string) ([]*Entry, error) {
+	return s.list(ctx, loc, action, filter, quote)
+}
 
-    // ListFromConfig returns a list of objects at the given location.
-    // Requires that client.LoadPanosConfig() has been invoked.
-    // Params filter and quote are for client side filtering.
-    func (s *Service) ListFromConfig(ctx context.Context, loc Location, filter, quote string) ([]*Entry, error) {
-    return s.list(ctx, loc, "", filter, quote, true)
-    }
+func (s *Service) list(ctx context.Context, loc Location, action, filter, quote string) ([]*Entry, error) {
+	xpath, err := loc.XpathWithComponents(s.client.Versioning(), util.AsEntryXpath(""))
+        if err != nil {
+        	return nil, err
+	}
 
-    func (s *Service) list(ctx context.Context, loc Location, action, filter, quote string, usePanosConfig bool) ([]*Entry, error) {
-    var err error
+	return s.ListWithXpath(ctx, util.AsXpath(xpath), action, filter, quote)
+}
 
-    var logic *filtering.Group
-    if filter != "" {
-    logic, err = filtering.Parse(filter, quote)
-    if err != nil {
-    return nil, err
-    }
-    }
+func (s *Service) ListWithXpath(ctx context.Context, xpath string, action, filter, quote string) ([]*Entry, error) {
+	var logic *filtering.Group
+	if filter != "" {
+        	var err error
+		logic, err = filtering.Parse(filter, quote)
+		if err != nil {
+			return nil, err
+		}
+	}
 
-    vn := s.client.Versioning()
+	vn := s.client.Versioning()
 
-    _, normalizer, err := Versioning(vn)
-    if err != nil {
-    return nil, err
-    }
+   	_, normalizer, err := Versioning(vn)
+	if err != nil {
+		return nil, err
+	}
 
-    path, err := loc.XpathWithEntryName(vn, "")
-    if err != nil {
-    return nil, err
-    }
+	cmd := &xmlapi.Config{
+		Action: action,
+		Xpath:  util.AsXpath(xpath),
+		Target: s.client.GetTarget(),
+	}
 
-    if usePanosConfig {
-    if _, err = s.client.ReadFromConfig(ctx, path, false, normalizer); err != nil {
-    return nil, err
-    }
-    } else{
-    cmd := &xmlapi.Config{
-    Action: action,
-    Xpath:  util.AsXpath(path),
-    Target: s.client.GetTarget(),
-    }
+	if _, _, err = s.client.Communicate(ctx, cmd, true, normalizer); err != nil {
+		if err.Error() == "No such node" && action == "show" {
+			return nil, nil
+    		}
+		return nil, err
+	}
 
-    if _, _, err = s.client.Communicate(ctx, cmd, true, normalizer); err != nil {
-    if err.Error() == "No such node" && action == "show" {
-    return nil, nil
-    }
-    return nil, err
-    }
-    }
+	listing, err := normalizer.Normalize()
+	if err != nil || logic == nil {
+		return listing, err
+	}
 
-    listing, err := normalizer.Normalize()
-    if err != nil || logic == nil {
-    return listing, err
-    }
+	filtered := make([]*Entry, 0, len(listing))
+	for _, x := range listing {
+		ok, err := logic.Matches(x)
+		if err != nil {
+			return nil, err
+    		}
+		if ok {
+			filtered = append(filtered, x)
+    		}
+    	}
 
-    filtered := make([]*Entry, 0, len(listing))
-    for _, x := range listing {
-    ok, err := logic.Matches(x)
-    if err != nil {
-    return nil, err
-    }
-    if ok {
-    filtered = append(filtered, x)
-    }
-    }
+	return filtered, nil
+}
 
-    return filtered, nil
-    }
-
-    {{- if $.Spec.Params.uuid}}
-        // MoveGroup arranges the given rules in the order specified.
-        // Any rule with a UUID specified is ignored.
-        // Only the rule names are considered for the purposes of the rule placement.
- func (s *Service) MoveGroup(ctx context.Context, loc Location, position movement.Position, entries []*Entry, batchSize int) error {
+{{- if $.Spec.Params.uuid}}
+// MoveGroup arranges the given rules in the order specified.
+// Any rule with a UUID specified is ignored.
+// Only the rule names are considered for the purposes of the rule placement.
+func (s *Service) MoveGroup(ctx context.Context, loc Location, position movement.Position, entries []*Entry, batchSize int) error {
         if len(entries) == 0 {
         	return nil
         }
@@ -823,7 +793,7 @@ func (s *Service) RemoveFromImport(ctx context.Context, loc Location, entry Entr
 	updates := xmlapi.NewChunkedMultiConfig(len(movements), batchSize)
 
 	for _, elt := range movements {
-	        path, err := loc.XpathWithEntryName(s.client.Versioning(), elt.Movable.EntryName())
+	        path, err := loc.XpathWithComponents(s.client.Versioning(), util.AsEntryXpath(elt.Movable.EntryName()))
 	        if err != nil {
 		        return err
 	        }
@@ -886,7 +856,7 @@ func (s *Service) RemoveFromImport(ctx context.Context, loc Location, entry Entr
 
         vn := s.client.Versioning()
 
-        path, err := loc.XpathWithEntryName(vn, name)
+        path, err := loc.XpathWithComponents(vn, name)
         if err != nil {
         return err
         }
@@ -911,7 +881,7 @@ func (s *Service) RemoveFromImport(ctx context.Context, loc Location, entry Entr
 
         vn := s.client.Versioning()
 
-        path, err := loc.XpathWithEntryName(vn, name)
+        path, err := loc.XpathWithComponents(vn, name)
         if err != nil {
         return "", err
         }
