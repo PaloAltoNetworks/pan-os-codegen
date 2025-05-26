@@ -327,7 +327,7 @@ func ParamType(structTyp structType, parentName *properties.NameVariant, param *
 		if structTyp == structXmlType {
 			calculatedType = "util.Member"
 		} else {
-			calculatedType = "string"
+			calculatedType = param.Items.Type
 		}
 	} else if isParamListAndProfileTypeIsSingleEntry(param) {
 		if structTyp == structXmlType {
@@ -591,10 +591,10 @@ func getTypesForParam(structTyp structType, parent *properties.NameVariant, para
 	if structTyp == structXmlType {
 		typ := ParamType(structXmlType, parent, param, versionSuffix)
 		var itemsType string
-		if param.Type == "list" && param.Items.Type == "string" {
-			itemsType = "util.MemberType"
-		} else if param.Type == "list" && param.Items.Type == "entry" {
+		if param.Type == "list" && param.Items.Type == "entry" {
 			itemsType = "[]" + typ
+		} else if param.Type == "list" {
+			itemsType = "util.MemberType"
 		}
 		var xmlContainerType string
 		if overrideForXmlContainer {
@@ -606,6 +606,8 @@ func getTypesForParam(structTyp structType, parent *properties.NameVariant, para
 		var itemsType string
 		if param.Type == "list" && param.Items.Type == "string" {
 			itemsType = "[]string"
+		} else if param.Type == "list" && param.Items.Type == "int64" {
+			itemsType = "[]int64"
 		} else if param.Type == "list" && param.Items.Type == "entry" {
 			itemsType = "[]" + typ
 		}
@@ -618,12 +620,12 @@ func getFieldTypeForParam(param *properties.SpecParam) string {
 		return "object"
 	}
 
-	if param.Type == "list" && param.Items.Type == "string" {
-		return "list-member"
-	}
-
 	if param.Type == "list" && param.Items.Type == "entry" {
 		return "list-entry"
+	}
+
+	if param.Type == "list" {
+		return "list-member"
 	}
 
 	return "simple"
@@ -935,6 +937,7 @@ const structToXmlMarshalersTmpl = `
   {{- if .IsXmlContainer }}{{ continue }}{{ end }}
 func (o *{{ .XmlStructName }}) MarshalFromObject(s {{ .StructName }}) {
   {{- range .Fields }}
+    // FieldType: {{ .FieldType }}
     {{- if .IsInternal }}{{ continue }}{{- end }}
     {{- if eq .FieldType "object" }}
 	if s.{{ .Name.CamelCase }} != nil {
@@ -943,9 +946,15 @@ func (o *{{ .XmlStructName }}) MarshalFromObject(s {{ .StructName }}) {
 		o.{{ .Name.CamelCase }} = &obj
 	}
     {{-  else if eq .FieldType "list-member" }}
+      {{- if eq .ItemsType "[]string" }}
 	if s.{{ .Name.CamelCase }} != nil {
 		o.{{ .Name.CamelCase }} = util.StrToMem(s.{{ .Name.CamelCase }})
 	}
+      {{- else if eq .ItemsType "int64" }}
+	if s.{{ .Name.CamelCase }} != nil {
+		o.{{ .Name.CamelCase }} = util.Int64ToMem(s.{{ .Name.CamelCase }})
+	}
+      {{- end }}
     {{- else if eq .FieldType "list-entry" }}
 	if s.{{ .Name.CamelCase }} != nil {
 		var objs {{ .ItemsXmlType }}
@@ -964,24 +973,42 @@ func (o *{{ .XmlStructName }}) MarshalFromObject(s {{ .StructName }}) {
   {{- end }}
 }
 
-func (o {{ .XmlStructName }}) UnmarshalToObject() *{{ .StructName }} {
+func (o {{ .XmlStructName }}) UnmarshalToObject() (*{{ .StructName }}, error) {
   {{- range .Fields }}
     {{- if .IsInternal }}{{ continue }}{{- end }}
     {{- if eq .FieldType "object" }}
 	var {{ .Name.LowerCamelCase }}Val {{ .FinalType }}
 	if o.{{ .Name.CamelCase }} != nil {
-		{{ .Name.LowerCamelCase }}Val = o.{{ .Name.CamelCase }}.UnmarshalToObject()
+		obj, err := o.{{ .Name.CamelCase }}.UnmarshalToObject()
+		if err != nil {
+			return nil, err
+		}
+		{{ .Name.LowerCamelCase }}Val = obj
 	}
     {{- else if eq .FieldType "list-member" }}
 	var {{ .Name.LowerCamelCase }}Val {{ .FinalType }}
+      {{- if eq .ItemsType "[]string" }}
 	if o.{{ .Name.CamelCase }} != nil {
 		{{ .Name.LowerCamelCase }}Val = util.MemToStr(o.{{ .Name.CamelCase }})
 	}
+      {{- else if eq .ItemsType "[]int64" }}
+	if o.{{ .Name.CamelCase }} != nil {
+		var err error
+		{{ .Name.LowerCamelCase }}Val, err = util.MemToInt64(o.{{ .Name.CamelCase }})
+		if err != nil && !errors.Is(err, util.ErrEmptyMemberList) {
+			return nil, err
+		}
+	}
+      {{- end }}
     {{- else if eq .FieldType "list-entry" }}
 	var {{ .Name.LowerCamelCase }}Val {{ .FinalType }}
 	if o.{{ .Name.CamelCase }} != nil {
 		for _, elt := range o.{{ .Name.CamelCase }}.Entries {
-			{{ .Name.LowerCamelCase }}Val = append({{ .Name.LowerCamelCase }}Val, *elt.UnmarshalToObject())
+			obj, err := elt.UnmarshalToObject()
+			if err != nil {
+				return nil, err
+			}
+			{{ .Name.LowerCamelCase }}Val = append({{ .Name.LowerCamelCase }}Val, *obj)
 		}
 	}
     {{- end }}
@@ -999,7 +1026,7 @@ func (o {{ .XmlStructName }}) UnmarshalToObject() *{{ .StructName }} {
     {{- end }}
   {{- end }}
 	}
-	return result
+	return result, nil
 }
 {{- end }}
 `
@@ -1040,7 +1067,11 @@ const xmlContainerNormalizersTmpl = `
 func (o *{{ .XmlContainerStructName }}) Normalize() ([]*{{ $.EntryOrConfig }}, error) {
 	entries := make([]*{{ $.EntryOrConfig }}, 0, len(o.Answer))
 	for _, elt := range o.Answer {
-		entries = append(entries, elt.UnmarshalToObject())
+		obj, err := elt.UnmarshalToObject()
+		if err != nil {
+			return nil, err
+		}
+		entries = append(entries, obj)
 	}
 
 	return entries, nil
@@ -1162,7 +1193,7 @@ func (o *{{ .StructName }}) matches(other *{{ .StructName }}) bool {
 		}
 	}
     {{- else if eq .FieldType "list-member" }}
-	if !util.OrderedListsMatch(o.{{ .Name.CamelCase}}, other.{{ .Name.CamelCase }}) {
+	if !util.OrderedListsMatch[{{ .Type }}](o.{{ .Name.CamelCase}}, other.{{ .Name.CamelCase }}) {
 		return false
 	}
     {{- else if and (eq .Type "string") (eq .Required false)}}
