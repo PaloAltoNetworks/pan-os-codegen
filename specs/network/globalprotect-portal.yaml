@@ -1,0 +1,2755 @@
+name: global-protect-portal
+terraform_provider_config:
+  description: Global Protect Portal
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: globalprotect_portal
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - network
+  - globalprotect
+  - portal
+panos_xpath:
+  path:
+  - global-protect
+  - global-protect-portal
+  vars: []
+locations:
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: ngfw_device
+      description: The NGFW device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The Virtual System name
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys name cannot be "shared". Use the "shared" location instead
+      type: entry
+  description: Located in a specific Virtual System
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: client-config
+    type: object
+    profiles:
+    - xpath:
+      - client-config
+    validators: []
+    spec:
+      params:
+      - name: agent-user-override-key
+        type: string
+        profiles:
+        - xpath:
+          - agent-user-override-key
+        validators:
+        - type: length
+          spec:
+            min: 1
+            max: 4
+        spec: {}
+        description: Agent user override ticket key
+        required: false
+        hashing:
+          type: solo
+      - name: configs
+        type: list
+        profiles:
+        - xpath:
+          - configs
+          - entry
+          type: entry
+        validators: []
+        spec:
+          type: object
+          items:
+            type: object
+            spec:
+              params:
+              - name: save-user-credentials
+                type: enum
+                profiles:
+                - xpath:
+                  - save-user-credentials
+                validators:
+                - type: values
+                  spec:
+                    values:
+                    - '0'
+                    - '1'
+                    - '2'
+                    - '3'
+                spec:
+                  default: '1'
+                  values:
+                  - value: '0'
+                  - value: '1'
+                  - value: '2'
+                  - value: '3'
+                description: Save User Credentials
+                required: false
+              - name: portal-2fa
+                type: bool
+                profiles:
+                - xpath:
+                  - portal-2fa
+                validators: []
+                spec: {}
+                description: Portal Authentication OTP
+                required: false
+              - name: internal-gateway-2fa
+                type: bool
+                profiles:
+                - xpath:
+                  - internal-gateway-2fa
+                validators: []
+                spec: {}
+                description: Internal Gateway Authentication OTP
+                required: false
+              - name: auto-discovery-external-gateway-2fa
+                type: bool
+                profiles:
+                - xpath:
+                  - auto-discovery-external-gateway-2fa
+                validators: []
+                spec: {}
+                description: Auto Discovery External Gateway Authentication OTP
+                required: false
+              - name: manual-only-gateway-2fa
+                type: bool
+                profiles:
+                - xpath:
+                  - manual-only-gateway-2fa
+                validators: []
+                spec: {}
+                description: Manual Only External Gateway Authentication OTP
+                required: false
+              - name: refresh-config
+                type: bool
+                profiles:
+                - xpath:
+                  - refresh-config
+                validators: []
+                spec: {}
+                description: Enable portal config refresh
+                required: false
+              - name: mdm-address
+                type: string
+                profiles:
+                - xpath:
+                  - mdm-address
+                validators:
+                - type: length
+                  spec:
+                    max: 255
+                spec: {}
+                description: IP address or hostname for GlobalProtect MDM server
+                required: false
+              - name: mdm-enrollment-port
+                type: enum
+                profiles:
+                - xpath:
+                  - mdm-enrollment-port
+                validators:
+                - type: values
+                  spec:
+                    values:
+                    - '443'
+                    - '7443'
+                    - '8443'
+                spec:
+                  default: '443'
+                  values:
+                  - value: '443'
+                  - value: '7443'
+                  - value: '8443'
+                description: MDM enrollment port
+                required: false
+              - name: source-user
+                type: list
+                profiles:
+                - xpath:
+                  - source-user
+                  type: member
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ''
+                required: false
+              - name: third-party-vpn-clients
+                type: list
+                profiles:
+                - xpath:
+                  - third-party-vpn-clients
+                  type: member
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ''
+                required: false
+              - name: os
+                type: list
+                profiles:
+                - xpath:
+                  - os
+                  type: member
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ''
+                required: false
+              - name: certificate
+                type: object
+                profiles:
+                - xpath:
+                  - certificate
+                validators: []
+                spec:
+                  params:
+                  - name: criteria
+                    type: object
+                    profiles:
+                    - xpath:
+                      - criteria
+                    validators: []
+                    spec:
+                      params:
+                      - name: certificate-profile
+                        type: string
+                        profiles:
+                        - xpath:
+                          - certificate-profile
+                        validators: []
+                        spec: {}
+                        description: Profile for authenticating client certificates
+                        required: false
+                      variants: []
+                    description: matching criteria
+                    required: false
+                  variants: []
+                description: Certificate
+                required: false
+              - name: custom-checks
+                type: object
+                profiles:
+                - xpath:
+                  - custom-checks
+                validators: []
+                spec:
+                  params:
+                  - name: criteria
+                    type: object
+                    profiles:
+                    - xpath:
+                      - criteria
+                    validators: []
+                    spec:
+                      params:
+                      - name: registry-key
+                        type: list
+                        profiles:
+                        - xpath:
+                          - registry-key
+                          - entry
+                          type: entry
+                        validators: []
+                        spec:
+                          type: object
+                          items:
+                            type: object
+                            spec:
+                              params:
+                              - name: default-value-data
+                                type: string
+                                profiles:
+                                - xpath:
+                                  - default-value-data
+                                validators:
+                                - type: length
+                                  spec:
+                                    max: 1024
+                                spec: {}
+                                description: Registry key default value data
+                                required: false
+                              - name: negate
+                                type: bool
+                                profiles:
+                                - xpath:
+                                  - negate
+                                validators: []
+                                spec: {}
+                                description: Key does not exist
+                                required: false
+                              - name: registry-value
+                                type: list
+                                profiles:
+                                - xpath:
+                                  - registry-value
+                                  - entry
+                                  type: entry
+                                validators: []
+                                spec:
+                                  type: object
+                                  items:
+                                    type: object
+                                    spec:
+                                      params:
+                                      - name: value-data
+                                        type: string
+                                        profiles:
+                                        - xpath:
+                                          - value-data
+                                        validators:
+                                        - type: length
+                                          spec:
+                                            max: 1024
+                                        spec: {}
+                                        description: Registry value data
+                                        required: false
+                                      - name: negate
+                                        type: bool
+                                        profiles:
+                                        - xpath:
+                                          - negate
+                                        validators: []
+                                        spec: {}
+                                        description: Value does not exist
+                                        required: false
+                                      variants: []
+                                description: ''
+                                required: false
+                              variants: []
+                        description: ''
+                        required: false
+                      - name: plist
+                        type: list
+                        profiles:
+                        - xpath:
+                          - plist
+                          - entry
+                          type: entry
+                        validators: []
+                        spec:
+                          type: object
+                          items:
+                            type: object
+                            spec:
+                              params:
+                              - name: negate
+                                type: bool
+                                profiles:
+                                - xpath:
+                                  - negate
+                                validators: []
+                                spec: {}
+                                description: Plist does not exist
+                                required: false
+                              - name: key
+                                type: list
+                                profiles:
+                                - xpath:
+                                  - key
+                                  - entry
+                                  type: entry
+                                validators: []
+                                spec:
+                                  type: object
+                                  items:
+                                    type: object
+                                    spec:
+                                      params:
+                                      - name: value
+                                        type: string
+                                        profiles:
+                                        - xpath:
+                                          - value
+                                        validators:
+                                        - type: length
+                                          spec:
+                                            max: 1024
+                                        spec: {}
+                                        description: Key value
+                                        required: false
+                                      - name: negate
+                                        type: bool
+                                        profiles:
+                                        - xpath:
+                                          - negate
+                                        validators: []
+                                        spec: {}
+                                        description: Value does not exist or match
+                                          specified value data
+                                        required: false
+                                      variants: []
+                                description: ''
+                                required: false
+                              variants: []
+                        description: ''
+                        required: false
+                      variants: []
+                    description: matching criteria
+                    required: false
+                  variants: []
+                description: ''
+                required: false
+              - name: gateways
+                type: object
+                profiles:
+                - xpath:
+                  - gateways
+                validators: []
+                spec:
+                  params:
+                  - name: internal
+                    type: object
+                    profiles:
+                    - xpath:
+                      - internal
+                    validators: []
+                    spec:
+                      params:
+                      - name: list
+                        type: list
+                        profiles:
+                        - xpath:
+                          - list
+                          - entry
+                          type: entry
+                        validators: []
+                        spec:
+                          type: object
+                          items:
+                            type: object
+                            spec:
+                              params:
+                              - name: source-ip
+                                type: list
+                                profiles:
+                                - xpath:
+                                  - source-ip
+                                  type: member
+                                validators: []
+                                spec:
+                                  type: string
+                                  items:
+                                    type: string
+                                description: ''
+                                required: false
+                              variants:
+                              - name: fqdn
+                                type: string
+                                profiles:
+                                - xpath:
+                                  - fqdn
+                                validators:
+                                - type: length
+                                  spec:
+                                    min: 0
+                                    max: 255
+                                spec: {}
+                                description: fqdn
+                                required: false
+                                variant_group_id: 0
+                              - name: ip
+                                type: object
+                                profiles:
+                                - xpath:
+                                  - ip
+                                validators: []
+                                spec:
+                                  params:
+                                  - name: ipv4
+                                    type: string
+                                    profiles:
+                                    - xpath:
+                                      - ipv4
+                                    validators:
+                                    - type: length
+                                      spec:
+                                        min: 0
+                                        max: 100
+                                    spec: {}
+                                    description: IPv4
+                                    required: false
+                                  - name: ipv6
+                                    type: string
+                                    profiles:
+                                    - xpath:
+                                      - ipv6
+                                    validators:
+                                    - type: length
+                                      spec:
+                                        min: 0
+                                        max: 100
+                                    spec: {}
+                                    description: IPv6
+                                    required: false
+                                  variants: []
+                                description: IP address
+                                required: false
+                                variant_group_id: 0
+                        description: ''
+                        required: false
+                      - name: dhcp-option-code
+                        type: list
+                        profiles:
+                        - xpath:
+                          - dhcp-option-code
+                          type: member
+                        validators: []
+                        spec:
+                          type: int64
+                          items:
+                            type: int64
+                        description: ''
+                        required: false
+                      variants: []
+                    description: internal gateways
+                    required: false
+                  - name: external
+                    type: object
+                    profiles:
+                    - xpath:
+                      - external
+                    validators: []
+                    spec:
+                      params:
+                      - name: cutoff-time
+                        type: int64
+                        profiles:
+                        - xpath:
+                          - cutoff-time
+                        validators:
+                        - type: length
+                          spec:
+                            min: 0
+                            max: 10
+                        spec:
+                          default: 5
+                        description: Gateway discovery cutoff time in seconds
+                        required: false
+                      - name: list
+                        type: list
+                        profiles:
+                        - xpath:
+                          - list
+                          - entry
+                          type: entry
+                        validators: []
+                        spec:
+                          type: object
+                          items:
+                            type: object
+                            spec:
+                              params:
+                              - name: priority-rule
+                                type: list
+                                profiles:
+                                - xpath:
+                                  - priority-rule
+                                  - entry
+                                  type: entry
+                                validators: []
+                                spec:
+                                  type: object
+                                  items:
+                                    type: object
+                                    spec:
+                                      params:
+                                      - name: priority
+                                        type: enum
+                                        profiles:
+                                        - xpath:
+                                          - priority
+                                        validators:
+                                        - type: values
+                                          spec:
+                                            values:
+                                            - '0'
+                                            - '1'
+                                            - '2'
+                                            - '3'
+                                            - '4'
+                                            - '5'
+                                        spec:
+                                          default: '1'
+                                          values:
+                                          - value: '0'
+                                          - value: '1'
+                                          - value: '2'
+                                          - value: '3'
+                                          - value: '4'
+                                          - value: '5'
+                                        description: Priority of GlobalProtect gateway
+                                        required: false
+                                      variants: []
+                                description: ''
+                                required: false
+                              - name: manual
+                                type: bool
+                                profiles:
+                                - xpath:
+                                  - manual
+                                validators: []
+                                spec: {}
+                                description: If this GlobalProtect gateway can be
+                                  manually selected
+                                required: false
+                              variants:
+                              - name: fqdn
+                                type: string
+                                profiles:
+                                - xpath:
+                                  - fqdn
+                                validators:
+                                - type: length
+                                  spec:
+                                    min: 0
+                                    max: 255
+                                spec: {}
+                                description: fqdn
+                                required: false
+                                variant_group_id: 0
+                              - name: ip
+                                type: object
+                                profiles:
+                                - xpath:
+                                  - ip
+                                validators: []
+                                spec:
+                                  params:
+                                  - name: ipv4
+                                    type: string
+                                    profiles:
+                                    - xpath:
+                                      - ipv4
+                                    validators:
+                                    - type: length
+                                      spec:
+                                        min: 0
+                                        max: 100
+                                    spec: {}
+                                    description: IPv4
+                                    required: false
+                                  - name: ipv6
+                                    type: string
+                                    profiles:
+                                    - xpath:
+                                      - ipv6
+                                    validators:
+                                    - type: length
+                                      spec:
+                                        min: 0
+                                        max: 100
+                                    spec: {}
+                                    description: IPv6
+                                    required: false
+                                  variants: []
+                                description: IP address
+                                required: false
+                                variant_group_id: 0
+                        description: ''
+                        required: false
+                      variants: []
+                    description: external gateways
+                    required: false
+                  variants: []
+                description: GlobalProtect gateways configuration
+                required: false
+              - name: internal-host-detection
+                type: object
+                profiles:
+                - xpath:
+                  - internal-host-detection
+                validators: []
+                spec:
+                  params:
+                  - name: ip-address
+                    type: string
+                    profiles:
+                    - xpath:
+                      - ip-address
+                    validators: []
+                    spec: {}
+                    description: Internal IPv4 address of a host
+                    required: false
+                  - name: hostname
+                    type: string
+                    profiles:
+                    - xpath:
+                      - hostname
+                    validators:
+                    - type: length
+                      spec:
+                        max: 256
+                    spec: {}
+                    description: Host name of the IPv4 in DNS record
+                    required: false
+                  variants: []
+                description: Internal host detection for IPv4
+                required: false
+              - name: internal-host-detection-v6
+                type: object
+                profiles:
+                - xpath:
+                  - internal-host-detection-v6
+                validators: []
+                spec:
+                  params:
+                  - name: ip-address
+                    type: string
+                    profiles:
+                    - xpath:
+                      - ip-address
+                    validators: []
+                    spec: {}
+                    description: Internal IPv6 address of a host
+                    required: false
+                  - name: hostname
+                    type: string
+                    profiles:
+                    - xpath:
+                      - hostname
+                    validators:
+                    - type: length
+                      spec:
+                        max: 256
+                    spec: {}
+                    description: Host name of the IPv6 in DNS record
+                    required: false
+                  variants: []
+                description: Internal host detection for IPv6
+                required: false
+              - name: agent-ui
+                type: object
+                profiles:
+                - xpath:
+                  - agent-ui
+                validators: []
+                spec:
+                  params:
+                  - name: passcode
+                    type: string
+                    profiles:
+                    - xpath:
+                      - passcode
+                    validators:
+                    - type: length
+                      spec:
+                        min: 6
+                        max: 64
+                    spec: {}
+                    description: Passcode required for override
+                    required: false
+                    hashing:
+                      type: solo
+                  - name: uninstall-password
+                    type: string
+                    profiles:
+                    - xpath:
+                      - uninstall-password
+                    validators:
+                    - type: length
+                      spec:
+                        min: 6
+                        max: 32
+                    spec: {}
+                    description: Password to uninstall GlobalProtect app
+                    required: false
+                    hashing:
+                      type: solo
+                  - name: agent-user-override-timeout
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - agent-user-override-timeout
+                    validators:
+                    - type: length
+                      spec:
+                        min: 0
+                    spec:
+                      default: 0
+                    description: Agent user override duration in minutes
+                    required: false
+                  - name: max-agent-user-overrides
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - max-agent-user-overrides
+                    validators:
+                    - type: length
+                      spec:
+                        min: 0
+                    spec:
+                      default: 0
+                    description: Max agent user overrides
+                    required: false
+                  - name: welcome-page
+                    type: object
+                    profiles:
+                    - xpath:
+                      - welcome-page
+                    validators: []
+                    spec:
+                      params:
+                      - name: page
+                        type: string
+                        profiles:
+                        - xpath:
+                          - page
+                        validators:
+                        - type: length
+                          spec:
+                            max: 63
+                        spec: {}
+                        description: ''
+                        required: false
+                      variants: []
+                    description: Agent login welcome page
+                    required: false
+                  variants: []
+                description: Agent user interface configuration
+                required: false
+              - name: hip-collection
+                type: object
+                profiles:
+                - xpath:
+                  - hip-collection
+                validators: []
+                spec:
+                  params:
+                  - name: certificate-profile
+                    type: string
+                    profiles:
+                    - xpath:
+                      - certificate-profile
+                    validators: []
+                    spec: {}
+                    description: Profile for authenticating client certificates
+                    required: false
+                  - name: max-wait-time
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - max-wait-time
+                    validators:
+                    - type: length
+                      spec:
+                        min: 10
+                        max: 60
+                    spec:
+                      default: 20
+                    description: Max Wait Time (Sec)
+                    required: false
+                  - name: collect-hip-data
+                    type: bool
+                    profiles:
+                    - xpath:
+                      - collect-hip-data
+                    validators: []
+                    spec: {}
+                    description: Collect HIP Data
+                    required: false
+                  - name: exclusion
+                    type: object
+                    profiles:
+                    - xpath:
+                      - exclusion
+                    validators: []
+                    spec:
+                      params:
+                      - name: category
+                        type: list
+                        profiles:
+                        - xpath:
+                          - category
+                          - entry
+                          type: entry
+                        validators: []
+                        spec:
+                          type: object
+                          items:
+                            type: object
+                            spec:
+                              params:
+                              - name: vendor
+                                type: list
+                                profiles:
+                                - xpath:
+                                  - vendor
+                                  - entry
+                                  type: entry
+                                validators: []
+                                spec:
+                                  type: object
+                                  items:
+                                    type: object
+                                    spec:
+                                      params:
+                                      - name: product
+                                        type: list
+                                        profiles:
+                                        - xpath:
+                                          - product
+                                          type: member
+                                        validators: []
+                                        spec:
+                                          type: string
+                                          items:
+                                            type: string
+                                        description: ''
+                                        required: false
+                                      variants: []
+                                description: ''
+                                required: false
+                              variants: []
+                        description: ''
+                        required: false
+                      variants: []
+                    description: Exclusion categories
+                    required: false
+                  - name: custom-checks
+                    type: object
+                    profiles:
+                    - xpath:
+                      - custom-checks
+                    validators: []
+                    spec:
+                      params:
+                      - name: windows
+                        type: object
+                        profiles:
+                        - xpath:
+                          - windows
+                        validators: []
+                        spec:
+                          params:
+                          - name: registry-key
+                            type: list
+                            profiles:
+                            - xpath:
+                              - registry-key
+                              - entry
+                              type: entry
+                            validators: []
+                            spec:
+                              type: object
+                              items:
+                                type: object
+                                spec:
+                                  params:
+                                  - name: registry-value
+                                    type: list
+                                    profiles:
+                                    - xpath:
+                                      - registry-value
+                                      type: member
+                                    validators: []
+                                    spec:
+                                      type: string
+                                      items:
+                                        type: string
+                                    description: ''
+                                    required: false
+                                  variants: []
+                            description: ''
+                            required: false
+                          - name: process-list
+                            type: list
+                            profiles:
+                            - xpath:
+                              - process-list
+                              type: member
+                            validators: []
+                            spec:
+                              type: string
+                              items:
+                                type: string
+                            description: ''
+                            required: false
+                          variants: []
+                        description: Windows specific custom checks
+                        required: false
+                      - name: mac-os
+                        type: object
+                        profiles:
+                        - xpath:
+                          - mac-os
+                        validators: []
+                        spec:
+                          params:
+                          - name: plist
+                            type: list
+                            profiles:
+                            - xpath:
+                              - plist
+                              - entry
+                              type: entry
+                            validators: []
+                            spec:
+                              type: object
+                              items:
+                                type: object
+                                spec:
+                                  params:
+                                  - name: key
+                                    type: list
+                                    profiles:
+                                    - xpath:
+                                      - key
+                                      type: member
+                                    validators: []
+                                    spec:
+                                      type: string
+                                      items:
+                                        type: string
+                                    description: ''
+                                    required: false
+                                  variants: []
+                            description: ''
+                            required: false
+                          - name: process-list
+                            type: list
+                            profiles:
+                            - xpath:
+                              - process-list
+                              type: member
+                            validators: []
+                            spec:
+                              type: string
+                              items:
+                                type: string
+                            description: ''
+                            required: false
+                          variants: []
+                        description: MAC OS specific custom checks
+                        required: false
+                      - name: linux
+                        type: object
+                        profiles:
+                        - xpath:
+                          - linux
+                        validators: []
+                        spec:
+                          params:
+                          - name: process-list
+                            type: list
+                            profiles:
+                            - xpath:
+                              - process-list
+                              type: member
+                            validators: []
+                            spec:
+                              type: string
+                              items:
+                                type: string
+                            description: ''
+                            required: false
+                          variants: []
+                        description: Linux specific custom checks
+                        required: false
+                      variants: []
+                    description: Custom checks
+                    required: false
+                  variants: []
+                description: Host information profile collection instructions
+                required: false
+              - name: agent-config
+                type: object
+                profiles:
+                - xpath:
+                  - agent-config
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: GlobalProtect agent config
+                required: false
+              - name: gp-app-config
+                type: object
+                profiles:
+                - xpath:
+                  - gp-app-config
+                validators: []
+                spec:
+                  params:
+                  - name: config
+                    type: list
+                    profiles:
+                    - xpath:
+                      - config
+                      - entry
+                      type: entry
+                    validators: []
+                    spec:
+                      type: object
+                      items:
+                        type: object
+                        spec:
+                          params:
+                          - name: value
+                            type: list
+                            profiles:
+                            - xpath:
+                              - value
+                              type: member
+                            validators: []
+                            spec:
+                              type: string
+                              items:
+                                type: string
+                            description: ''
+                            required: false
+                          variants: []
+                    description: ''
+                    required: false
+                  variants: []
+                description: GlobalProtect app config
+                required: false
+              - name: authentication-override
+                type: object
+                profiles:
+                - xpath:
+                  - authentication-override
+                validators: []
+                spec:
+                  params:
+                  - name: generate-cookie
+                    type: bool
+                    profiles:
+                    - xpath:
+                      - generate-cookie
+                    validators: []
+                    spec: {}
+                    description: Generate cookie for authentication override
+                    required: false
+                  - name: cookie-encrypt-decrypt-cert
+                    type: string
+                    profiles:
+                    - xpath:
+                      - cookie-encrypt-decrypt-cert
+                    validators:
+                    - type: length
+                      spec:
+                        max: 255
+                    spec: {}
+                    description: Certificate to Encrypt/Decrypt Cookie
+                    required: false
+                  - name: accept-cookie
+                    type: object
+                    profiles:
+                    - xpath:
+                      - accept-cookie
+                    validators: []
+                    spec:
+                      params:
+                      - name: cookie-lifetime
+                        type: object
+                        profiles:
+                        - xpath:
+                          - cookie-lifetime
+                        validators: []
+                        spec:
+                          params: []
+                          variants:
+                          - name: lifetime-in-days
+                            type: int64
+                            profiles:
+                            - xpath:
+                              - lifetime-in-days
+                            validators:
+                            - type: length
+                              spec:
+                                min: 1
+                                max: 365
+                            spec: {}
+                            description: Cookie lifetime in days
+                            required: false
+                          - name: lifetime-in-hours
+                            type: int64
+                            profiles:
+                            - xpath:
+                              - lifetime-in-hours
+                            validators:
+                            - type: length
+                              spec:
+                                min: 1
+                                max: 72
+                            spec: {}
+                            description: Cookie lifetime in hours
+                            required: false
+                          - name: lifetime-in-minutes
+                            type: int64
+                            profiles:
+                            - xpath:
+                              - lifetime-in-minutes
+                            validators:
+                            - type: length
+                              spec:
+                                min: 1
+                                max: 59
+                            spec: {}
+                            description: Cookie lifetime in minutes
+                            required: false
+                        description: Cookie Lifetime
+                        required: false
+                      variants: []
+                    description: Accept cookie for authentication override
+                    required: false
+                  variants: []
+                description: Authentication Override
+                required: false
+              - name: machine-account-exists-with-serialno
+                type: object
+                profiles:
+                - xpath:
+                  - machine-account-exists-with-serialno
+                validators: []
+                spec:
+                  params: []
+                  variants:
+                  - name: 'no'
+                    type: object
+                    profiles:
+                    - xpath:
+                      - 'no'
+                    validators: []
+                    spec:
+                      params: []
+                      variants: []
+                    description: ''
+                    required: false
+                  - name: 'yes'
+                    type: object
+                    profiles:
+                    - xpath:
+                      - 'yes'
+                    validators: []
+                    spec:
+                      params: []
+                      variants: []
+                    description: ''
+                    required: false
+                description: Check if Machine account exists with serial number
+                required: false
+              - name: client-certificate
+                type: object
+                profiles:
+                - xpath:
+                  - client-certificate
+                validators: []
+                spec:
+                  params: []
+                  variants:
+                  - name: local
+                    type: string
+                    profiles:
+                    - xpath:
+                      - local
+                    validators:
+                    - type: length
+                      spec:
+                        max: 255
+                    spec: {}
+                    description: Select Client Certificate
+                    required: false
+                  - name: scep
+                    type: string
+                    profiles:
+                    - xpath:
+                      - scep
+                    validators:
+                    - type: length
+                      spec:
+                        max: 255
+                    spec: {}
+                    description: ''
+                    required: false
+                description: SSL client certificate
+                required: false
+              variants: []
+        description: ''
+        required: false
+      - name: root-ca
+        type: list
+        profiles:
+        - xpath:
+          - root-ca
+          - entry
+          type: entry
+        validators: []
+        spec:
+          type: object
+          items:
+            type: object
+            spec:
+              params:
+              - name: install-in-cert-store
+                type: bool
+                profiles:
+                - xpath:
+                  - install-in-cert-store
+                validators: []
+                spec: {}
+                description: Install in Trusted CA Certificate Store
+                required: false
+              variants: []
+        description: ''
+        required: false
+      variants: []
+    description: ''
+    required: false
+  - name: clientless-vpn
+    type: object
+    profiles:
+    - xpath:
+      - clientless-vpn
+    validators: []
+    spec:
+      params:
+      - name: apps-to-user-mapping
+        type: list
+        profiles:
+        - xpath:
+          - apps-to-user-mapping
+          - entry
+          type: entry
+        validators: []
+        spec:
+          type: object
+          items:
+            type: object
+            spec:
+              params:
+              - name: source-user
+                type: list
+                profiles:
+                - xpath:
+                  - source-user
+                  type: member
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ''
+                required: false
+              - name: applications
+                type: list
+                profiles:
+                - xpath:
+                  - applications
+                  type: member
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ''
+                required: false
+              - name: enable-custom-app-URL-address-bar
+                type: bool
+                profiles:
+                - xpath:
+                  - enable-custom-app-URL-address-bar
+                validators: []
+                spec: {}
+                description: URL browse bar to access unpublished clientless VPN applications
+                required: false
+              - name: display-global-protect-agent-download-link
+                type: bool
+                profiles:
+                - xpath:
+                  - display-global-protect-agent-download-link
+                validators: []
+                spec: {}
+                description: Display Global Protect Agent download link
+                required: false
+              variants: []
+        description: ''
+        required: false
+      - name: crypto-settings
+        type: object
+        profiles:
+        - xpath:
+          - crypto-settings
+        validators: []
+        spec:
+          params:
+          - name: server-cert-verification
+            type: object
+            profiles:
+            - xpath:
+              - server-cert-verification
+            validators: []
+            spec:
+              params:
+              - name: block-expired-certificate
+                type: bool
+                profiles:
+                - xpath:
+                  - block-expired-certificate
+                validators: []
+                spec: {}
+                description: whether to block sessions if server's certificate is
+                  expired
+                required: false
+              - name: block-timeout-cert
+                type: bool
+                profiles:
+                - xpath:
+                  - block-timeout-cert
+                validators: []
+                spec: {}
+                description: whether to block a session if cert. status can't be retrieved
+                  within timeout
+                required: false
+              - name: block-unknown-cert
+                type: bool
+                profiles:
+                - xpath:
+                  - block-unknown-cert
+                validators: []
+                spec: {}
+                description: whether to block a session if cert. status is unknown
+                required: false
+              - name: block-untrusted-issuer
+                type: bool
+                profiles:
+                - xpath:
+                  - block-untrusted-issuer
+                validators: []
+                spec: {}
+                description: whether to block sessions if server's certificate is
+                  issued by untrusted CA
+                required: false
+              variants: []
+            description: ''
+            required: false
+          - name: ssl-protocol
+            type: object
+            profiles:
+            - xpath:
+              - ssl-protocol
+            validators: []
+            spec:
+              params:
+              - name: auth-algo-md5
+                type: bool
+                profiles:
+                - xpath:
+                  - auth-algo-md5
+                validators: []
+                spec: {}
+                description: Allow authentication MD5
+                required: false
+              - name: auth-algo-sha1
+                type: bool
+                profiles:
+                - xpath:
+                  - auth-algo-sha1
+                validators: []
+                spec: {}
+                description: Allow authentication SHA1
+                required: false
+              - name: auth-algo-sha256
+                type: bool
+                profiles:
+                - xpath:
+                  - auth-algo-sha256
+                validators: []
+                spec: {}
+                description: Allow authentication SHA256
+                required: false
+              - name: auth-algo-sha384
+                type: bool
+                profiles:
+                - xpath:
+                  - auth-algo-sha384
+                validators: []
+                spec: {}
+                description: Allow authentication SHA384
+                required: false
+              - name: enc-algo-3des
+                type: bool
+                profiles:
+                - xpath:
+                  - enc-algo-3des
+                validators: []
+                spec: {}
+                description: Allow algorithm 3DES
+                required: false
+              - name: enc-algo-aes-128-cbc
+                type: bool
+                profiles:
+                - xpath:
+                  - enc-algo-aes-128-cbc
+                validators: []
+                spec: {}
+                description: Allow algorithm AES-128-CBC
+                required: false
+              - name: enc-algo-aes-128-gcm
+                type: bool
+                profiles:
+                - xpath:
+                  - enc-algo-aes-128-gcm
+                validators: []
+                spec: {}
+                description: Allow algorithm AES-128-GCM
+                required: false
+              - name: enc-algo-aes-256-cbc
+                type: bool
+                profiles:
+                - xpath:
+                  - enc-algo-aes-256-cbc
+                validators: []
+                spec: {}
+                description: Allow algorithm AES-256-CBC
+                required: false
+              - name: enc-algo-aes-256-gcm
+                type: bool
+                profiles:
+                - xpath:
+                  - enc-algo-aes-256-gcm
+                validators: []
+                spec: {}
+                description: Allow algorithm AES-256-GCM
+                required: false
+              - name: enc-algo-rc4
+                type: bool
+                profiles:
+                - xpath:
+                  - enc-algo-rc4
+                validators: []
+                spec: {}
+                description: Allow algorithm RC4
+                required: false
+              - name: keyxchg-algo-dhe
+                type: bool
+                profiles:
+                - xpath:
+                  - keyxchg-algo-dhe
+                validators: []
+                spec: {}
+                description: Allow algorithm DHE
+                required: false
+              - name: keyxchg-algo-ecdhe
+                type: bool
+                profiles:
+                - xpath:
+                  - keyxchg-algo-ecdhe
+                validators: []
+                spec: {}
+                description: Allow algorithm ECDHE
+                required: false
+              - name: keyxchg-algo-rsa
+                type: bool
+                profiles:
+                - xpath:
+                  - keyxchg-algo-rsa
+                validators: []
+                spec: {}
+                description: Allow algorithm RSA
+                required: false
+              - name: max-version
+                type: enum
+                profiles:
+                - xpath:
+                  - max-version
+                validators:
+                - type: values
+                  spec:
+                    values:
+                    - sslv3
+                    - tls1-0
+                    - tls1-1
+                    - tls1-2
+                    - max
+                spec:
+                  default: max
+                  values:
+                  - value: sslv3
+                  - value: tls1-0
+                  - value: tls1-1
+                  - value: tls1-2
+                  - value: max
+                description: ''
+                required: false
+              - name: min-version
+                type: enum
+                profiles:
+                - xpath:
+                  - min-version
+                validators:
+                - type: values
+                  spec:
+                    values:
+                    - sslv3
+                    - tls1-0
+                    - tls1-1
+                    - tls1-2
+                spec:
+                  default: tls1-0
+                  values:
+                  - value: sslv3
+                  - value: tls1-0
+                  - value: tls1-1
+                  - value: tls1-2
+                description: ''
+                required: false
+              variants: []
+            description: ''
+            required: false
+          variants: []
+        description: Settings to control processing of SSL with clientless-vpn applications
+        required: false
+      - name: dns-proxy
+        type: string
+        profiles:
+        - xpath:
+          - dns-proxy
+        validators: []
+        spec: {}
+        description: DNS proxy object used for resolving clientless-vpn application
+          hostnames
+        required: false
+      - name: hostname
+        type: string
+        profiles:
+        - xpath:
+          - hostname
+        validators:
+        - type: length
+          spec:
+            max: 255
+        spec: {}
+        description: FQDN or IP address of GlobalProtect Portal
+        required: false
+      - name: inactivity-logout
+        type: object
+        profiles:
+        - xpath:
+          - inactivity-logout
+        validators: []
+        spec:
+          params: []
+          variants:
+          - name: hours
+            type: int64
+            profiles:
+            - xpath:
+              - hours
+            validators:
+            - type: length
+              spec:
+                min: 1
+                max: 24
+            spec: {}
+            description: specify inactivity time in hours
+            required: false
+          - name: minutes
+            type: int64
+            profiles:
+            - xpath:
+              - minutes
+            validators:
+            - type: length
+              spec:
+                min: 5
+                max: 1440
+            spec: {}
+            description: specify inactivity time in minutes
+            required: false
+        description: GlobalProtect portal will log out the user if there is no user
+          activity during the specified amount of time.
+        required: false
+      - name: login-lifetime
+        type: object
+        profiles:
+        - xpath:
+          - login-lifetime
+        validators: []
+        spec:
+          params: []
+          variants:
+          - name: hours
+            type: int64
+            profiles:
+            - xpath:
+              - hours
+            validators:
+            - type: length
+              spec:
+                min: 1
+                max: 24
+            spec: {}
+            description: specify lifetime in hours
+            required: false
+          - name: minutes
+            type: int64
+            profiles:
+            - xpath:
+              - minutes
+            validators:
+            - type: length
+              spec:
+                min: 60
+                max: 1440
+            spec: {}
+            description: specify lifetime in minutes
+            required: false
+        description: GlobalProtect portal user login lifetime before re-authentication
+        required: false
+      - name: max-user
+        type: int64
+        profiles:
+        - xpath:
+          - max-user
+        validators:
+        - type: length
+          spec:
+            min: 1
+            max: 30000
+        spec: {}
+        description: max number of concurrent logined users to GlobalProtect portal
+        required: false
+      - name: proxy-server-setting
+        type: list
+        profiles:
+        - xpath:
+          - proxy-server-setting
+          - entry
+          type: entry
+        validators: []
+        spec:
+          type: object
+          items:
+            type: object
+            spec:
+              params:
+              - name: domains
+                type: list
+                profiles:
+                - xpath:
+                  - domains
+                  type: member
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ''
+                required: false
+              - name: use-proxy
+                type: bool
+                profiles:
+                - xpath:
+                  - use-proxy
+                validators: []
+                spec: {}
+                description: Whether to use proxy server
+                required: false
+              - name: proxy-server
+                type: object
+                profiles:
+                - xpath:
+                  - proxy-server
+                validators: []
+                spec:
+                  params:
+                  - name: server
+                    type: string
+                    profiles:
+                    - xpath:
+                      - server
+                    validators:
+                    - type: length
+                      spec:
+                        max: 63
+                    spec: {}
+                    description: Proxy server to use
+                    required: false
+                  - name: port
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - port
+                    validators:
+                    - type: length
+                      spec:
+                        min: 1
+                        max: 65535
+                    spec: {}
+                    description: Port for proxy server
+                    required: false
+                  - name: user
+                    type: string
+                    profiles:
+                    - xpath:
+                      - user
+                    validators:
+                    - type: length
+                      spec:
+                        max: 255
+                    spec: {}
+                    description: Proxy user name to use
+                    required: false
+                  - name: password
+                    type: string
+                    profiles:
+                    - xpath:
+                      - password
+                    validators:
+                    - type: length
+                      spec:
+                        max: 255
+                    spec: {}
+                    description: Proxy password to use
+                    required: false
+                    hashing:
+                      type: solo
+                  variants: []
+                description: Proxy Server Settings
+                required: false
+              variants: []
+        description: ''
+        required: false
+      - name: rewrite-exclude-domain-list
+        type: list
+        profiles:
+        - xpath:
+          - rewrite-exclude-domain-list
+          type: member
+        validators: []
+        spec:
+          type: string
+          items:
+            type: string
+        description: ''
+        required: false
+      - name: security-zone
+        type: string
+        profiles:
+        - xpath:
+          - security-zone
+        validators:
+        - type: length
+          spec:
+            max: 31
+        spec: {}
+        description: Zone to be used for clientless-vpn traffic
+        required: false
+      variants: []
+    description: Clientless VPN configuration
+    required: false
+  - name: portal-config
+    type: object
+    profiles:
+    - xpath:
+      - portal-config
+    validators: []
+    spec:
+      params:
+      - name: certificate-profile
+        type: string
+        profiles:
+        - xpath:
+          - certificate-profile
+        validators: []
+        spec: {}
+        description: Profile for authenticating client certificates
+        required: false
+      - name: client-auth
+        type: list
+        profiles:
+        - xpath:
+          - client-auth
+          - entry
+          type: entry
+        validators: []
+        spec:
+          type: object
+          items:
+            type: object
+            spec:
+              params:
+              - name: os
+                type: string
+                profiles:
+                - xpath:
+                  - os
+                validators: []
+                spec:
+                  default: Any
+                description: Client OS
+                required: false
+              - name: authentication-profile
+                type: string
+                profiles:
+                - xpath:
+                  - authentication-profile
+                validators: []
+                spec: {}
+                description: authentication profile used for this GlobalProtect
+                required: false
+              - name: auto-retrieve-passcode
+                type: bool
+                profiles:
+                - xpath:
+                  - auto-retrieve-passcode
+                validators: []
+                spec: {}
+                description: Automatically retrieve passcode from SoftToken application
+                required: false
+              - name: username-label
+                type: string
+                profiles:
+                - xpath:
+                  - username-label
+                validators:
+                - type: length
+                  spec:
+                    max: 20
+                spec:
+                  default: Username
+                description: Username Label
+                required: false
+              - name: password-label
+                type: string
+                profiles:
+                - xpath:
+                  - password-label
+                validators:
+                - type: length
+                  spec:
+                    max: 20
+                spec:
+                  default: Password
+                description: Password Label
+                required: false
+              - name: authentication-message
+                type: string
+                profiles:
+                - xpath:
+                  - authentication-message
+                validators:
+                - type: length
+                  spec:
+                    max: 256
+                spec:
+                  default: Enter login credentials
+                description: Authentication Message
+                required: false
+              - name: user-credential-or-client-cert-required
+                type: enum
+                profiles:
+                - xpath:
+                  - user-credential-or-client-cert-required
+                validators:
+                - type: values
+                  spec:
+                    values:
+                    - 'no'
+                    - 'yes'
+                spec:
+                  default: 'no'
+                  values:
+                  - value: 'no'
+                  - value: 'yes'
+                description: Allow Authentication with User Credentials OR Client
+                  Certificate
+                required: false
+              variants: []
+        description: ''
+        required: false
+      - name: config-selection
+        type: object
+        profiles:
+        - xpath:
+          - config-selection
+        validators: []
+        spec:
+          params:
+          - name: certificate-profile
+            type: string
+            profiles:
+            - xpath:
+              - certificate-profile
+            validators: []
+            spec: {}
+            description: Profile for authenticating client certificates
+            required: false
+          - name: custom-checks
+            type: object
+            profiles:
+            - xpath:
+              - custom-checks
+            validators: []
+            spec:
+              params:
+              - name: mac-os
+                type: object
+                profiles:
+                - xpath:
+                  - mac-os
+                validators: []
+                spec:
+                  params:
+                  - name: plist
+                    type: list
+                    profiles:
+                    - xpath:
+                      - plist
+                      - entry
+                      type: entry
+                    validators: []
+                    spec:
+                      type: object
+                      items:
+                        type: object
+                        spec:
+                          params:
+                          - name: key
+                            type: list
+                            profiles:
+                            - xpath:
+                              - key
+                              type: member
+                            validators: []
+                            spec:
+                              type: string
+                              items:
+                                type: string
+                            description: ''
+                            required: false
+                          variants: []
+                    description: ''
+                    required: false
+                  variants: []
+                description: MAC OS specific custom checks
+                required: false
+              - name: windows
+                type: object
+                profiles:
+                - xpath:
+                  - windows
+                validators: []
+                spec:
+                  params:
+                  - name: registry-key
+                    type: list
+                    profiles:
+                    - xpath:
+                      - registry-key
+                      - entry
+                      type: entry
+                    validators: []
+                    spec:
+                      type: object
+                      items:
+                        type: object
+                        spec:
+                          params:
+                          - name: registry-value
+                            type: list
+                            profiles:
+                            - xpath:
+                              - registry-value
+                              type: member
+                            validators: []
+                            spec:
+                              type: string
+                              items:
+                                type: string
+                            description: ''
+                            required: false
+                          variants: []
+                    description: ''
+                    required: false
+                  variants: []
+                description: Windows specific custom checks
+                required: false
+              variants: []
+            description: Custom checks
+            required: false
+          variants: []
+        description: Config Selection
+        required: false
+      - name: custom-help-page
+        type: string
+        profiles:
+        - xpath:
+          - custom-help-page
+        validators:
+        - type: length
+          spec:
+            max: 63
+        spec: {}
+        description: ''
+        required: false
+      - name: custom-home-page
+        type: string
+        profiles:
+        - xpath:
+          - custom-home-page
+        validators:
+        - type: length
+          spec:
+            max: 63
+        spec:
+          default: factory-default
+        description: ''
+        required: false
+      - name: custom-login-page
+        type: string
+        profiles:
+        - xpath:
+          - custom-login-page
+        validators:
+        - type: length
+          spec:
+            max: 63
+        spec:
+          default: factory-default
+        description: ''
+        required: false
+      - name: local-address
+        type: object
+        profiles:
+        - xpath:
+          - local-address
+        validators: []
+        spec:
+          params:
+          - name: interface
+            type: string
+            profiles:
+            - xpath:
+              - interface
+            validators: []
+            spec: {}
+            description: local gateway end-point
+            required: false
+          - name: ip-address-family
+            type: enum
+            profiles:
+            - xpath:
+              - ip-address-family
+            validators:
+            - type: values
+              spec:
+                values:
+                - ipv4
+                - ipv6
+                - ipv4_ipv6
+            spec:
+              default: ipv4
+              values:
+              - value: ipv4
+              - value: ipv6
+              - value: ipv4_ipv6
+            description: specify the family of the local address
+            required: false
+          variants:
+          - name: floating-ip
+            type: object
+            profiles:
+            - xpath:
+              - floating-ip
+            validators: []
+            spec:
+              params:
+              - name: ipv4
+                type: string
+                profiles:
+                - xpath:
+                  - ipv4
+                validators: []
+                spec: {}
+                description: Floating IPv4 address
+                required: false
+              - name: ipv6
+                type: string
+                profiles:
+                - xpath:
+                  - ipv6
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Floating IPv6 address
+                required: false
+              variants: []
+            description: Floating IP address in HA Active-Active configuration
+            required: false
+            variant_group_id: 0
+          - name: ip
+            type: object
+            profiles:
+            - xpath:
+              - ip
+            validators: []
+            spec:
+              params:
+              - name: ipv4
+                type: string
+                profiles:
+                - xpath:
+                  - ipv4
+                validators: []
+                spec: {}
+                description: IPv4 addresses
+                required: false
+              - name: ipv6
+                type: string
+                profiles:
+                - xpath:
+                  - ipv6
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: IPv6 address
+                required: false
+              variants: []
+            description: specify exact IP address if interface has multiple addresses
+            required: false
+            variant_group_id: 0
+        description: Local IP configuration
+        required: false
+      - name: log-fail
+        type: bool
+        profiles:
+        - xpath:
+          - log-fail
+        validators: []
+        spec: {}
+        description: Log unsuccessful TLS handshakes
+        required: false
+      - name: log-setting
+        type: string
+        profiles:
+        - xpath:
+          - log-setting
+        validators:
+        - type: length
+          spec:
+            max: 63
+        spec: {}
+        description: ''
+        required: false
+      - name: log-success
+        type: bool
+        profiles:
+        - xpath:
+          - log-success
+        validators: []
+        spec: {}
+        description: Log successful TLS handshakes
+        required: false
+      - name: ssl-tls-service-profile
+        type: string
+        profiles:
+        - xpath:
+          - ssl-tls-service-profile
+        validators:
+        - type: length
+          spec:
+            max: 255
+        spec: {}
+        description: SSL TLS service profile
+        required: false
+      variants: []
+    description: ''
+    required: false
+  - name: satellite-config
+    type: object
+    profiles:
+    - xpath:
+      - satellite-config
+    validators: []
+    spec:
+      params:
+      - name: client-certificate
+        type: object
+        profiles:
+        - xpath:
+          - client-certificate
+        validators: []
+        spec:
+          params: []
+          variants:
+          - name: local
+            type: object
+            profiles:
+            - xpath:
+              - local
+            validators: []
+            spec:
+              params:
+              - name: certificate-life-time
+                type: int64
+                profiles:
+                - xpath:
+                  - certificate-life-time
+                validators:
+                - type: length
+                  spec:
+                    min: 7
+                    max: 365
+                spec:
+                  default: 7
+                description: Issued GlobalProtect satellite certificate life time
+                  in days
+                required: false
+              - name: certificate-renewal-period
+                type: int64
+                profiles:
+                - xpath:
+                  - certificate-renewal-period
+                validators:
+                - type: length
+                  spec:
+                    min: 3
+                    max: 30
+                spec:
+                  default: 3
+                description: GlobalProtect satellite certificate renewal period in
+                  days
+                required: false
+              - name: issuing-certificate
+                type: string
+                profiles:
+                - xpath:
+                  - issuing-certificate
+                validators: []
+                spec: {}
+                description: Issuing certificate to issue GlobalProtect satellite
+                  certificate
+                required: false
+              - name: ocsp-responder
+                type: string
+                profiles:
+                - xpath:
+                  - ocsp-responder
+                validators: []
+                spec: {}
+                description: OCSP responder
+                required: false
+              variants: []
+            description: Local
+            required: false
+          - name: scep
+            type: object
+            profiles:
+            - xpath:
+              - scep
+            validators: []
+            spec:
+              params:
+              - name: certificate-renewal-period
+                type: int64
+                profiles:
+                - xpath:
+                  - certificate-renewal-period
+                validators:
+                - type: length
+                  spec:
+                    min: 3
+                    max: 30
+                spec:
+                  default: 3
+                description: GlobalProtect satellite certificate renewal period in
+                  days
+                required: false
+              - name: scep
+                type: string
+                profiles:
+                - xpath:
+                  - scep
+                validators:
+                - type: length
+                  spec:
+                    max: 255
+                spec: {}
+                description: ''
+                required: false
+              variants: []
+            description: SCEP
+            required: false
+        description: Client Certificate
+        required: false
+      - name: configs
+        type: list
+        profiles:
+        - xpath:
+          - configs
+          - entry
+          type: entry
+        validators: []
+        spec:
+          type: object
+          items:
+            type: object
+            spec:
+              params:
+              - name: devices
+                type: list
+                profiles:
+                - xpath:
+                  - devices
+                  type: member
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ''
+                required: false
+              - name: source-user
+                type: list
+                profiles:
+                - xpath:
+                  - source-user
+                  type: member
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ''
+                required: false
+              - name: gateways
+                type: list
+                profiles:
+                - xpath:
+                  - gateways
+                  - entry
+                  type: entry
+                validators: []
+                spec:
+                  type: object
+                  items:
+                    type: object
+                    spec:
+                      params:
+                      - name: ipv6-preferred
+                        type: bool
+                        profiles:
+                        - xpath:
+                          - ipv6-preferred
+                        validators: []
+                        spec: {}
+                        description: IPv6 Preferred
+                        required: false
+                      - name: priority
+                        type: int64
+                        profiles:
+                        - xpath:
+                          - priority
+                        validators:
+                        - type: length
+                          spec:
+                            min: 1
+                            max: 25
+                        spec: {}
+                        description: Priority of GlobalProtect gateway
+                        required: false
+                      variants:
+                      - name: fqdn
+                        type: string
+                        profiles:
+                        - xpath:
+                          - fqdn
+                        validators:
+                        - type: length
+                          spec:
+                            min: 0
+                            max: 255
+                        spec: {}
+                        description: fqdn
+                        required: false
+                        variant_group_id: 0
+                      - name: ip
+                        type: object
+                        profiles:
+                        - xpath:
+                          - ip
+                        validators: []
+                        spec:
+                          params:
+                          - name: ipv4
+                            type: string
+                            profiles:
+                            - xpath:
+                              - ipv4
+                            validators:
+                            - type: length
+                              spec:
+                                min: 0
+                                max: 100
+                            spec: {}
+                            description: IPv4
+                            required: false
+                          - name: ipv6
+                            type: string
+                            profiles:
+                            - xpath:
+                              - ipv6
+                            validators:
+                            - type: length
+                              spec:
+                                min: 0
+                                max: 100
+                            spec: {}
+                            description: IPv6
+                            required: false
+                          variants: []
+                        description: IP address
+                        required: false
+                        variant_group_id: 0
+                description: ''
+                required: false
+              - name: config-refresh-interval
+                type: int64
+                profiles:
+                - xpath:
+                  - config-refresh-interval
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 48
+                spec:
+                  default: 24
+                description: GlobalProtect satellite configuration refresh interval
+                  in hours
+                required: false
+              variants: []
+        description: ''
+        required: false
+      - name: root-ca
+        type: list
+        profiles:
+        - xpath:
+          - root-ca
+          type: member
+        validators: []
+        spec:
+          type: string
+          items:
+            type: string
+        description: ''
+        required: false
+      variants: []
+    description: ''
+    required: false
+  variants: []
