@@ -15,9 +15,11 @@ go_sdk_config:
   - objects
   - profiles
   - urlfiltering
-xpath_suffix:
-- profiles
-- url-filtering
+panos_xpath:
+  path:
+  - profiles
+  - url-filtering
+  vars: []
 locations:
 - name: shared
   xpath:

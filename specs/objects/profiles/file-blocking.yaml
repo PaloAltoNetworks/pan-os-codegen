@@ -15,9 +15,11 @@ go_sdk_config:
   - objects
   - profiles
   - fileblocking
-xpath_suffix:
-- profiles
-- file-blocking
+panos_xpath:
+  path:
+  - profiles
+  - file-blocking
+  vars: []
 locations:
 - name: shared
   xpath:
@@ -93,7 +95,6 @@ locations:
   description: Located in a specific Virtual System
   devices:
   - ngfw
-  - panorama
   validators: []
   required: false
   read_only: false

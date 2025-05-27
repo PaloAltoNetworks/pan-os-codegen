@@ -15,11 +15,13 @@ go_sdk_config:
   - objects
   - profiles
   - ikecrypto
-xpath_suffix:
-- network
-- ike
-- crypto-profiles
-- ike-crypto-profiles
+panos_xpath:
+  path:
+  - network
+  - ike
+  - crypto-profiles
+  - ike-crypto-profiles
+  vars: []
 locations:
 - name: ngfw
   xpath:

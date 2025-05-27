@@ -15,7 +15,9 @@ go_sdk_config:
   - device
   - services
   - ntp
-xpath_suffix: []
+panos_xpath:
+  path: []
+  vars: []
 locations:
 - name: system
   xpath:

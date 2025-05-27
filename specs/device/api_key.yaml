@@ -11,7 +11,8 @@ terraform_provider_config:
 go_sdk_config:
   skip: true
   package: ["api_key"]
-xpath_suffix: ["api-key"]
+panos_xpath:
+  path: ["api-key"]
 locations: []
 entries: []
 imports: []

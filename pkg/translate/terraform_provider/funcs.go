@@ -3,6 +3,7 @@ package terraform_provider
 import (
 	"fmt"
 	"log"
+	"runtime/debug"
 	"sort"
 	"strings"
 	"text/template"
@@ -13,6 +14,7 @@ import (
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/imports"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/object"
 )
 
 type Entry struct {
@@ -55,9 +57,14 @@ type spec struct {
 func renderSpecsForParams(params []*properties.SpecParam, parentNames []string) []parameterSpec {
 	var specs []parameterSpec
 	for _, elt := range params {
+		if elt.IsTerraformOnly() {
+			continue
+		}
+
 		if elt.IsPrivateParameter() {
 			continue
 		}
+
 		var encryptionSpec *parameterEncryptionSpec
 		if elt.Hashing != nil {
 			path := strings.Join(append(parentNames, elt.Name.Underscore), " | ")
@@ -164,7 +171,7 @@ func generateFromTerraformToPangoParameter(resourceTyp properties.ResourceType, 
 	case properties.ResourceEntryPlural, properties.ResourceUuid, properties.ResourceUuidPlural:
 		terraformPrefix = fmt.Sprintf("%s%s", terraformPrefix, pascalCase(prop.TerraformProviderConfig.PluralName))
 		var hasEntryName bool
-		if prop.Entry != nil && resourceTyp != properties.ResourceEntryPlural {
+		if prop.Entry != nil && (resourceTyp != properties.ResourceEntryPlural || prop.TerraformProviderConfig.PluralType != object.TerraformPluralMapType) {
 			hasEntryName = true
 		}
 		specs = append(specs, spec{
@@ -636,6 +643,74 @@ func RenderCopyFromPangoFunctions(resourceTyp properties.ResourceType, pkgName s
 		"PascalCase": pascalCase,
 	})
 	return processTemplate(copyFromPangoTmpl, "copy-from-pango", data, funcMap)
+}
+
+const xpathComponentsGetterTmpl = `
+func (o *{{ .StructName }}Model) resourceXpathParentComponents() ([]string, error) {
+	var components []string
+{{- range .Components }}
+  {{- if eq .Type "value" }}
+	components = append(components, (o.{{ .Name.CamelCase }}.ValueString()))
+  {{- else if eq .Type "entry" }}
+	components = append(components, pangoutil.AsEntryXpath(o.{{ .Name.CamelCase }}.ValueString()))
+  {{- end }}
+{{- end }}
+	return components, nil
+}
+`
+
+func RenderXpathComponentsGetter(structName string, property *properties.Normalization) (string, error) {
+	defer func() {
+		if e := recover(); e != nil {
+			log.Printf("** PANIC: %v", e)
+			debug.PrintStack()
+			panic(e)
+		}
+	}()
+
+	type componentSpec struct {
+		Type     string
+		Name     *properties.NameVariant
+		Variants []*properties.NameVariant
+	}
+
+	var components []componentSpec
+	for _, elt := range property.PanosXpath.Variables {
+		if elt.Name == "name" {
+			continue
+		}
+
+		xpathProperty, err := property.ParameterForPanosXpathVariable(elt)
+		if err != nil {
+			return "", err
+		}
+
+		switch elt.Spec.Type {
+		case object.PanosXpathVariableValue:
+			components = append(components, componentSpec{
+				Type: "value",
+				Name: xpathProperty.Name,
+			})
+		case object.PanosXpathVariableEntry:
+			components = append(components, componentSpec{
+				Type: "entry",
+				Name: xpathProperty.Name,
+			})
+		case object.PanosXpathVariableStatic:
+		default:
+			panic(fmt.Sprintf("invalid panos xpath variable type: '%s'", elt.Spec.Type))
+		}
+	}
+
+	data := struct {
+		StructName string
+		Components []componentSpec
+	}{
+		StructName: structName,
+		Components: components,
+	}
+
+	return processTemplate(xpathComponentsGetterTmpl, "xpath-components", data, commonFuncMap)
 }
 
 const renderLocationTmpl = `
@@ -1523,13 +1598,41 @@ func createSchemaSpecForEntryListModel(resourceTyp properties.ResourceType, sche
 	listNameStr := spec.TerraformProviderConfig.PluralName
 	listName := properties.NewNameVariant(listNameStr)
 
+	var listAttributeSchemaType string
+	switch spec.TerraformProviderConfig.PluralType {
+	case object.TerraformPluralListType:
+		listAttributeSchemaType = "ListNestedAttribute"
+	case object.TerraformPluralMapType:
+		listAttributeSchemaType = "MapNestedAttribute"
+	case object.TerraformPluralSetType:
+		listAttributeSchemaType = "SetNestedAttribute"
+	}
+
 	attributes = append(attributes, attributeCtx{
 		Package:     packageName,
 		Name:        listName,
 		Description: spec.TerraformProviderConfig.PluralDescription,
 		Required:    true,
-		SchemaType:  "MapNestedAttribute",
+		SchemaType:  listAttributeSchemaType,
 	})
+
+	for _, elt := range spec.PanosXpath.Variables {
+		if elt.Name == "name" {
+			continue
+		}
+
+		param, err := spec.ParameterForPanosXpathVariable(elt)
+		if err != nil {
+			panic(fmt.Sprintf("couldn't find matching param for xpath variable: %s", err.Error()))
+		}
+
+		attributes = append(attributes, attributeCtx{
+			Package:    packageName,
+			Name:       param.Name,
+			Required:   true,
+			SchemaType: "StringAttribute",
+		})
+	}
 
 	var isResource bool
 	if schemaTyp == properties.SchemaResource {
@@ -1624,9 +1727,9 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 		})
 	}
 
-	// We don't add name for resources of type ResourceEntryPlural, as those resources
+	// We don't add name for resources that have plurar type set to map, as those resources
 	// handle names as map keys in the top-level model.
-	if spec.HasEntryName() && resourceTyp != properties.ResourceEntryPlural {
+	if spec.HasEntryName() && (resourceTyp != properties.ResourceEntryPlural || spec.TerraformProviderConfig.PluralType != object.TerraformPluralMapType) {
 		name := properties.NewNameVariant("name")
 
 		var description string
@@ -1645,6 +1748,10 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 
 	for _, elt := range spec.Spec.SortedParams() {
 		if elt.IsPrivateParameter() {
+			continue
+		}
+
+		if resourceTyp == properties.ResourceEntryPlural && elt.TerraformProviderConfig != nil && elt.TerraformProviderConfig.XpathVariable != nil {
 			continue
 		}
 
@@ -1682,6 +1789,10 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 
 	for _, elt := range spec.Spec.SortedOneOf() {
 		if elt.IsPrivateParameter() {
+			continue
+		}
+
+		if resourceTyp == properties.ResourceEntryPlural && elt.TerraformProviderConfig != nil && elt.TerraformProviderConfig.XpathVariable != nil {
 			continue
 		}
 
@@ -2384,13 +2495,41 @@ func createStructSpecForEntryListModel(resourceTyp properties.ResourceType, sche
 		panic("unreachable")
 	}
 
+	for _, elt := range spec.PanosXpath.Variables {
+		if elt.Name == "name" {
+			continue
+		}
+
+		param, err := spec.ParameterForPanosXpathVariable(elt)
+		if err != nil {
+			panic(fmt.Sprintf("couldn't find matching param for xpath variable: %s", err.Error()))
+		}
+
+		xmlTags := []string{fmt.Sprintf("`tfsdk:\"%s\"`", param.Name.Underscore)}
+		fields = append(fields, datasourceStructFieldSpec{
+			Name: param.Name,
+			Type: "types.String",
+			Tags: xmlTags,
+		})
+	}
+
 	listNameStr := spec.TerraformProviderConfig.PluralName
 	listName := properties.NewNameVariant(listNameStr)
+
+	var listEltType string
+	switch spec.TerraformProviderConfig.PluralType {
+	case object.TerraformPluralMapType:
+		listEltType = "types.Map"
+	case object.TerraformPluralListType:
+		listEltType = "types.List"
+	case object.TerraformPluralSetType:
+		listEltType = "types.Set"
+	}
 
 	tag := fmt.Sprintf("`tfsdk:\"%s\"`", listName.Underscore)
 	fields = append(fields, datasourceStructFieldSpec{
 		Name: listName,
-		Type: "types.Map",
+		Type: listEltType,
 		Tags: []string{tag},
 	})
 
@@ -2475,7 +2614,7 @@ func createStructSpecForNormalization(resourceTyp properties.ResourceType, struc
 
 	// We don't add name field for entry-style list resources, as they
 	// represent lists as maps with name being a key.
-	if spec.HasEntryName() && resourceTyp != properties.ResourceEntryPlural {
+	if spec.HasEntryName() && (resourceTyp != properties.ResourceEntryPlural || spec.TerraformProviderConfig.PluralType != object.TerraformPluralMapType) {
 		fields = append(fields, datasourceStructFieldSpec{
 			Name: properties.NewNameVariant("name"),
 			Type: "types.String",
@@ -2488,6 +2627,10 @@ func createStructSpecForNormalization(resourceTyp properties.ResourceType, struc
 			continue
 		}
 
+		if resourceTyp == properties.ResourceEntryPlural && elt.TerraformProviderConfig != nil && elt.TerraformProviderConfig.XpathVariable != nil {
+			continue
+		}
+
 		fields = append(fields, structFieldSpec(elt, structName, hackStructAsTypeObjects))
 		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
 			structs = append(structs, dataSourceStructContextForParam(structName, elt, hackStructAsTypeObjects)...)
@@ -2496,6 +2639,10 @@ func createStructSpecForNormalization(resourceTyp properties.ResourceType, struc
 
 	for _, elt := range spec.Spec.SortedOneOf() {
 		if elt.IsPrivateParameter() {
+			continue
+		}
+
+		if resourceTyp == properties.ResourceEntryPlural && elt.TerraformProviderConfig != nil && elt.TerraformProviderConfig.XpathVariable != nil {
 			continue
 		}
 
@@ -2679,15 +2826,11 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 
 	listAttributeVariant := properties.NewNameVariant(listAttribute)
 
-	var resourceIsMap bool
-	if resourceTyp == properties.ResourceEntryPlural {
-		resourceIsMap = true
-	}
 	data := map[string]interface{}{
+		"PluralType":            paramSpec.TerraformProviderConfig.PluralType,
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
 		"HasImports":            len(paramSpec.Imports) > 0,
 		"Exhaustive":            exhaustive,
-		"ResourceIsMap":         resourceIsMap,
 		"ListAttribute":         listAttributeVariant,
 		"EntryOrConfig":         paramSpec.EntryOrConfig(),
 		"HasEntryName":          paramSpec.HasEntryName(),
@@ -2732,27 +2875,25 @@ func DataSourceReadFunction(resourceTyp properties.ResourceType, names *NameProv
 
 	listAttributeVariant := properties.NewNameVariant(listAttribute)
 
-	var resourceIsMap bool
-	if resourceTyp == properties.ResourceEntryPlural {
-		resourceIsMap = true
-	}
 	data := map[string]interface{}{
-		"ResourceOrDS":          "DataSource",
-		"ResourceIsMap":         resourceIsMap,
-		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
-		"ListAttribute":         listAttributeVariant,
-		"Exhaustive":            exhaustive,
-		"EntryOrConfig":         paramSpec.EntryOrConfig(),
-		"HasEntryName":          paramSpec.HasEntryName(),
-		"structName":            names.StructName,
-		"resourceStructName":    names.ResourceStructName,
-		"dataSourceStructName":  names.DataSourceStructName,
-		"serviceName":           naming.CamelCase("", serviceName, "", false),
-		"resourceSDKName":       resourceSDKName,
-		"locations":             paramSpec.OrderedLocations(),
+		"PluralType":                       paramSpec.TerraformProviderConfig.PluralType,
+		"ResourceXpathVariablesWithChecks": paramSpec.ResourceXpathVariablesWithChecks(false),
+		"ResourceOrDS":                     "DataSource",
+		"HasEncryptedResources":            paramSpec.HasEncryptedResources(),
+		"ListAttribute":                    listAttributeVariant,
+		"Exhaustive":                       exhaustive,
+		"EntryOrConfig":                    paramSpec.EntryOrConfig(),
+		"HasEntryName":                     paramSpec.HasEntryName(),
+		"structName":                       names.StructName,
+		"resourceStructName":               names.ResourceStructName,
+		"dataSourceStructName":             names.DataSourceStructName,
+		"serviceName":                      naming.CamelCase("", serviceName, "", false),
+		"resourceSDKName":                  resourceSDKName,
+		"locations":                        paramSpec.OrderedLocations(),
 	}
 
 	funcMap := template.FuncMap{
+		"AttributesFromXpathComponents": func(target string) (string, error) { return paramSpec.AttributesFromXpathComponents(target) },
 		"RenderLocationsPangoToState": func(source string, dest string) (string, error) {
 			return RenderLocationsPangoToState(names, paramSpec, source, dest)
 		},
@@ -2761,7 +2902,7 @@ func DataSourceReadFunction(resourceTyp properties.ResourceType, names *NameProv
 		},
 	}
 
-	return processTemplate(tmpl, "resource-read-function", data, funcMap)
+	return processTemplate(tmpl, "datasource-read-function", data, funcMap)
 }
 
 func ResourceReadFunction(resourceTyp properties.ResourceType, names *NameProvider, serviceName string, paramSpec *properties.Normalization, resourceSDKName string) (string, error) {
@@ -2795,27 +2936,25 @@ func ResourceReadFunction(resourceTyp properties.ResourceType, names *NameProvid
 
 	listAttributeVariant := properties.NewNameVariant(listAttribute)
 
-	var resourceIsMap bool
-	if resourceTyp == properties.ResourceEntryPlural {
-		resourceIsMap = true
-	}
 	data := map[string]interface{}{
-		"ResourceOrDS":          "Resource",
-		"ResourceIsMap":         resourceIsMap,
-		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
-		"ListAttribute":         listAttributeVariant,
-		"Exhaustive":            exhaustive,
-		"EntryOrConfig":         paramSpec.EntryOrConfig(),
-		"HasEntryName":          paramSpec.HasEntryName(),
-		"structName":            names.StructName,
-		"datasourceStructName":  names.DataSourceStructName,
-		"resourceStructName":    names.ResourceStructName,
-		"serviceName":           naming.CamelCase("", serviceName, "", false),
-		"resourceSDKName":       resourceSDKName,
-		"locations":             paramSpec.OrderedLocations(),
+		"PluralType":                       paramSpec.TerraformProviderConfig.PluralType,
+		"ResourceXpathVariablesWithChecks": paramSpec.ResourceXpathVariablesWithChecks(false),
+		"ResourceOrDS":                     "Resource",
+		"HasEncryptedResources":            paramSpec.HasEncryptedResources(),
+		"ListAttribute":                    listAttributeVariant,
+		"Exhaustive":                       exhaustive,
+		"EntryOrConfig":                    paramSpec.EntryOrConfig(),
+		"HasEntryName":                     paramSpec.HasEntryName(),
+		"structName":                       names.StructName,
+		"datasourceStructName":             names.DataSourceStructName,
+		"resourceStructName":               names.ResourceStructName,
+		"serviceName":                      naming.CamelCase("", serviceName, "", false),
+		"resourceSDKName":                  resourceSDKName,
+		"locations":                        paramSpec.OrderedLocations(),
 	}
 
 	funcMap := template.FuncMap{
+		"AttributesFromXpathComponents": func(target string) (string, error) { return paramSpec.AttributesFromXpathComponents(target) },
 		"RenderLocationsPangoToState": func(source string, dest string) (string, error) {
 			return RenderLocationsPangoToState(names, paramSpec, source, dest)
 		},
@@ -2858,14 +2997,9 @@ func ResourceUpdateFunction(resourceTyp properties.ResourceType, names *NameProv
 
 	listAttributeVariant := properties.NewNameVariant(listAttribute)
 
-	var resourceIsMap bool
-	if resourceTyp == properties.ResourceEntryPlural {
-		resourceIsMap = true
-	}
-
 	data := map[string]interface{}{
+		"PluralType":            paramSpec.TerraformProviderConfig.PluralType,
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
-		"ResourceIsMap":         resourceIsMap,
 		"ListAttribute":         listAttributeVariant,
 		"Exhaustive":            exhaustive,
 		"EntryOrConfig":         paramSpec.EntryOrConfig(),
@@ -2897,7 +3031,7 @@ func ResourceDeleteFunction(resourceTyp properties.ResourceType, names *NameProv
 
 	var tmpl string
 	var listAttribute string
-	var exhaustive bool
+	var exhaustive string
 	switch resourceTyp {
 	case properties.ResourceEntry, properties.ResourceConfig:
 		tmpl = resourceDeleteFunction
@@ -2907,10 +3041,11 @@ func ResourceDeleteFunction(resourceTyp properties.ResourceType, names *NameProv
 	case properties.ResourceUuid:
 		tmpl = resourceDeleteManyFunction
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
-		exhaustive = true
+		exhaustive = "exhaustive"
 	case properties.ResourceUuidPlural:
 		tmpl = resourceDeleteManyFunction
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
+		exhaustive = "non-exhaustive"
 	case properties.ResourceCustom:
 		var err error
 		tmpl, err = getCustomTemplateForFunction(paramSpec, "Delete")
@@ -2921,14 +3056,9 @@ func ResourceDeleteFunction(resourceTyp properties.ResourceType, names *NameProv
 
 	listAttributeVariant := properties.NewNameVariant(listAttribute)
 
-	var resourceIsMap bool
-	if resourceTyp == properties.ResourceEntryPlural {
-		resourceIsMap = true
-	}
-
 	data := map[string]interface{}{
+		"PluralType":            paramSpec.TerraformProviderConfig.PluralType,
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
-		"ResourceIsMap":         resourceIsMap,
 		"HasImports":            len(paramSpec.Imports) > 0,
 		"EntryOrConfig":         paramSpec.EntryOrConfig(),
 		"ListAttribute":         listAttributeVariant,
@@ -3051,14 +3181,73 @@ func createImportStateStructSpecs(resourceTyp properties.ResourceType, names *Na
 		Tags:          "`json:\"location\"`",
 	})
 
+	var resourceHasParent bool
+	if spec.ResourceXpathVariablesWithChecks(false) {
+		resourceHasParent = true
+	}
+
 	switch resourceTyp {
 	case properties.ResourceEntry:
+		if resourceHasParent {
+			var xpathVariable *object.PanosXpathVariable
+			for _, elt := range spec.PanosXpath.Variables {
+				if elt.Name == "parent" {
+					xpathVariable = &elt
+				}
+			}
+
+			if xpathVariable == nil {
+				panic("couldn't find parent variable for a child spec")
+			}
+
+			parentParam, err := spec.ParameterForPanosXpathVariable(*xpathVariable)
+			if err != nil {
+				panic(fmt.Sprintf("couldn't find matching param for xpath variable: %s", err.Error()))
+			}
+
+			fields = append(fields, importStateStructFieldSpec{
+				Name: parentParam.Name.CamelCase,
+				Type: "types.String",
+				Tags: fmt.Sprintf("`json:\"%s\"`", parentParam.Name.Underscore),
+			})
+		}
+
 		fields = append(fields, importStateStructFieldSpec{
 			Name: "Name",
 			Type: "types.String",
 			Tags: "`json:\"name\"`",
 		})
-	case properties.ResourceEntryPlural, properties.ResourceUuid:
+	case properties.ResourceEntryPlural:
+		if resourceHasParent {
+			var xpathVariable *object.PanosXpathVariable
+			for _, elt := range spec.PanosXpath.Variables {
+				if elt.Name == "parent" {
+					xpathVariable = &elt
+				}
+			}
+
+			if xpathVariable == nil {
+				panic("couldn't find parent variable for a child spec")
+			}
+
+			parentParam, err := spec.ParameterForPanosXpathVariable(*xpathVariable)
+			if err != nil {
+				panic(fmt.Sprintf("couldn't find matching param for xpath variable: %s", err.Error()))
+			}
+
+			fields = append(fields, importStateStructFieldSpec{
+				Name: parentParam.Name.CamelCase,
+				Type: "types.String",
+				Tags: fmt.Sprintf("`json:\"%s\"`", parentParam.Name.Underscore),
+			})
+		} else {
+			fields = append(fields, importStateStructFieldSpec{
+				Name: "Names",
+				Type: "types.List",
+				Tags: "`json:\"names\"`",
+			})
+		}
+	case properties.ResourceUuid:
 		fields = append(fields, importStateStructFieldSpec{
 			Name: "Names",
 			Type: "types.List",
@@ -3088,7 +3277,7 @@ func createImportStateStructSpecs(resourceTyp properties.ResourceType, names *Na
 	return specs
 }
 
-func createImportStateMarshallerSpecs(resourceTyp properties.ResourceType, names *NameProvider, _ *properties.Normalization) []marshallerSpec {
+func createImportStateMarshallerSpecs(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) []marshallerSpec {
 	var specs []marshallerSpec
 
 	var fields []marshallerFieldSpec
@@ -3100,14 +3289,74 @@ func createImportStateMarshallerSpecs(resourceTyp properties.ResourceType, names
 		Tags:       "`json:\"location\"`",
 	})
 
+	var resourceHasParent bool
+	if spec.ResourceXpathVariablesWithChecks(false) {
+		resourceHasParent = true
+	}
+
 	switch resourceTyp {
 	case properties.ResourceEntry:
+		if resourceHasParent {
+			var xpathVariable *object.PanosXpathVariable
+			for _, elt := range spec.PanosXpath.Variables {
+				if elt.Name == "parent" {
+					xpathVariable = &elt
+				}
+			}
+
+			if xpathVariable == nil {
+				panic("couldn't find parent variable for a child spec")
+			}
+
+			parentParam, err := spec.ParameterForPanosXpathVariable(*xpathVariable)
+			if err != nil {
+				panic(fmt.Sprintf("couldn't find matching param for xpath variable: %s", err.Error()))
+			}
+
+			fields = append(fields, marshallerFieldSpec{
+				Name: parentParam.Name,
+				Type: "string",
+				Tags: fmt.Sprintf("`json:\"%s\"`", parentParam.Name.Underscore),
+			})
+		}
+
 		fields = append(fields, marshallerFieldSpec{
 			Name: properties.NewNameVariant("name"),
 			Type: "string",
 			Tags: "`json:\"name\"`",
 		})
-	case properties.ResourceEntryPlural, properties.ResourceUuid:
+	case properties.ResourceEntryPlural:
+		if resourceHasParent {
+			var xpathVariable *object.PanosXpathVariable
+			for _, elt := range spec.PanosXpath.Variables {
+				if elt.Name == "parent" {
+					xpathVariable = &elt
+				}
+			}
+
+			if xpathVariable == nil {
+				panic("couldn't find parent variable for a child spec")
+			}
+
+			parentParam, err := spec.ParameterForPanosXpathVariable(*xpathVariable)
+			if err != nil {
+				panic(fmt.Sprintf("couldn't find matching param for xpath variable: %s", err.Error()))
+			}
+
+			fields = append(fields, marshallerFieldSpec{
+				Name: parentParam.Name,
+				Type: "string",
+				Tags: fmt.Sprintf("`json:\"%s\"`", parentParam.Name.Underscore),
+			})
+		} else {
+			fields = append(fields, marshallerFieldSpec{
+				Name:       properties.NewNameVariant("names"),
+				Type:       "types.List",
+				StructName: "[]string",
+				Tags:       "`json:\"names\"`",
+			})
+		}
+	case properties.ResourceUuid:
 		fields = append(fields, marshallerFieldSpec{
 			Name:       properties.NewNameVariant("names"),
 			Type:       "types.List",
@@ -3163,30 +3412,81 @@ func ResourceImportStateFunction(resourceTyp properties.ResourceType, names *Nam
 
 	type context struct {
 		StructName      string
-		ResourceIsMap   bool
+		PluralType      object.TerraformPluralType
 		ResourceIsList  bool
 		HasPosition     bool
 		HasEntryName    bool
 		ListAttribute   *properties.NameVariant
 		ListStructName  string
 		PangoStructName string
+		HasParent       bool
+		ParentAttribute *properties.NameVariant
 	}
 
 	data := context{
 		StructName: names.StructName,
 	}
 
+	var resourceHasParent bool
+	if spec.ResourceXpathVariablesWithChecks(false) {
+		resourceHasParent = true
+	}
+
 	switch resourceTyp {
 	case properties.ResourceEntry:
+		if resourceHasParent {
+			var xpathVariable *object.PanosXpathVariable
+			for _, elt := range spec.PanosXpath.Variables {
+				if elt.Name == "parent" {
+					xpathVariable = &elt
+				}
+			}
+
+			if xpathVariable == nil {
+				panic("couldn't find parent variable for a child spec")
+			}
+
+			parentParam, err := spec.ParameterForPanosXpathVariable(*xpathVariable)
+			if err != nil {
+				panic(fmt.Sprintf("couldn't find matching param for xpath variable: %s", err.Error()))
+			}
+
+			data.ParentAttribute = parentParam.Name
+			data.HasParent = true
+		}
 		data.HasEntryName = spec.HasEntryName()
 	case properties.ResourceEntryPlural:
-		data.ResourceIsMap = true
-		listAttribute := properties.NewNameVariant(spec.TerraformProviderConfig.PluralName)
-		data.ListAttribute = listAttribute
-		data.ListStructName = fmt.Sprintf("%sResource%sObject", names.StructName, listAttribute.CamelCase)
-		data.PangoStructName = fmt.Sprintf("%s.Entry", names.PackageName)
+		if resourceHasParent {
+			var xpathVariable *object.PanosXpathVariable
+			for _, elt := range spec.PanosXpath.Variables {
+				if elt.Name == "parent" {
+					xpathVariable = &elt
+				}
+			}
+
+			if xpathVariable == nil {
+				panic("couldn't find parent variable for a child spec")
+			}
+
+			parentParam, err := spec.ParameterForPanosXpathVariable(*xpathVariable)
+			if err != nil {
+				panic(fmt.Sprintf("couldn't find matching param for xpath variable: %s", err.Error()))
+			}
+
+			data.PluralType = spec.TerraformProviderConfig.PluralType
+			data.ParentAttribute = parentParam.Name
+			data.HasParent = true
+
+		} else {
+			listAttribute := properties.NewNameVariant(spec.TerraformProviderConfig.PluralName)
+			data.PluralType = spec.TerraformProviderConfig.PluralType
+			data.ListAttribute = listAttribute
+			data.ListStructName = fmt.Sprintf("%sResource%sObject", names.StructName, listAttribute.CamelCase)
+			data.PangoStructName = fmt.Sprintf("%s.Entry", names.PackageName)
+		}
 	case properties.ResourceUuid, properties.ResourceUuidPlural:
 		data.ResourceIsList = true
+		data.PluralType = spec.TerraformProviderConfig.PluralType
 		listAttribute := properties.NewNameVariant(spec.TerraformProviderConfig.PluralName)
 		data.ListAttribute = properties.NewNameVariant(spec.TerraformProviderConfig.PluralName)
 		data.ListStructName = fmt.Sprintf("%sResource%sObject", names.StructName, listAttribute.CamelCase)
@@ -3213,6 +3513,8 @@ func RenderImportStateCreator(resourceTyp properties.ResourceType, names *NamePr
 		ListAttribute    *properties.NameVariant
 		ListStructName   string
 		ResourceType     properties.ResourceType
+		HasParent        bool
+		ParentAttribute  *properties.NameVariant
 	}
 
 	data := context{
@@ -3222,12 +3524,58 @@ func RenderImportStateCreator(resourceTyp properties.ResourceType, names *NamePr
 		StructNamePrefix: names.StructName,
 	}
 
+	var resourceHasParent bool
+	if spec.ResourceXpathVariablesWithChecks(false) {
+		resourceHasParent = true
+	}
+
 	switch resourceTyp {
 	case properties.ResourceEntry:
+		if resourceHasParent {
+			var xpathVariable *object.PanosXpathVariable
+			for _, elt := range spec.PanosXpath.Variables {
+				if elt.Name == "parent" {
+					xpathVariable = &elt
+				}
+			}
+
+			if xpathVariable == nil {
+				panic("couldn't find parent variable for a child spec")
+			}
+
+			parentParam, err := spec.ParameterForPanosXpathVariable(*xpathVariable)
+			if err != nil {
+				panic(fmt.Sprintf("couldn't find matching param for xpath variable: %s", err.Error()))
+			}
+
+			data.HasParent = true
+			data.ParentAttribute = parentParam.Name
+		}
 	case properties.ResourceEntryPlural:
-		listAttribute := properties.NewNameVariant(spec.TerraformProviderConfig.PluralName)
-		data.ListAttribute = listAttribute
-		data.ListStructName = fmt.Sprintf("%sResource%sObject", names.StructName, listAttribute.CamelCase)
+		if resourceHasParent {
+			var xpathVariable *object.PanosXpathVariable
+			for _, elt := range spec.PanosXpath.Variables {
+				if elt.Name == "parent" {
+					xpathVariable = &elt
+				}
+			}
+
+			if xpathVariable == nil {
+				panic("couldn't find parent variable for a child spec")
+			}
+
+			parentParam, err := spec.ParameterForPanosXpathVariable(*xpathVariable)
+			if err != nil {
+				panic(fmt.Sprintf("couldn't find matching param for xpath variable: %s", err.Error()))
+			}
+
+			data.HasParent = true
+			data.ParentAttribute = parentParam.Name
+		} else {
+			listAttribute := properties.NewNameVariant(spec.TerraformProviderConfig.PluralName)
+			data.ListAttribute = listAttribute
+			data.ListStructName = fmt.Sprintf("%sResource%sObject", names.StructName, listAttribute.CamelCase)
+		}
 	case properties.ResourceUuid, properties.ResourceUuidPlural:
 		listAttribute := properties.NewNameVariant(spec.TerraformProviderConfig.PluralName)
 		data.ListAttribute = listAttribute

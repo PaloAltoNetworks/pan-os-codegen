@@ -6,8 +6,9 @@ go_sdk_config:
   package:
     - "panorama"
     - "template_variable"
-xpath_suffix:
-  - "variable"
+panos_xpath:
+  path:
+    - "variable"
 locations:
   - name: "template"
     description: "Located in a specific template."
