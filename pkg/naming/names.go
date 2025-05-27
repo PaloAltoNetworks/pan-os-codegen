@@ -92,6 +92,13 @@ func CamelCase(prefix, value, suffix string, capitalizeFirstRune bool) string {
 	return builder.String()
 }
 
+func LowerCamelCase(value string) string {
+	r := []rune(value)
+	r[0] = unicode.ToLower(r[0])
+
+	return string(r)
+}
+
 // writeRuneAndApplyChangesForCamelCase contains logic to check all conditions for create CamelCase names and writes rune value.
 func writeRuneAndApplyChangesForCamelCase(runeValue int32, builder *strings.Builder, isFirstCharacter *bool, hasFirstRuneBeenCapitalized *bool, capitalizeFirstRune *bool) {
 	if shouldResetFirstCharacterFlag(runeValue) {

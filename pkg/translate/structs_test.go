@@ -4,6 +4,8 @@ import (
 	"os"
 	"testing"
 
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
@@ -82,39 +84,696 @@ func TestOmitEmpty(t *testing.T) {
 	assert.Contains(t, omitEmptyLocations, "")
 }
 
-func TestXmlParamType(t *testing.T) {
-	// given
-	paramTypeRequiredString := properties.SpecParam{
-		Type:     "string",
-		Required: true,
-		Profiles: []*properties.SpecParamProfile{
-			{
-				Type:  "string",
-				Xpath: []string{"description"},
-			},
-		},
-	}
-	paramTypeListString := properties.SpecParam{
-		Type: "list",
-		Items: &properties.SpecParamItems{
-			Type: "string",
-		},
-		Profiles: []*properties.SpecParamProfile{
-			{
-				Type:  "member",
-				Xpath: []string{"tag"},
-			},
-		},
-	}
+var _ = Describe("ParamType", func() {
+	Context("When generating XML types for basic types", func() {
+		structTyp := structXmlType
+		parent := properties.NewNameVariant("")
+		suffix := ""
+		Context("when parameter is not a list", func() {
+			It("should return a normal go type for required params", func() {
+				param := &properties.SpecParam{
+					Name:     properties.NewNameVariant("test-param"),
+					Required: true,
+					Type:     "string",
+				}
+				Expect(ParamType(structTyp, parent, param, suffix)).To(Equal("string"))
+			})
+			It("should return a pointer to a go type for optional params", func() {
+				param := &properties.SpecParam{
+					Name:     properties.NewNameVariant("test-param"),
+					Required: false,
+					Type:     "string",
+				}
+				Expect(ParamType(structTyp, parent, param, suffix)).To(Equal("string"))
+			})
+			It("should return string as type for properties with bool type", func() {
+				param := &properties.SpecParam{
+					Name:     properties.NewNameVariant("test-param"),
+					Required: false,
+					Type:     "bool",
+				}
+				Expect(ParamType(structTyp, parent, param, suffix)).To(Equal("string"))
+			})
+		})
+		Context("when parameter is a list", func() {
+			It("should return a custom pango type for member lists", func() {
+				param := &properties.SpecParam{
+					Name:     properties.NewNameVariant("test-param"),
+					Required: true,
+					Type:     "list",
+					Profiles: []*properties.SpecParamProfile{{Type: "member"}},
+					Items: &properties.SpecParamItems{
+						Type: "string",
+					},
+				}
+				Expect(ParamType(structTyp, parent, param, suffix)).To(Equal("util.Member"))
+			})
+			It("should return a custom pango type for optional member lists", func() {
+				param := &properties.SpecParam{
+					Name:     properties.NewNameVariant("test-param"),
+					Required: false,
+					Type:     "list",
+					Profiles: []*properties.SpecParamProfile{{Type: "member"}},
+					Items: &properties.SpecParamItems{
+						Type: "string",
+					},
+				}
+				Expect(ParamType(structTyp, parent, param, suffix)).To(Equal("util.Member"))
+			})
+		})
+	})
+	Context("When generating XML types for custom types", func() {
+		structTyp := structXmlType
+		Context("when parent is an empty name", func() {
+			parent := properties.NewNameVariant("")
+			Context("and suffix is empty", func() {
+				suffix := ""
+				It("should return a correct XML custom type", func() {
+					param := &properties.SpecParam{
+						Name:     properties.NewNameVariant("test-param"),
+						Required: true,
+						Type:     "",
+					}
+					Expect(ParamType(structTyp, parent, param, suffix)).To(Equal("testParamXml"))
+				})
+			})
+			Context("and suffix is non-empty", func() {
+				suffix := "_10_2"
+				It("should return a correct XML custom type", func() {
+					param := &properties.SpecParam{
+						Name:     properties.NewNameVariant("test-param"),
+						Required: true,
+						Type:     "",
+					}
+					Expect(ParamType(structTyp, parent, param, suffix)).To(Equal("testParamXml_10_2"))
+				})
+			})
+		})
+		Context("when parent is non-empty name", func() {
+			parent := properties.NewNameVariant("parent-param")
+			Context("and suffix is empty", func() {
+				suffix := ""
+				It("should return a correct XML custom type prefixed with parent name", func() {
+					param := &properties.SpecParam{
+						Name:     properties.NewNameVariant("test-param"),
+						Required: true,
+						Type:     "",
+					}
+					Expect(ParamType(structTyp, parent, param, suffix)).To(Equal("parentParamTestParamXml"))
+				})
+			})
+			Context("and suffix is non-empty", func() {
+				suffix := "_10_2"
+				It("should return a correct XML custom type", func() {
+					param := &properties.SpecParam{
+						Name:     properties.NewNameVariant("test-param"),
+						Required: true,
+						Type:     "",
+					}
+					Expect(ParamType(structTyp, parent, param, suffix)).To(Equal("parentParamTestParamXml_10_2"))
+				})
+			})
+		})
+	})
+	Context("When generating XML types for custom type lists", func() {
+		structTyp := structXmlType
+		Context("when parent is an empty name", func() {
+			parent := properties.NewNameVariant("")
+			Context("and suffix is empty", func() {
+				suffix := ""
+				It("should return a correct XML custom type", func() {
+					param := &properties.SpecParam{
+						Name:     properties.NewNameVariant("test-param"),
+						Required: true,
+						Type:     "list",
+						Profiles: []*properties.SpecParamProfile{{Type: "entry"}},
+						Items: &properties.SpecParamItems{
+							Type: "object",
+						},
+					}
+					Expect(ParamType(structTyp, parent, param, suffix)).To(Equal("testParamXml"))
+				})
+			})
+			Context("and suffix is non-empty", func() {
+				suffix := "_10_2"
+				It("should return a correct XML custom type", func() {
+					param := &properties.SpecParam{
+						Name:     properties.NewNameVariant("test-param"),
+						Required: true,
+						Type:     "list",
+						Profiles: []*properties.SpecParamProfile{{Type: "entry"}},
+						Items: &properties.SpecParamItems{
+							Type: "object",
+						},
+					}
+					Expect(ParamType(structTyp, parent, param, suffix)).To(Equal("testParamXml_10_2"))
+				})
+			})
+		})
+		Context("when parent is non-empty name", func() {
+			parent := properties.NewNameVariant("parent-param")
+			Context("and suffix is empty", func() {
+				suffix := ""
+				It("should return a correct XML custom type prefixed with parent name", func() {
+					param := &properties.SpecParam{
+						Name:     properties.NewNameVariant("test-param"),
+						Required: true,
+						Type:     "list",
+						Profiles: []*properties.SpecParamProfile{{Type: "entry"}},
+						Items: &properties.SpecParamItems{
+							Type: "object",
+						},
+					}
+					Expect(ParamType(structTyp, parent, param, suffix)).To(Equal("parentParamTestParamXml"))
+				})
+			})
+			Context("and suffix is non-empty", func() {
+				suffix := "_10_2"
+				It("should return a correct XML custom type", func() {
+					param := &properties.SpecParam{
+						Name:     properties.NewNameVariant("test-param"),
+						Required: true,
+						Type:     "list",
+						Profiles: []*properties.SpecParamProfile{{Type: "entry"}},
+						Items: &properties.SpecParamItems{
+							Type: "object",
+						},
+					}
+					Expect(ParamType(structTyp, parent, param, suffix)).To(Equal("parentParamTestParamXml_10_2"))
+				})
+			})
+		})
+	})
+})
 
-	// when
-	calculatedTypeRequiredString := XmlParamType("", &paramTypeRequiredString)
-	calculatedTypeListString := XmlParamType("", &paramTypeListString)
+var _ = Describe("createEntryXmlStructSpecsForParameter", func() {
+	Context("when creating struct context for a parameter", func() {
+		It("should return a proper struct context", func() {
+			parent := properties.NewNameVariant("parent-param")
+			param := &properties.SpecParam{
+				Name:     properties.NewNameVariant("child-param"),
+				Type:     "",
+				Profiles: []*properties.SpecParamProfile{{Type: "entry", Xpath: []string{"child-param"}}},
+				Spec: &properties.Spec{
+					Params: map[string]*properties.SpecParam{
+						"grandchild-param": {
+							Name:     properties.NewNameVariant("grandchild-param"),
+							Type:     "",
+							Profiles: []*properties.SpecParamProfile{{Type: "entry", Xpath: []string{"grandchild-param"}}},
+							Spec:     &properties.Spec{},
+						},
+					},
+				},
+			}
 
-	// then
-	assert.Equal(t, "string", calculatedTypeRequiredString)
-	assert.Equal(t, "*util.MemberType", calculatedTypeListString)
-}
+			result := createEntryXmlStructSpecsForParameter(parent, param, nil)
+			Expect(result).To(HaveLen(2))
+
+			Expect(result[0].StructName()).To(Equal("ParentParamChildParam"))
+			Expect(result[0].XmlStructName()).To(Equal("parentParamChildParamXml"))
+			Expect(result[0].Fields[0]).To(Equal(entryStructFieldContext{
+				Name:      properties.NewNameVariant("grandchild-param"),
+				FieldType: "object",
+				Type:      "ParentParamChildParamGrandchildParam",
+				XmlType:   "parentParamChildParamGrandchildParamXml",
+				Tags:      "`xml:\"grandchild-param,omitempty\"`",
+			}))
+			Expect(result[0].Fields[0].FinalType()).To(Equal("*ParentParamChildParamGrandchildParam"))
+			Expect(result[0].Fields[0].FinalXmlType()).To(Equal("*parentParamChildParamGrandchildParamXml"))
+			Expect(result[1].StructName()).To(Equal("ParentParamChildParamGrandchildParam"))
+			Expect(result[1].XmlStructName()).To(Equal("parentParamChildParamGrandchildParamXml"))
+		})
+	})
+	Context("when creating struct context for a simple type list parameter", func() {
+		It("should return a proper struct context", func() {
+			parent := properties.NewNameVariant("")
+			param := &properties.SpecParam{
+				Name:     properties.NewNameVariant("parent-param"),
+				Type:     "",
+				Profiles: []*properties.SpecParamProfile{{Type: "entry", Xpath: []string{"child-param"}}},
+				Spec: &properties.Spec{
+					Params: map[string]*properties.SpecParam{
+						"child-param": {
+							Name:     properties.NewNameVariant("child-param"),
+							Type:     "list",
+							Profiles: []*properties.SpecParamProfile{{Type: "member", Xpath: []string{"child-param"}}},
+							Items: &properties.SpecParamItems{
+								Type: "string",
+							},
+						},
+					},
+				},
+			}
+
+			result := createEntryXmlStructSpecsForParameter(parent, param, nil)
+			Expect(result).To(HaveLen(1))
+
+			Expect(result[0].StructName()).To(Equal("ParentParam"))
+			Expect(result[0].XmlStructName()).To(Equal("parentParamXml"))
+			Expect(result[0].Fields[0]).To(Equal(entryStructFieldContext{
+				Name:         properties.NewNameVariant("child-param"),
+				FieldType:    "list-member",
+				Type:         "string",
+				ItemsType:    "[]string",
+				XmlType:      "util.Member",
+				ItemsXmlType: "util.MemberType",
+				Tags:         "`xml:\"child-param,omitempty\"`",
+			}))
+		})
+	})
+	Context("when creating struct context for a complex type list parameter", func() {
+		It("should return a proper struct context", func() {
+			parent := properties.NewNameVariant("")
+			param := &properties.SpecParam{
+				Name:     properties.NewNameVariant("parent-param"),
+				Type:     "",
+				Profiles: []*properties.SpecParamProfile{{Type: "entry", Xpath: []string{"child-param"}}},
+				Spec: &properties.Spec{
+					Params: map[string]*properties.SpecParam{
+						"child-param": {
+							Name:      properties.NewNameVariant("child-param"),
+							SpecOrder: 0,
+							Type:      "list",
+							Profiles:  []*properties.SpecParamProfile{{Type: "entry", Xpath: []string{"child-param"}}},
+							Items: &properties.SpecParamItems{
+								Type: "entry",
+							},
+							Spec: &properties.Spec{
+								Params: map[string]*properties.SpecParam{
+									"grandchild-param": {
+										Name:     properties.NewNameVariant("grandchild-param"),
+										Type:     "int64",
+										Profiles: []*properties.SpecParamProfile{{Xpath: []string{"grandchild-param"}}},
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+
+			result := createEntryXmlStructSpecsForParameter(parent, param, nil)
+			Expect(result).To(HaveLen(2))
+
+			Expect(result[0].StructName()).To(Equal("ParentParam"))
+			Expect(result[0].XmlStructName()).To(Equal("parentParamXml"))
+			Expect(result[0].Fields[0]).To(Equal(entryStructFieldContext{
+				Name:         properties.NewNameVariant("child-param"),
+				FieldType:    "list-entry",
+				Type:         "ParentParamChildParam",
+				ItemsType:    "[]ParentParamChildParam",
+				XmlType:      "parentParamChildParamXml",
+				ItemsXmlType: "[]parentParamChildParamXml",
+				Tags:         "`xml:\"child-param,omitempty\"`",
+			}))
+
+			Expect(result[1].StructName()).To(Equal("ParentParamChildParam"))
+			Expect(result[1].XmlStructName()).To(Equal("parentParamChildParamXml"))
+			Expect(result[1].Fields).To(HaveExactElements([]entryStructFieldContext{
+				{
+					Name:         properties.NewNameVariant("name"),
+					Required:     true,
+					FieldType:    "simple",
+					Type:         "string",
+					ItemsType:    "",
+					XmlType:      "string",
+					ItemsXmlType: "",
+					Tags:         "`xml:\"name,attr\"`",
+				},
+				{
+					Name:         properties.NewNameVariant("grandchild-param"),
+					FieldType:    "simple",
+					Type:         "int64",
+					ItemsType:    "",
+					XmlType:      "int64",
+					ItemsXmlType: "",
+					Tags:         "`xml:\"grandchild-param,omitempty\"`",
+				},
+				{
+					Name:      properties.NewNameVariant("misc"),
+					FieldType: "internal",
+					Type:      "[]generic.Xml",
+					XmlType:   "[]generic.Xml",
+					Tags:      "`xml:\",any\"`",
+				},
+			}))
+		})
+	})
+	Context("when creating struct context for parameter with versioned children", func() {
+		parent := properties.NewNameVariant("")
+		It("should return all specs when nil version is passed", func() {
+			param := &properties.SpecParam{
+				Name:     properties.NewNameVariant("parent-param"),
+				Type:     "",
+				Profiles: []*properties.SpecParamProfile{{Type: "entry", Xpath: []string{"child-param"}}},
+				Spec: &properties.Spec{
+					Params: map[string]*properties.SpecParam{
+						"child-param1": {
+							Name:      properties.NewNameVariant("child-param1"),
+							SpecOrder: 0,
+							Type:      "",
+							Profiles: []*properties.SpecParamProfile{
+								{
+									Type:  "entry",
+									Xpath: []string{"child-param1"},
+								},
+							},
+							Spec: &properties.Spec{},
+						},
+						"child-param2": {
+							Name:      properties.NewNameVariant("child-param2"),
+							SpecOrder: 1,
+							Type:      "",
+							Profiles: []*properties.SpecParamProfile{
+								{
+									Type:  "entry",
+									Xpath: []string{"child-param2"},
+								},
+							},
+							Spec: &properties.Spec{},
+						},
+					},
+				},
+			}
+
+			result := createEntryXmlStructSpecsForParameter(parent, param, nil)
+			Expect(result).To(HaveLen(3))
+
+			Expect(result[0].StructName()).To(Equal("ParentParam"))
+			Expect(result[0].XmlStructName()).To(Equal("parentParamXml"))
+			Expect(result[0].Fields).To(HaveExactElements([]entryStructFieldContext{
+				{
+					Name:      properties.NewNameVariant("child-param1"),
+					FieldType: "object",
+					Type:      "ParentParamChildParam1",
+					XmlType:   "parentParamChildParam1Xml",
+					Tags:      "`xml:\"child-param1,omitempty\"`",
+				},
+				{
+					Name:      properties.NewNameVariant("child-param2"),
+					FieldType: "object",
+					Type:      "ParentParamChildParam2",
+					XmlType:   "parentParamChildParam2Xml",
+					Tags:      "`xml:\"child-param2,omitempty\"`",
+				},
+				{
+					Name:      properties.NewNameVariant("misc"),
+					FieldType: "internal",
+					Type:      "[]generic.Xml",
+					XmlType:   "[]generic.Xml",
+					Tags:      "`xml:\",any\"`",
+				},
+			}))
+
+			Expect(result[0].Fields[0].FinalType()).To(Equal("*ParentParamChildParam1"))
+			Expect(result[0].Fields[0].FinalXmlType()).To(Equal("*parentParamChildParam1Xml"))
+
+			Expect(result[0].Fields[1].FinalType()).To(Equal("*ParentParamChildParam2"))
+			Expect(result[0].Fields[1].FinalXmlType()).To(Equal("*parentParamChildParam2Xml"))
+
+			Expect(result[1].StructName()).To(Equal("ParentParamChildParam1"))
+			Expect(result[1].XmlStructName()).To(Equal("parentParamChildParam1Xml"))
+			Expect(result[2].StructName()).To(Equal("ParentParamChildParam2"))
+			Expect(result[2].XmlStructName()).To(Equal("parentParamChildParam2Xml"))
+		})
+		It("should only return relevant specs when version is non-nill", func() {
+			param := &properties.SpecParam{
+				Name:     properties.NewNameVariant("parent-param"),
+				Type:     "",
+				Profiles: []*properties.SpecParamProfile{{Type: "entry", Xpath: []string{"child-param"}}},
+				Spec: &properties.Spec{
+					Params: map[string]*properties.SpecParam{
+						"child-param1": {
+							Name:      properties.NewNameVariant("child-param1"),
+							SpecOrder: 0,
+							Type:      "",
+							Profiles: []*properties.SpecParamProfile{
+								{
+									Type:  "entry",
+									Xpath: []string{"child-param1"},
+								},
+							},
+							Spec: &properties.Spec{},
+						},
+						"child-param2": {
+							Name:      properties.NewNameVariant("child-param2"),
+							SpecOrder: 1,
+							Type:      "",
+							Profiles: []*properties.SpecParamProfile{
+								{
+									Type:       "entry",
+									Xpath:      []string{"child-param2"},
+									MinVersion: version.MustNewVersionFromString("11.0.0"),
+									MaxVersion: version.MustNewVersionFromString("11.0.5"),
+								},
+							},
+							Spec: &properties.Spec{},
+						},
+					},
+				},
+			}
+			paramVersion := version.MustNewVersionFromString("10.0.0")
+			result := createEntryXmlStructSpecsForParameter(parent, param, paramVersion)
+			Expect(result).To(HaveLen(2))
+
+			Expect(result[0].StructName()).To(Equal("ParentParam"))
+			Expect(result[0].XmlStructName()).To(Equal("parentParamXml_10_0_0"))
+			Expect(result[0].Fields).To(HaveExactElements([]entryStructFieldContext{
+				{
+					Name:      properties.NewNameVariant("child-param1"),
+					FieldType: "object",
+					Type:      "ParentParamChildParam1",
+					XmlType:   "parentParamChildParam1Xml_10_0_0",
+					Tags:      "`xml:\"child-param1,omitempty\"`",
+					version:   paramVersion,
+				},
+				{
+					Name:      properties.NewNameVariant("misc"),
+					FieldType: "internal",
+					Type:      "[]generic.Xml",
+					XmlType:   "[]generic.Xml",
+					Tags:      "`xml:\",any\"`",
+				},
+			}))
+
+			Expect(result[1].StructName()).To(Equal("ParentParamChildParam1"))
+			Expect(result[1].XmlStructName()).To(Equal("parentParamChildParam1Xml_10_0_0"))
+		})
+	})
+})
+
+var _ = Describe("createStructSpecs", func() {
+	Context("when generating xml struct specs for a spec without parameters", func() {
+		It("should return a list of struct specs with a single element", func() {
+			spec := &properties.Normalization{
+				TerraformProviderConfig: properties.TerraformProviderConfig{
+					ResourceType: properties.TerraformResourceEntry,
+				},
+				Name: "test-spec",
+				Spec: &properties.Spec{},
+			}
+
+			result := createStructSpecs(spec, nil)
+			Expect(result).To(HaveLen(1))
+
+			Expect(result[0].StructName()).To(Equal("Entry"))
+			Expect(result[0].XmlStructName()).To(Equal("entryXml"))
+			Expect(result[0].Fields[0].Name.CamelCase).To(Equal("XMLName"))
+			Expect(result[0].Fields).To(HaveExactElements([]entryStructFieldContext{
+				{
+					Name:       xmlNameVariant,
+					FieldType:  "internal",
+					IsInternal: true,
+					XmlType:    "xml.Name",
+					Tags:       "`xml:\"entry\"`",
+				},
+				{
+					Name:      properties.NewNameVariant("name"),
+					Required:  true,
+					FieldType: "simple",
+					Type:      "string",
+					XmlType:   "string",
+					Tags:      "`xml:\"name,attr\"`",
+				},
+				{
+					Name:      properties.NewNameVariant("misc"),
+					FieldType: "internal",
+					Type:      "[]generic.Xml",
+					XmlType:   "[]generic.Xml",
+					Tags:      "`xml:\",any\"`",
+				},
+			}))
+		})
+	})
+	Context("when generating xml struct specs for a spec with one object parameter", func() {
+		It("should return a list of two specs", func() {
+			version11_0_0 := version.MustNewVersionFromString("11.0.0")
+			version11_0_3 := version.MustNewVersionFromString("11.0.3")
+			spec := &properties.Normalization{
+				TerraformProviderConfig: properties.TerraformProviderConfig{
+					ResourceType: properties.TerraformResourceEntry,
+				},
+				Name: "test-spec",
+				Spec: &properties.Spec{
+					Params: map[string]*properties.SpecParam{
+						"param-one": {
+							Name: properties.NewNameVariant("param-one"),
+							Profiles: []*properties.SpecParamProfile{
+								{
+									Type:       "entry",
+									Xpath:      []string{"param-one"},
+									MinVersion: version11_0_3,
+									MaxVersion: version.MustNewVersionFromString("11.0.5"),
+								},
+							},
+							Type: "bool",
+						},
+					},
+					OneOf: map[string]*properties.SpecParam{
+						"param-two": {
+							Name: properties.NewNameVariant("param-two"),
+							Type: "",
+							Profiles: []*properties.SpecParamProfile{
+								{
+									Type:  "entry",
+									Xpath: []string{"param-two"},
+								},
+							},
+							Items: &properties.SpecParamItems{
+								Type: "object",
+							},
+							Spec: &properties.Spec{
+								Params: map[string]*properties.SpecParam{
+									"param-three": {
+										Name: properties.NewNameVariant("param-three"),
+										Type: "",
+										Profiles: []*properties.SpecParamProfile{
+											{
+												Type:       "entry",
+												Xpath:      []string{"param-three"},
+												MinVersion: version11_0_0,
+												MaxVersion: version.MustNewVersionFromString("11.0.5"),
+											},
+										},
+										Items: &properties.SpecParamItems{
+											Type: "object",
+										},
+										Spec: &properties.Spec{
+											Params: map[string]*properties.SpecParam{
+												"param-four": {
+													Name: properties.NewNameVariant("param-four"),
+													Profiles: []*properties.SpecParamProfile{
+														{
+															Xpath: []string{"param-four"},
+														},
+													},
+													Type: "int64",
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+
+			result := createStructSpecs(spec, nil)
+			Expect(result).To(HaveLen(3))
+
+			Expect(result[0].XmlStructName()).To(Equal("entryXml"))
+			Expect(result[1].XmlStructName()).To(Equal("paramTwoXml"))
+			Expect(result[2].XmlStructName()).To(Equal("paramTwoParamThreeXml"))
+
+			result = createStructSpecs(spec, version11_0_3)
+			Expect(result).To(HaveLen(3))
+			Expect(result[0].XmlStructName()).To(Equal("entryXml_11_0_3"))
+			Expect(result[1].XmlStructName()).To(Equal("paramTwoXml_11_0_3"))
+			Expect(result[2].XmlStructName()).To(Equal("paramTwoParamThreeXml_11_0_3"))
+
+			Expect(result[0].Fields).To(HaveExactElements([]entryStructFieldContext{
+				{
+					Name:       xmlNameVariant,
+					FieldType:  "internal",
+					IsInternal: true,
+					XmlType:    "xml.Name",
+					Tags:       "`xml:\"entry\"`",
+				},
+				{
+					Name:      properties.NewNameVariant("name"),
+					Required:  true,
+					FieldType: "simple",
+					Type:      "string",
+					XmlType:   "string",
+					Tags:      "`xml:\"name,attr\"`",
+				},
+				{
+					Name:      properties.NewNameVariant("param-one"),
+					FieldType: "simple",
+					Type:      "bool",
+					XmlType:   "string",
+					Tags:      "`xml:\"param-one,omitempty\"`",
+					version:   version11_0_3,
+				},
+				{
+					Name:      properties.NewNameVariant("param-two"),
+					FieldType: "object",
+					Type:      "ParamTwo",
+					XmlType:   "paramTwoXml_11_0_3",
+					Tags:      "`xml:\"param-two,omitempty\"`",
+					version:   version11_0_3,
+				},
+				{
+					Name:      properties.NewNameVariant("misc"),
+					FieldType: "internal",
+					Type:      "[]generic.Xml",
+					XmlType:   "[]generic.Xml",
+					Tags:      "`xml:\",any\"`",
+				},
+			}))
+
+			result = createStructSpecs(spec, version11_0_0)
+			Expect(result).To(HaveLen(3))
+			Expect(result[0].XmlStructName()).To(Equal("entryXml_11_0_0"))
+			Expect(result[1].XmlStructName()).To(Equal("paramTwoXml_11_0_0"))
+			Expect(result[2].XmlStructName()).To(Equal("paramTwoParamThreeXml_11_0_0"))
+
+			Expect(result[0].Fields).To(HaveExactElements([]entryStructFieldContext{
+				{
+					Name:       xmlNameVariant,
+					FieldType:  "internal",
+					IsInternal: true,
+					XmlType:    "xml.Name",
+					Tags:       "`xml:\"entry\"`",
+				},
+				{
+					Name:      properties.NewNameVariant("name"),
+					Required:  true,
+					FieldType: "simple",
+					Type:      "string",
+					XmlType:   "string",
+					Tags:      "`xml:\"name,attr\"`",
+				},
+				{
+					Name:      properties.NewNameVariant("param-two"),
+					FieldType: "object",
+					Type:      "ParamTwo",
+					XmlType:   "paramTwoXml_11_0_0",
+					Tags:      "`xml:\"param-two,omitempty\"`",
+					version:   version11_0_0,
+				},
+				{
+					Name:      properties.NewNameVariant("misc"),
+					FieldType: "internal",
+					Type:      "[]generic.Xml",
+					XmlType:   "[]generic.Xml",
+					Tags:      "`xml:\",any\"`",
+				},
+			}))
+		})
+	})
+})
 
 func TestXmlTag(t *testing.T) {
 	// given
@@ -161,39 +820,6 @@ func TestXmlTag(t *testing.T) {
 	assert.Equal(t, "`xml:\"description\"`", calculatedXmlTagRequiredString)
 	assert.Equal(t, "`xml:\"tag,omitempty\"`", calculatedXmlTagListString)
 	assert.Equal(t, "`xml:\"uuid,attr,omitempty\"`", calculatedXmlTagUuid)
-}
-
-func TestNestedSpecs(t *testing.T) {
-	// given
-	spec := properties.Spec{
-		Params: map[string]*properties.SpecParam{
-			"a": {
-				Name: properties.NewNameVariant("a"),
-				Spec: &properties.Spec{
-					Params: map[string]*properties.SpecParam{
-						"b": {
-							Name: properties.NewNameVariant("b"),
-							Spec: &properties.Spec{
-								Params: map[string]*properties.SpecParam{
-									"c": {
-										Name: properties.NewNameVariant("c"),
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	// when
-	nestedSpecs, _ := NestedSpecs(&spec)
-
-	// then
-	assert.NotNil(t, nestedSpecs)
-	assert.Contains(t, nestedSpecs, "A")
-	assert.Contains(t, nestedSpecs, "AB")
 }
 
 func TestCreateGoSuffixFromVersion(t *testing.T) {

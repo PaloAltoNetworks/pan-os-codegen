@@ -1,5 +1,6 @@
 name: "Template stack"
 terraform_provider_config:
+  resource_type: entry
   suffix: "template_stack"
 go_sdk_config:
   package:
@@ -58,7 +59,7 @@ spec:
         items:
           type: string
       profiles:
-        - type: entry
+        - type: member
           xpath: ["devices"]
     - name: default-vsys
       description: "Default virtual system"

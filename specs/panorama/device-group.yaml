@@ -1,5 +1,6 @@
 name: "Device group"
 terraform_provider_config:
+  resource_type: entry
   suffix: "device_group"
 go_sdk_config:
   package:

@@ -12,6 +12,20 @@ import (
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/version"
 )
 
+type structType string
+
+const (
+	structXmlType structType = "xml"
+	structApiType structType = "api"
+)
+
+var xmlNameVariant = &properties.NameVariant{
+	Original:       "xml-name",
+	LowerCamelCase: "xmlName",
+	CamelCase:      "XMLName",
+	Underscore:     "xml_name",
+}
+
 // LocationType function used in template location.tmpl to generate location type name.
 func LocationType(location *properties.Location, pointer bool) string {
 	prefix := ""
@@ -19,85 +33,6 @@ func LocationType(location *properties.Location, pointer bool) string {
 		prefix = "*"
 	}
 	return fmt.Sprintf("%s%sLocation", prefix, location.Name.CamelCase)
-}
-
-// NestedSpecs goes through all params and one ofs (recursively) and returns map of all nested specs.
-func NestedSpecs(spec *properties.Spec) (map[string]NestedSpec, error) {
-	nestedSpecs := make(map[string]NestedSpec)
-
-	fmt.Println("HELLO1")
-	if spec == nil {
-		panic("spec == nil")
-	}
-
-	checkNestedSpecs([]string{}, spec, nestedSpecs)
-	fmt.Println("END1")
-
-	return nestedSpecs, nil
-}
-
-type NestedSpec struct {
-	ParentIsList bool
-	Spec         *properties.Spec
-}
-
-func checkNestedSpecs(parent []string, spec *properties.Spec, nestedSpecs map[string]NestedSpec) {
-	for _, param := range spec.SortedParams() {
-		paramKey := append(parent, param.Name.CamelCase)
-		updateNestedSpecs(paramKey, param, nestedSpecs)
-		if len(param.Profiles) > 0 && param.Profiles[0].Type == "entry" && param.Items != nil && param.Items.Type == "entry" {
-			nested, modified := addNameAsParamForNestedSpec(paramKey, nestedSpecs)
-			nested.ParentIsList = true
-			if modified {
-				nested.Spec.HackFixInjectedNameSpecOrder()
-			}
-		}
-	}
-	for _, param := range spec.SortedOneOf() {
-		paramKey := append(parent, param.Name.CamelCase)
-		updateNestedSpecs(paramKey, param, nestedSpecs)
-		if len(param.Profiles) > 0 && param.Profiles[0].Type == "entry" && param.Items != nil && param.Items.Type == "entry" {
-			nested, modified := addNameAsParamForNestedSpec(paramKey, nestedSpecs)
-			nested.ParentIsList = true
-			if modified {
-				nested.Spec.HackFixInjectedNameSpecOrder()
-			}
-		}
-	}
-}
-
-func updateNestedSpecs(parent []string, param *properties.SpecParam, nestedSpecs map[string]NestedSpec) {
-	if param.Spec != nil {
-		nestedSpecs[strings.Join(parent, "")] = NestedSpec{
-			Spec: param.Spec,
-		}
-
-		checkNestedSpecs(parent, param.Spec, nestedSpecs)
-	}
-}
-
-func addNameAsParamForNestedSpec(parent []string, nestedSpecs map[string]NestedSpec) (*NestedSpec, bool) {
-	nested := nestedSpecs[strings.Join(parent, "")]
-	if _, found := nested.Spec.Params["name"]; found {
-		return &nested, false
-	}
-
-	nested.Spec.Params["name"] = &properties.SpecParam{
-		Name: &properties.NameVariant{
-			Underscore: "name",
-			CamelCase:  "Name",
-		},
-		SpecOrder: 0,
-		Type:      "string",
-		Required:  true,
-		Profiles: []*properties.SpecParamProfile{
-			{
-				Xpath: []string{"name"},
-			},
-		},
-	}
-
-	return &nested, true
 }
 
 const importLocationStructTmpl = `
@@ -378,24 +313,39 @@ func SpecParamType(parent string, param *properties.SpecParam) string {
 	return fmt.Sprintf("%s%s", prefix, calculatedType)
 }
 
-// XmlParamType return param type (it can be nested spec) (for struct based on spec from YAML files).
-func XmlParamType(parent string, param *properties.SpecParam) string {
-	prefix := determinePrefix(param, true)
-
-	calculatedType := ""
-	if param.Spec != nil {
-		calculatedType = calculateNestedXmlSpecType(parent, param)
+// ParamType return param type (it can be nested spec) (for struct based on spec from YAML files).
+func ParamType(structTyp structType, parentName *properties.NameVariant, param *properties.SpecParam, suffix string) string {
+	var calculatedType string
+	if param.Type == "" || isParamListAndProfileTypeIsExtendedEntry(param) {
+		typ := calculateNestedXmlSpecType(structTyp, parentName, param, suffix)
+		if structTyp == structXmlType {
+			calculatedType = typ.LowerCamelCase
+		} else {
+			calculatedType = typ.CamelCase
+		}
 	} else if isParamListAndProfileTypeIsMember(param) {
-		calculatedType = "util.MemberType"
+		if structTyp == structXmlType {
+			calculatedType = "util.Member"
+		} else {
+			calculatedType = "string"
+		}
 	} else if isParamListAndProfileTypeIsSingleEntry(param) {
-		calculatedType = "util.EntryType"
-	} else if param.Type == "bool" {
+		if structTyp == structXmlType {
+			calculatedType = "util.Entry"
+		} else {
+			calculatedType = calculateNestedXmlSpecType(structTyp, parentName, param, suffix).CamelCase
+		}
+	} else if param.Type == "bool" && structTyp == structXmlType {
 		calculatedType = "string"
 	} else {
 		calculatedType = param.Type
 	}
 
-	return fmt.Sprintf("%s%s", prefix, calculatedType)
+	return calculatedType
+}
+
+func XmlParamType(parent string, param *properties.SpecParam) string {
+	return ParamType(structXmlType, properties.NewNameVariant(parent), param, "")
 }
 
 func determinePrefix(param *properties.SpecParam, useMemberOrEntryTypeStruct bool) string {
@@ -422,8 +372,19 @@ func calculateNestedSpecType(parent string, param *properties.SpecParam) string 
 	return fmt.Sprintf("%s%s", parent, naming.CamelCase("", param.Name.CamelCase, "", true))
 }
 
-func calculateNestedXmlSpecType(parent string, param *properties.SpecParam) string {
-	return fmt.Sprintf("%s%sXml", parent, naming.CamelCase("", param.Name.CamelCase, "", true))
+func calculateNestedXmlSpecType(structTyp structType, parentName *properties.NameVariant, param *properties.SpecParam, suffix string) *properties.NameVariant {
+	var typ *properties.NameVariant
+	if parentName.IsEmpty() {
+		typ = param.Name
+	} else {
+		typ = parentName.WithSuffix(param.Name)
+	}
+
+	if structTyp == structXmlType {
+		typ = typ.WithSuffix(properties.NewNameVariant("xml")).WithLiteralSuffix(suffix)
+	}
+
+	return typ
 }
 
 // XmlName creates a string with xml name (e.g. `description`).
@@ -513,11 +474,695 @@ func checkIfDeviceVersionSupportedByProfile(param *properties.SpecParam, deviceV
 			return true
 		}
 
-		log.Printf("Param: %s, Version: %s, MinVersion: %s, MaxVersion: %s", param.Name.CamelCase, deviceVersion, profile.MinVersion.String(), profile.MaxVersion.String())
+		log.Printf("Param: %s, deviceVersion: %s, MinVersion: %s, MaxVersion: %s", param.Name.CamelCase, deviceVersion, profile.MinVersion.String(), profile.MaxVersion.String())
 
 		if deviceVersion.GreaterThanOrEqualTo(*profile.MinVersion) && deviceVersion.LesserThan(*profile.MaxVersion) {
 			return true
 		}
 	}
 	return false
+}
+
+type entryStructFieldContext struct {
+	Name         *properties.NameVariant
+	IsInternal   bool
+	Required     bool
+	FieldType    string
+	Type         string
+	ItemsType    string
+	XmlType      string
+	ItemsXmlType string
+	Tags         string
+	version      *version.Version
+}
+
+func (o entryStructFieldContext) FinalType() string {
+	switch o.FieldType {
+	case "list-entry", "list-member":
+		return o.ItemsType
+	case "object", "simple":
+		if o.Required {
+			return o.Type
+		} else {
+			return "*" + o.Type
+		}
+	case "internal":
+		return o.Type
+	default:
+		panic(fmt.Sprintf("unreachable FieldType '%s' for '%s'", o.FieldType, o.Name.CamelCase))
+	}
+}
+
+func (o entryStructFieldContext) FinalXmlType() string {
+	switch o.FieldType {
+	case "list-entry":
+		return o.ItemsXmlType
+	case "list-member":
+		return "*" + o.ItemsXmlType
+	case "object", "simple":
+		if o.Required {
+			return o.XmlType
+		} else {
+			return "*" + o.XmlType
+		}
+	case "internal":
+		return o.XmlType
+	default:
+		panic(fmt.Sprintf("unreachable FieldType '%s' for '%s'", o.FieldType, o.Name.CamelCase))
+	}
+}
+
+type entryStructContext struct {
+	TopLevel bool
+	Fields   []entryStructFieldContext
+
+	version *version.Version
+	name    *properties.NameVariant
+}
+
+func (o entryStructContext) versionSuffix() string {
+	if o.version == nil {
+		return ""
+	}
+
+	return fmt.Sprintf("_%s", strings.ReplaceAll(o.version.String(), ".", "_"))
+}
+
+func (o entryStructContext) StructName() string {
+	return o.name.CamelCase
+}
+
+func (o entryStructContext) XmlStructName() string {
+	return o.name.LowerCamelCase + "Xml" + o.versionSuffix()
+}
+
+func (o entryStructContext) XmlContainerStructName() string {
+	return o.name.LowerCamelCase + "XmlContainer" + o.versionSuffix()
+}
+
+func (o entryStructContext) SpecifierFuncName(suffix string) string {
+	return "specify" + suffix + o.versionSuffix()
+}
+
+func getTypesForParam(structTyp structType, parent *properties.NameVariant, param *properties.SpecParam, version *version.Version) (string, string) {
+	var versionSuffix string
+	if version != nil {
+		versionSuffix = fmt.Sprintf("_%s", strings.ReplaceAll(version.String(), ".", "_"))
+	}
+
+	if structTyp == structXmlType {
+		typ := ParamType(structXmlType, parent, param, versionSuffix)
+		var itemsType string
+		if param.Type == "list" && param.Items.Type == "string" {
+			itemsType = "util.MemberType"
+		} else if param.Type == "list" && param.Items.Type == "entry" {
+			itemsType = "[]" + typ
+		}
+		return typ, itemsType
+	} else {
+		typ := ParamType(structApiType, parent, param, "")
+		var itemsType string
+		if param.Type == "list" && param.Items.Type == "string" {
+			itemsType = "[]string"
+		} else if param.Type == "list" && param.Items.Type == "entry" {
+			itemsType = "[]" + typ
+		}
+		return typ, itemsType
+	}
+}
+
+func getFieldTypeForParam(param *properties.SpecParam) string {
+	if param.Type == "" {
+		return "object"
+	}
+
+	if param.Type == "list" && param.Items.Type == "string" {
+		return "list-member"
+	}
+
+	if param.Type == "list" && param.Items.Type == "entry" {
+		return "list-entry"
+	}
+
+	return "simple"
+}
+
+func createEntryXmlStructSpecsForParameter(parentPrefix *properties.NameVariant, param *properties.SpecParam, version *version.Version) []entryStructContext {
+	var fields []entryStructFieldContext
+	var entries []entryStructContext
+
+	if param.Type == "list" && param.Items.Type == "entry" {
+		fields = append(fields, entryStructFieldContext{
+			Name:      properties.NewNameVariant("name"),
+			Required:  true,
+			FieldType: "simple",
+			Type:      "string",
+			XmlType:   "string",
+			Tags:      "`xml:\"name,attr\"`",
+		})
+	}
+
+	for _, elt := range param.Spec.SortedParams() {
+		if !ParamSupportedInVersion(elt, version) {
+			continue
+		}
+
+		typ, itemsType := getTypesForParam(structApiType, parentPrefix.WithSuffix(param.Name), elt, version)
+		xmlType, itemsXmlType := getTypesForParam(structXmlType, parentPrefix.WithSuffix(param.Name), elt, version)
+
+		fields = append(fields, entryStructFieldContext{
+			Name:         elt.Name,
+			Required:     elt.Required,
+			FieldType:    getFieldTypeForParam(elt),
+			Type:         typ,
+			ItemsType:    itemsType,
+			XmlType:      xmlType,
+			ItemsXmlType: itemsXmlType,
+			Tags:         XmlTag(elt),
+			version:      version,
+		})
+
+		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
+			entries = append(entries, createEntryXmlStructSpecsForParameter(parentPrefix.WithSuffix(param.Name), elt, version)...)
+		}
+	}
+
+	for _, elt := range param.Spec.SortedOneOf() {
+		if !ParamSupportedInVersion(elt, version) {
+			continue
+		}
+
+		typ, itemsType := getTypesForParam(structApiType, parentPrefix.WithSuffix(param.Name), elt, version)
+		xmlType, itemsXmlType := getTypesForParam(structXmlType, parentPrefix.WithSuffix(param.Name), elt, version)
+
+		fields = append(fields, entryStructFieldContext{
+			Name:         elt.Name,
+			Required:     elt.Required,
+			FieldType:    getFieldTypeForParam(elt),
+			Type:         typ,
+			ItemsType:    itemsType,
+			XmlType:      xmlType,
+			ItemsXmlType: itemsXmlType,
+			Tags:         XmlTag(elt),
+			version:      version,
+		})
+
+		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
+			entries = append(entries, createEntryXmlStructSpecsForParameter(parentPrefix.WithSuffix(param.Name), elt, version)...)
+		}
+	}
+
+	fields = append(fields, entryStructFieldContext{
+		Name:      properties.NewNameVariant("misc"),
+		FieldType: "internal",
+		Type:      "[]generic.Xml",
+		XmlType:   "[]generic.Xml",
+		Tags:      "`xml:\",any\"`",
+	})
+
+	name := parentPrefix.WithSuffix(param.Name)
+	entries = append([]entryStructContext{{
+		Fields:  fields,
+		name:    name,
+		version: version,
+	}}, entries...)
+
+	return entries
+}
+
+func creasteStructSpecsForNormalization(parentPrefix *properties.NameVariant, spec *properties.Normalization, version *version.Version) []entryStructContext {
+	var entries []entryStructContext
+	var fields []entryStructFieldContext
+
+	var xmlTags string
+	switch spec.TerraformProviderConfig.ResourceType {
+	case properties.TerraformResourceEntry, properties.TerraformResourceUuid:
+		xmlTags = "`xml:\"entry\"`"
+	case properties.TerraformResourceConfig:
+		xmlTags = "`xml:\"system\"`"
+	case properties.TerraformResourceCustom:
+		fallthrough
+	default:
+		panic(fmt.Sprintf("unreachable resource type: '%s'", spec.TerraformProviderConfig.ResourceType))
+	}
+	fields = append(fields, entryStructFieldContext{
+		IsInternal: true,
+		FieldType:  "internal",
+		Name:       xmlNameVariant,
+		XmlType:    "xml.Name",
+		Tags:       xmlTags,
+	})
+
+	switch spec.TerraformProviderConfig.ResourceType {
+	case properties.TerraformResourceEntry, properties.TerraformResourceUuid:
+		fields = append(fields, entryStructFieldContext{
+			Name:      properties.NewNameVariant("name"),
+			Required:  true,
+			FieldType: "simple",
+			Type:      "string",
+			XmlType:   "string",
+			Tags:      "`xml:\"name,attr\"`",
+		})
+	case properties.TerraformResourceConfig:
+	case properties.TerraformResourceCustom:
+		fallthrough
+	default:
+		panic(fmt.Sprintf("unreachable resource type: '%s'", spec.TerraformProviderConfig.ResourceType))
+	}
+
+	for _, elt := range spec.Spec.SortedParams() {
+		if !ParamSupportedInVersion(elt, version) {
+			continue
+		}
+
+		typ, itemsType := getTypesForParam(structApiType, parentPrefix, elt, version)
+		xmlType, itemsXmlType := getTypesForParam(structXmlType, parentPrefix, elt, version)
+
+		fields = append(fields, entryStructFieldContext{
+			Name:         elt.Name,
+			Required:     elt.Required,
+			FieldType:    getFieldTypeForParam(elt),
+			Type:         typ,
+			ItemsType:    itemsType,
+			XmlType:      xmlType,
+			ItemsXmlType: itemsXmlType,
+			Tags:         XmlTag(elt),
+			version:      version,
+		})
+
+		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
+			entries = append(entries, createEntryXmlStructSpecsForParameter(properties.NewNameVariant(""), elt, version)...)
+		}
+	}
+
+	for _, elt := range spec.Spec.SortedOneOf() {
+		if !ParamSupportedInVersion(elt, version) {
+			continue
+		}
+
+		typ, itemsType := getTypesForParam(structApiType, parentPrefix, elt, version)
+		xmlType, itemsXmlType := getTypesForParam(structXmlType, parentPrefix, elt, version)
+
+		fields = append(fields, entryStructFieldContext{
+			Name:         elt.Name,
+			Required:     elt.Required,
+			FieldType:    getFieldTypeForParam(elt),
+			Type:         typ,
+			ItemsType:    itemsType,
+			XmlType:      xmlType,
+			ItemsXmlType: itemsXmlType,
+			Tags:         XmlTag(elt),
+			version:      version,
+		})
+
+		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
+			entries = append(entries, createEntryXmlStructSpecsForParameter(properties.NewNameVariant(""), elt, version)...)
+		}
+	}
+
+	fields = append(fields, entryStructFieldContext{
+		Name:      properties.NewNameVariant("misc"),
+		FieldType: "internal",
+		Type:      "[]generic.Xml",
+		XmlType:   "[]generic.Xml",
+		Tags:      "`xml:\",any\"`",
+	})
+
+	var name *properties.NameVariant
+	switch spec.TerraformProviderConfig.ResourceType {
+	case properties.TerraformResourceEntry, properties.TerraformResourceUuid:
+		name = properties.NewNameVariant("entry")
+	case properties.TerraformResourceConfig:
+		name = properties.NewNameVariant("config")
+	case properties.TerraformResourceCustom:
+		fallthrough
+	default:
+		panic(fmt.Sprintf("unreachable resource type: %v", spec.TerraformProviderConfig.ResourceType))
+	}
+
+	entries = append([]entryStructContext{{
+		TopLevel: true,
+		Fields:   fields,
+		name:     name,
+		version:  version,
+	}}, entries...)
+
+	return entries
+}
+
+func createStructSpecs(spec *properties.Normalization, version *version.Version) []entryStructContext {
+	return creasteStructSpecsForNormalization(properties.NewNameVariant(""), spec, version)
+}
+
+const apiStructsTmpl = `
+{{- range .Specs }}
+{{- $spec := . }}
+type {{ .StructName }} struct{
+  {{- range .Fields }}
+    {{- if .IsInternal }}{{ continue }}{{ end }}
+	{{ .Name.CamelCase }} {{ .FinalType }}
+  {{- end }}
+}
+{{- end }}
+`
+
+func RenderEntryApiStructs(spec *properties.Normalization) (string, error) {
+	tmpl := template.Must(template.New("render-entry-api-structs").Parse(apiStructsTmpl))
+
+	specs := createStructSpecs(spec, nil)
+	type context struct {
+		Specs []entryStructContext
+	}
+
+	data := context{Specs: specs}
+
+	var builder strings.Builder
+	if err := tmpl.Execute(&builder, data); err != nil {
+		return "", err
+	}
+
+	return builder.String(), nil
+}
+
+const xmlStructsTmpl = `
+{{- range .Specs }}
+{{- $spec := . }}
+type {{ .XmlStructName }} struct{
+  {{- range .Fields }}
+	{{ .Name.CamelCase }} {{ .FinalXmlType }} {{ .Tags }}
+  {{- end }}
+}
+{{- end }}
+`
+
+func RenderEntryXmlStructs(spec *properties.Normalization) (string, error) {
+	tmpl := template.Must(template.New("render-entry-xml-structs").Parse(xmlStructsTmpl))
+
+	specs := createStructSpecs(spec, nil)
+	for _, elt := range spec.SupportedVersionRanges() {
+		specs = append(specs, createStructSpecs(spec, &elt.Minimum)...)
+	}
+
+	type context struct {
+		Specs []entryStructContext
+	}
+
+	data := context{Specs: specs}
+
+	var builder strings.Builder
+	if err := tmpl.Execute(&builder, data); err != nil {
+		return "", err
+	}
+
+	return builder.String(), nil
+}
+
+const structToXmlMarshalersTmpl = `
+{{- range .Specs }}
+func (o *{{ .XmlStructName }}) MarshalFromObject(s {{ .StructName }}) {
+  {{- range .Fields }}
+    {{- if .IsInternal }}{{ continue }}{{- end }}
+    {{- if eq .FieldType "object" }}
+	if s.{{ .Name.CamelCase }} != nil {
+		var obj {{ .XmlType }}
+		obj.MarshalFromObject(*s.{{ .Name.CamelCase }})
+		o.{{ .Name.CamelCase }} = &obj
+	}
+    {{-  else if eq .FieldType "list-member" }}
+	if s.{{ .Name.CamelCase }} != nil {
+		o.{{ .Name.CamelCase }} = util.StrToMem(s.{{ .Name.CamelCase }})
+	}
+    {{- else if eq .FieldType "list-entry" }}
+	if s.{{ .Name.CamelCase }} != nil {
+		var objs {{ .ItemsXmlType }}
+		for _, elt := range s.{{ .Name.CamelCase }} {
+			var obj {{ .XmlType }}
+			obj.MarshalFromObject(elt)
+			objs = append(objs, obj)
+		}
+		o.{{ .Name.CamelCase }} = objs
+	}
+    {{- else if and (eq .FieldType "simple") (eq .Type "bool") }}
+	o.{{ .Name.CamelCase }} = util.YesNo(s.{{ .Name.CamelCase }}, nil)
+    {{- else }}
+	o.{{ .Name.CamelCase }} = s.{{ .Name.CamelCase }}
+    {{- end }}
+  {{- end }}
+}
+
+func (o {{ .XmlStructName }}) UnmarshalToObject() *{{ .StructName }} {
+  {{- range .Fields }}
+    {{- if .IsInternal }}{{ continue }}{{- end }}
+    {{- if eq .FieldType "object" }}
+	var {{ .Name.LowerCamelCase }}Val {{ .FinalType }}
+	if o.{{ .Name.CamelCase }} != nil {
+		{{ .Name.LowerCamelCase }}Val = o.{{ .Name.CamelCase }}.UnmarshalToObject()
+	}
+    {{- else if eq .FieldType "list-member" }}
+	var {{ .Name.LowerCamelCase }}Val {{ .FinalType }}
+	if o.{{ .Name.CamelCase }} != nil {
+		{{ .Name.LowerCamelCase }}Val = util.MemToStr(o.{{ .Name.CamelCase }})
+	}
+    {{- else if eq .FieldType "list-entry" }}
+	var {{ .Name.LowerCamelCase }}Val {{ .FinalType }}
+	for _, elt := range o.{{ .Name.CamelCase }} {
+		{{ .Name.LowerCamelCase }}Val = append({{ .Name.LowerCamelCase }}Val, *elt.UnmarshalToObject())
+	}
+    {{- end }}
+  {{- end }}
+
+	result := &{{ .StructName }}{
+  {{- range .Fields }}
+    {{- if .IsInternal }}{{- continue }}{{- end }}
+    {{- if or (eq .FieldType "list-member") (eq .FieldType "list-entry") (eq .FieldType "object") }}
+		{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}Val,
+    {{- else if and (eq .FieldType "simple") (eq .Type "bool") }}
+		{{ .Name.CamelCase }}: util.AsBool(o.{{ .Name.CamelCase }}, nil),
+    {{- else }}
+		{{ .Name.CamelCase }}: o.{{ .Name.CamelCase }},
+    {{- end }}
+  {{- end }}
+	}
+	return result
+}
+{{- end }}
+`
+
+func RenderToXmlMarshalers(spec *properties.Normalization) (string, error) {
+	tmpl := template.Must(template.New("render-to-xml-marsrhallers").Parse(structToXmlMarshalersTmpl))
+
+	specs := createStructSpecs(spec, nil)
+	for _, elt := range spec.SupportedVersionRanges() {
+		specs = append(specs, createStructSpecs(spec, &elt.Minimum)...)
+	}
+	type context struct {
+		EntryOrConfig string
+		Specs         []entryStructContext
+	}
+
+	entryOrConfig := "Entry"
+	if spec.TerraformProviderConfig.ResourceType == properties.TerraformResourceConfig {
+		entryOrConfig = "Config"
+	}
+
+	data := context{
+		EntryOrConfig: entryOrConfig,
+		Specs:         specs,
+	}
+
+	var builder strings.Builder
+	if err := tmpl.Execute(&builder, data); err != nil {
+		return "", err
+	}
+
+	return builder.String(), nil
+}
+
+const xmlContainerNormalizersTmpl = `
+{{- range .Specs }}
+{{- if not .TopLevel }}{{ continue }}{{ end }}
+func (o *{{ .XmlContainerStructName }}) Normalize() ([]*{{ $.EntryOrConfig }}, error) {
+	entries := make([]*{{ $.EntryOrConfig }}, 0, len(o.Answer))
+	for _, elt := range o.Answer {
+		entries = append(entries, elt.UnmarshalToObject())
+	}
+
+	return entries, nil
+}
+{{- end }}
+`
+
+func RenderXmlContainerNormalizers(spec *properties.Normalization) (string, error) {
+	tmpl := template.Must(template.New("render-xml-container-normalizers").Parse(xmlContainerNormalizersTmpl))
+
+	specs := createStructSpecs(spec, nil)
+	for _, elt := range spec.SupportedVersionRanges() {
+		specs = append(specs, createStructSpecs(spec, &elt.Minimum)...)
+	}
+	type context struct {
+		EntryOrConfig string
+		Specs         []entryStructContext
+	}
+
+	entryOrConfig := "Entry"
+	if spec.TerraformProviderConfig.ResourceType == properties.TerraformResourceConfig {
+		entryOrConfig = "Config"
+	}
+
+	data := context{
+		EntryOrConfig: entryOrConfig,
+		Specs:         specs,
+	}
+
+	var builder strings.Builder
+	if err := tmpl.Execute(&builder, data); err != nil {
+		return "", err
+	}
+
+	return builder.String(), nil
+}
+
+const xmlContainerSpecifiersTmpl = `
+{{- range .Specs }}
+{{- if not .TopLevel }}{{ continue }}{{ end }}
+func {{ .SpecifierFuncName $.EntryOrConfig }}(source *{{ $.EntryOrConfig }}) (any, error) {
+	var obj {{ .XmlStructName }}
+	obj.MarshalFromObject(*source)
+	return obj, nil
+}
+{{- end }}
+`
+
+func RenderXmlContainerSpecifiers(spec *properties.Normalization) (string, error) {
+	tmpl := template.Must(template.New("render-xml-container-specifiers").Parse(xmlContainerSpecifiersTmpl))
+
+	specs := createStructSpecs(spec, nil)
+	for _, elt := range spec.SupportedVersionRanges() {
+		specs = append(specs, createStructSpecs(spec, &elt.Minimum)...)
+	}
+	type context struct {
+		EntryOrConfig string
+		Specs         []entryStructContext
+	}
+
+	entryOrConfig := "Entry"
+	if spec.TerraformProviderConfig.ResourceType == properties.TerraformResourceConfig {
+		entryOrConfig = "Config"
+	}
+
+	data := context{
+		EntryOrConfig: entryOrConfig,
+		Specs:         specs,
+	}
+
+	var builder strings.Builder
+	if err := tmpl.Execute(&builder, data); err != nil {
+		return "", err
+	}
+
+	return builder.String(), nil
+}
+
+const specMatchersTmpl = `
+func SpecMatches(a, b *{{ .EntryOrConfig }}) bool {
+	if a == nil && b == nil {
+		return true
+	}
+
+	if (a == nil && b != nil) || (a != nil && b == nil) {
+		return false
+	}
+
+	return a.matches(b)
+}
+
+{{- range .Specs }}
+{{ $spec := . }}
+func (o *{{ .StructName }}) matches(other *{{ .StructName }}) bool {
+	if o == nil && other == nil {
+		return true
+	}
+
+	if (o == nil && other != nil) || (o != nil && other == nil) {
+		return false
+	}
+
+  {{- range .Fields }}
+    {{- if .IsInternal }}{{ continue }}{{ end }}
+    {{- if and $spec.TopLevel (eq .Name.CamelCase "Name") }}{{ continue }}{{ end }}
+    {{- if eq .Name.CamelCase "Misc" }}{{ continue }}{{ end }}
+    {{- if eq .FieldType "object" }}
+	if !o.{{ .Name.CamelCase }}.matches(other.{{ .Name.CamelCase }}) {
+		return false
+	}
+    {{- else if eq .FieldType "list-entry" }}
+	if len(o.{{ .Name.CamelCase }}) != len(other.{{ .Name.CamelCase }}) {
+		return false
+	}
+	for idx := range o.{{ .Name.CamelCase }} {
+		if !o.{{ .Name.CamelCase }}[idx].matches(&other.{{ .Name.CamelCase }}[idx]) {
+			return false
+		}
+	}
+    {{- else if eq .FieldType "list-member" }}
+	if !util.OrderedListsMatch(o.{{ .Name.CamelCase}}, other.{{ .Name.CamelCase }}) {
+		return false
+	}
+    {{- else if and (eq .Type "string") (eq .Required false)}}
+	if !util.StringsMatch(o.{{ .Name.CamelCase }}, other.{{ .Name.CamelCase }}) {
+		return false
+	}
+    {{- else if and (eq .Type "int64") (eq .Required false)}}
+	if !util.Ints64Match(o.{{ .Name.CamelCase }}, other.{{ .Name.CamelCase }}) {
+		return false
+	}
+    {{- else if and (eq .Type "int64") (eq .Required false)}}
+	if !util.Ints64Match(o.{{ .Name.CamelCase }}, other.{{ .Name.CamelCase }}) {
+		return false
+	}
+    {{- else if and (eq .Type "bool") (eq .Required false)}}
+	if !util.BoolsMatch(o.{{ .Name.CamelCase }}, other.{{ .Name.CamelCase }}) {
+		return false
+	}
+    {{- else if and (eq .Type "float64") (eq .Required false)}}
+	if !util.FloatsMatch(o.{{ .Name.CamelCase }}, other.{{ .Name.CamelCase }}) {
+		return false
+	}
+    {{- else }}
+	if o.{{ .Name.CamelCase }} != other.{{ .Name.CamelCase }} {
+		return false
+	}
+    {{- end }}
+  {{- end }}
+
+	return true
+}
+{{- end }}
+`
+
+func RenderSpecMatchers(spec *properties.Normalization) (string, error) {
+	tmpl := template.Must(template.New("render-spec-matchers").Parse(specMatchersTmpl))
+
+	specs := createStructSpecs(spec, nil)
+	type context struct {
+		EntryOrConfig string
+		Specs         []entryStructContext
+	}
+
+	entryOrConfig := "Entry"
+	if spec.TerraformProviderConfig.ResourceType == properties.TerraformResourceConfig {
+		entryOrConfig = "Config"
+	}
+
+	data := context{
+		EntryOrConfig: entryOrConfig,
+		Specs:         specs,
+	}
+
+	var builder strings.Builder
+	if err := tmpl.Execute(&builder, data); err != nil {
+		return "", err
+	}
+
+	return builder.String(), nil
 }
