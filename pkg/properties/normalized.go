@@ -182,7 +182,7 @@ type SpecParam struct {
 	Length                  *SpecParamLength                  `json:"length" yaml:"length,omitempty"`
 	EnumValues              []EnumValue                       `json:"enum_values" yaml:"enum_values,omitempty"`
 	Count                   *SpecParamCount                   `json:"count" yaml:"count,omitempty"`
-	Hashing                 *SpecParamHashing                 `json:"hashing" yaml:"hashing,omitempty"`
+	Hashing                 *parameter.Hashing                `json:"hashing" yaml:"hashing,omitempty"`
 	Items                   *SpecParamItems                   `json:"items" yaml:"items,omitempty"`
 	Regex                   string                            `json:"regex" yaml:"regex,omitempty"`
 	Profiles                []*SpecParamProfile               `json:"profiles" yaml:"profiles"`
@@ -567,13 +567,6 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 		})
 	}
 
-	var specHashing *SpecParamHashing
-	if schemaSpec.Hashing != nil {
-		specHashing = &SpecParamHashing{
-			Type: schemaSpec.Hashing.Type,
-		}
-	}
-
 	var terraformProviderConfig *SpecParamTerraformProviderConfig
 	var goSdkConfig *SpecParamGoSdkConfig
 	if schemaSpec.CodegenOverrides != nil {
@@ -607,7 +600,7 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 		Required:                schemaSpec.Required,
 		GoSdkConfig:             goSdkConfig,
 		TerraformProviderConfig: terraformProviderConfig,
-		Hashing:                 specHashing,
+		Hashing:                 schemaSpec.Hashing,
 		Profiles:                profiles,
 		Spec:                    innerSpec,
 		VariantGroupId:          schemaSpec.VariantGroupId,

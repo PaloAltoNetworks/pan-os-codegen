@@ -15,6 +15,7 @@ import (
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/naming"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/object"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/parameter"
 )
 
 type Entry struct {
@@ -28,8 +29,8 @@ type EntryData struct {
 }
 
 type parameterEncryptionSpec struct {
-	EncryptedPath string
-	PlaintextPath string
+	HashingType parameter.HashingType
+	HashingFunc string
 }
 
 type parameterSpec struct {
@@ -54,7 +55,7 @@ type spec struct {
 	OneOf                  []parameterSpec
 }
 
-func renderSpecsForParams(params []*properties.SpecParam, parentNames []string) []parameterSpec {
+func renderSpecsForParams(ancestors []*properties.SpecParam, params []*properties.SpecParam) []parameterSpec {
 	var specs []parameterSpec
 	for _, elt := range params {
 		if elt.IsTerraformOnly() {
@@ -67,11 +68,20 @@ func renderSpecsForParams(params []*properties.SpecParam, parentNames []string) 
 
 		var encryptionSpec *parameterEncryptionSpec
 		if elt.Hashing != nil {
-			path := strings.Join(append(parentNames, elt.Name.Underscore), " | ")
-			encryptionSpec = &parameterEncryptionSpec{
-				EncryptedPath: fmt.Sprintf("%s | encrypted | %s", elt.Hashing.Type, path),
-				PlaintextPath: fmt.Sprintf("%s | plaintext | %s", elt.Hashing.Type, path),
+			switch spec := elt.Hashing.Spec.(type) {
+			case *parameter.HashingSoloSpec:
+				encryptionSpec = &parameterEncryptionSpec{
+					HashingType: elt.Hashing.Type,
+				}
+			case *parameter.HashingClientSpec:
+				encryptionSpec = &parameterEncryptionSpec{
+					HashingType: elt.Hashing.Type,
+					HashingFunc: spec.HashingFunc.Name,
+				}
+			default:
+				panic(fmt.Sprintf("unsupported hashing type: %T", spec))
 			}
+
 		}
 
 		var itemsType string
@@ -92,7 +102,7 @@ func renderSpecsForParams(params []*properties.SpecParam, parentNames []string) 
 	return specs
 }
 
-func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix string, paramSpec *properties.SpecParam, parentNames []string) []spec {
+func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix string, paramSpec *properties.SpecParam, ancestors []*properties.SpecParam) []spec {
 	if paramSpec.Spec == nil {
 		return nil
 	}
@@ -104,10 +114,10 @@ func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix st
 	pangoReturnType := fmt.Sprintf("%s%s", pangoTypePrefix, paramSpec.Name.CamelCase)
 	terraformType := fmt.Sprintf("%s%s", terraformPrefix, paramSpec.NameVariant().CamelCase)
 
-	parentNames = append(parentNames, paramSpec.Name.Underscore)
+	ancestors = append(ancestors, paramSpec)
 
-	paramSpecs := renderSpecsForParams(paramSpec.Spec.SortedParams(), parentNames)
-	oneofSpecs := renderSpecsForParams(paramSpec.Spec.SortedOneOf(), parentNames)
+	paramSpecs := renderSpecsForParams(ancestors, paramSpec.Spec.SortedParams())
+	oneofSpecs := renderSpecsForParams(ancestors, paramSpec.Spec.SortedOneOf())
 
 	var hasEntryName bool
 	if paramSpec.Type == "list" && paramSpec.Items.Type == "entry" {
@@ -133,7 +143,7 @@ func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix st
 			}
 
 			terraformPrefix := fmt.Sprintf("%s%s", terraformPrefix, paramSpec.NameVariant().CamelCase)
-			specs = append(specs, generateFromTerraformToPangoSpec(pangoType, terraformPrefix, elt, parentNames)...)
+			specs = append(specs, generateFromTerraformToPangoSpec(pangoType, terraformPrefix, elt, ancestors)...)
 		}
 	}
 
@@ -143,19 +153,19 @@ func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix st
 	return specs
 }
 
-func generateFromTerraformToPangoParameter(resourceTyp properties.ResourceType, pkgName string, terraformPrefix string, pangoPrefix string, prop *properties.Normalization, parentName string) []spec {
+func generateFromTerraformToPangoParameter(resourceTyp properties.ResourceType, pkgName string, terraformPrefix string, pangoPrefix string, prop *properties.Normalization, ancestors []*properties.SpecParam) []spec {
 	var specs []spec
 
 	var pangoReturnType string
-	if parentName == "" {
+	if ancestors == nil {
 		pangoReturnType = fmt.Sprintf("%s.%s", pkgName, prop.EntryOrConfig())
 		pangoPrefix = fmt.Sprintf("%s.", pkgName)
 	} else {
-		pangoReturnType = fmt.Sprintf("%s.%s", pkgName, parentName)
+		pangoReturnType = fmt.Sprintf("%s.%s", pkgName, ancestors[0].Name.CamelCase)
 	}
 
-	paramSpecs := renderSpecsForParams(prop.Spec.SortedParams(), []string{parentName})
-	oneofSpecs := renderSpecsForParams(prop.Spec.SortedOneOf(), []string{parentName})
+	paramSpecs := renderSpecsForParams(ancestors, prop.Spec.SortedParams())
+	oneofSpecs := renderSpecsForParams(ancestors, prop.Spec.SortedOneOf())
 
 	switch resourceTyp {
 	case properties.ResourceEntry, properties.ResourceConfig:
@@ -192,7 +202,7 @@ func generateFromTerraformToPangoParameter(resourceTyp properties.ResourceType, 
 			continue
 		}
 
-		specs = append(specs, generateFromTerraformToPangoSpec(pangoPrefix, terraformPrefix, elt, []string{})...)
+		specs = append(specs, generateFromTerraformToPangoSpec(pangoPrefix, terraformPrefix, elt, nil)...)
 	}
 
 	for _, elt := range prop.Spec.SortedOneOf() {
@@ -200,7 +210,7 @@ func generateFromTerraformToPangoParameter(resourceTyp properties.ResourceType, 
 			continue
 		}
 
-		specs = append(specs, generateFromTerraformToPangoSpec(pangoPrefix, terraformPrefix, elt, []string{})...)
+		specs = append(specs, generateFromTerraformToPangoSpec(pangoPrefix, terraformPrefix, elt, nil)...)
 	}
 
 	return specs
@@ -219,8 +229,12 @@ const copyToPangoTmpl = `
 		} else {
 			{{ $result }}_entry = new({{ $.Spec.PangoType }}{{ .PangoName.CamelCase }})
 		}
-
-		diags.Append(o.{{ .TerraformName.CamelCase }}.CopyToPango(ctx, &{{ $result }}_entry, encrypted)...)
+		// ModelOrObject: {{ $.Spec.ModelOrObject }}
+    {{- if eq $.Spec.ModelOrObject "Model" }}
+		diags.Append(o.{{ .TerraformName.CamelCase }}.CopyToPango(ctx, ancestors, &{{ $result }}_entry, ev)...)
+    {{- else }}
+		diags.Append(o.{{ .TerraformName.CamelCase }}.CopyToPango(ctx, append(ancestors, o), &{{ $result }}_entry, ev)...)
+    {{- end }}
 		if diags.HasError() {
 			return diags
 		}
@@ -246,7 +260,7 @@ const copyToPangoTmpl = `
 		}
 		for _, elt := range {{ $tfEntries }} {
 			var entry *{{ $pangoType }}
-			diags.Append(elt.CopyToPango(ctx, &entry, encrypted)...)
+			diags.Append(elt.CopyToPango(ctx, append(ancestors, elt), &entry, ev)...)
 			if diags.HasError() {
 				return diags
 			}
@@ -273,14 +287,55 @@ const copyToPangoTmpl = `
 
 {{- define "renderSimpleAssignment" }}
   {{- if .Encryption }}
-	(*encrypted)["{{ .Encryption.PlaintextPath }}"] = o.{{ .TerraformName.CamelCase }}
-  {{- end }}
+	valueKey, err := CreateXpathForAttributeWithAncestors(ancestors, "{{ .TerraformName.Original }}")
+	if err != nil {
+		diags.AddError("Failed to create encrypted values state key", err.Error())
+		return diags
+	}
+
+	var {{ .TerraformName.LowerCamelCase }}_value *string
+
+    {{- if eq .Encryption.HashingType "client" }}
+	stateValue, found := ev.GetPlaintextValue(valueKey)
+	if !found || stateValue != o.{{ .TerraformName.CamelCase }}.Value{{ CamelCaseType .Type }}() {
+		hashed, err := {{ .Encryption.HashingFunc }}(o.{{ .TerraformName.CamelCase }}.Value{{ CamelCaseType .Type }}())
+		if err != nil {
+			diags.AddError("Failed to hash sensitive value", err.Error())
+			return diags
+		}
+
+		err = ev.StoreEncryptedValue(valueKey, "{{ .Encryption.HashingType }}", hashed)
+		if err != nil {
+			diags.AddError("Failed to manage encrypted values state", err.Error())
+			return diags
+		}
+
+		err = ev.StorePlaintextValue(valueKey, "{{ .Encryption.HashingType }}", o.{{ .TerraformName.CamelCase }}.ValueString())
+		if err != nil {
+			diags.AddError("Failed to manage encrypted values state", err.Error())
+			return diags
+		}
+
+		{{ .TerraformName.LowerCamelCase }}_value = &hashed
+	} else {
+		{{ .TerraformName.LowerCamelCase }}_value = &stateValue
+	}
+    {{- else }}
+	err = ev.StorePlaintextValue(valueKey, "{{ .Encryption.HashingType }}", o.{{ .TerraformName.CamelCase }}.ValueString())
+	if err != nil {
+		diags.AddError("Failed to manage encrypted values state", err.Error())
+		return diags
+	}
+	{{ .TerraformName.LowerCamelCase }}_value = o.{{ .TerraformName.CamelCase }}.Value{{ CamelCaseType .Type }}Pointer()
+    {{- end }}
+  {{- else }}
 	{{ .TerraformName.LowerCamelCase }}_value := o.{{ .TerraformName.CamelCase }}.Value{{ CamelCaseType .Type }}Pointer()
+  {{- end }}
 {{- end }}
 
 {{- range .Specs }}
 {{- $spec := . }}
-func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Context, obj **{{ .PangoReturnType }}, encrypted *map[string]types.String) diag.Diagnostics {
+func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Context, ancestors []Ancestor, obj **{{ .PangoReturnType }}, ev *EncryptedValuesManager) diag.Diagnostics {
 	var diags diag.Diagnostics
   {{- range .Params }}
     {{- $terraformType := printf "%s%s" $spec.TerraformType .TerraformName.CamelCase }}
@@ -419,9 +474,13 @@ var {{ .TerraformName.LowerCamelCase }}_list types.Set
 	{
 		var {{ $tfEntries }} []{{ $terraformType }}
 		for _, elt := range obj.{{ .PangoName.CamelCase }} {
-			var entry {{ $terraformType }}
-			entry_diags := entry.CopyFromPango(ctx, &elt, encrypted)
-			diags.Append(entry_diags...)
+			entry := {{ $terraformType }}{
+				Name: types.StringValue(elt.Name),
+			}
+			diags.Append(entry.CopyFromPango(ctx, append(ancestors, entry), &elt, ev)...)
+			if diags.HasError() {
+				return diags
+			}
 			{{ $tfEntries }} = append({{ $tfEntries }}, entry)
 		}
 		var list_diags diag.Diagnostics
@@ -435,6 +494,9 @@ var {{ .TerraformName.LowerCamelCase }}_list types.Set
 			var list_diags diag.Diagnostics
 			{{ .TerraformName.LowerCamelCase }}_list, list_diags = types.{{ $.ListOrSet }}ValueFrom(ctx, types.{{ .ItemsType | PascalCase }}Type, obj.{{ .PangoName.CamelCase }})
 			diags.Append(list_diags...)
+			if diags.HasError() {
+				return diags
+			}
 		}
     {{- end }}
   {{- end }}
@@ -476,7 +538,11 @@ var {{ .TerraformName.LowerCamelCase }}_list types.Set
   if obj.{{ .PangoName.CamelCase }} != nil {
 	{{ $result }}_object = new({{ $.Spec.TerraformType }}{{ .TerraformName.CamelCase }}Object)
 
-	diags.Append({{ $result }}_object.CopyFromPango(ctx, obj.{{ .PangoName.CamelCase }}, encrypted)...)
+    {{- if eq $.Spec.ModelOrObject "Model" }}
+	diags.Append({{ $result }}_object.CopyFromPango(ctx, ancestors, obj.{{ .PangoName.CamelCase }}, ev)...)
+    {{- else }}
+	diags.Append({{ $result }}_object.CopyFromPango(ctx, append(ancestors, o), obj.{{ .PangoName.CamelCase }}, ev)...)
+    {{- end }}
 	if diags.HasError() {
 		return diags
 	}
@@ -521,10 +587,30 @@ var {{ .TerraformName.LowerCamelCase }}_list types.Set
 	var {{ .TerraformName.LowerCamelCase }}_value {{ $terraformType }}
 	if obj.{{ .PangoName.CamelCase }} != nil {
 {{- if .Encryption }}
-		(*encrypted)["{{ .Encryption.EncryptedPath }}"] = types.StringValue(*obj.{{ .TerraformName.CamelCase }})
-		if value, ok := (*encrypted)["{{ .Encryption.PlaintextPath }}"]; ok {
-			{{ .TerraformName.LowerCamelCase }}_value = value
+		valueKey, err := CreateXpathForAttributeWithAncestors(ancestors, "{{ .TerraformName.Original }}")
+		if err != nil {
+			diags.AddError("Failed to create encrypted values state key", err.Error())
+			return diags
 		}
+
+		if evFromState, found := ev.GetEncryptedValue(valueKey); found && ev.PreferServerState() && *obj.{{  .PangoName.CamelCase }} != evFromState {
+			{{ .TerraformName.LowerCamelCase }}_value = types.StringPointerValue(obj.{{ .PangoName.CamelCase }})
+		} else if value, found := ev.GetPlaintextValue(valueKey); found {
+			{{ .TerraformName.LowerCamelCase }}_value = types.StringValue(value)
+		} else {
+			diags.AddError("Failed to read encrypted values state", fmt.Sprintf("Missing plaintext value for %s", valueKey))
+			return diags
+		}
+
+		if !ev.PreferServerState() {
+			err = ev.StoreEncryptedValue(valueKey, "{{ .Encryption.HashingType }}", *obj.{{ .PangoName.CamelCase }})
+			if err != nil {
+				diags.AddError("Failed to store encrypted values state", err.Error())
+				return diags
+			}
+		}
+
+
 {{- else }}
 		{{ .TerraformName.LowerCamelCase }}_value = types.{{ .Type | PascalCase }}Value(*obj.{{ .PangoName.CamelCase }})
 {{- end }}
@@ -560,7 +646,7 @@ var {{ .TerraformName.LowerCamelCase }}_list types.Set
 {{- range .Specs }}
 {{- $spec := . }}
 {{ $terraformType := printf "%s%s" .TerraformType .ModelOrObject }}
-func (o *{{ $terraformType }}) CopyFromPango(ctx context.Context, obj *{{ .PangoReturnType }}, encrypted *map[string]types.String) diag.Diagnostics {
+func (o *{{ $terraformType }}) CopyFromPango(ctx context.Context, ancestors []Ancestor, obj *{{ .PangoReturnType }}, ev *EncryptedValuesManager) diag.Diagnostics {
 	var diags diag.Diagnostics
 
   {{- template "terraformSetElementsAs" $spec }}
@@ -604,12 +690,82 @@ func pascalCase(value string) string {
 	return strings.Join(result, "")
 }
 
+const encryptedValuesManagerInitializationTmpl = `
+{{- if or (eq .SchemaType "datasource") (eq .Method "create") (eq .Method "import") }}
+var encryptedValues []byte
+{{- else }}
+encryptedValues, diags := req.Private.GetKey(ctx, "encrypted_values")
+resp.Diagnostics.Append(diags...)
+if resp.Diagnostics.HasError() {
+	return
+}
+{{- end }}
+{{- if eq .Method "read" }}
+ev, err := NewEncryptedValuesManager(encryptedValues, true)
+{{- else }}
+ev, err := NewEncryptedValuesManager(encryptedValues, false)
+{{- end }}
+if err != nil {
+	resp.Diagnostics.AddError("Failed to read encrypted values from private state", err.Error())
+	return
+}
+`
+
+type encryptedValuesContext struct {
+	SchemaType properties.SchemaType
+	Method     string
+}
+
+func RenderEncryptedValuesInitialization(schemaTyp properties.SchemaType, spec *properties.Normalization, method string) (string, error) {
+	defer func() {
+		if e := recover(); e != nil {
+			log.Printf("** PANIC: %v", e)
+			debug.PrintStack()
+			panic(e)
+		}
+	}()
+
+	data := encryptedValuesContext{
+		SchemaType: schemaTyp,
+		Method:     method,
+	}
+
+	return processTemplate(encryptedValuesManagerInitializationTmpl, "encrypted-values-manager-initialization", data, nil)
+}
+
+const encryptedValuesManagerFinalizerTmpl = `
+{{- if eq .SchemaType "resource" }}
+	payload, err := json.Marshal(ev)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to marshal encrypted values state", err.Error())
+		return
+	}
+	resp.Private.SetKey(ctx, "encrypted_values", payload)
+{{- end }}
+`
+
+func RenderEncryptedValuesFinalizer(schemaTyp properties.SchemaType, spec *properties.Normalization) (string, error) {
+	defer func() {
+		if e := recover(); e != nil {
+			log.Printf("** PANIC: %v", e)
+			debug.PrintStack()
+			panic(e)
+		}
+	}()
+
+	data := encryptedValuesContext{
+		SchemaType: schemaTyp,
+	}
+
+	return processTemplate(encryptedValuesManagerFinalizerTmpl, "encrypted-values-manager-finalizer", data, nil)
+}
+
 func RenderCopyToPangoFunctions(resourceTyp properties.ResourceType, pkgName string, terraformTypePrefix string, property *properties.Normalization) (string, error) {
 	if resourceTyp == properties.ResourceCustom {
 		return "", nil
 	}
 
-	specs := generateFromTerraformToPangoParameter(resourceTyp, pkgName, terraformTypePrefix, "", property, "")
+	specs := generateFromTerraformToPangoParameter(resourceTyp, pkgName, terraformTypePrefix, "", property, nil)
 
 	type context struct {
 		Specs []spec
@@ -629,7 +785,7 @@ func RenderCopyFromPangoFunctions(resourceTyp properties.ResourceType, pkgName s
 		return "", nil
 	}
 
-	specs := generateFromTerraformToPangoParameter(resourceTyp, pkgName, terraformTypePrefix, "", property, "")
+	specs := generateFromTerraformToPangoParameter(resourceTyp, pkgName, terraformTypePrefix, "", property, nil)
 
 	type context struct {
 		Specs []spec
@@ -897,6 +1053,7 @@ type validatorCtx struct {
 type attributeCtx struct {
 	Package       string
 	Name          *properties.NameVariant
+	Private       bool
 	SchemaType    string
 	ExternalType  string
 	ElementType   string
@@ -1714,19 +1871,6 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 	var schemas []schemaCtx
 	var attributes []attributeCtx
 
-	if spec.HasEncryptedResources() {
-		name := properties.NewNameVariant("encrypted_values")
-
-		attributes = append(attributes, attributeCtx{
-			Package:     packageName,
-			Name:        name,
-			SchemaType:  "MapAttribute",
-			ElementType: "types.StringType",
-			Computed:    true,
-			Sensitive:   true,
-		})
-	}
-
 	// We don't add name for resources that have plurar type set to map, as those resources
 	// handle names as map keys in the top-level model.
 	if spec.HasEntryName() && (resourceTyp != properties.ResourceEntryPlural || spec.TerraformProviderConfig.PluralType != object.TerraformPluralMapType) {
@@ -2281,7 +2425,11 @@ const dataSourceStructs = `
 {{- range .Structs }}
 type {{ .StructName }}{{ .ModelOrObject }} struct {
   {{- range .Fields }}
+    {{- if .Private }}
+	{{ .Name.LowerCamelCase }} {{ .Type }} {{ range .Tags }}{{ . }}{{ end }}
+    {{- else }}
 	{{ .Name.CamelCase }} {{ .Type }} {{ range .Tags }}{{ . }} {{ end }}
+    {{- end }}
   {{- end }}
 }
 {{- end }}
@@ -2289,15 +2437,19 @@ type {{ .StructName }}{{ .ModelOrObject }} struct {
 
 type datasourceStructFieldSpec struct {
 	Name          *properties.NameVariant
+	Private       bool
 	TerraformType string
 	Type          string
 	Tags          []string
 }
 
 type datasourceStructSpec struct {
-	StructName    string
-	ModelOrObject string
-	Fields        []datasourceStructFieldSpec
+	StructName          string
+	AncestorName        string
+	TerraformPluralType object.TerraformPluralType
+	HasEntryName        bool
+	ModelOrObject       string
+	Fields              []datasourceStructFieldSpec
 }
 
 func terraformTypeForProperty(structPrefix string, prop *properties.SpecParam, hackStructsAsTypeObjects bool) string {
@@ -2335,6 +2487,7 @@ func terraformTypeForProperty(structPrefix string, prop *properties.SpecParam, h
 
 func structFieldSpec(param *properties.SpecParam, structPrefix string, hackStructsAsTypeObjects bool) datasourceStructFieldSpec {
 	tfTag := fmt.Sprintf("`tfsdk:\"%s\"`", param.NameVariant().Underscore)
+
 	return datasourceStructFieldSpec{
 		Name:          param.NameVariant(),
 		TerraformType: terraformTypeForProperty(structPrefix, param, false),
@@ -2375,6 +2528,8 @@ func dataSourceStructContextForParam(structPrefix string, param *properties.Spec
 	}
 
 	structs = append(structs, datasourceStructSpec{
+		AncestorName:  param.NameVariant().Original,
+		HasEntryName:  param.HasEntryName(),
 		StructName:    structName,
 		ModelOrObject: "Object",
 		Fields:        fields,
@@ -2462,6 +2617,8 @@ func createStructSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 	fields, normalizationStructs := createStructSpecForNormalization(resourceTyp, structName, spec, hackStructsAsTypeObjects)
 
 	structs = append(structs, datasourceStructSpec{
+		AncestorName:  listName.Original,
+		HasEntryName:  true,
 		StructName:    structName,
 		ModelOrObject: "Object",
 		Fields:        fields,
@@ -2543,9 +2700,12 @@ func createStructSpecForEntryListModel(resourceTyp properties.ResourceType, sche
 	fields, normalizationStructs := createStructSpecForNormalization(resourceTyp, structName, spec, hackStructsAsTypeObjects)
 
 	structs = append(structs, datasourceStructSpec{
-		StructName:    structName,
-		ModelOrObject: "Object",
-		Fields:        fields,
+		AncestorName:        listName.Original,
+		TerraformPluralType: spec.TerraformProviderConfig.PluralType,
+		HasEntryName:        true,
+		StructName:          structName,
+		ModelOrObject:       "Object",
+		Fields:              fields,
 	})
 
 	structs = append(structs, normalizationStructs...)
@@ -2614,11 +2774,22 @@ func createStructSpecForNormalization(resourceTyp properties.ResourceType, struc
 
 	// We don't add name field for entry-style list resources, as they
 	// represent lists as maps with name being a key.
-	if spec.HasEntryName() && (resourceTyp != properties.ResourceEntryPlural || spec.TerraformProviderConfig.PluralType != object.TerraformPluralMapType) {
+	if spec.HasEntryName() {
+		var private bool
+		typ := "types.String"
+		tag := "`tfsdk:\"name\"`"
+
+		if resourceTyp == properties.ResourceEntryPlural && spec.TerraformProviderConfig.PluralType == object.TerraformPluralMapType {
+			private = true
+			typ = "string"
+			tag = "`tfsdk:\"-\"`"
+		}
+
 		fields = append(fields, datasourceStructFieldSpec{
-			Name: properties.NewNameVariant("name"),
-			Type: "types.String",
-			Tags: []string{"`tfsdk:\"name\"`"},
+			Name:    properties.NewNameVariant("name"),
+			Private: private,
+			Type:    typ,
+			Tags:    []string{tag},
 		})
 	}
 
@@ -2652,14 +2823,6 @@ func createStructSpecForNormalization(resourceTyp properties.ResourceType, struc
 		}
 	}
 
-	if spec.HasEncryptedResources() {
-		fields = append(fields, datasourceStructFieldSpec{
-			Name: properties.NewNameVariant("encrypted_values"),
-			Type: "types.Map",
-			Tags: []string{"`tfsdk:\"encrypted_values\"`"},
-		})
-	}
-
 	return fields, structs
 }
 
@@ -2691,12 +2854,14 @@ const attributeTypesTmpl = `
 {{- range .Structs }}
 func (o *{{ .StructName }}{{ .ModelOrObject }}) AttributeTypes() map[string]attr.Type {
   {{- range .Fields }}
+    {{- if .Private }}{{ continue }}{{- end }}
     {{ if (eq .Type "types.Object") }}
 	var {{ .Name.LowerCamelCase }}Obj {{ .TerraformType }}
     {{- end }}
   {{- end }}
 	return map[string]attr.Type{
   {{- range .Fields }}
+    {{- if .Private }}{{ continue }}{{- end }}
     {{- if eq .Type "types.Object" }}
 	"{{ .Name.Underscore }}": {{ .Type }}Type{
 		AttrTypes: {{ .Name.LowerCamelCase }}Obj.AttributeTypes(),
@@ -2708,6 +2873,20 @@ func (o *{{ .StructName }}{{ .ModelOrObject }}) AttributeTypes() map[string]attr
     {{- end }}
   {{- end }}
 	}
+}
+
+func (o {{ .StructName }}{{ .ModelOrObject }}) AncestorName() string {
+	return "{{ .AncestorName }}"
+}
+
+func (o {{ .StructName }}{{ .ModelOrObject }}) EntryName() *string {
+    {{- if and .HasEntryName (eq .TerraformPluralType "map") }}
+	return &o.name
+    {{- else if .HasEntryName }}
+	return o.Name.ValueStringPointer()
+    {{- else }}
+	return nil
+    {{- end }}
 }
 {{- end }}
 `
@@ -2779,6 +2958,12 @@ func getCustomTemplateForFunction(spec *properties.Normalization, function strin
 func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProvider, serviceName string, paramSpec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, resourceSDKName string) (string, error) {
 	funcMap := template.FuncMap{
 		"ConfigToEntry": ConfigEntry,
+		"RenderEncryptedValuesInitialization": func() (string, error) {
+			return RenderEncryptedValuesInitialization(properties.SchemaResource, paramSpec, "create")
+		},
+		"RenderEncryptedValuesFinalizer": func() (string, error) {
+			return RenderEncryptedValuesFinalizer(properties.SchemaResource, paramSpec)
+		},
 		"RenderImportLocationAssignment": func(source string, dest string) (string, error) {
 			return RenderImportLocationAssignment(names, paramSpec, source, dest)
 		},
@@ -2893,6 +3078,12 @@ func DataSourceReadFunction(resourceTyp properties.ResourceType, names *NameProv
 	}
 
 	funcMap := template.FuncMap{
+		"RenderEncryptedValuesInitialization": func() (string, error) {
+			return RenderEncryptedValuesInitialization(properties.SchemaDataSource, paramSpec, "read")
+		},
+		"RenderEncryptedValuesFinalizer": func() (string, error) {
+			return RenderEncryptedValuesFinalizer(properties.SchemaDataSource, paramSpec)
+		},
 		"AttributesFromXpathComponents": func(target string) (string, error) { return paramSpec.AttributesFromXpathComponents(target) },
 		"RenderLocationsPangoToState": func(source string, dest string) (string, error) {
 			return RenderLocationsPangoToState(names, paramSpec, source, dest)
@@ -2954,6 +3145,12 @@ func ResourceReadFunction(resourceTyp properties.ResourceType, names *NameProvid
 	}
 
 	funcMap := template.FuncMap{
+		"RenderEncryptedValuesInitialization": func() (string, error) {
+			return RenderEncryptedValuesInitialization(properties.SchemaResource, paramSpec, "read")
+		},
+		"RenderEncryptedValuesFinalizer": func() (string, error) {
+			return RenderEncryptedValuesFinalizer(properties.SchemaResource, paramSpec)
+		},
 		"AttributesFromXpathComponents": func(target string) (string, error) { return paramSpec.AttributesFromXpathComponents(target) },
 		"RenderLocationsPangoToState": func(source string, dest string) (string, error) {
 			return RenderLocationsPangoToState(names, paramSpec, source, dest)
@@ -3010,6 +3207,12 @@ func ResourceUpdateFunction(resourceTyp properties.ResourceType, names *NameProv
 	}
 
 	funcMap := template.FuncMap{
+		"RenderEncryptedValuesInitialization": func() (string, error) {
+			return RenderEncryptedValuesInitialization(properties.SchemaResource, paramSpec, "update")
+		},
+		"RenderEncryptedValuesFinalizer": func() (string, error) {
+			return RenderEncryptedValuesFinalizer(properties.SchemaResource, paramSpec)
+		},
 		"RenderCreateUpdateMovementRequired": func(state string, entries string) (string, error) {
 			return RendeCreateUpdateMovementRequired(state, entries)
 		},
@@ -3070,6 +3273,9 @@ func ResourceDeleteFunction(resourceTyp properties.ResourceType, names *NameProv
 	}
 
 	funcMap := template.FuncMap{
+		"RenderEncryptedValuesInitialization": func() (string, error) {
+			return RenderEncryptedValuesInitialization(properties.SchemaResource, paramSpec, "delete")
+		},
 		"RenderImportLocationAssignment": func(source string, dest string) (string, error) {
 			return RenderImportLocationAssignment(names, paramSpec, source, dest)
 		},
@@ -3498,7 +3704,14 @@ func ResourceImportStateFunction(resourceTyp properties.ResourceType, names *Nam
 		panic("unreachable")
 	}
 
-	return processTemplate(resourceImportStateFunctionTmpl, "resource-import-state-function", data, nil)
+	funcMap := template.FuncMap{
+		"ConfigToEntry": ConfigEntry,
+		"RenderEncryptedValuesInitialization": func() (string, error) {
+			return RenderEncryptedValuesInitialization(properties.SchemaResource, spec, "import")
+		},
+	}
+
+	return processTemplate(resourceImportStateFunctionTmpl, "resource-import-state-function", data, funcMap)
 }
 
 func RenderImportStateCreator(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {

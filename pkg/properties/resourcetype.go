@@ -11,12 +11,12 @@ const (
 	ResourceUuidPlural  ResourceType = "uuid-plural"
 )
 
-type SchemaType int
+type SchemaType string
 
 const (
-	SchemaResource          SchemaType = iota
-	SchemaEphemeralResource SchemaType = iota
-	SchemaDataSource        SchemaType = iota
-	SchemaCommon            SchemaType = iota
-	SchemaProvider          SchemaType = iota
+	SchemaResource          SchemaType = "resource"
+	SchemaEphemeralResource SchemaType = "ephemeral-resource"
+	SchemaDataSource        SchemaType = "datasource"
+	SchemaCommon            SchemaType = "common"
+	SchemaProvider          SchemaType = "provider"
 )

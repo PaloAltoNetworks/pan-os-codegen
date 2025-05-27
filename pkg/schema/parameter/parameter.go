@@ -24,7 +24,7 @@ type Parameter struct {
 	Description      string                `yaml:"description"`
 	Type             string                `yaml:"type"`
 	CodegenOverrides *CodegenOverrides     `yaml:"codegen_overrides"`
-	Hashing          *HashingSpec          `yaml:"hashing"`
+	Hashing          *Hashing              `yaml:"hashing"`
 	Required         bool                  `yaml:"required"`
 	Profiles         []profile.Profile     `yaml:"profiles"`
 	Validators       []validator.Validator `yaml:"validators"`
@@ -71,8 +71,50 @@ type CodegenOverrides struct {
 	Terraform CodegenOverridesTerraform `yaml:"terraform"`
 }
 
-type HashingSpec struct {
-	Type string `yaml:"type"`
+type HashingType string
+
+const (
+	HashingSoloType   HashingType = "solo"
+	HashingClientType HashingType = "client"
+)
+
+type Hashing struct {
+	Type HashingType `yaml:"type"`
+	Spec any         `yaml:"-"`
+}
+
+type HashingSoloSpec struct{}
+
+type HashingClientFunctionSpec struct {
+	Name string `yaml:"name"`
+}
+
+type HashingClientSpec struct {
+	HashingFunc HashingClientFunctionSpec `yaml:"hashing_func"`
+}
+
+func (o *Hashing) UnmarshalYAML(n *yaml.Node) error {
+	type H Hashing
+	type S struct {
+		*H   `yaml:",inline"`
+		Spec yaml.Node `yaml:"spec"`
+	}
+
+	obj := &S{H: (*H)(o)}
+	if err := n.Decode(obj); err != nil {
+		return err
+	}
+
+	switch o.Type {
+	case HashingSoloType:
+		o.Spec = new(HashingSoloSpec)
+	case HashingClientType:
+		o.Spec = new(HashingClientSpec)
+	default:
+		return errors.NewSchemaError(fmt.Sprintf("unsupported hashing type: '%s'", o.Type))
+	}
+
+	return obj.Spec.Decode(o.Spec)
 }
 
 // EnumSpec describes a parameter of type enum

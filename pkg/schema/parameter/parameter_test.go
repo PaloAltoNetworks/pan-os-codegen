@@ -10,6 +10,32 @@ import (
 )
 
 var _ = Describe("Parameter", func() {
+	Describe("When unmarshalling YAML object with hashing", func() {
+		Context("with hashing type set to solo", func() {
+			It("should unmarshal into a parameter with hashing solo spec", func() {
+				bytes := []byte(`{name: test-param, type: string, profiles: [], spec: {}, hashing: { type: solo }}`)
+				var param parameter.Parameter
+				err := yaml.Unmarshal(bytes, &param)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(param.Hashing.Type).To(Equal(parameter.HashingSoloType))
+			})
+		})
+
+		Context("with hashing type set to custom", func() {
+			It("should unmarshal into a parameter with hashing custom spec", func() {
+				bytes := []byte(`{name: test-param, type: string, profiles: [], spec: {}, hashing: { type: client,  spec: { hashing_func: { name: CustomHashingMethod}}}}}`)
+				var param parameter.Parameter
+				err := yaml.Unmarshal(bytes, &param)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(param.Hashing.Type).To(Equal(parameter.HashingClientType))
+				spec, ok := param.Hashing.Spec.(*parameter.HashingClientSpec)
+				Expect(ok).To(BeTrue())
+
+				Expect(spec.HashingFunc.Name).To(Equal("CustomHashingMethod"))
+			})
+		})
+	})
 	Describe("When unmarshalling YAML object into parameter", func() {
 		Context("with parameter type set to nil", func() {
 			It("should unmarshal into Parameter with ParameterNilSpec Spec", func() {
