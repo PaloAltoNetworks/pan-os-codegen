@@ -102,9 +102,7 @@ func (o Location) XpathWithComponents(vn version.Number, components ...string) (
 		return nil, err
 	}
 
-	{{- if ge .ResourceXpathVariablesCount 1 }}
   	{{ .ResourceXpathAssignments }}
-        {{- end }}
 
 	return ans, nil
 }
