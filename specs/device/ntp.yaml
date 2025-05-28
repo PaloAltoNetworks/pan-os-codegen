@@ -16,7 +16,9 @@ go_sdk_config:
   - services
   - ntp
 panos_xpath:
-  path: []
+  path:
+  - deviceconfig
+  - system
   vars: []
 locations:
 - name: system
@@ -24,17 +26,15 @@ locations:
     path:
     - config
     - devices
-    - $ngfw_device
-    - deviceconfig
-    - system
+    - $device
     vars:
-    - name: ngfw_device
-      description: The NGFW device.
+    - name: device
+      description: Device
       required: false
       default: localhost.localdomain
       validators: []
       type: entry
-  description: Located in a system settings.
+  description: System-level configuration
   devices:
   - panorama
   - ngfw
@@ -52,27 +52,25 @@ locations:
     - config
     - devices
     - $ngfw_device
-    - deviceconfig
-    - system
     vars:
     - name: panorama_device
-      description: The panorama device.
+      description: Specific Panorama device
       required: false
       default: localhost.localdomain
       validators: []
       type: entry
     - name: template
-      description: The template.
+      description: Specific Panorama template
       required: true
       validators: []
       type: entry
     - name: ngfw_device
-      description: The NGFW device.
+      description: The NGFW device
       required: false
       default: localhost.localdomain
       validators: []
       type: entry
-  description: Located in a specific template.
+  description: Located in a specific template
   devices:
   - panorama
   validators: []
@@ -89,27 +87,25 @@ locations:
     - config
     - devices
     - $ngfw_device
-    - deviceconfig
-    - system
     vars:
     - name: panorama_device
-      description: The panorama device.
+      description: Specific Panorama device
       required: false
       default: localhost.localdomain
       validators: []
       type: entry
     - name: template_stack
-      description: The template stack.
+      description: Specific Panorama template stack
       required: true
       validators: []
       type: entry
     - name: ngfw_device
-      description: The NGFW device.
+      description: The NGFW device
       required: false
       default: localhost.localdomain
       validators: []
       type: entry
-  description: Located in a specific template stack.
+  description: Located in a specific template stack
   devices:
   - panorama
   validators: []
