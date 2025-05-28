@@ -1,0 +1,1342 @@
+name: general-settings
+terraform_provider_config:
+  description: General Configuration
+  skip_resource: false
+  skip_datasource: false
+  resource_type: config
+  resource_variants: []
+  suffix: general_settings
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - device
+  - services
+  - general
+panos_xpath:
+  path:
+  - deviceconfig
+  - system
+  vars: []
+locations:
+- name: system
+  xpath:
+    path:
+    - config
+    - devices
+    - $device
+    vars:
+    - name: device
+      description: Device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: System-level configuration
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries: []
+imports: []
+spec:
+  params:
+  - name: domain
+    type: string
+    profiles:
+    - xpath:
+      - domain
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 256
+    spec: {}
+    description: ''
+    required: false
+  - name: geo-location
+    type: object
+    profiles:
+    - xpath:
+      - geo-location
+    validators: []
+    spec:
+      params:
+      - name: latitude
+        type: string
+        profiles:
+        - xpath:
+          - latitude
+        validators: []
+        spec: {}
+        description: latitude coordinate
+        required: false
+      - name: longitude
+        type: string
+        profiles:
+        - xpath:
+          - longitude
+        validators: []
+        spec: {}
+        description: longitude coordinate
+        required: false
+      variants: []
+    description: Device geographic location
+    required: false
+  - name: hostname
+    type: string
+    profiles:
+    - xpath:
+      - hostname
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 32
+    spec: {}
+    description: ''
+    required: false
+  - name: login-banner
+    type: string
+    profiles:
+    - xpath:
+      - login-banner
+    validators:
+    - type: length
+      spec:
+        max: 3200
+    spec: {}
+    description: ''
+    required: false
+  - name: ssl-tls-service-profile
+    type: string
+    profiles:
+    - xpath:
+      - ssl-tls-service-profile
+    validators:
+    - type: length
+      spec:
+        max: 255
+    spec: {}
+    description: SSL TLS service profile
+    required: false
+  - name: timezone
+    type: enum
+    profiles:
+    - xpath:
+      - timezone
+    validators:
+    - type: values
+      spec:
+        values:
+        - Africa/Abidjan
+        - Africa/Accra
+        - Africa/Addis_Ababa
+        - Africa/Algiers
+        - Africa/Asmara
+        - Africa/Asmera
+        - Africa/Bamako
+        - Africa/Bangui
+        - Africa/Banjul
+        - Africa/Bissau
+        - Africa/Blantyre
+        - Africa/Brazzaville
+        - Africa/Bujumbura
+        - Africa/Cairo
+        - Africa/Casablanca
+        - Africa/Ceuta
+        - Africa/Conakry
+        - Africa/Dakar
+        - Africa/Dar_es_Salaam
+        - Africa/Djibouti
+        - Africa/Douala
+        - Africa/El_Aaiun
+        - Africa/Freetown
+        - Africa/Gaborone
+        - Africa/Harare
+        - Africa/Johannesburg
+        - Africa/Kampala
+        - Africa/Khartoum
+        - Africa/Kigali
+        - Africa/Kinshasa
+        - Africa/Lagos
+        - Africa/Libreville
+        - Africa/Lome
+        - Africa/Luanda
+        - Africa/Lubumbashi
+        - Africa/Lusaka
+        - Africa/Malabo
+        - Africa/Maputo
+        - Africa/Maseru
+        - Africa/Mbabane
+        - Africa/Mogadishu
+        - Africa/Monrovia
+        - Africa/Nairobi
+        - Africa/Ndjamena
+        - Africa/Niamey
+        - Africa/Nouakchott
+        - Africa/Ouagadougou
+        - Africa/Porto-Novo
+        - Africa/Sao_Tome
+        - Africa/Timbuktu
+        - Africa/Tripoli
+        - Africa/Tunis
+        - Africa/Windhoek
+        - America/Adak
+        - America/Anchorage
+        - America/Anguilla
+        - America/Antigua
+        - America/Araguaina
+        - America/Argentina/Buenos_Aires
+        - America/Argentina/Catamarca
+        - America/Argentina/ComodRivadavia
+        - America/Argentina/Cordoba
+        - America/Argentina/Jujuy
+        - America/Argentina/La_Rioja
+        - America/Argentina/Mendoza
+        - America/Argentina/Rio_Gallegos
+        - America/Argentina/Salta
+        - America/Argentina/San_Juan
+        - America/Argentina/San_Luis
+        - America/Argentina/Tucuman
+        - America/Argentina/Ushuaia
+        - America/Aruba
+        - America/Asuncion
+        - America/Atikokan
+        - America/Atka
+        - America/Bahia
+        - America/Barbados
+        - America/Belem
+        - America/Belize
+        - America/Blanc-Sablon
+        - America/Boa_Vista
+        - America/Bogota
+        - America/Boise
+        - America/Buenos_Aires
+        - America/Cambridge_Bay
+        - America/Campo_Grande
+        - America/Cancun
+        - America/Caracas
+        - America/Catamarca
+        - America/Cayenne
+        - America/Cayman
+        - America/Chicago
+        - America/Chihuahua
+        - America/Coral_Harbour
+        - America/Cordoba
+        - America/Costa_Rica
+        - America/Cuiaba
+        - America/Curacao
+        - America/Danmarkshavn
+        - America/Dawson
+        - America/Dawson_Creek
+        - America/Denver
+        - America/Detroit
+        - America/Dominica
+        - America/Edmonton
+        - America/Eirunepe
+        - America/El_Salvador
+        - America/Ensenada
+        - America/Fortaleza
+        - America/Fort_Wayne
+        - America/Glace_Bay
+        - America/Godthab
+        - America/Goose_Bay
+        - America/Grand_Turk
+        - America/Grenada
+        - America/Guadeloupe
+        - America/Guatemala
+        - America/Guayaquil
+        - America/Guyana
+        - America/Halifax
+        - America/Havana
+        - America/Hermosillo
+        - America/Indiana/Indianapolis
+        - America/Indiana/Knox
+        - America/Indiana/Marengo
+        - America/Indiana/Petersburg
+        - America/Indianapolis
+        - America/Indiana/Tell_City
+        - America/Indiana/Vevay
+        - America/Indiana/Vincennes
+        - America/Indiana/Winamac
+        - America/Inuvik
+        - America/Iqaluit
+        - America/Jamaica
+        - America/Jujuy
+        - America/Juneau
+        - America/Kentucky/Louisville
+        - America/Kentucky/Monticello
+        - America/Knox_IN
+        - America/La_Paz
+        - America/Lima
+        - America/Los_Angeles
+        - America/Louisville
+        - America/Maceio
+        - America/Managua
+        - America/Manaus
+        - America/Marigot
+        - America/Martinique
+        - America/Mazatlan
+        - America/Mendoza
+        - America/Menominee
+        - America/Merida
+        - America/Mexico_City
+        - America/Miquelon
+        - America/Moncton
+        - America/Monterrey
+        - America/Montevideo
+        - America/Montreal
+        - America/Montserrat
+        - America/Nassau
+        - America/New_York
+        - America/Nipigon
+        - America/Nome
+        - America/Noronha
+        - America/North_Dakota/Center
+        - America/North_Dakota/New_Salem
+        - America/Panama
+        - America/Pangnirtung
+        - America/Paramaribo
+        - America/Phoenix
+        - America/Port-au-Prince
+        - America/Porto_Acre
+        - America/Port_of_Spain
+        - America/Porto_Velho
+        - America/Puerto_Rico
+        - America/Rainy_River
+        - America/Rankin_Inlet
+        - America/Recife
+        - America/Regina
+        - America/Resolute
+        - America/Rio_Branco
+        - America/Rosario
+        - America/Santarem
+        - America/Santiago
+        - America/Santo_Domingo
+        - America/Sao_Paulo
+        - America/Scoresbysund
+        - America/Shiprock
+        - America/St_Barthelemy
+        - America/St_Johns
+        - America/St_Kitts
+        - America/St_Lucia
+        - America/St_Thomas
+        - America/St_Vincent
+        - America/Swift_Current
+        - America/Tegucigalpa
+        - America/Thule
+        - America/Thunder_Bay
+        - America/Tijuana
+        - America/Toronto
+        - America/Tortola
+        - America/Vancouver
+        - America/Virgin
+        - America/Whitehorse
+        - America/Winnipeg
+        - America/Yakutat
+        - America/Yellowknife
+        - Antarctica/Casey
+        - Antarctica/Davis
+        - Antarctica/DumontDUrville
+        - Antarctica/Mawson
+        - Antarctica/McMurdo
+        - Antarctica/Palmer
+        - Antarctica/Rothera
+        - Antarctica/South_Pole
+        - Antarctica/Syowa
+        - Antarctica/Vostok
+        - Arctic/Longyearbyen
+        - Asia/Aden
+        - Asia/Almaty
+        - Asia/Amman
+        - Asia/Anadyr
+        - Asia/Aqtau
+        - Asia/Aqtobe
+        - Asia/Ashgabat
+        - Asia/Ashkhabad
+        - Asia/Baghdad
+        - Asia/Bahrain
+        - Asia/Baku
+        - Asia/Bangkok
+        - Asia/Beirut
+        - Asia/Bishkek
+        - Asia/Brunei
+        - Asia/Calcutta
+        - Asia/Choibalsan
+        - Asia/Chongqing
+        - Asia/Chungking
+        - Asia/Colombo
+        - Asia/Dacca
+        - Asia/Damascus
+        - Asia/Dhaka
+        - Asia/Dili
+        - Asia/Dubai
+        - Asia/Dushanbe
+        - Asia/Gaza
+        - Asia/Harbin
+        - Asia/Ho_Chi_Minh
+        - Asia/Hong_Kong
+        - Asia/Hovd
+        - Asia/Irkutsk
+        - Asia/Istanbul
+        - Asia/Jakarta
+        - Asia/Jayapura
+        - Asia/Jerusalem
+        - Asia/Kabul
+        - Asia/Kamchatka
+        - Asia/Karachi
+        - Asia/Kashgar
+        - Asia/Kathmandu
+        - Asia/Katmandu
+        - Asia/Kolkata
+        - Asia/Krasnoyarsk
+        - Asia/Kuala_Lumpur
+        - Asia/Kuching
+        - Asia/Kuwait
+        - Asia/Macao
+        - Asia/Macau
+        - Asia/Magadan
+        - Asia/Makassar
+        - Asia/Manila
+        - Asia/Muscat
+        - Asia/Nicosia
+        - Asia/Novokuznetsk
+        - Asia/Novosibirsk
+        - Asia/Omsk
+        - Asia/Oral
+        - Asia/Phnom_Penh
+        - Asia/Pontianak
+        - Asia/Pyongyang
+        - Asia/Qatar
+        - Asia/Qyzylorda
+        - Asia/Rangoon
+        - Asia/Riyadh
+        - Asia/Riyadh87
+        - Asia/Riyadh88
+        - Asia/Riyadh89
+        - Asia/Saigon
+        - Asia/Sakhalin
+        - Asia/Samarkand
+        - Asia/Seoul
+        - Asia/Shanghai
+        - Asia/Singapore
+        - Asia/Taipei
+        - Asia/Tashkent
+        - Asia/Tbilisi
+        - Asia/Tehran
+        - Asia/Tel_Aviv
+        - Asia/Thimbu
+        - Asia/Thimphu
+        - Asia/Tokyo
+        - Asia/Ujung_Pandang
+        - Asia/Ulaanbaatar
+        - Asia/Ulan_Bator
+        - Asia/Urumqi
+        - Asia/Vientiane
+        - Asia/Vladivostok
+        - Asia/Yakutsk
+        - Asia/Yekaterinburg
+        - Asia/Yerevan
+        - Atlantic/Azores
+        - Atlantic/Bermuda
+        - Atlantic/Canary
+        - Atlantic/Cape_Verde
+        - Atlantic/Faeroe
+        - Atlantic/Faroe
+        - Atlantic/Jan_Mayen
+        - Atlantic/Madeira
+        - Atlantic/Reykjavik
+        - Atlantic/South_Georgia
+        - Atlantic/Stanley
+        - Atlantic/St_Helena
+        - Australia/ACT
+        - Australia/Adelaide
+        - Australia/Brisbane
+        - Australia/Broken_Hill
+        - Australia/Canberra
+        - Australia/Currie
+        - Australia/Darwin
+        - Australia/Eucla
+        - Australia/Hobart
+        - Australia/LHI
+        - Australia/Lindeman
+        - Australia/Lord_Howe
+        - Australia/Melbourne
+        - Australia/North
+        - Australia/NSW
+        - Australia/Perth
+        - Australia/Queensland
+        - Australia/South
+        - Australia/Sydney
+        - Australia/Tasmania
+        - Australia/Victoria
+        - Australia/West
+        - Australia/Yancowinna
+        - Brazil/Acre
+        - Brazil/DeNoronha
+        - Brazil/East
+        - Brazil/West
+        - Canada/Atlantic
+        - Canada/Central
+        - Canada/Eastern
+        - Canada/East-Saskatchewan
+        - Canada/Mountain
+        - Canada/Newfoundland
+        - Canada/Pacific
+        - Canada/Saskatchewan
+        - Canada/Yukon
+        - CET
+        - Chile/Continental
+        - Chile/EasterIsland
+        - CST6CDT
+        - Cuba
+        - EET
+        - Egypt
+        - Eire
+        - EST
+        - EST5EDT
+        - Etc/GMT
+        - Etc/GMT0
+        - Etc/GMT-0
+        - Etc/GMT+0
+        - Etc/GMT-1
+        - Etc/GMT+1
+        - Etc/GMT-10
+        - Etc/GMT+10
+        - Etc/GMT-11
+        - Etc/GMT+11
+        - Etc/GMT-12
+        - Etc/GMT+12
+        - Etc/GMT-13
+        - Etc/GMT-14
+        - Etc/GMT-2
+        - Etc/GMT+2
+        - Etc/GMT-3
+        - Etc/GMT+3
+        - Etc/GMT-4
+        - Etc/GMT+4
+        - Etc/GMT-5
+        - Etc/GMT+5
+        - Etc/GMT-6
+        - Etc/GMT+6
+        - Etc/GMT-7
+        - Etc/GMT+7
+        - Etc/GMT-8
+        - Etc/GMT+8
+        - Etc/GMT-9
+        - Etc/GMT+9
+        - Etc/Greenwich
+        - Etc/UCT
+        - Etc/Universal
+        - Etc/UTC
+        - Etc/Zulu
+        - Europe/Amsterdam
+        - Europe/Andorra
+        - Europe/Athens
+        - Europe/Belfast
+        - Europe/Belgrade
+        - Europe/Berlin
+        - Europe/Bratislava
+        - Europe/Brussels
+        - Europe/Bucharest
+        - Europe/Budapest
+        - Europe/Chisinau
+        - Europe/Copenhagen
+        - Europe/Dublin
+        - Europe/Gibraltar
+        - Europe/Guernsey
+        - Europe/Helsinki
+        - Europe/Isle_of_Man
+        - Europe/Istanbul
+        - Europe/Jersey
+        - Europe/Kaliningrad
+        - Europe/Kiev
+        - Europe/Lisbon
+        - Europe/Ljubljana
+        - Europe/London
+        - Europe/Luxembourg
+        - Europe/Madrid
+        - Europe/Malta
+        - Europe/Mariehamn
+        - Europe/Minsk
+        - Europe/Monaco
+        - Europe/Moscow
+        - Europe/Nicosia
+        - Europe/Oslo
+        - Europe/Paris
+        - Europe/Podgorica
+        - Europe/Prague
+        - Europe/Riga
+        - Europe/Rome
+        - Europe/Samara
+        - Europe/San_Marino
+        - Europe/Sarajevo
+        - Europe/Simferopol
+        - Europe/Skopje
+        - Europe/Sofia
+        - Europe/Stockholm
+        - Europe/Tallinn
+        - Europe/Tirane
+        - Europe/Tiraspol
+        - Europe/Uzhgorod
+        - Europe/Vaduz
+        - Europe/Vatican
+        - Europe/Vienna
+        - Europe/Vilnius
+        - Europe/Volgograd
+        - Europe/Warsaw
+        - Europe/Zagreb
+        - Europe/Zaporozhye
+        - Europe/Zurich
+        - Factory
+        - GB
+        - GB-Eire
+        - GMT
+        - GMT0
+        - GMT-0
+        - GMT+0
+        - Greenwich
+        - Hongkong
+        - HST
+        - Iceland
+        - Indian/Antananarivo
+        - Indian/Chagos
+        - Indian/Christmas
+        - Indian/Cocos
+        - Indian/Comoro
+        - Indian/Kerguelen
+        - Indian/Mahe
+        - Indian/Maldives
+        - Indian/Mauritius
+        - Indian/Mayotte
+        - Indian/Reunion
+        - Iran
+        - Israel
+        - Jamaica
+        - Japan
+        - Kwajalein
+        - Libya
+        - MET
+        - Mexico/BajaNorte
+        - Mexico/BajaSur
+        - Mexico/General
+        - Mideast/Riyadh87
+        - Mideast/Riyadh88
+        - Mideast/Riyadh89
+        - MST
+        - MST7MDT
+        - Navajo
+        - NZ
+        - NZ-CHAT
+        - Pacific/Apia
+        - Pacific/Auckland
+        - Pacific/Chatham
+        - Pacific/Easter
+        - Pacific/Efate
+        - Pacific/Enderbury
+        - Pacific/Fakaofo
+        - Pacific/Fiji
+        - Pacific/Funafuti
+        - Pacific/Galapagos
+        - Pacific/Gambier
+        - Pacific/Guadalcanal
+        - Pacific/Guam
+        - Pacific/Honolulu
+        - Pacific/Johnston
+        - Pacific/Kiritimati
+        - Pacific/Kosrae
+        - Pacific/Kwajalein
+        - Pacific/Majuro
+        - Pacific/Marquesas
+        - Pacific/Midway
+        - Pacific/Nauru
+        - Pacific/Niue
+        - Pacific/Norfolk
+        - Pacific/Noumea
+        - Pacific/Pago_Pago
+        - Pacific/Palau
+        - Pacific/Pitcairn
+        - Pacific/Ponape
+        - Pacific/Port_Moresby
+        - Pacific/Rarotonga
+        - Pacific/Saipan
+        - Pacific/Samoa
+        - Pacific/Tahiti
+        - Pacific/Tarawa
+        - Pacific/Tongatapu
+        - Pacific/Truk
+        - Pacific/Wake
+        - Pacific/Wallis
+        - Pacific/Yap
+        - Poland
+        - Portugal
+        - PRC
+        - PST8PDT
+        - ROC
+        - ROK
+        - Singapore
+        - Turkey
+        - UCT
+        - Universal
+        - US/Alaska
+        - US/Aleutian
+        - US/Arizona
+        - US/Central
+        - US/Eastern
+        - US/East-Indiana
+        - US/Hawaii
+        - US/Indiana-Starke
+        - US/Michigan
+        - US/Mountain
+        - US/Pacific
+        - US/Samoa
+        - UTC
+        - WET
+        - W-SU
+        - Zulu
+    spec:
+      values:
+      - value: Africa/Abidjan
+      - value: Africa/Accra
+      - value: Africa/Addis_Ababa
+      - value: Africa/Algiers
+      - value: Africa/Asmara
+      - value: Africa/Asmera
+      - value: Africa/Bamako
+      - value: Africa/Bangui
+      - value: Africa/Banjul
+      - value: Africa/Bissau
+      - value: Africa/Blantyre
+      - value: Africa/Brazzaville
+      - value: Africa/Bujumbura
+      - value: Africa/Cairo
+      - value: Africa/Casablanca
+      - value: Africa/Ceuta
+      - value: Africa/Conakry
+      - value: Africa/Dakar
+      - value: Africa/Dar_es_Salaam
+      - value: Africa/Djibouti
+      - value: Africa/Douala
+      - value: Africa/El_Aaiun
+      - value: Africa/Freetown
+      - value: Africa/Gaborone
+      - value: Africa/Harare
+      - value: Africa/Johannesburg
+      - value: Africa/Kampala
+      - value: Africa/Khartoum
+      - value: Africa/Kigali
+      - value: Africa/Kinshasa
+      - value: Africa/Lagos
+      - value: Africa/Libreville
+      - value: Africa/Lome
+      - value: Africa/Luanda
+      - value: Africa/Lubumbashi
+      - value: Africa/Lusaka
+      - value: Africa/Malabo
+      - value: Africa/Maputo
+      - value: Africa/Maseru
+      - value: Africa/Mbabane
+      - value: Africa/Mogadishu
+      - value: Africa/Monrovia
+      - value: Africa/Nairobi
+      - value: Africa/Ndjamena
+      - value: Africa/Niamey
+      - value: Africa/Nouakchott
+      - value: Africa/Ouagadougou
+      - value: Africa/Porto-Novo
+      - value: Africa/Sao_Tome
+      - value: Africa/Timbuktu
+      - value: Africa/Tripoli
+      - value: Africa/Tunis
+      - value: Africa/Windhoek
+      - value: America/Adak
+      - value: America/Anchorage
+      - value: America/Anguilla
+      - value: America/Antigua
+      - value: America/Araguaina
+      - value: America/Argentina/Buenos_Aires
+      - value: America/Argentina/Catamarca
+      - value: America/Argentina/ComodRivadavia
+      - value: America/Argentina/Cordoba
+      - value: America/Argentina/Jujuy
+      - value: America/Argentina/La_Rioja
+      - value: America/Argentina/Mendoza
+      - value: America/Argentina/Rio_Gallegos
+      - value: America/Argentina/Salta
+      - value: America/Argentina/San_Juan
+      - value: America/Argentina/San_Luis
+      - value: America/Argentina/Tucuman
+      - value: America/Argentina/Ushuaia
+      - value: America/Aruba
+      - value: America/Asuncion
+      - value: America/Atikokan
+      - value: America/Atka
+      - value: America/Bahia
+      - value: America/Barbados
+      - value: America/Belem
+      - value: America/Belize
+      - value: America/Blanc-Sablon
+      - value: America/Boa_Vista
+      - value: America/Bogota
+      - value: America/Boise
+      - value: America/Buenos_Aires
+      - value: America/Cambridge_Bay
+      - value: America/Campo_Grande
+      - value: America/Cancun
+      - value: America/Caracas
+      - value: America/Catamarca
+      - value: America/Cayenne
+      - value: America/Cayman
+      - value: America/Chicago
+      - value: America/Chihuahua
+      - value: America/Coral_Harbour
+      - value: America/Cordoba
+      - value: America/Costa_Rica
+      - value: America/Cuiaba
+      - value: America/Curacao
+      - value: America/Danmarkshavn
+      - value: America/Dawson
+      - value: America/Dawson_Creek
+      - value: America/Denver
+      - value: America/Detroit
+      - value: America/Dominica
+      - value: America/Edmonton
+      - value: America/Eirunepe
+      - value: America/El_Salvador
+      - value: America/Ensenada
+      - value: America/Fortaleza
+      - value: America/Fort_Wayne
+      - value: America/Glace_Bay
+      - value: America/Godthab
+      - value: America/Goose_Bay
+      - value: America/Grand_Turk
+      - value: America/Grenada
+      - value: America/Guadeloupe
+      - value: America/Guatemala
+      - value: America/Guayaquil
+      - value: America/Guyana
+      - value: America/Halifax
+      - value: America/Havana
+      - value: America/Hermosillo
+      - value: America/Indiana/Indianapolis
+      - value: America/Indiana/Knox
+      - value: America/Indiana/Marengo
+      - value: America/Indiana/Petersburg
+      - value: America/Indianapolis
+      - value: America/Indiana/Tell_City
+      - value: America/Indiana/Vevay
+      - value: America/Indiana/Vincennes
+      - value: America/Indiana/Winamac
+      - value: America/Inuvik
+      - value: America/Iqaluit
+      - value: America/Jamaica
+      - value: America/Jujuy
+      - value: America/Juneau
+      - value: America/Kentucky/Louisville
+      - value: America/Kentucky/Monticello
+      - value: America/Knox_IN
+      - value: America/La_Paz
+      - value: America/Lima
+      - value: America/Los_Angeles
+      - value: America/Louisville
+      - value: America/Maceio
+      - value: America/Managua
+      - value: America/Manaus
+      - value: America/Marigot
+      - value: America/Martinique
+      - value: America/Mazatlan
+      - value: America/Mendoza
+      - value: America/Menominee
+      - value: America/Merida
+      - value: America/Mexico_City
+      - value: America/Miquelon
+      - value: America/Moncton
+      - value: America/Monterrey
+      - value: America/Montevideo
+      - value: America/Montreal
+      - value: America/Montserrat
+      - value: America/Nassau
+      - value: America/New_York
+      - value: America/Nipigon
+      - value: America/Nome
+      - value: America/Noronha
+      - value: America/North_Dakota/Center
+      - value: America/North_Dakota/New_Salem
+      - value: America/Panama
+      - value: America/Pangnirtung
+      - value: America/Paramaribo
+      - value: America/Phoenix
+      - value: America/Port-au-Prince
+      - value: America/Porto_Acre
+      - value: America/Port_of_Spain
+      - value: America/Porto_Velho
+      - value: America/Puerto_Rico
+      - value: America/Rainy_River
+      - value: America/Rankin_Inlet
+      - value: America/Recife
+      - value: America/Regina
+      - value: America/Resolute
+      - value: America/Rio_Branco
+      - value: America/Rosario
+      - value: America/Santarem
+      - value: America/Santiago
+      - value: America/Santo_Domingo
+      - value: America/Sao_Paulo
+      - value: America/Scoresbysund
+      - value: America/Shiprock
+      - value: America/St_Barthelemy
+      - value: America/St_Johns
+      - value: America/St_Kitts
+      - value: America/St_Lucia
+      - value: America/St_Thomas
+      - value: America/St_Vincent
+      - value: America/Swift_Current
+      - value: America/Tegucigalpa
+      - value: America/Thule
+      - value: America/Thunder_Bay
+      - value: America/Tijuana
+      - value: America/Toronto
+      - value: America/Tortola
+      - value: America/Vancouver
+      - value: America/Virgin
+      - value: America/Whitehorse
+      - value: America/Winnipeg
+      - value: America/Yakutat
+      - value: America/Yellowknife
+      - value: Antarctica/Casey
+      - value: Antarctica/Davis
+      - value: Antarctica/DumontDUrville
+      - value: Antarctica/Mawson
+      - value: Antarctica/McMurdo
+      - value: Antarctica/Palmer
+      - value: Antarctica/Rothera
+      - value: Antarctica/South_Pole
+      - value: Antarctica/Syowa
+      - value: Antarctica/Vostok
+      - value: Arctic/Longyearbyen
+      - value: Asia/Aden
+      - value: Asia/Almaty
+      - value: Asia/Amman
+      - value: Asia/Anadyr
+      - value: Asia/Aqtau
+      - value: Asia/Aqtobe
+      - value: Asia/Ashgabat
+      - value: Asia/Ashkhabad
+      - value: Asia/Baghdad
+      - value: Asia/Bahrain
+      - value: Asia/Baku
+      - value: Asia/Bangkok
+      - value: Asia/Beirut
+      - value: Asia/Bishkek
+      - value: Asia/Brunei
+      - value: Asia/Calcutta
+      - value: Asia/Choibalsan
+      - value: Asia/Chongqing
+      - value: Asia/Chungking
+      - value: Asia/Colombo
+      - value: Asia/Dacca
+      - value: Asia/Damascus
+      - value: Asia/Dhaka
+      - value: Asia/Dili
+      - value: Asia/Dubai
+      - value: Asia/Dushanbe
+      - value: Asia/Gaza
+      - value: Asia/Harbin
+      - value: Asia/Ho_Chi_Minh
+      - value: Asia/Hong_Kong
+      - value: Asia/Hovd
+      - value: Asia/Irkutsk
+      - value: Asia/Istanbul
+      - value: Asia/Jakarta
+      - value: Asia/Jayapura
+      - value: Asia/Jerusalem
+      - value: Asia/Kabul
+      - value: Asia/Kamchatka
+      - value: Asia/Karachi
+      - value: Asia/Kashgar
+      - value: Asia/Kathmandu
+      - value: Asia/Katmandu
+      - value: Asia/Kolkata
+      - value: Asia/Krasnoyarsk
+      - value: Asia/Kuala_Lumpur
+      - value: Asia/Kuching
+      - value: Asia/Kuwait
+      - value: Asia/Macao
+      - value: Asia/Macau
+      - value: Asia/Magadan
+      - value: Asia/Makassar
+      - value: Asia/Manila
+      - value: Asia/Muscat
+      - value: Asia/Nicosia
+      - value: Asia/Novokuznetsk
+      - value: Asia/Novosibirsk
+      - value: Asia/Omsk
+      - value: Asia/Oral
+      - value: Asia/Phnom_Penh
+      - value: Asia/Pontianak
+      - value: Asia/Pyongyang
+      - value: Asia/Qatar
+      - value: Asia/Qyzylorda
+      - value: Asia/Rangoon
+      - value: Asia/Riyadh
+      - value: Asia/Riyadh87
+      - value: Asia/Riyadh88
+      - value: Asia/Riyadh89
+      - value: Asia/Saigon
+      - value: Asia/Sakhalin
+      - value: Asia/Samarkand
+      - value: Asia/Seoul
+      - value: Asia/Shanghai
+      - value: Asia/Singapore
+      - value: Asia/Taipei
+      - value: Asia/Tashkent
+      - value: Asia/Tbilisi
+      - value: Asia/Tehran
+      - value: Asia/Tel_Aviv
+      - value: Asia/Thimbu
+      - value: Asia/Thimphu
+      - value: Asia/Tokyo
+      - value: Asia/Ujung_Pandang
+      - value: Asia/Ulaanbaatar
+      - value: Asia/Ulan_Bator
+      - value: Asia/Urumqi
+      - value: Asia/Vientiane
+      - value: Asia/Vladivostok
+      - value: Asia/Yakutsk
+      - value: Asia/Yekaterinburg
+      - value: Asia/Yerevan
+      - value: Atlantic/Azores
+      - value: Atlantic/Bermuda
+      - value: Atlantic/Canary
+      - value: Atlantic/Cape_Verde
+      - value: Atlantic/Faeroe
+      - value: Atlantic/Faroe
+      - value: Atlantic/Jan_Mayen
+      - value: Atlantic/Madeira
+      - value: Atlantic/Reykjavik
+      - value: Atlantic/South_Georgia
+      - value: Atlantic/Stanley
+      - value: Atlantic/St_Helena
+      - value: Australia/ACT
+      - value: Australia/Adelaide
+      - value: Australia/Brisbane
+      - value: Australia/Broken_Hill
+      - value: Australia/Canberra
+      - value: Australia/Currie
+      - value: Australia/Darwin
+      - value: Australia/Eucla
+      - value: Australia/Hobart
+      - value: Australia/LHI
+      - value: Australia/Lindeman
+      - value: Australia/Lord_Howe
+      - value: Australia/Melbourne
+      - value: Australia/North
+      - value: Australia/NSW
+      - value: Australia/Perth
+      - value: Australia/Queensland
+      - value: Australia/South
+      - value: Australia/Sydney
+      - value: Australia/Tasmania
+      - value: Australia/Victoria
+      - value: Australia/West
+      - value: Australia/Yancowinna
+      - value: Brazil/Acre
+      - value: Brazil/DeNoronha
+      - value: Brazil/East
+      - value: Brazil/West
+      - value: Canada/Atlantic
+      - value: Canada/Central
+      - value: Canada/Eastern
+      - value: Canada/East-Saskatchewan
+      - value: Canada/Mountain
+      - value: Canada/Newfoundland
+      - value: Canada/Pacific
+      - value: Canada/Saskatchewan
+      - value: Canada/Yukon
+      - value: CET
+      - value: Chile/Continental
+      - value: Chile/EasterIsland
+      - value: CST6CDT
+      - value: Cuba
+      - value: EET
+      - value: Egypt
+      - value: Eire
+      - value: EST
+      - value: EST5EDT
+      - value: Etc/GMT
+      - value: Etc/GMT0
+      - value: Etc/GMT-0
+      - value: Etc/GMT+0
+      - value: Etc/GMT-1
+      - value: Etc/GMT+1
+      - value: Etc/GMT-10
+      - value: Etc/GMT+10
+      - value: Etc/GMT-11
+      - value: Etc/GMT+11
+      - value: Etc/GMT-12
+      - value: Etc/GMT+12
+      - value: Etc/GMT-13
+      - value: Etc/GMT-14
+      - value: Etc/GMT-2
+      - value: Etc/GMT+2
+      - value: Etc/GMT-3
+      - value: Etc/GMT+3
+      - value: Etc/GMT-4
+      - value: Etc/GMT+4
+      - value: Etc/GMT-5
+      - value: Etc/GMT+5
+      - value: Etc/GMT-6
+      - value: Etc/GMT+6
+      - value: Etc/GMT-7
+      - value: Etc/GMT+7
+      - value: Etc/GMT-8
+      - value: Etc/GMT+8
+      - value: Etc/GMT-9
+      - value: Etc/GMT+9
+      - value: Etc/Greenwich
+      - value: Etc/UCT
+      - value: Etc/Universal
+      - value: Etc/UTC
+      - value: Etc/Zulu
+      - value: Europe/Amsterdam
+      - value: Europe/Andorra
+      - value: Europe/Athens
+      - value: Europe/Belfast
+      - value: Europe/Belgrade
+      - value: Europe/Berlin
+      - value: Europe/Bratislava
+      - value: Europe/Brussels
+      - value: Europe/Bucharest
+      - value: Europe/Budapest
+      - value: Europe/Chisinau
+      - value: Europe/Copenhagen
+      - value: Europe/Dublin
+      - value: Europe/Gibraltar
+      - value: Europe/Guernsey
+      - value: Europe/Helsinki
+      - value: Europe/Isle_of_Man
+      - value: Europe/Istanbul
+      - value: Europe/Jersey
+      - value: Europe/Kaliningrad
+      - value: Europe/Kiev
+      - value: Europe/Lisbon
+      - value: Europe/Ljubljana
+      - value: Europe/London
+      - value: Europe/Luxembourg
+      - value: Europe/Madrid
+      - value: Europe/Malta
+      - value: Europe/Mariehamn
+      - value: Europe/Minsk
+      - value: Europe/Monaco
+      - value: Europe/Moscow
+      - value: Europe/Nicosia
+      - value: Europe/Oslo
+      - value: Europe/Paris
+      - value: Europe/Podgorica
+      - value: Europe/Prague
+      - value: Europe/Riga
+      - value: Europe/Rome
+      - value: Europe/Samara
+      - value: Europe/San_Marino
+      - value: Europe/Sarajevo
+      - value: Europe/Simferopol
+      - value: Europe/Skopje
+      - value: Europe/Sofia
+      - value: Europe/Stockholm
+      - value: Europe/Tallinn
+      - value: Europe/Tirane
+      - value: Europe/Tiraspol
+      - value: Europe/Uzhgorod
+      - value: Europe/Vaduz
+      - value: Europe/Vatican
+      - value: Europe/Vienna
+      - value: Europe/Vilnius
+      - value: Europe/Volgograd
+      - value: Europe/Warsaw
+      - value: Europe/Zagreb
+      - value: Europe/Zaporozhye
+      - value: Europe/Zurich
+      - value: Factory
+      - value: GB
+      - value: GB-Eire
+      - value: GMT
+      - value: GMT0
+      - value: GMT-0
+      - value: GMT+0
+      - value: Greenwich
+      - value: Hongkong
+      - value: HST
+      - value: Iceland
+      - value: Indian/Antananarivo
+      - value: Indian/Chagos
+      - value: Indian/Christmas
+      - value: Indian/Cocos
+      - value: Indian/Comoro
+      - value: Indian/Kerguelen
+      - value: Indian/Mahe
+      - value: Indian/Maldives
+      - value: Indian/Mauritius
+      - value: Indian/Mayotte
+      - value: Indian/Reunion
+      - value: Iran
+      - value: Israel
+      - value: Jamaica
+      - value: Japan
+      - value: Kwajalein
+      - value: Libya
+      - value: MET
+      - value: Mexico/BajaNorte
+      - value: Mexico/BajaSur
+      - value: Mexico/General
+      - value: Mideast/Riyadh87
+      - value: Mideast/Riyadh88
+      - value: Mideast/Riyadh89
+      - value: MST
+      - value: MST7MDT
+      - value: Navajo
+      - value: NZ
+      - value: NZ-CHAT
+      - value: Pacific/Apia
+      - value: Pacific/Auckland
+      - value: Pacific/Chatham
+      - value: Pacific/Easter
+      - value: Pacific/Efate
+      - value: Pacific/Enderbury
+      - value: Pacific/Fakaofo
+      - value: Pacific/Fiji
+      - value: Pacific/Funafuti
+      - value: Pacific/Galapagos
+      - value: Pacific/Gambier
+      - value: Pacific/Guadalcanal
+      - value: Pacific/Guam
+      - value: Pacific/Honolulu
+      - value: Pacific/Johnston
+      - value: Pacific/Kiritimati
+      - value: Pacific/Kosrae
+      - value: Pacific/Kwajalein
+      - value: Pacific/Majuro
+      - value: Pacific/Marquesas
+      - value: Pacific/Midway
+      - value: Pacific/Nauru
+      - value: Pacific/Niue
+      - value: Pacific/Norfolk
+      - value: Pacific/Noumea
+      - value: Pacific/Pago_Pago
+      - value: Pacific/Palau
+      - value: Pacific/Pitcairn
+      - value: Pacific/Ponape
+      - value: Pacific/Port_Moresby
+      - value: Pacific/Rarotonga
+      - value: Pacific/Saipan
+      - value: Pacific/Samoa
+      - value: Pacific/Tahiti
+      - value: Pacific/Tarawa
+      - value: Pacific/Tongatapu
+      - value: Pacific/Truk
+      - value: Pacific/Wake
+      - value: Pacific/Wallis
+      - value: Pacific/Yap
+      - value: Poland
+      - value: Portugal
+      - value: PRC
+      - value: PST8PDT
+      - value: ROC
+      - value: ROK
+      - value: Singapore
+      - value: Turkey
+      - value: UCT
+      - value: Universal
+      - value: US/Alaska
+      - value: US/Aleutian
+      - value: US/Arizona
+      - value: US/Central
+      - value: US/Eastern
+      - value: US/East-Indiana
+      - value: US/Hawaii
+      - value: US/Indiana-Starke
+      - value: US/Michigan
+      - value: US/Mountain
+      - value: US/Pacific
+      - value: US/Samoa
+      - value: UTC
+      - value: WET
+      - value: W-SU
+      - value: Zulu
+    description: ''
+    required: false
+  variants: []
