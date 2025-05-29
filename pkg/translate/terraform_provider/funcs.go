@@ -974,6 +974,7 @@ func RenderLocationStructs(resourceTyp properties.ResourceType, names *NameProvi
 
 const locationSchemaGetterTmpl = `
 {{- define "renderLocationAttribute" }}
+{{- with .Attribute }}
 "{{ .Name.Underscore }}": {{ .SchemaType }}{
 	Description: "{{ .Description }}",
   {{- if .Required }}
@@ -990,7 +991,7 @@ const locationSchemaGetterTmpl = `
   {{- if .Attributes }}
 	Attributes: map[string]rsschema.Attribute{
     {{- range .Attributes }}
-		{{- template "renderLocationAttribute" . }}
+		{{- template "renderLocationAttribute" Map "Schema" $.Schema "Attribute" . }}
     {{- end }}
 	},
   {{- end }}
@@ -1003,7 +1004,7 @@ const locationSchemaGetterTmpl = `
     {{- range .Functions }}
 			{{ $package }}.{{ .Function }}(path.Expressions{
       {{- range .Expressions }}
-				{{ . }},
+				{{ .RenderAsString false }},
       {{- end }}
 			}...),
     {{- end }}
@@ -1011,20 +1012,21 @@ const locationSchemaGetterTmpl = `
   {{- end }}
 },
 {{- end }}
+{{- end }}
 
 func {{ .StructName }}LocationSchema() rsschema.Attribute {
-  {{- with .Schema }}
+{{- with .Schema }}
 	return rsschema.SingleNestedAttribute{
 		Description: "{{ .Description }}",
 		Required: true,
 		Attributes: map[string]rsschema.Attribute{
-{{- range .Attributes }}
-{{- template "renderLocationAttribute" . }}
-{{- end }}
+  {{- range .Attributes }}
+    {{- template "renderLocationAttribute" Map "Schema" $.Schema "Attribute" . }}
+  {{- end }}
 		},
 	}
 }
-  {{- end }}
+{{- end }}
 `
 
 type defaultCtx struct {
@@ -1037,10 +1039,31 @@ type modifierCtx struct {
 	Modifiers  []string
 }
 
+type validatorExpressionCtx struct {
+	Elements []string
+}
+
+func validatorExpressionCtxFromString(expr string) *validatorExpressionCtx {
+	return &validatorExpressionCtx{
+		Elements: strings.Split(expr, "."),
+	}
+}
+
+func (o validatorExpressionCtx) RenderAsString(attributeIsList bool) string {
+	var processed []string
+	for idx, elt := range o.Elements {
+		if attributeIsList && idx == len(o.Elements)-1 {
+			processed = append(processed, "AtParent()")
+		}
+		processed = append(processed, elt)
+	}
+	return strings.Join(processed, ".")
+}
+
 type validatorFunctionCtx struct {
 	Type        string
 	Function    string
-	Expressions []string
+	Expressions []validatorExpressionCtx
 	Values      []string
 }
 
@@ -1070,18 +1093,19 @@ type attributeCtx struct {
 }
 
 type schemaCtx struct {
-	IsResource    bool
-	ObjectOrModel string
-	StructName    string
-	ReturnType    string
-	Package       string
-	Description   string
-	Required      bool
-	Computed      bool
-	Optional      bool
-	Sensitive     bool
-	Attributes    []attributeCtx
-	Validators    *validatorCtx
+	IsResource      bool
+	IsListAttribute bool
+	ObjectOrModel   string
+	StructName      string
+	ReturnType      string
+	Package         string
+	Description     string
+	Required        bool
+	Computed        bool
+	Optional        bool
+	Sensitive       bool
+	Attributes      []attributeCtx
+	Validators      *validatorCtx
 }
 
 func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalization, manager *imports.Manager) (string, error) {
@@ -1153,9 +1177,9 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 
 		var validators *validatorCtx
 		if len(locations) > 1 && idx == 0 {
-			var expressions []string
+			var expressions []validatorExpressionCtx
 			for _, location := range locations {
-				expressions = append(expressions, fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, location))
+				expressions = append(expressions, *validatorExpressionCtxFromString(fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, location)))
 			}
 
 			functions := []validatorFunctionCtx{{
@@ -1339,7 +1363,7 @@ func generateValidatorFnsMapForVariants(variants []*properties.SpecParam) map[in
 		}
 
 		pathExpr := fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, elt.TerraformNameVariant().Underscore)
-		validator.Expressions = append(validator.Expressions, pathExpr)
+		validator.Expressions = append(validator.Expressions, *validatorExpressionCtxFromString(pathExpr))
 
 		validatorFns[elt.VariantGroupId] = validator
 	}
@@ -1463,18 +1487,19 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 	}
 
 	schemas = append(schemas, schemaCtx{
-		IsResource:    isResource,
-		ObjectOrModel: "Object",
-		Package:       packageName,
-		StructName:    structName,
-		ReturnType:    returnType,
-		Description:   "",
-		Required:      required,
-		Optional:      !param.FinalRequired(),
-		Computed:      computed,
-		Sensitive:     param.FinalSensitive(),
-		Attributes:    attributes,
-		Validators:    validators,
+		IsResource:      isResource,
+		IsListAttribute: param.Type == "list" && param.Items.Type == "entry",
+		ObjectOrModel:   "Object",
+		Package:         packageName,
+		StructName:      structName,
+		ReturnType:      returnType,
+		Description:     "",
+		Required:        required,
+		Optional:        !param.FinalRequired(),
+		Computed:        computed,
+		Sensitive:       param.FinalSensitive(),
+		Attributes:      attributes,
+		Validators:      validators,
 	})
 
 	for _, elt := range param.Spec.SortedParams() {
@@ -1533,6 +1558,7 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 					Functions: []validatorFunctionCtx{*validatorFn},
 				}
 			}
+
 			schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, manager, structName, packageName, elt, validators)...)
 		}
 	}
@@ -1967,6 +1993,7 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 
 const renderSchemaTemplate = `
 {{- define "renderSchemaListAttribute" }}
+{{- with .Attribute }}
 	"{{ .Name.Underscore }}": {{ .Package }}.{{ .SchemaType }} {
 		Description: "{{ .Description }}",
 		Required: {{ .Required }},
@@ -1981,7 +2008,7 @@ const renderSchemaTemplate = `
       {{- if eq .Type "Expressions" }}
 			{{ $package }}.{{ .Function }}(path.Expressions{
         {{- range .Expressions }}
-				{{ . }},
+				{{ .RenderAsString $.Schema.IsListAttribute }},
         {{- end }}
 			}...),
 
@@ -1997,8 +2024,10 @@ const renderSchemaTemplate = `
   {{- end }}
 	},
 {{- end }}
+{{- end }}
 
 {{- define "renderSchemaMapAttribute" }}
+{{- with .Attribute }}
 	"{{ .Name.Underscore }}": {{ .Package }}.{{ .SchemaType }} {
 		Description: "{{ .Description }}",
 		Required: {{ .Required }},
@@ -2008,18 +2037,19 @@ const renderSchemaTemplate = `
 		ElementType: {{ .ElementType }},
 	},
 {{- end }}
+{{- end }}
 
 {{- define "renderSchemaListNestedAttribute" }}
-  {{- with .Attribute }}
+{{- with .Attribute }}
 	"{{ .Name.Underscore }}": {{ .Package }}.{{ .SchemaType }} {
 		Description: "{{ .Description }}",
 		Required: {{ .Required }},
 		Optional: {{ .Optional }},
 		Computed: {{ .Computed }},
 		Sensitive: {{ .Sensitive }},
-		NestedObject: {{ $.StructName }}{{ .Name.CamelCase }}Schema(),
+		NestedObject: {{ $.Schema.StructName }}{{ .Name.CamelCase }}Schema(),
 	},
-  {{- end }}
+{{- end }}
 {{- end }}
 
 {{- define "renderSchemaMapNestedAttribute" }}
@@ -2028,18 +2058,19 @@ const renderSchemaTemplate = `
 
 
 {{- define "renderSchemaSingleNestedAttribute" }}
-  {{- with .Attribute }}
-	"{{ .Name.Underscore }}": {{ $.StructName }}{{ .Name.CamelCase }}Schema(),
-  {{- end }}
+{{- with .Attribute }}
+	"{{ .Name.Underscore }}": {{ $.Schema.StructName }}{{ .Name.CamelCase }}Schema(),
+{{- end }}
 {{- end }}
 
 {{- define "renderSchemaExternalAttribute" }}
-  {{- with .Attribute }}
+{{- with .Attribute }}
 	"{{ .Name.Underscore }}": {{ .ExternalType }}Schema(),
-  {{- end }}
+{{- end }}
 {{- end }}
 
 {{- define "renderSchemaSimpleAttribute" }}
+{{- with .Attribute }}
 	"{{ .Name.Underscore }}": {{ .Package }}.{{ .SchemaType }} {
 		Description: "{{ .Description }}",
 		Computed: {{ .Computed }},
@@ -2064,7 +2095,7 @@ const renderSchemaTemplate = `
       {{- if eq .Type "Expressions" }}
 			{{ $package }}.{{ .Function }}(path.Expressions{
         {{- range .Expressions }}
-				{{ . }},
+				{{ .RenderAsString $.Schema.IsListAttribute }},
         {{- end }}
 			}...),
       {{- else if eq .Type "Values" }}
@@ -2079,23 +2110,24 @@ const renderSchemaTemplate = `
   {{- end }}
 	},
 {{- end }}
+{{- end }}
 
 {{- define "renderSchemaAttribute" }}
   {{- with .Attribute }}
     {{ if or (eq .SchemaType "ListAttribute") (eq .SchemaType "SetAttribute") }}
-      {{- template "renderSchemaListAttribute" . }}
+      {{- template "renderSchemaListAttribute" Map "Schema" $.Schema "Attribute" . }}
     {{- else if eq .SchemaType "MapAttribute" }}
-      {{- template "renderSchemaMapAttribute" . }}
+      {{- template "renderSchemaMapAttribute" Map "Schema" $.Schema "Attribute" . }}
     {{- else if eq .SchemaType "ListNestedAttribute" }}
-      {{- template "renderSchemaListNestedAttribute" Map "StructName" $.StructName "Attribute" . }}
+      {{- template "renderSchemaListNestedAttribute" Map "Schema" $.Schema "Attribute" . }}
     {{ else if eq .SchemaType "MapNestedAttribute" }}
-      {{- template "renderSchemaMapNestedAttribute" Map "StructName" $.StructName "Attribute" . }}
+      {{- template "renderSchemaMapNestedAttribute" Map "Schema" $.Schema "Attribute" . }}
     {{- else if eq .SchemaType "SingleNestedAttribute" }}
-      {{- template "renderSchemaSingleNestedAttribute" Map "StructName" $.StructName "Attribute" . }}
+      {{- template "renderSchemaSingleNestedAttribute" Map "Schema" $.Schema "Attribute" . }}
     {{- else if eq .SchemaType "ExternalAttribute" }}
-      {{- template "renderSchemaExternalAttribute" Map "Attribute" . }}
+      {{- template "renderSchemaExternalAttribute" Map "Schema" $.Schema "Attribute" . }}
     {{- else }}
-      {{- template "renderSchemaSimpleAttribute" . }}
+      {{- template "renderSchemaSimpleAttribute" Map "Schema" $.Schema "Attribute" . }}
     {{- end }}
   {{- end }}
 {{- end }}
@@ -2118,7 +2150,7 @@ func {{ .StructName }}Schema() {{ .Package }}.{{ .ReturnType }} {
     {{- range .Functions }}
 			{{ $package }}.{{ .Function }}(path.Expressions{
       {{- range .Expressions }}
-				{{ . }},
+				{{ .RenderAsString $schema.IsListAttribute }},
       {{- end }}
 			}...),
     {{- end }}
@@ -2126,7 +2158,7 @@ func {{ .StructName }}Schema() {{ .Package }}.{{ .ReturnType }} {
   {{- end }}
 		Attributes: map[string]{{ .Package }}.Attribute{
   {{- range .Attributes -}}
-	{{- template "renderSchemaAttribute" Map "StructName" $schema.StructName "Attribute" . }}
+	{{- template "renderSchemaAttribute" Map "Schema" $schema "Attribute" . }}
   {{- end }}
 		},
 	}
