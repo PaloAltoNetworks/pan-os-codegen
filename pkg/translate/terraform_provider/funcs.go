@@ -90,8 +90,8 @@ func renderSpecsForParams(ancestors []*properties.SpecParam, params []*propertie
 		}
 
 		specs = append(specs, parameterSpec{
-			PangoName:     elt.Name,
-			TerraformName: elt.NameVariant(),
+			PangoName:     elt.PangoNameVariant(),
+			TerraformName: elt.TerraformNameVariant(),
 			ComplexType:   elt.ComplexType(),
 			Type:          elt.FinalType(),
 			ItemsType:     itemsType,
@@ -109,10 +109,10 @@ func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix st
 
 	var specs []spec
 
-	pangoType := fmt.Sprintf("%s%s", pangoTypePrefix, paramSpec.Name.CamelCase)
+	pangoType := fmt.Sprintf("%s%s", pangoTypePrefix, paramSpec.PangoNameVariant().CamelCase)
 
-	pangoReturnType := fmt.Sprintf("%s%s", pangoTypePrefix, paramSpec.Name.CamelCase)
-	terraformType := fmt.Sprintf("%s%s", terraformPrefix, paramSpec.NameVariant().CamelCase)
+	pangoReturnType := fmt.Sprintf("%s%s", pangoTypePrefix, paramSpec.PangoNameVariant().CamelCase)
+	terraformType := fmt.Sprintf("%s%s", terraformPrefix, paramSpec.TerraformNameVariant().CamelCase)
 
 	ancestors = append(ancestors, paramSpec)
 
@@ -142,7 +142,7 @@ func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix st
 				continue
 			}
 
-			terraformPrefix := fmt.Sprintf("%s%s", terraformPrefix, paramSpec.NameVariant().CamelCase)
+			terraformPrefix := fmt.Sprintf("%s%s", terraformPrefix, paramSpec.TerraformNameVariant().CamelCase)
 			specs = append(specs, generateFromTerraformToPangoSpec(pangoType, terraformPrefix, elt, ancestors)...)
 		}
 	}
@@ -1338,7 +1338,7 @@ func generateValidatorFnsMapForVariants(variants []*properties.SpecParam) map[in
 			}
 		}
 
-		pathExpr := fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, elt.Name.Underscore)
+		pathExpr := fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, elt.TerraformNameVariant().Underscore)
 		validator.Expressions = append(validator.Expressions, pathExpr)
 
 		validatorFns[elt.VariantGroupId] = validator
@@ -1365,7 +1365,7 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		}
 	}
 
-	structName := fmt.Sprintf("%s%s", structPrefix, param.NameVariant().CamelCase)
+	structName := fmt.Sprintf("%s%s", structPrefix, param.TerraformNameVariant().CamelCase)
 
 	var attributes []attributeCtx
 	if param.HasEntryName() {
@@ -1609,7 +1609,7 @@ func createSchemaAttributeForParameter(schemaTyp properties.SchemaType, manager 
 
 	return attributeCtx{
 		Package:     packageName,
-		Name:        param.NameVariant(),
+		Name:        param.TerraformNameVariant(),
 		SchemaType:  schemaType,
 		ElementType: elementType,
 		Description: param.Description,
@@ -2457,7 +2457,7 @@ func terraformTypeForProperty(structPrefix string, prop *properties.SpecParam, h
 		if hackStructsAsTypeObjects {
 			return "types.Object"
 		} else {
-			return fmt.Sprintf("*%s%sObject", structPrefix, prop.NameVariant().CamelCase)
+			return fmt.Sprintf("*%s%sObject", structPrefix, prop.TerraformNameVariant().CamelCase)
 		}
 	}
 
@@ -2486,10 +2486,10 @@ func terraformTypeForProperty(structPrefix string, prop *properties.SpecParam, h
 }
 
 func structFieldSpec(param *properties.SpecParam, structPrefix string, hackStructsAsTypeObjects bool) datasourceStructFieldSpec {
-	tfTag := fmt.Sprintf("`tfsdk:\"%s\"`", param.NameVariant().Underscore)
+	tfTag := fmt.Sprintf("`tfsdk:\"%s\"`", param.TerraformNameVariant().Underscore)
 
 	return datasourceStructFieldSpec{
-		Name:          param.NameVariant(),
+		Name:          param.TerraformNameVariant(),
 		TerraformType: terraformTypeForProperty(structPrefix, param, false),
 		Type:          terraformTypeForProperty(structPrefix, param, hackStructsAsTypeObjects),
 		Tags:          []string{tfTag},
@@ -2499,7 +2499,7 @@ func structFieldSpec(param *properties.SpecParam, structPrefix string, hackStruc
 func dataSourceStructContextForParam(structPrefix string, param *properties.SpecParam, hackStructsAsTypeObjects bool) []datasourceStructSpec {
 	var structs []datasourceStructSpec
 
-	structName := fmt.Sprintf("%s%s", structPrefix, param.NameVariant().CamelCase)
+	structName := fmt.Sprintf("%s%s", structPrefix, param.TerraformNameVariant().CamelCase)
 
 	var fields []datasourceStructFieldSpec
 
@@ -2528,7 +2528,7 @@ func dataSourceStructContextForParam(structPrefix string, param *properties.Spec
 	}
 
 	structs = append(structs, datasourceStructSpec{
-		AncestorName:  param.NameVariant().Original,
+		AncestorName:  param.TerraformNameVariant().Original,
 		HasEntryName:  param.HasEntryName(),
 		StructName:    structName,
 		ModelOrObject: "Object",

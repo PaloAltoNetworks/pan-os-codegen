@@ -191,6 +191,7 @@ type SpecParam struct {
 }
 
 type SpecParamGoSdkConfig struct {
+	Name *string
 	Skip *bool `json:"skip" yaml:"skip"`
 }
 
@@ -270,7 +271,15 @@ func (o *Spec) SortedOneOf() []*SpecParam {
 	return params
 }
 
-func (o *SpecParam) NameVariant() *NameVariant {
+func (o *SpecParam) PangoNameVariant() *NameVariant {
+	if o.GoSdkConfig != nil && o.GoSdkConfig.Name != nil {
+		return NewNameVariant(*o.GoSdkConfig.Name)
+	}
+
+	return o.Name
+}
+
+func (o *SpecParam) TerraformNameVariant() *NameVariant {
 	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.Name != nil {
 		return NewNameVariant(*o.TerraformProviderConfig.Name)
 	}
@@ -588,6 +597,7 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 		}
 
 		goSdkConfig = &SpecParamGoSdkConfig{
+			Name: schemaSpec.CodegenOverrides.GoSdk.Name,
 			Skip: schemaSpec.CodegenOverrides.GoSdk.Skip,
 		}
 	}
