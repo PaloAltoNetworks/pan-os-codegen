@@ -1,0 +1,623 @@
+name: dhcp
+terraform_provider_config:
+  description: DHCP
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: dhcp
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - network
+  - dhcp
+panos_xpath:
+  path:
+  - network
+  - dhcp
+  - interface
+  vars: []
+locations:
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: ngfw
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific NGFW device
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params: []
+  variants:
+  - name: relay
+    type: object
+    profiles:
+    - xpath:
+      - relay
+    validators: []
+    spec:
+      params:
+      - name: ip
+        type: object
+        profiles:
+        - xpath:
+          - ip
+        validators: []
+        spec:
+          params:
+          - name: enabled
+            type: bool
+            profiles:
+            - xpath:
+              - enabled
+            validators: []
+            spec: {}
+            description: ''
+            required: false
+          - name: server
+            type: list
+            profiles:
+            - xpath:
+              - server
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          variants: []
+        description: DHCPv4 relay configuration
+        required: false
+      - name: ipv6
+        type: object
+        profiles:
+        - xpath:
+          - ipv6
+        validators: []
+        spec:
+          params:
+          - name: enabled
+            type: bool
+            profiles:
+            - xpath:
+              - enabled
+            validators: []
+            spec: {}
+            description: ''
+            required: false
+          - name: server
+            type: list
+            profiles:
+            - xpath:
+              - server
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: interface
+                    type: string
+                    profiles:
+                    - xpath:
+                      - interface
+                    validators: []
+                    spec: {}
+                    description: Specify outgoing interface when using an IPv6 multicast
+                      address for your DHCPv6 server
+                    required: false
+                  variants: []
+            description: ''
+            required: false
+          variants: []
+        description: DHCPv6 relay configuration
+        required: false
+      variants: []
+    description: DHCP Relay configuration
+    required: false
+  - name: server
+    type: object
+    profiles:
+    - xpath:
+      - server
+    validators: []
+    spec:
+      params:
+      - name: ip-pool
+        type: list
+        profiles:
+        - xpath:
+          - ip-pool
+          type: member
+        validators: []
+        spec:
+          type: string
+          items:
+            type: string
+        description: ''
+        required: false
+      - name: mode
+        type: enum
+        profiles:
+        - xpath:
+          - mode
+        validators:
+        - type: values
+          spec:
+            values:
+            - enabled
+            - disabled
+            - auto
+        spec:
+          values:
+          - value: enabled
+          - value: disabled
+          - value: auto
+        description: ''
+        required: false
+      - name: option
+        type: object
+        profiles:
+        - xpath:
+          - option
+        validators: []
+        spec:
+          params:
+          - name: dns
+            type: object
+            profiles:
+            - xpath:
+              - dns
+            validators: []
+            spec:
+              params:
+              - name: primary
+                type: string
+                profiles:
+                - xpath:
+                  - primary
+                validators: []
+                spec: {}
+                description: DNS primary server ip address
+                required: false
+              - name: secondary
+                type: string
+                profiles:
+                - xpath:
+                  - secondary
+                validators: []
+                spec: {}
+                description: DNS secondary server ip address
+                required: false
+              variants: []
+            description: DNS server ip address
+            required: false
+          - name: dns-suffix
+            type: string
+            profiles:
+            - xpath:
+              - dns-suffix
+            validators: []
+            spec: {}
+            description: domain name
+            required: false
+          - name: gateway
+            type: string
+            profiles:
+            - xpath:
+              - gateway
+            validators: []
+            spec: {}
+            description: default gateway
+            required: false
+          - name: inheritance
+            type: object
+            profiles:
+            - xpath:
+              - inheritance
+            validators: []
+            spec:
+              params:
+              - name: source
+                type: string
+                profiles:
+                - xpath:
+                  - source
+                validators: []
+                spec: {}
+                description: Dynamic interface
+                required: false
+              variants: []
+            description: Inherit settings from interface
+            required: false
+          - name: lease
+            type: object
+            profiles:
+            - xpath:
+              - lease
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: timeout
+                type: int64
+                profiles:
+                - xpath:
+                  - timeout
+                validators:
+                - type: length
+                  spec:
+                    min: 0
+                    max: 1000000
+                spec: {}
+                description: lease(minute)
+                required: false
+              - name: unlimited
+                type: object
+                profiles:
+                - xpath:
+                  - unlimited
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: unlimited
+                required: false
+            description: lease
+            required: false
+          - name: nis
+            type: object
+            profiles:
+            - xpath:
+              - nis
+            validators: []
+            spec:
+              params:
+              - name: primary
+                type: string
+                profiles:
+                - xpath:
+                  - primary
+                validators: []
+                spec: {}
+                description: NIS primary server ip address
+                required: false
+              - name: secondary
+                type: string
+                profiles:
+                - xpath:
+                  - secondary
+                validators: []
+                spec: {}
+                description: NIS secondary server ip address
+                required: false
+              variants: []
+            description: NIS server ip address
+            required: false
+          - name: ntp
+            type: object
+            profiles:
+            - xpath:
+              - ntp
+            validators: []
+            spec:
+              params:
+              - name: primary
+                type: string
+                profiles:
+                - xpath:
+                  - primary
+                validators: []
+                spec: {}
+                description: NTP primary server ip address
+                required: false
+              - name: secondary
+                type: string
+                profiles:
+                - xpath:
+                  - secondary
+                validators: []
+                spec: {}
+                description: NTP secondary server ip address
+                required: false
+              variants: []
+            description: NTP server ip address
+            required: false
+          - name: pop3-server
+            type: string
+            profiles:
+            - xpath:
+              - pop3-server
+            validators: []
+            spec: {}
+            description: POP3 server
+            required: false
+          - name: smtp-server
+            type: string
+            profiles:
+            - xpath:
+              - smtp-server
+            validators: []
+            spec: {}
+            description: SMTP server
+            required: false
+          - name: subnet-mask
+            type: string
+            profiles:
+            - xpath:
+              - subnet-mask
+            validators: []
+            spec: {}
+            description: ip pool subnet mask
+            required: false
+          - name: user-defined
+            type: list
+            profiles:
+            - xpath:
+              - user-defined
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: code
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - code
+                    validators:
+                    - type: length
+                      spec:
+                        min: 1
+                        max: 254
+                    spec: {}
+                    description: option code
+                    required: false
+                  - name: vendor-class-identifier
+                    type: string
+                    profiles:
+                    - xpath:
+                      - vendor-class-identifier
+                    validators:
+                    - type: length
+                      spec:
+                        min: 1
+                        max: 255
+                    spec: {}
+                    description: ''
+                    required: false
+                  - name: inherited
+                    type: bool
+                    profiles:
+                    - xpath:
+                      - inherited
+                    validators: []
+                    spec: {}
+                    description: Inherited from DHCP server inheritance source
+                    required: false
+                  variants:
+                  - name: ip
+                    type: list
+                    profiles:
+                    - xpath:
+                      - ip
+                      type: member
+                    validators: []
+                    spec:
+                      type: string
+                      items:
+                        type: string
+                    description: ''
+                    required: false
+                    variant_group_id: 0
+                  - name: ascii
+                    type: list
+                    profiles:
+                    - xpath:
+                      - ascii
+                      type: member
+                    validators: []
+                    spec:
+                      type: string
+                      items:
+                        type: string
+                    description: ''
+                    required: false
+                    variant_group_id: 0
+                  - name: hex
+                    type: list
+                    profiles:
+                    - xpath:
+                      - hex
+                      type: member
+                    validators: []
+                    spec:
+                      type: string
+                      items:
+                        type: string
+                    description: ''
+                    required: false
+                    variant_group_id: 0
+            description: ''
+            required: false
+          - name: wins
+            type: object
+            profiles:
+            - xpath:
+              - wins
+            validators: []
+            spec:
+              params:
+              - name: primary
+                type: string
+                profiles:
+                - xpath:
+                  - primary
+                validators: []
+                spec: {}
+                description: WINS primary server ip address
+                required: false
+              - name: secondary
+                type: string
+                profiles:
+                - xpath:
+                  - secondary
+                validators: []
+                spec: {}
+                description: WINS secondary server ip address
+                required: false
+              variants: []
+            description: WINS server ip address
+            required: false
+          variants: []
+        description: ''
+        required: false
+      - name: probe-ip
+        type: bool
+        profiles:
+        - xpath:
+          - probe-ip
+        validators: []
+        spec: {}
+        description: Ping IP when allocating a new IP
+        required: false
+      - name: reserved
+        type: list
+        profiles:
+        - xpath:
+          - reserved
+          - entry
+          type: entry
+        validators: []
+        spec:
+          type: object
+          items:
+            type: object
+            spec:
+              params:
+              - name: mac
+                type: string
+                profiles:
+                - xpath:
+                  - mac
+                validators: []
+                spec: {}
+                description: MAC address (format xx:xx:xx:xx:xx:xx)
+                required: false
+              - name: description
+                type: string
+                profiles:
+                - xpath:
+                  - description
+                validators:
+                - type: length
+                  spec:
+                    max: 255
+                spec: {}
+                description: Description of reserved entry, e.g. host name
+                required: false
+              variants: []
+        description: ''
+        required: false
+      variants: []
+    description: DCHPv4 Server Configuration
+    required: false
