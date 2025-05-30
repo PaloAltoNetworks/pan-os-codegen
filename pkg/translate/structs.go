@@ -937,7 +937,6 @@ const structToXmlMarshalersTmpl = `
   {{- if .IsXmlContainer }}{{ continue }}{{ end }}
 func (o *{{ .XmlStructName }}) MarshalFromObject(s {{ .StructName }}) {
   {{- range .Fields }}
-    // FieldType: {{ .FieldType }}
     {{- if .IsInternal }}{{ continue }}{{- end }}
     {{- if eq .FieldType "object" }}
 	if s.{{ .Name.CamelCase }} != nil {
