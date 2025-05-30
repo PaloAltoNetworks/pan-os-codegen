@@ -1635,20 +1635,23 @@ const resourceDeleteFunction = `
 		return
 	}
 {{- else }}
-
-{{- $ev := "nil" }}
-{{- if .HasEncryptedResources }}
-  {{- $ev = "&ev" }}
-	ev := make(map[string]types.String)
-{{- end }}
-	var obj *{{ $resourceSDKStructName }}
-	resp.Diagnostics.Append(state.CopyToPango(ctx, &obj, {{ $ev }})...)
-	if resp.Diagnostics.HasError() {
+	components, err := state.resourceXpathParentComponents()
+	if err != nil {
+		resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
 		return
 	}
 
-	err := r.manager.Delete(ctx, location, obj)
-	if err != nil && errors.Is(err, sdkmanager.ErrObjectNotFound) {
+	existing, err := r.manager.Read(ctx, location, components)
+	if err != nil {
+		resp.Diagnostics.AddError("Error while deleting resource", err.Error())
+		return
+	}
+
+	var obj {{ $resourceSDKStructName }}
+	obj.Misc = existing.Misc
+
+	err = r.manager.Delete(ctx, location, &obj)
+	if err != nil && !errors.Is(err, sdkmanager.ErrObjectNotFound) {
 		resp.Diagnostics.AddError("Error in delete", err.Error())
 		return
 	}

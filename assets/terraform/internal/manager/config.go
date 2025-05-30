@@ -9,7 +9,6 @@ import (
 	sdkerrors "github.com/PaloAltoNetworks/pango/errors"
 	"github.com/PaloAltoNetworks/pango/util"
 	"github.com/PaloAltoNetworks/pango/version"
-	"github.com/PaloAltoNetworks/pango/xmlapi"
 )
 
 type TFConfigObject[E any] interface {
@@ -86,22 +85,14 @@ func (o *ConfigObjectManager[C, L, S]) Read(ctx context.Context, location L, com
 }
 
 func (o *ConfigObjectManager[C, L, S]) Delete(ctx context.Context, location L, config C) error {
-	deletes := xmlapi.NewChunkedMultiConfig(1, 1)
-
 	xpath, err := location.XpathWithComponents(o.client.Versioning())
 	if err != nil {
 		return err
 	}
 
-	deletes.Add(&xmlapi.Config{
-		Action: "delete",
-		Xpath:  util.AsXpath(xpath),
-		Target: o.client.GetTarget(),
-	})
-
-	_, _, _, err = o.client.MultiConfig(ctx, deletes, false, nil)
+	err = o.service.UpdateWithXpath(ctx, util.AsXpath(xpath), config)
 	if err != nil {
-		return &Error{err: err, message: "sdk error while deleting"}
+		return err
 	}
 
 	return nil
