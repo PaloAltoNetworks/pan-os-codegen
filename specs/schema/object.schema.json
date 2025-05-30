@@ -59,6 +59,13 @@
       "type": "object",
       "required": ["package"],
       "properties": {
+        "supported_methods": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["create", "read", "list", "update", "delete"]
+          }
+        },
         "generate": { "type": "boolean" },
         "package": {
           "type": "array",
