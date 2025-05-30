@@ -375,9 +375,9 @@ func calculateNestedSpecType(parent string, param *properties.SpecParam) string 
 func calculateNestedXmlSpecType(structTyp structType, parentName *properties.NameVariant, param *properties.SpecParam, suffix string) *properties.NameVariant {
 	var typ *properties.NameVariant
 	if parentName.IsEmpty() {
-		typ = param.Name
+		typ = param.PangoNameVariant()
 	} else {
-		typ = parentName.WithSuffix(param.Name)
+		typ = parentName.WithSuffix(param.PangoNameVariant())
 	}
 
 	if structTyp == structXmlType {
@@ -653,7 +653,7 @@ func createStructSpecForXmlListContainer(prefix *properties.NameVariant, param *
 	return []entryStructContext{{
 		IsXmlContainer: true,
 		Fields:         fields,
-		name:           prefix.WithSuffix(param.Name).WithSuffix(properties.NewNameVariant("container")),
+		name:           prefix.WithSuffix(param.PangoNameVariant()).WithSuffix(properties.NewNameVariant("container")),
 		version:        version,
 	}}
 }
@@ -702,7 +702,7 @@ func createEntryXmlStructSpecsForParameter(structTyp structType, parentPrefix *p
 		fieldType := getFieldTypeForParam(param)
 
 		fields = append(fields, entryStructFieldContext{
-			Name:             param.Name,
+			Name:             param.PangoNameVariant(),
 			Required:         param.Required,
 			FieldType:        fieldType,
 			Type:             typ,
@@ -737,7 +737,7 @@ func createEntryXmlStructSpecsForParameter(structTyp structType, parentPrefix *p
 		Tags:      "`xml:\",any\"`",
 	})
 
-	name := parentPrefix.WithSuffix(param.Name)
+	name := parentPrefix.WithSuffix(param.PangoNameVariant())
 	entries = append([]entryStructContext{{
 		Fields:  fields,
 		name:    name,
@@ -810,7 +810,7 @@ func creasteStructSpecsForNormalization(structTyp structType, parentPrefix *prop
 		fieldType := getFieldTypeForParam(param)
 
 		fields = append(fields, entryStructFieldContext{
-			Name:             param.Name,
+			Name:             param.PangoNameVariant(),
 			Required:         param.Required,
 			FieldType:        fieldType,
 			Type:             typ,
