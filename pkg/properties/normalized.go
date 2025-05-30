@@ -1277,6 +1277,56 @@ func (spec *Normalization) ResourceXpathVariableChecks() (string, error) {
 	}
 
 	return buf.String(), nil
+
+}
+
+func hasParametersWithStrconv(spec *SpecParam) bool {
+	if spec.Type == "list" && spec.Items.Type == "int64" {
+		return true
+	}
+
+	if spec.Spec == nil {
+		return false
+	}
+
+	for _, elt := range spec.Spec.Params {
+		if hasParametersWithStrconv(elt) {
+			return true
+		}
+	}
+
+	for _, elt := range spec.Spec.OneOf {
+		if hasParametersWithStrconv(elt) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (spec *Normalization) HasParametersWithStrconv() bool {
+	for _, elt := range spec.Spec.Params {
+		if elt.Type == "list" && elt.Items.Type == "int64" {
+			return true
+		}
+
+		if hasParametersWithStrconv(elt) {
+			return true
+		}
+	}
+
+	for _, elt := range spec.Spec.OneOf {
+		if elt.Type == "list" && elt.Items.Type == "int64" {
+			return true
+		}
+
+		if hasParametersWithStrconv(elt) {
+			return true
+		}
+	}
+
+	return false
+
 }
 
 // Validate validations for specification (normalization) e.g. check if XPath contain /.

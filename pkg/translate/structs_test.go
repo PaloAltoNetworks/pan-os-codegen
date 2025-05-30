@@ -313,12 +313,22 @@ var _ = Describe("createEntryXmlStructSpecsForParameter", func() {
 				Profiles: []*properties.SpecParamProfile{{Type: "entry", Xpath: []string{"child-param"}}},
 				Spec: &properties.Spec{
 					Params: map[string]*properties.SpecParam{
-						"child-param": {
-							Name:     properties.NewNameVariant("child-param"),
-							Type:     "list",
-							Profiles: []*properties.SpecParamProfile{{Type: "member", Xpath: []string{"child-param"}}},
+						"child-param-string": {
+							Name:      properties.NewNameVariant("child-param-string"),
+							SpecOrder: 0,
+							Type:      "list",
+							Profiles:  []*properties.SpecParamProfile{{Type: "member", Xpath: []string{"child-param-string"}}},
 							Items: &properties.SpecParamItems{
 								Type: "string",
+							},
+						},
+						"child-param-int64": {
+							Name:      properties.NewNameVariant("child-param-int64"),
+							SpecOrder: 1,
+							Type:      "list",
+							Profiles:  []*properties.SpecParamProfile{{Type: "member", Xpath: []string{"child-param-int64"}}},
+							Items: &properties.SpecParamItems{
+								Type: "int64",
 							},
 						},
 					},
@@ -331,13 +341,22 @@ var _ = Describe("createEntryXmlStructSpecsForParameter", func() {
 			Expect(result[0].StructName()).To(Equal("ParentParam"))
 			Expect(result[0].XmlStructName()).To(Equal("parentParamXml"))
 			Expect(result[0].Fields[0]).To(Equal(entryStructFieldContext{
-				Name:         properties.NewNameVariant("child-param"),
+				Name:         properties.NewNameVariant("child-param-string"),
 				FieldType:    "list-member",
 				Type:         "string",
 				ItemsType:    "[]string",
 				XmlType:      "util.Member",
 				ItemsXmlType: "util.MemberType",
-				Tags:         "`xml:\"child-param,omitempty\"`",
+				Tags:         "`xml:\"child-param-string,omitempty\"`",
+			}))
+			Expect(result[0].Fields[1]).To(Equal(entryStructFieldContext{
+				Name:         properties.NewNameVariant("child-param-int64"),
+				FieldType:    "list-member",
+				Type:         "int64",
+				ItemsType:    "[]int64",
+				XmlType:      "util.Member",
+				ItemsXmlType: "util.MemberType",
+				Tags:         "`xml:\"child-param-int64,omitempty\"`",
 			}))
 		})
 	})
