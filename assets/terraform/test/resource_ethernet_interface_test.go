@@ -1,7 +1,9 @@
 package provider_test
 
 import (
+	"context"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/config"
@@ -11,6 +13,84 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
+
+const ethernetInterface_Basic = `
+variable "location" { type = any }
+variable "create_template" { type = bool }
+variable "prefix" { type = string }
+
+resource "panos_template" "example" {
+  count = var.create_template ? 1 : 0
+  location = { panorama = {} }
+  name = var.prefix
+}
+
+resource "panos_ethernet_interface" "example" {
+  depends_on = [ panos_template.example ]
+  location = var.location
+
+  name = "ethernet1/1"
+  layer3 = {}
+}
+`
+
+func TestAccEthernetInterface_Basic(t *testing.T) {
+	t.Parallel()
+	if os.Getenv("TF_ACC") != "1" {
+		t.Skip("environment setup not complete")
+	}
+
+	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
+	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
+
+	var location config.Variable
+	var createTemplate config.Variable
+
+	err := sdkClient.RetrieveSystemInfo(context.Background())
+	if err != nil {
+		panic(err)
+	}
+	firewall, err := sdkClient.IsFirewall()
+	if err != nil {
+		panic(err)
+	}
+
+	if firewall {
+		location = config.ObjectVariable(map[string]config.Variable{
+			"ngfw": config.ObjectVariable(map[string]config.Variable{}),
+		})
+		createTemplate = config.BoolVariable(false)
+	} else {
+		location = config.ObjectVariable(map[string]config.Variable{
+			"template": config.ObjectVariable(map[string]config.Variable{
+				"name": config.StringVariable(prefix),
+			}),
+		})
+		createTemplate = config.BoolVariable(true)
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: ethernetInterface_Basic,
+				ConfigVariables: map[string]config.Variable{
+					"location":        location,
+					"create_template": createTemplate,
+					"prefix":          config.StringVariable(prefix),
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue(
+						"panos_ethernet_interface.example",
+						tfjsonpath.New("name"),
+						knownvalue.StringExact("ethernet1/1"),
+					),
+				},
+			},
+		},
+	})
+}
 
 func TestAccEthernetInterface_Concurrent(t *testing.T) {
 	t.Parallel()
