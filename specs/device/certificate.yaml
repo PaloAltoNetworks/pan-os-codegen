@@ -1,0 +1,503 @@
+name: Certificate
+terraform_provider_config:
+  description: Manage device certificates
+  skip_resource: true
+  skip_datasource: false
+  resource_type: entry
+  resource_variants: []
+  suffix: certificate
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - device
+  - certificate
+  supported_methods:
+  - read
+  - list
+  - delete
+panos_xpath:
+  path:
+  - certificate
+  vars: []
+locations:
+- name: panorama
+  xpath:
+    path:
+    - config
+    - panorama
+    vars: []
+  description: Located in a panorama.
+  validators: []
+  required: false
+  read_only: false
+- name: vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: ngfw_device
+      description: The NGFW device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The Virtual System name
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys name cannot be "shared". Use the "shared" location instead
+      type: entry
+  description: Located in a specific Virtual System
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: algorithm
+    type: string
+    profiles:
+    - xpath:
+      - algorithm
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 255
+    spec: {}
+    description: ''
+    required: false
+  - name: ca
+    type: bool
+    profiles:
+    - xpath:
+      - ca
+    validators: []
+    spec: {}
+    description: ''
+    required: false
+  - name: expiry-epoch
+    type: string
+    profiles:
+    - xpath:
+      - expiry-epoch
+    validators: []
+    spec: {}
+    description: ''
+    required: false
+  - name: issuer
+    type: string
+    profiles:
+    - xpath:
+      - issuer
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 1023
+    spec: {}
+    description: ''
+    required: false
+  - name: issuer-hash
+    type: string
+    profiles:
+    - xpath:
+      - issuer-hash
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 255
+    spec: {}
+    description: ''
+    required: false
+  - name: not-valid-after
+    type: string
+    profiles:
+    - xpath:
+      - not-valid-after
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 255
+    spec: {}
+    description: ''
+    required: false
+  - name: not-valid-before
+    type: string
+    profiles:
+    - xpath:
+      - not-valid-before
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 255
+    spec: {}
+    description: ''
+    required: false
+  - name: revoke-date-epoch
+    type: string
+    profiles:
+    - xpath:
+      - revoke-date-epoch
+    validators: []
+    spec: {}
+    description: ''
+    required: false
+  - name: status
+    type: enum
+    profiles:
+    - xpath:
+      - status
+    validators:
+    - type: values
+      spec:
+        values:
+        - valid
+        - revoked
+    spec:
+      default: valid
+      values:
+      - value: valid
+      - value: revoked
+    description: ''
+    required: false
+  - name: subject
+    type: string
+    profiles:
+    - xpath:
+      - subject
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 1023
+    spec: {}
+    description: ''
+    required: false
+  - name: subject-hash
+    type: string
+    profiles:
+    - xpath:
+      - subject-hash
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 255
+    spec: {}
+    description: ''
+    required: false
+  variants:
+  - name: cloud-resource-id
+    type: object
+    profiles:
+    - xpath:
+      - cloud-resource-id
+      min_version: 11.0.2
+      max_version: 11.0.3
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: aws
+        type: object
+        profiles:
+        - xpath:
+          - aws
+        validators: []
+        spec:
+          params:
+          - name: secret
+            type: string
+            profiles:
+            - xpath:
+              - secret
+            validators:
+            - type: length
+              spec:
+                min: 1
+                max: 255
+            spec: {}
+            description: Cloud Secret Name
+            required: false
+          variants: []
+        description: KMS for AWS
+        required: false
+      - name: azure
+        type: object
+        profiles:
+        - xpath:
+          - azure
+        validators: []
+        spec:
+          params:
+          - name: key-vault-uri
+            type: string
+            profiles:
+            - xpath:
+              - key-vault-uri
+            validators:
+            - type: length
+              spec:
+                min: 1
+                max: 255
+            spec: {}
+            description: Azure Key Vault URI
+            required: false
+          - name: secret
+            type: string
+            profiles:
+            - xpath:
+              - secret
+            validators:
+            - type: length
+              spec:
+                min: 1
+                max: 255
+            spec: {}
+            description: Cloud Secret Name
+            required: false
+          variants: []
+        description: KMS for Azure
+        required: false
+    description: ''
+    required: false
+    variant_group_id: 0
+  - name: common-name
+    type: string
+    profiles:
+    - xpath:
+      - common-name
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 255
+    spec: {}
+    description: ''
+    required: false
+    variant_group_id: 0
+  - name: csr
+    type: string
+    profiles:
+    - xpath:
+      - csr
+    validators:
+    - type: length
+      spec:
+        max: 16384
+    spec: {}
+    description: ''
+    required: false
+    variant_group_id: 1
+  - name: private-key
+    type: string
+    profiles:
+    - xpath:
+      - private-key
+    validators:
+    - type: length
+      spec:
+        max: 16384
+    spec: {}
+    description: ''
+    required: false
+    variant_group_id: 2
+  - name: private-key-on-hsm
+    type: bool
+    profiles:
+    - xpath:
+      - private-key-on-hsm
+    validators: []
+    spec: {}
+    description: ''
+    required: false
+    variant_group_id: 2
+  - name: public-key
+    type: string
+    profiles:
+    - xpath:
+      - public-key
+    validators:
+    - type: length
+      spec:
+        max: 16384
+    spec: {}
+    description: ''
+    required: false
+    variant_group_id: 1
