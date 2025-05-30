@@ -482,15 +482,10 @@ tflog.Info(ctx, "performing resource create", map[string]any{
 	"function":      "Create",
 })
 
+{{ RenderEncryptedValuesInitialization }}
+
 var location {{ .resourceSDKName }}.Location
 {{ RenderLocationsStateToPango "state.Location" "location" }}
-
-{{ $ev := "nil" }}
-{{- if .HasEncryptedResources }}
-  {{- $ev = "&ev" }}
-ev := make(map[string]types.String, len(state.EncryptedValues.Elements()))
-{{- end }}
-
 
 type entryWithState struct {
 	Entry    *{{ $resourceSDKStructName }}
@@ -508,7 +503,7 @@ entries := make([]*{{ $resourceSDKStructName }}, len(elements))
 idx := 0
 for name, elt := range elements {
 	var entry *{{ .resourceSDKName }}.{{ .EntryOrConfig }}
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, &entry, {{ $ev }})...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -526,7 +521,7 @@ if resp.Diagnostics.HasError() {
 entries := make([]*{{ $resourceSDKStructName }}, len(elements))
 for idx, elt := range elements {
 	var entry *{{ .resourceSDKName }}.{{ .EntryOrConfig }}
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, &entry, {{ $ev }})...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -553,7 +548,8 @@ for _, elt := range created {
 		continue
 	}
 	var object {{ $resourceTFStructName }}
-	resp.Diagnostics.Append(object.CopyFromPango(ctx, elt, {{ $ev }})...)
+	object.name = elt.Name
+	resp.Diagnostics.Append(object.CopyFromPango(ctx, nil, elt, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -579,7 +575,7 @@ for _, elt := range created {
 	}
 
 	var object {{ $resourceTFStructName }}
-	resp.Diagnostics.Append(object.CopyFromPango(ctx, elt, {{ $ev }})...)
+	resp.Diagnostics.Append(object.CopyFromPango(ctx, nil, elt, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -596,15 +592,6 @@ resp.Diagnostics.Append(list_diags...)
 if resp.Diagnostics.HasError() {
 	return
 }
-{{- end }}
-
-{{- if .HasEncryptedResources }}
-	ev_map, ev_diags := types.MapValueFrom(ctx, types.StringType, ev)
-        state.EncryptedValues = ev_map
-        resp.Diagnostics.Append(ev_diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 {{- end }}
 
 resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -626,15 +613,10 @@ tflog.Info(ctx, "performing resource create", map[string]any{
 	"function":      "Create",
 })
 
+{{ RenderEncryptedValuesInitialization }}
+
 var location {{ .resourceSDKName }}.Location
 {{ RenderLocationsStateToPango "state.Location" "location" }}
-
-{{ $ev := "nil" }}
-{{- if .HasEncryptedResources }}
-  {{- $ev = "&ev" }}
-ev := make(map[string]types.String, len(state.EncryptedValues.Elements()))
-{{- end }}
-
 
 var elements []{{ $resourceTFStructName }}
 resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
@@ -645,7 +627,7 @@ if resp.Diagnostics.HasError() {
 entries := make([]*{{ $resourceSDKStructName }}, len(elements))
 for idx, elt := range elements {
 	var entry *{{ $resourceSDKStructName }}
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, &entry, {{ $ev }})...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -680,7 +662,7 @@ if err != nil {
 objects := make([]{{ $resourceTFStructName }}, len(processed))
 for idx, elt := range processed {
 	var object {{ $resourceTFStructName }}
-	copy_diags := object.CopyFromPango(ctx, elt, {{ $ev }})
+	copy_diags := object.CopyFromPango(ctx, nil, elt, ev)
 	resp.Diagnostics.Append(copy_diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -695,14 +677,7 @@ if resp.Diagnostics.HasError() {
 	return
 }
 
-{{- if .HasEncryptedResources }}
-	ev_map, ev_diags := types.MapValueFrom(ctx, types.StringType, ev)
-        state.EncryptedValues = ev_map
-        resp.Diagnostics.Append(ev_diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-{{- end }}
+{{ RenderEncryptedValuesFinalizer }}
 
 resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 `
@@ -730,6 +705,8 @@ const resourceCreateFunction = `
 		return
 	}
 
+	{{ RenderEncryptedValuesInitialization }}
+
 	// Determine the location.
 
 	var location {{ .resourceSDKName }}.Location
@@ -742,12 +719,7 @@ const resourceCreateFunction = `
 
 	// Load the desired config.
 	var obj *{{ .resourceSDKName }}.{{ .EntryOrConfig }}
-{{ $ev := "nil" }}
-{{- if .HasEncryptedResources }}
-  {{ $ev = "&ev" }}
-	ev := make(map[string]types.String)
-{{- end }}
-	resp.Diagnostics.Append(state.CopyToPango(ctx, &obj, {{ $ev }})...)
+	resp.Diagnostics.Append(state.CopyToPango(ctx, nil, &obj, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -789,18 +761,12 @@ const resourceCreateFunction = `
 {{- end }}
 
 
-	resp.Diagnostics.Append(state.CopyFromPango(ctx, created, {{ $ev }})...)
+	resp.Diagnostics.Append(state.CopyFromPango(ctx, nil, created, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-{{- if .HasEncryptedResources }}
-	ev_map, ev_diags := types.MapValueFrom(ctx, types.StringType, ev)
-        state.EncryptedValues = ev_map
-        resp.Diagnostics.Append(ev_diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-{{- end }}
+
+	{{ RenderEncryptedValuesFinalizer }}
 
 	// Done.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -840,18 +806,10 @@ tflog.Info(ctx, "performing resource create", map[string]any{
 	"function":      "Create",
 })
 
+{{ RenderEncryptedValuesInitialization }}
+
 var location {{ .resourceSDKName }}.Location
 {{ RenderLocationsStateToPango "state.Location" "location" }}
-
-{{ $ev := "nil" }}
-{{- if .HasEncryptedResources }}
-  {{- $ev = "&ev" }}
-ev := make(map[string]types.String, len(state.EncryptedValues.Elements()))
-resp.Diagnostics.Append(savestate.EncryptedValues.ElementsAs(ctx, &ev, false)...)
-if resp.Diagnostics.HasError() {
-	return
-}
-{{- end }}
 
 {{- if eq .PluralType "map" }}
 elements := make(map[string]{{ $resourceTFStructName }})
@@ -863,7 +821,7 @@ if len(elements) == 0 || resp.Diagnostics.HasError() {
 entries := make([]*{{ $resourceSDKStructName }}, 0, len(elements))
 for name, elt := range elements {
 	var entry *{{ $resourceSDKStructName }}
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, &entry, {{ $ev }})...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -880,7 +838,7 @@ if resp.Diagnostics.HasError() {
 entries := make([]*{{ $resourceSDKStructName }}, 0, len(elements))
 for _, elt := range elements {
 	var entry *{{ $resourceSDKStructName }}
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, &entry, {{ $ev }})...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -908,7 +866,8 @@ if err != nil {
 objects := make(map[string]{{ $resourceTFStructName }})
 for _, elt := range readEntries {
 	var object {{ $resourceTFStructName }}
-	resp.Diagnostics.Append(object.CopyFromPango(ctx, elt, {{ $ev }})...)
+	object.name = elt.Name
+	resp.Diagnostics.Append(object.CopyFromPango(ctx, nil, elt, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -918,7 +877,7 @@ for _, elt := range readEntries {
 objects := make([]{{ $resourceTFStructName }}, len(readEntries))
 for idx, elt := range readEntries {
 	var object {{ $resourceTFStructName }}
-	resp.Diagnostics.Append(object.CopyFromPango(ctx, elt, {{ $ev }})...)
+	resp.Diagnostics.Append(object.CopyFromPango(ctx, nil, elt, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -953,6 +912,8 @@ if resp.Diagnostics.HasError() {
 {{ AttributesFromXpathComponents "state" }}
 {{- end }}
 
+{{ RenderEncryptedValuesFinalizer }}
+
 resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 `
 
@@ -986,18 +947,10 @@ tflog.Info(ctx, "performing resource create", map[string]any{
 	"function":      "Create",
 })
 
+{{ RenderEncryptedValuesInitialization }}
+
 var location {{ .resourceSDKName }}.Location
 {{ RenderLocationsStateToPango "state.Location" "location" }}
-
-{{ $ev := "nil" }}
-{{- if .HasEncryptedResources }}
-  {{- $ev = "&ev" }}
-ev := make(map[string]types.String, len(state.EncryptedValues.Elements()))
-resp.Diagnostics.Append(savestate.EncryptedValues.ElementsAs(ctx, &ev, false)...)
-if resp.Diagnostics.HasError() {
-	return
-}
-{{- end }}
 
 var elements []{{ $resourceTFStructName }}
 resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
@@ -1008,7 +961,7 @@ if resp.Diagnostics.HasError() || len(elements) == 0 {
 entries := make([]*{{ $resourceSDKStructName }}, 0, len(elements))
 for _, elt := range elements {
 	var entry *{{ $resourceSDKStructName }}
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, &entry, {{ $ev }})...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -1046,7 +999,7 @@ if err != nil {
 var objects []{{ $resourceTFStructName }}
 for _, elt := range readEntries {
 	var object {{ $resourceTFStructName }}
-	err := object.CopyFromPango(ctx, elt, {{ $ev }})
+	err := object.CopyFromPango(ctx, nil, elt, ev)
 	resp.Diagnostics.Append(err...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -1067,6 +1020,8 @@ if resp.Diagnostics.HasError() {
 	return
 }
 
+{{ RenderEncryptedValuesFinalizer }}
+
 resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 `
 
@@ -1082,18 +1037,10 @@ const resourceReadFunction = `
 		return
 	}
 
+	{{ RenderEncryptedValuesInitialization }}
+
 	var location {{ .resourceSDKName }}.Location
 	{{ RenderLocationsStateToPango "savestate.Location" "location" }}
-
-{{ $ev := "nil" }}
-{{- if .HasEncryptedResources }}
-  {{- $ev = "&ev" }}
-	ev := make(map[string]types.String, len(state.EncryptedValues.Elements()))
-	resp.Diagnostics.Append(savestate.EncryptedValues.ElementsAs(ctx, &ev, false)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-{{- end }}
 
 	// Basic logging.
 	tflog.Info(ctx, "performing resource read", map[string]any{
@@ -1128,7 +1075,7 @@ const resourceReadFunction = `
 		return
 	}
 
-	copy_diags := state.CopyFromPango(ctx, object, {{ $ev }})
+	copy_diags := state.CopyFromPango(ctx, nil, object, ev)
 	resp.Diagnostics.Append(copy_diags...)
 
 	/*
@@ -1139,13 +1086,9 @@ const resourceReadFunction = `
 
 	state.Location = savestate.Location
 
-{{- if .HasEncryptedResources }}
-	ev_map, ev_diags := types.MapValueFrom(ctx, types.StringType, ev)
-        state.EncryptedValues = ev_map
-        resp.Diagnostics.Append(ev_diags...)
-{{- end }}
-
 {{ AttributesFromXpathComponents "state" }}
+
+{{ RenderEncryptedValuesFinalizer }}
 
 	// Done.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -1168,6 +1111,8 @@ tflog.Info(ctx, "performing resource create", map[string]any{
 	"function":      "Create",
 })
 
+{{ RenderEncryptedValuesInitialization }}
+
 var location {{ .resourceSDKName }}.Location
 {{ RenderLocationsStateToPango "plan.Location" "location" }}
 
@@ -1176,16 +1121,6 @@ tflog.Info(ctx, "performing resource update", map[string]any{
 	"resource_name": "panos_{{ UnderscoreName .structName }}",
 	"function":      "Update",
 })
-
-{{ $ev := "nil" }}
-{{ if .HasEncryptedResources }}
-  {{- $ev = "&ev" }}
-ev := make(map[string]types.String, len(state.EncryptedValues.Elements()))
-resp.Diagnostics.Append(state.EncryptedValues.ElementsAs(ctx, &ev, false)...)
-if resp.Diagnostics.HasError() {
-	return
-}
-{{- end }}
 
 {{ if eq .PluralType "map" }}
 var elements map[string]{{ $resourceTFStructName }}
@@ -1198,7 +1133,7 @@ stateEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
 idx := 0
 for name, elt := range elements {
 	var entry *{{ .resourceSDKName }}.{{ .EntryOrConfig }}
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, &entry, {{ $ev }})...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -1216,7 +1151,7 @@ if resp.Diagnostics.HasError() {
 stateEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
 for idx, elt := range elements {
 	var entry *{{ $resourceSDKStructName }}
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, &entry, nil)...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		 return
 	}
@@ -1251,7 +1186,7 @@ planEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
 idx = 0
 for name, elt := range elements {
 	entry, _ := existingEntriesByName[name]
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, &entry, nil)...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -1264,7 +1199,7 @@ for name, elt := range elements {
 var planEntries []*{{ $resourceSDKStructName }}
 for _, elt := range elements {
 	existingEntry, _ := existingEntriesByName[elt.Name.ValueString()]
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, &existingEntry, nil)...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, nil, &existingEntry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -1283,19 +1218,19 @@ if err != nil {
 objects := make(map[string]*{{ $resourceTFStructName }}, len(processed))
 for _, elt := range processed {
 	var object {{ $resourceTFStructName }}
-	copy_diags := object.CopyFromPango(ctx, elt, nil)
+	object.name = elt.Name
+	copy_diags := object.CopyFromPango(ctx, nil, elt, ev)
 	resp.Diagnostics.Append(copy_diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
 	objects[elt.Name] = &object
 }
 {{- else if or (eq .PluralType "list") (eq .PluralType "set") }}
 objects := make([]*{{ $resourceTFStructName }}, len(processed))
 for idx, elt := range processed {
 	var object {{ $resourceTFStructName }}
-	resp.Diagnostics.Append(object.CopyFromPango(ctx, elt, {{ $ev }})...)
+	resp.Diagnostics.Append(object.CopyFromPango(ctx, nil, elt, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -1317,6 +1252,8 @@ if resp.Diagnostics.HasError() {
 	return
 }
 
+{{ RenderEncryptedValuesFinalizer }}
+
 resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 `
 
@@ -1337,6 +1274,8 @@ tflog.Info(ctx, "performing resource create", map[string]any{
 	"function":      "Create",
 })
 
+{{ RenderEncryptedValuesInitialization }}
+
 var location {{ .resourceSDKName }}.Location
 {{ RenderLocationsStateToPango "plan.Location" "location" }}
 
@@ -1348,7 +1287,7 @@ if resp.Diagnostics.HasError() {
 stateEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
 for idx, elt := range elements {
 	var entry *{{ $resourceSDKStructName }}
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, &entry, nil)...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		 return
 	}
@@ -1387,7 +1326,7 @@ if resp.Diagnostics.HasError() {
 planEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
 for idx, elt := range elements {
 	entry, _ := existingEntriesByName[elt.Name.ValueString()]
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, &entry, nil)...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -1408,7 +1347,7 @@ if err != nil {
 objects := make([]*{{ $resourceTFStructName }}, len(processed))
 for idx, elt := range processed {
 	var object {{ $resourceTFStructName }}
-	copy_diags := object.CopyFromPango(ctx, elt, nil)
+	copy_diags := object.CopyFromPango(ctx, nil, elt, ev)
 	resp.Diagnostics.Append(copy_diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -1423,6 +1362,8 @@ if resp.Diagnostics.HasError() {
 	return
 }
 
+{{ RenderEncryptedValuesFinalizer }}
+
 resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 `
 
@@ -1436,15 +1377,7 @@ const resourceUpdateFunction = `
 		return
 	}
 
-{{- $ev := "nil" }}
-{{- if .HasEncryptedResources }}
-  {{- $ev = "&ev" }}
-	ev := make(map[string]types.String, len(state.EncryptedValues.Elements()))
-	resp.Diagnostics.Append(state.EncryptedValues.ElementsAs(ctx, &ev, false)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-{{- end }}
+	{{ RenderEncryptedValuesInitialization }}
 
 	var location {{ .resourceSDKName }}.Location
 	{{ RenderLocationsStateToPango "state.Location" "location" }}
@@ -1477,7 +1410,7 @@ const resourceUpdateFunction = `
 		return
 	}
 
-	resp.Diagnostics.Append(plan.CopyToPango(ctx, &obj, {{ $ev }})...)
+	resp.Diagnostics.Append(plan.CopyToPango(ctx, nil, &obj, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -1507,16 +1440,13 @@ const resourceUpdateFunction = `
 	*/
 
 
-	copy_diags := state.CopyFromPango(ctx, updated, {{ $ev }})
-{{- if .HasEncryptedResources }}
-	ev_map, ev_diags := types.MapValueFrom(ctx, types.StringType, ev)
-        state.EncryptedValues = ev_map
-        resp.Diagnostics.Append(ev_diags...)
-{{- end }}
+	copy_diags := state.CopyFromPango(ctx, nil, updated, ev)
 	resp.Diagnostics.Append(copy_diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	{{ RenderEncryptedValuesFinalizer }}
 
 	// Done.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -1972,6 +1902,10 @@ const resourceImportStateFunctionTmpl = `
 		return
 	}
 
+{{- if and .PluralType (not .HasParent) }}
+	{{ RenderEncryptedValuesInitialization }}
+{{- end }}
+
 	err = json.Unmarshal(data, &obj)
 	if err != nil {
 		var diagsErr *DiagnosticsError
@@ -2002,7 +1936,7 @@ const resourceImportStateFunctionTmpl = `
 	}
 	for _, elt := range objectNames {
 		object := &{{ .ListStructName }}{}
-		resp.Diagnostics.Append(object.CopyFromPango(ctx, &{{ .PangoStructName }}{}, nil)...)
+		resp.Diagnostics.Append(object.CopyFromPango(ctx, nil, &{{ .PangoStructName }}{}, ev)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
@@ -2025,7 +1959,7 @@ const resourceImportStateFunctionTmpl = `
 	}
 	for _, elt := range objectNames {
 		object := &{{ .ListStructName }}{}
-		resp.Diagnostics.Append(object.CopyFromPango(ctx, &{{ .PangoStructName }}{}, nil)...)
+		resp.Diagnostics.Append(object.CopyFromPango(ctx, nil, &{{ .PangoStructName }}{}, ev)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
