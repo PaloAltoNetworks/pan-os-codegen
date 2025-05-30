@@ -52,7 +52,8 @@ const (
 )
 
 type CodegenOverridesGoSdk struct {
-	Skip *bool `yaml:"skip"`
+	Name *string `yaml:"name"`
+	Skip *bool   `yaml:"skip"`
 }
 
 type CodegenOverridesTerraform struct {
