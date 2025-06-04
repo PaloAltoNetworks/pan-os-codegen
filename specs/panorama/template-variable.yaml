@@ -28,6 +28,24 @@ locations:
         - name: "template"
           description: "The template."
           required: true
+  - name: "template-stack"
+    description: "Located in a specific template stack."
+    devices:
+      - panorama
+    xpath:
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+        - "template-stack"
+        - "$template_stack"
+      vars:
+        - name: "panorama_device"
+          description: "The panorama device."
+          default: "localhost.localdomain"
+        - name: "template_stack"
+          description: "Specific Panorama Template Stack"
+          required: true
 entries:
   - name: name
     description: "The name of the service."
