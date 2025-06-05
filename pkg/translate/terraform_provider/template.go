@@ -747,10 +747,12 @@ const resourceCreateFunction = `
 		return
 	}
 
-	err = r.manager.ImportToLocations(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, obj.Name)
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to import resource into location", err.Error())
-		return
+	if importLocation != nil {
+		err = r.manager.ImportToLocations(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, obj.Name)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to import resource into location", err.Error())
+			return
+		}
 	}
 {{- else }}
 	created, err := r.manager.Create(ctx, location, components, obj)
@@ -1551,7 +1553,9 @@ const resourceDeleteFunction = `
   {{- if .HasImports }}
 	var importLocation {{ .resourceSDKName }}.ImportLocation
 	{{ RenderImportLocationAssignment "state.Location" "importLocation" }}
-	err = r.manager.UnimportFromLocations(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, state.Name.ValueString())
+	if importLocation != nil {
+		err = r.manager.UnimportFromLocations(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, state.Name.ValueString())
+	}
 	if err != nil {
 		resp.Diagnostics.AddError("Error in delete", err.Error())
 		return
