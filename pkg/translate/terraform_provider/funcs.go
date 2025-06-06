@@ -36,6 +36,7 @@ type parameterEncryptionSpec struct {
 type parameterSpec struct {
 	PangoName     *properties.NameVariant
 	TerraformName *properties.NameVariant
+	TerraformType string
 	ComplexType   string
 	Type          string
 	Required      bool
@@ -50,12 +51,13 @@ type spec struct {
 	PangoType              string
 	PangoReturnType        string
 	TerraformType          string
+	TerraformStructType    string
 	ModelOrObject          string
 	Params                 []parameterSpec
 	OneOf                  []parameterSpec
 }
 
-func renderSpecsForParams(ancestors []*properties.SpecParam, params []*properties.SpecParam) []parameterSpec {
+func renderSpecsForParams(names *NameProvider, schemaTyp properties.SchemaType, ancestors []*properties.SpecParam, params []*properties.SpecParam) []parameterSpec {
 	var specs []parameterSpec
 	for _, elt := range params {
 		if elt.IsTerraformOnly() {
@@ -89,9 +91,24 @@ func renderSpecsForParams(ancestors []*properties.SpecParam, params []*propertie
 			itemsType = elt.Items.Type
 		}
 
+		var structPrefix string
+		switch schemaTyp {
+		case properties.SchemaDataSource:
+			structPrefix = names.DataSourceStructName
+		case properties.SchemaResource, properties.SchemaEphemeralResource:
+			structPrefix = names.ResourceStructName
+		case properties.SchemaCommon, properties.SchemaProvider:
+			panic(fmt.Sprintf("invalid schema type: %s", schemaTyp))
+		}
+
+		for _, elt := range ancestors {
+			structPrefix += elt.TerraformNameVariant().CamelCase
+		}
+
 		specs = append(specs, parameterSpec{
 			PangoName:     elt.PangoNameVariant(),
 			TerraformName: elt.TerraformNameVariant(),
+			TerraformType: terraformTypeForProperty(structPrefix, elt, false),
 			ComplexType:   elt.ComplexType(),
 			Type:          elt.FinalType(),
 			ItemsType:     itemsType,
@@ -102,7 +119,7 @@ func renderSpecsForParams(ancestors []*properties.SpecParam, params []*propertie
 	return specs
 }
 
-func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix string, paramSpec *properties.SpecParam, ancestors []*properties.SpecParam) []spec {
+func generateFromTerraformToPangoSpec(names *NameProvider, resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, pangoTypePrefix string, terraformPrefix string, paramSpec *properties.SpecParam, ancestors []*properties.SpecParam) []spec {
 	if paramSpec.Spec == nil {
 		return nil
 	}
@@ -116,8 +133,8 @@ func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix st
 
 	ancestors = append(ancestors, paramSpec)
 
-	paramSpecs := renderSpecsForParams(ancestors, paramSpec.Spec.SortedParams())
-	oneofSpecs := renderSpecsForParams(ancestors, paramSpec.Spec.SortedOneOf())
+	paramSpecs := renderSpecsForParams(names, schemaTyp, ancestors, paramSpec.Spec.SortedParams())
+	oneofSpecs := renderSpecsForParams(names, schemaTyp, ancestors, paramSpec.Spec.SortedOneOf())
 
 	var hasEntryName bool
 	if paramSpec.Type == "list" && paramSpec.Items.Type == "entry" {
@@ -143,7 +160,7 @@ func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix st
 			}
 
 			terraformPrefix := fmt.Sprintf("%s%s", terraformPrefix, paramSpec.TerraformNameVariant().CamelCase)
-			specs = append(specs, generateFromTerraformToPangoSpec(pangoType, terraformPrefix, elt, ancestors)...)
+			specs = append(specs, generateFromTerraformToPangoSpec(names, resourceTyp, schemaTyp, pangoType, terraformPrefix, elt, ancestors)...)
 		}
 	}
 
@@ -153,7 +170,7 @@ func generateFromTerraformToPangoSpec(pangoTypePrefix string, terraformPrefix st
 	return specs
 }
 
-func generateFromTerraformToPangoParameter(resourceTyp properties.ResourceType, pkgName string, terraformPrefix string, pangoPrefix string, prop *properties.Normalization, ancestors []*properties.SpecParam) []spec {
+func generateFromTerraformToPangoParameter(names *NameProvider, resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, pkgName string, terraformPrefix string, pangoPrefix string, prop *properties.Normalization, ancestors []*properties.SpecParam) []spec {
 	var specs []spec
 
 	var pangoReturnType string
@@ -164,11 +181,18 @@ func generateFromTerraformToPangoParameter(resourceTyp properties.ResourceType, 
 		pangoReturnType = fmt.Sprintf("%s.%s", pkgName, ancestors[0].Name.CamelCase)
 	}
 
-	paramSpecs := renderSpecsForParams(ancestors, prop.Spec.SortedParams())
-	oneofSpecs := renderSpecsForParams(ancestors, prop.Spec.SortedOneOf())
+	switch resourceTyp {
+	case properties.ResourceEntry, properties.ResourceConfig:
+	case properties.ResourceEntryPlural, properties.ResourceUuid, properties.ResourceUuidPlural:
+		terraformPrefix = fmt.Sprintf("%s%s", terraformPrefix, pascalCase(prop.TerraformProviderConfig.PluralName))
+	case properties.ResourceCustom:
+		panic("custom resources don't generate anything")
+	}
 
 	switch resourceTyp {
 	case properties.ResourceEntry, properties.ResourceConfig:
+		paramSpecs := renderSpecsForParams(names, schemaTyp, ancestors, prop.Spec.SortedParams())
+		oneofSpecs := renderSpecsForParams(names, schemaTyp, ancestors, prop.Spec.SortedOneOf())
 		specs = append(specs, spec{
 			HasEntryName:    prop.Entry != nil,
 			PangoType:       pangoPrefix,
@@ -179,7 +203,14 @@ func generateFromTerraformToPangoParameter(resourceTyp properties.ResourceType, 
 			OneOf:           oneofSpecs,
 		})
 	case properties.ResourceEntryPlural, properties.ResourceUuid, properties.ResourceUuidPlural:
-		terraformPrefix = fmt.Sprintf("%s%s", terraformPrefix, pascalCase(prop.TerraformProviderConfig.PluralName))
+		ancestors = append(ancestors, &properties.SpecParam{
+			Name: properties.NewNameVariant(prop.TerraformProviderConfig.PluralName),
+			Type: "list",
+		})
+
+		paramSpecs := renderSpecsForParams(names, schemaTyp, ancestors, prop.Spec.SortedParams())
+		oneofSpecs := renderSpecsForParams(names, schemaTyp, ancestors, prop.Spec.SortedOneOf())
+
 		var hasEntryName bool
 		if prop.Entry != nil && (resourceTyp != properties.ResourceEntryPlural || prop.TerraformProviderConfig.PluralType != object.TerraformPluralMapType) {
 			hasEntryName = true
@@ -202,7 +233,7 @@ func generateFromTerraformToPangoParameter(resourceTyp properties.ResourceType, 
 			continue
 		}
 
-		specs = append(specs, generateFromTerraformToPangoSpec(pangoPrefix, terraformPrefix, elt, nil)...)
+		specs = append(specs, generateFromTerraformToPangoSpec(names, resourceTyp, schemaTyp, pangoPrefix, terraformPrefix, elt, ancestors)...)
 	}
 
 	for _, elt := range prop.Spec.SortedOneOf() {
@@ -210,7 +241,7 @@ func generateFromTerraformToPangoParameter(resourceTyp properties.ResourceType, 
 			continue
 		}
 
-		specs = append(specs, generateFromTerraformToPangoSpec(pangoPrefix, terraformPrefix, elt, nil)...)
+		specs = append(specs, generateFromTerraformToPangoSpec(names, resourceTyp, schemaTyp, pangoPrefix, terraformPrefix, elt, ancestors)...)
 	}
 
 	return specs
@@ -223,17 +254,21 @@ const copyToPangoTmpl = `
   {{- $result := .TerraformName.LowerCamelCase }}
   {{- $diag := .TerraformName.LowerCamelCase | printf "%s_diags" }}
 	var {{ $result }}_entry *{{ $.Spec.PangoType }}{{ .PangoName.CamelCase }}
-	if o.{{ .TerraformName.CamelCase }} != nil {
+	if !o.{{ .TerraformName.CamelCase }}.IsUnknown() && !o.{{ .TerraformName.CamelCase }}.IsNull() {
 		if *obj != nil && (*obj).{{ .PangoName.CamelCase }} != nil {
 			{{ $result }}_entry = (*obj).{{ .PangoName.CamelCase }}
 		} else {
 			{{ $result }}_entry = new({{ $.Spec.PangoType }}{{ .PangoName.CamelCase }})
 		}
-		// ModelOrObject: {{ $.Spec.ModelOrObject }}
+		var object {{ .TerraformType }}
+		diags.Append(o.{{ .TerraformName.CamelCase }}.As(ctx, &object, basetypes.ObjectAsOptions{})...)
+		if diags.HasError() {
+			return diags
+		}
     {{- if eq $.Spec.ModelOrObject "Model" }}
-		diags.Append(o.{{ .TerraformName.CamelCase }}.CopyToPango(ctx, ancestors, &{{ $result }}_entry, ev)...)
+		diags.Append(object.CopyToPango(ctx, ancestors, &{{ $result }}_entry, ev)...)
     {{- else }}
-		diags.Append(o.{{ .TerraformName.CamelCase }}.CopyToPango(ctx, append(ancestors, o), &{{ $result }}_entry, ev)...)
+		diags.Append(object.CopyToPango(ctx, append(ancestors, o), &{{ $result }}_entry, ev)...)
     {{- end }}
 		if diags.HasError() {
 			return diags
@@ -268,10 +303,18 @@ const copyToPangoTmpl = `
 		}
 	}
     {{- else }}
-	{{ $pangoEntries }} := make([]{{ .ItemsType }}, 0)
-	diags.Append(o.{{ .TerraformName.CamelCase }}.ElementsAs(ctx, &{{ $pangoEntries }}, false)...)
-	if diags.HasError() {
-		return diags
+	var {{ $pangoEntries }} []{{ .ItemsType }}
+	if !o.{{ .TerraformName.CamelCase }}.IsUnknown() && !o.{{ .TerraformName.CamelCase }}.IsNull() {
+		object_entries := make([]types.{{ .ItemsType | PascalCase }}, 0, len(o.{{ .TerraformName.CamelCase }}.Elements()))
+		diags.Append(o.{{ .TerraformName.CamelCase }}.ElementsAs(ctx, &object_entries, false)...)
+		if diags.HasError() {
+			diags.AddError("Explicit Error", "Failed something")
+			return diags
+		}
+
+		for _, elt := range object_entries {
+			{{ $pangoEntries }} = append({{ $pangoEntries }}, elt.ValueString())
+		}
 	}
     {{- end }}
   {{- end }}
@@ -410,9 +453,9 @@ const copyFromPangoTmpl = `
 {{- end }}
 
 {{- define "renderListValueSimple" }}
-var {{ .TerraformName.LowerCamelCase }}_list types.List
+var {{ .TerraformName.LowerCamelCase }}_list types.{{ .Type | PascalCase }}
 {
-	schema := rsschema.{{ .Type | PascalCase }}Attribute{}
+	schema := rsschema.{{ .Type | PascalCase }}Attribute{}	
 	{{ .TerraformName.LowerCamelCase }}_list, {{ .TerraformName.LowerCamelCase }}_diags := types.ListValueFrom(ctx, obj.{{ .PangoName.CamelCase }}, schema.GetType())
 	diags.Append({{ .TerraformName.LowerCamelCase }}_diags...)
 }
@@ -473,15 +516,31 @@ var {{ .TerraformName.LowerCamelCase }}_list types.Set
 	var {{ $terraformList }} types.{{ $.ListOrSet }}
 	{
 		var {{ $tfEntries }} []{{ $terraformType }}
-		for _, elt := range obj.{{ .PangoName.CamelCase }} {
+		if !o.{{ .TerraformName.CamelCase }}.IsNull() {
+			diags.Append(o.{{ .TerraformName.CamelCase }}.ElementsAs(ctx, &{{ $tfEntries }}, false)...)
+			if diags.HasError() {
+				return diags
+			}
+		}
+
+		for idx, elt := range obj.{{ .PangoName.CamelCase }} {
 			entry := {{ $terraformType }}{
 				Name: types.StringValue(elt.Name),
 			}
+			if idx < len({{ $tfEntries }}) {
+				entry = {{ $tfEntries }}[idx]
+			}
+
 			diags.Append(entry.CopyFromPango(ctx, append(ancestors, entry), &elt, ev)...)
 			if diags.HasError() {
 				return diags
 			}
-			{{ $tfEntries }} = append({{ $tfEntries }}, entry)
+
+			if idx < len({{ $tfEntries }}) {
+				{{ $tfEntries }}[idx] = entry
+			} else {
+				{{ $tfEntries }} = append({{ $tfEntries }}, entry)
+			}
 		}
 		var list_diags diag.Diagnostics
 		schemaType := o.getTypeFor("{{ .TerraformName.Underscore }}")
@@ -492,7 +551,13 @@ var {{ .TerraformName.LowerCamelCase }}_list types.Set
 		var {{ .TerraformName.LowerCamelCase }}_list types.{{ $.ListOrSet }}
 		{
 			var list_diags diag.Diagnostics
-			{{ .TerraformName.LowerCamelCase }}_list, list_diags = types.{{ $.ListOrSet }}ValueFrom(ctx, types.{{ .ItemsType | PascalCase }}Type, obj.{{ .PangoName.CamelCase }})
+
+			entries := make([]{{ .ItemsType }}, 0)
+			if o.{{ .TerraformName.CamelCase }}.IsNull() || len(obj.{{ .PangoName.CamelCase }}) > 0 {
+				entries = obj.{{ .PangoName.CamelCase }}
+			}
+
+			{{ .TerraformName.LowerCamelCase }}_list, list_diags = types.{{ $.ListOrSet }}ValueFrom(ctx, types.{{ .ItemsType | PascalCase }}Type, entries)
 			diags.Append(list_diags...)
 			if diags.HasError() {
 				return diags
@@ -534,15 +599,29 @@ var {{ .TerraformName.LowerCamelCase }}_list types.Set
   {{- with .Parameter }}
   {{- $result := .TerraformName.LowerCamelCase }}
   {{- $diag := .TerraformName.LowerCamelCase | printf "%s_diags" }}
-  var {{ $result }}_object *{{ $.Spec.TerraformType }}{{ .TerraformName.CamelCase }}Object
-  if obj.{{ .PangoName.CamelCase }} != nil {
-	{{ $result }}_object = new({{ $.Spec.TerraformType }}{{ .TerraformName.CamelCase }}Object)
 
+  var {{ $result }}_obj *{{ $.Spec.TerraformType }}{{ .TerraformName.CamelCase }}Object
+  if o.{{ .TerraformName.CamelCase }}.IsNull() {
+	{{ $result }}_obj = new({{ $.Spec.TerraformType }}{{ .TerraformName.CamelCase }}Object)
+  } else {
+	diags.Append(o.{{ .TerraformName.CamelCase }}.As(ctx, &{{ $result }}_obj, basetypes.ObjectAsOptions{})...)
+	if diags.HasError() {
+		return diags
+	}
+  }
+  {{ $result }}_object := types.ObjectNull({{ $result }}_obj.AttributeTypes())
+  if obj.{{ .PangoName.CamelCase }} != nil {  
     {{- if eq $.Spec.ModelOrObject "Model" }}
-	diags.Append({{ $result }}_object.CopyFromPango(ctx, ancestors, obj.{{ .PangoName.CamelCase }}, ev)...)
+	diags.Append({{ $result }}_obj.CopyFromPango(ctx, ancestors, obj.{{ .PangoName.CamelCase }}, ev)...)
     {{- else }}
-	diags.Append({{ $result }}_object.CopyFromPango(ctx, append(ancestors, o), obj.{{ .PangoName.CamelCase }}, ev)...)
+	diags.Append({{ $result }}_obj.CopyFromPango(ctx, append(ancestors, o), obj.{{ .PangoName.CamelCase }}, ev)...)
     {{- end }}
+	if diags.HasError() {
+		return diags
+	}
+	var diags_tmp diag.Diagnostics
+	{{ $result }}_object, diags_tmp = types.ObjectValueFrom(ctx, {{ $result }}_obj.AttributeTypes(), {{ $result }}_obj)
+	diags.Append(diags_tmp...)
 	if diags.HasError() {
 		return diags
 	}
@@ -760,12 +839,12 @@ func RenderEncryptedValuesFinalizer(schemaTyp properties.SchemaType, spec *prope
 	return processTemplate(encryptedValuesManagerFinalizerTmpl, "encrypted-values-manager-finalizer", data, nil)
 }
 
-func RenderCopyToPangoFunctions(resourceTyp properties.ResourceType, pkgName string, terraformTypePrefix string, property *properties.Normalization) (string, error) {
+func RenderCopyToPangoFunctions(names *NameProvider, resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, pkgName string, terraformTypePrefix string, property *properties.Normalization) (string, error) {
 	if resourceTyp == properties.ResourceCustom {
 		return "", nil
 	}
 
-	specs := generateFromTerraformToPangoParameter(resourceTyp, pkgName, terraformTypePrefix, "", property, nil)
+	specs := generateFromTerraformToPangoParameter(names, resourceTyp, schemaTyp, pkgName, terraformTypePrefix, "", property, nil)
 
 	type context struct {
 		Specs []spec
@@ -780,12 +859,12 @@ func RenderCopyToPangoFunctions(resourceTyp properties.ResourceType, pkgName str
 	return processTemplate(copyToPangoTmpl, "copy-to-pango", data, funcMap)
 }
 
-func RenderCopyFromPangoFunctions(resourceTyp properties.ResourceType, pkgName string, terraformTypePrefix string, property *properties.Normalization) (string, error) {
+func RenderCopyFromPangoFunctions(names *NameProvider, resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, pkgName string, terraformTypePrefix string, property *properties.Normalization) (string, error) {
 	if resourceTyp == properties.ResourceCustom {
 		return "", nil
 	}
 
-	specs := generateFromTerraformToPangoParameter(resourceTyp, pkgName, terraformTypePrefix, "", property, nil)
+	specs := generateFromTerraformToPangoParameter(names, resourceTyp, schemaTyp, pkgName, terraformTypePrefix, "", property, nil)
 
 	type context struct {
 		Specs []spec
@@ -2436,11 +2515,13 @@ type {{ .StructName }}{{ .ModelOrObject }} struct {
 `
 
 type datasourceStructFieldSpec struct {
-	Name          *properties.NameVariant
-	Private       bool
-	TerraformType string
-	Type          string
-	Tags          []string
+	Name                *properties.NameVariant
+	Private             bool
+	TerraformType       string
+	TerraformStructType string
+	Type                string
+	ItemsType           string
+	Tags                []string
 }
 
 type datasourceStructSpec struct {
@@ -2453,9 +2534,17 @@ type datasourceStructSpec struct {
 }
 
 func terraformTypeForProperty(structPrefix string, prop *properties.SpecParam, hackStructsAsTypeObjects bool) string {
-	if prop.Type == "" {
+	if prop.Type == "" || prop.Type == "list" && prop.Items.Type == "entry" {
 		if hackStructsAsTypeObjects {
-			return "types.Object"
+			if prop.Type == "" {
+				return "types.Object"
+			} else if prop.FinalType() == "set" {
+				return "types.Set"
+			} else if prop.FinalType() == "map" {
+				return "types.Map"
+			} else {
+				return "types.List"
+			}
 		} else {
 			return fmt.Sprintf("*%s%sObject", structPrefix, prop.TerraformNameVariant().CamelCase)
 		}
@@ -2464,14 +2553,6 @@ func terraformTypeForProperty(structPrefix string, prop *properties.SpecParam, h
 	switch prop.ComplexType() {
 	case "string-as-member":
 		return "types.String"
-	}
-
-	if prop.FinalType() == "list" && prop.Items.Type == "entry" {
-		return "types.List"
-	}
-
-	if prop.FinalType() == "set" && prop.Items.Type == "entry" {
-		return "types.Set"
 	}
 
 	if prop.FinalType() == "list" {
@@ -2488,11 +2569,22 @@ func terraformTypeForProperty(structPrefix string, prop *properties.SpecParam, h
 func structFieldSpec(param *properties.SpecParam, structPrefix string, hackStructsAsTypeObjects bool) datasourceStructFieldSpec {
 	tfTag := fmt.Sprintf("`tfsdk:\"%s\"`", param.TerraformNameVariant().Underscore)
 
+	var itemsType string
+	if param.Type == "list" {
+		if param.Items.Type == "entry" {
+			itemsType = "types.Object"
+		} else {
+			itemsType = fmt.Sprintf("types.%sType", pascalCase(param.Items.Type))
+		}
+	}
+
 	return datasourceStructFieldSpec{
-		Name:          param.TerraformNameVariant(),
-		TerraformType: terraformTypeForProperty(structPrefix, param, false),
-		Type:          terraformTypeForProperty(structPrefix, param, hackStructsAsTypeObjects),
-		Tags:          []string{tfTag},
+		Name:                param.TerraformNameVariant(),
+		TerraformType:       terraformTypeForProperty(structPrefix, param, hackStructsAsTypeObjects),
+		TerraformStructType: terraformTypeForProperty(structPrefix, param, false),
+		Type:                terraformTypeForProperty(structPrefix, param, hackStructsAsTypeObjects),
+		ItemsType:           itemsType,
+		Tags:                []string{tfTag},
 	}
 }
 
@@ -2568,10 +2660,11 @@ func createStructSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 
 	if len(spec.Locations) > 0 {
 		fields = append(fields, datasourceStructFieldSpec{
-			Name:          properties.NewNameVariant("location"),
-			TerraformType: fmt.Sprintf("%sLocation", names.StructName),
-			Type:          "types.Object",
-			Tags:          []string{"`tfsdk:\"location\"`"},
+			Name:                properties.NewNameVariant("location"),
+			TerraformType:       fmt.Sprintf("%sLocation", names.StructName),
+			TerraformStructType: fmt.Sprintf("%sLocation", names.StructName),
+			Type:                "types.Object",
+			Tags:                []string{"`tfsdk:\"location\"`"},
 		})
 	}
 
@@ -2580,10 +2673,11 @@ func createStructSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 		position := properties.NewNameVariant("position")
 
 		fields = append(fields, datasourceStructFieldSpec{
-			Name:          position,
-			TerraformType: "TerraformPositionObject",
-			Type:          "types.Object",
-			Tags:          []string{"`tfsdk:\"position\"`"},
+			Name:                position,
+			TerraformType:       "TerraformPositionObject",
+			TerraformStructType: "TerraformPositionObject",
+			Type:                "types.Object",
+			Tags:                []string{"`tfsdk:\"position\"`"},
 		})
 	}
 
@@ -2602,9 +2696,11 @@ func createStructSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 
 	tag := fmt.Sprintf("`tfsdk:\"%s\"`", listName.Underscore)
 	fields = append(fields, datasourceStructFieldSpec{
-		Name: listName,
-		Type: "types.List",
-		Tags: []string{tag},
+		Name:                listName,
+		Type:                "types.List",
+		TerraformStructType: fmt.Sprintf("%s%sObject", structName, listName.CamelCase),
+		ItemsType:           "types.Object",
+		Tags:                []string{tag},
 	})
 
 	structs = append(structs, datasourceStructSpec{
@@ -2635,10 +2731,11 @@ func createStructSpecForEntryListModel(resourceTyp properties.ResourceType, sche
 	var fields []datasourceStructFieldSpec
 	if len(spec.Locations) > 0 {
 		fields = append(fields, datasourceStructFieldSpec{
-			Name:          properties.NewNameVariant("location"),
-			TerraformType: fmt.Sprintf("%sLocation", names.StructName),
-			Type:          "types.Object",
-			Tags:          []string{"`tfsdk:\"location\"`"},
+			Name:                properties.NewNameVariant("location"),
+			TerraformType:       fmt.Sprintf("%sLocation", names.StructName),
+			TerraformStructType: fmt.Sprintf("%sLocation", names.StructName),
+			Type:                "types.Object",
+			Tags:                []string{"`tfsdk:\"location\"`"},
 		})
 	}
 
@@ -2685,9 +2782,11 @@ func createStructSpecForEntryListModel(resourceTyp properties.ResourceType, sche
 
 	tag := fmt.Sprintf("`tfsdk:\"%s\"`", listName.Underscore)
 	fields = append(fields, datasourceStructFieldSpec{
-		Name: listName,
-		Type: listEltType,
-		Tags: []string{tag},
+		Name:                listName,
+		Type:                listEltType,
+		TerraformStructType: fmt.Sprintf("%s%sObject", structName, listName.CamelCase),
+		ItemsType:           "types.Object",
+		Tags:                []string{tag},
 	})
 
 	structs = append(structs, datasourceStructSpec{
@@ -2720,10 +2819,11 @@ func createStructSpecForEntryModel(resourceTyp properties.ResourceType, schemaTy
 
 	if len(spec.Locations) > 0 {
 		fields = append(fields, datasourceStructFieldSpec{
-			Name:          properties.NewNameVariant("location"),
-			TerraformType: fmt.Sprintf("%sLocation", names.StructName),
-			Type:          "types.Object",
-			Tags:          []string{"`tfsdk:\"location\"`"},
+			Name:                properties.NewNameVariant("location"),
+			TerraformType:       fmt.Sprintf("%sLocation", names.StructName),
+			TerraformStructType: fmt.Sprintf("%sLocation", names.StructName),
+			Type:                "types.Object",
+			Tags:                []string{"`tfsdk:\"location\"`"},
 		})
 	}
 
@@ -2832,7 +2932,7 @@ func RenderResourceStructs(resourceTyp properties.ResourceType, names *NameProvi
 	}
 
 	data := context{
-		Structs: createStructSpecForModel(resourceTyp, properties.SchemaResource, spec, names, false),
+		Structs: createStructSpecForModel(resourceTyp, properties.SchemaResource, spec, names, true),
 	}
 
 	return processTemplate(dataSourceStructs, "render-structs", data, commonFuncMap)
@@ -2844,7 +2944,7 @@ func RenderDataSourceStructs(resourceTyp properties.ResourceType, names *NamePro
 	}
 
 	data := context{
-		Structs: createStructSpecForModel(resourceTyp, properties.SchemaDataSource, spec, names, false),
+		Structs: createStructSpecForModel(resourceTyp, properties.SchemaDataSource, spec, names, true),
 	}
 
 	return processTemplate(dataSourceStructs, "render-structs", data, commonFuncMap)
@@ -2856,7 +2956,11 @@ func (o *{{ .StructName }}{{ .ModelOrObject }}) AttributeTypes() map[string]attr
   {{- range .Fields }}
     {{- if .Private }}{{ continue }}{{- end }}
     {{ if (eq .Type "types.Object") }}
-	var {{ .Name.LowerCamelCase }}Obj {{ .TerraformType }}
+	var {{ .Name.LowerCamelCase }}Obj {{ .TerraformStructType }}
+    {{- else if or (eq .Type "types.List") (eq .Type "types.Set") (eq .Type "types.Map") }}
+      {{- if eq .ItemsType "types.Object" }}
+	var {{ .Name.LowerCamelCase }}Obj {{ .TerraformStructType }}
+      {{- end }}
     {{- end }}
   {{- end }}
 	return map[string]attr.Type{
@@ -2867,7 +2971,17 @@ func (o *{{ .StructName }}{{ .ModelOrObject }}) AttributeTypes() map[string]attr
 		AttrTypes: {{ .Name.LowerCamelCase }}Obj.AttributeTypes(),
 	},
     {{- else if or (eq .Type "types.List") (eq .Type "types.Set") (eq .Type "types.Map") }}
-		"{{ .Name.Underscore }}": {{ .Type }}Type{},
+      {{- if (eq .ItemsType "types.Object") }}
+		"{{ .Name.Underscore }}": {{ .Type }}Type{
+			ElemType: types.ObjectType{
+				AttrTypes: {{ .Name.LowerCamelCase }}Obj.AttributeTypes(),
+			},
+		},
+      {{- else }}
+		"{{ .Name.Underscore }}": {{ .Type }}Type{
+			ElemType: {{ .ItemsType }},
+		},
+      {{- end }}
     {{- else }}
 		"{{ .Name.Underscore }}": {{ .Type }}Type,
     {{- end }}

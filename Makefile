@@ -13,7 +13,7 @@ target/codegen: $(CODEGEN_SOURCES) $(CODEGEN_TEMPLATES)
 	go build -o target/codegen ./cmd/codegen
 
 ASSETS_SRC := $(shell find assets/ -type f)
-ASSETS_DST := $(patsubst assets/%,$(GENERATED_OUT_PATH)%,$(ASSETS_SRC))
+ASSETS_DST := $(patsubst assets/%,$(GENERATED_OUT_PATH)/%,$(ASSETS_SRC))
 
 .PHONY: assets
 assets: $(ASSETS_DST)

@@ -1029,11 +1029,11 @@ resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 
 const resourceReadFunction = `
 {{- if eq .ResourceOrDS "DataSource" }}
-	var savestate, state {{ .dataSourceStructName }}Model
-	resp.Diagnostics.Append(req.Config.Get(ctx, &savestate)...)
+	var state {{ .dataSourceStructName }}Model
+	resp.Diagnostics.Append(req.Config.Get(ctx, &state)...)
 {{- else }}
-	var savestate, state {{ .resourceStructName }}Model
-	resp.Diagnostics.Append(req.State.Get(ctx, &savestate)...)
+	var state {{ .resourceStructName }}Model
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 {{- end }}
 	if resp.Diagnostics.HasError() {
 		return
@@ -1042,25 +1042,25 @@ const resourceReadFunction = `
 	{{ RenderEncryptedValuesInitialization }}
 
 	var location {{ .resourceSDKName }}.Location
-	{{ RenderLocationsStateToPango "savestate.Location" "location" }}
+	{{ RenderLocationsStateToPango "state.Location" "location" }}
 
 	// Basic logging.
 	tflog.Info(ctx, "performing resource read", map[string]any{
 		"resource_name": "panos_{{ UnderscoreName .resourceStructName }}",
 		"function":      "Read",
 {{- if .HasEntryName }}
-		"name":          savestate.Name.ValueString(),
+		"name":          state.Name.ValueString(),
 {{- end }}
 	})
 
-	components, err := savestate.resourceXpathParentComponents()
+	components, err := state.resourceXpathParentComponents()
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
 		return
 	}
 
 {{- if .HasEntryName }}
-	object, err := o.manager.Read(ctx, location, components, savestate.Name.ValueString())
+	object, err := o.manager.Read(ctx, location, components, state.Name.ValueString())
 {{- else }}
 	object, err := o.manager.Read(ctx, location, components)
 {{- end }}
@@ -1083,10 +1083,10 @@ const resourceReadFunction = `
 	/*
 			// Keep the timeouts.
 		    // TODO: This won't work for state import.
-			state.Timeouts = savestate.Timeouts
+			state.Timeouts = state.Timeouts
 	*/
 
-	state.Location = savestate.Location
+	state.Location = state.Location
 
 {{ AttributesFromXpathComponents "state" }}
 
@@ -1445,16 +1445,13 @@ const resourceUpdateFunction = `
 		return
 	}
 
-	// Save the location.
-	state.Location = plan.Location
-
 	/*
 		// Keep the timeouts.
 		state.Timeouts = plan.Timeouts
 	*/
 
 
-	copy_diags := state.CopyFromPango(ctx, nil, updated, ev)
+	copy_diags := plan.CopyFromPango(ctx, nil, updated, ev)
 	resp.Diagnostics.Append(copy_diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -1463,7 +1460,7 @@ const resourceUpdateFunction = `
 	{{ RenderEncryptedValuesFinalizer }}
 
 	// Done.
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 `
 
 const resourceDeleteManyFunction = `
