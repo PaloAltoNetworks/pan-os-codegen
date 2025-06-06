@@ -27,7 +27,7 @@ terraform_provider_config:
   params:
     hostname:
       description: "The hostname or IP address of the PAN-OS instance (NGFW or Panorama)."
-      env_name: "PANOS_HOST"
+      env_name: "PANOS_HOSTNAME"
       optional: true
       type: string
     username:
