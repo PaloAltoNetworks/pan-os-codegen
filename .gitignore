@@ -20,3 +20,19 @@
 
 # IDE
 .idea/
+
+# Local semantic-release configuration if you create one for testing
+release.config.local.js
+release.config.local.json
+.releaserc.local.js
+.releaserc.local.json
+.releaserc.local.yaml
+.releaserc.local.yml
+
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+.npm
