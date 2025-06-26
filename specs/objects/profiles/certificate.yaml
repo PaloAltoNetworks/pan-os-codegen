@@ -17,7 +17,7 @@ go_sdk_config:
   - certificate
 panos_xpath:
   path:
-  - certificate
+  - certificate-profile
   vars: []
 locations:
 - name: panorama
@@ -27,8 +27,19 @@ locations:
     - panorama
     vars: []
   description: Located in a panorama.
+  validators: []
+  required: false
+  read_only: false
+- name: shared
+  xpath:
+    path:
+    - config
+    - shared
+    vars: []
+  description: Panorama shared object
   devices:
   - panorama
+  - ngfw
   validators: []
   required: false
   read_only: false
@@ -44,24 +55,23 @@ locations:
     - shared
     vars:
     - name: panorama_device
-      description: The panorama device.
+      description: Specific Panorama device
       required: false
       default: localhost.localdomain
       validators: []
       type: entry
     - name: template
-      description: The template.
+      description: Specific Panorama template
       required: true
       validators: []
       type: entry
-  description: Located in a specific template.
+  description: A shared resource located within a specific template
   devices:
   - panorama
-  - ngfw
   validators: []
   required: false
   read_only: false
-- name: template_vsys
+- name: template-vsys
   xpath:
     path:
     - config
@@ -76,18 +86,18 @@ locations:
     - $vsys
     vars:
     - name: panorama_device
-      description: The panorama device.
+      description: Specific Panorama device
       required: false
       default: localhost.localdomain
       validators: []
       type: entry
     - name: template
-      description: The template.
+      description: Specific Panorama template
       required: true
       validators: []
       type: entry
     - name: ngfw_device
-      description: The NGFW device.
+      description: The NGFW device
       required: false
       default: localhost.localdomain
       validators: []
@@ -101,7 +111,7 @@ locations:
         spec:
           values:
           - value: shared
-            error: The vsys cannot be "shared". Use the "shared" path instead.
+            error: The vsys cannot be "shared".
       type: entry
   description: Located in a specific template, device and vsys.
   devices:
@@ -110,7 +120,7 @@ locations:
   validators: []
   required: false
   read_only: false
-- name: template_stack
+- name: template-stack
   xpath:
     path:
     - config
@@ -122,24 +132,23 @@ locations:
     - shared
     vars:
     - name: panorama_device
-      description: The panorama device.
+      description: Specific Panorama device
       required: false
       default: localhost.localdomain
       validators: []
       type: entry
     - name: template_stack
-      description: The template stack.
+      description: The template stack
       required: true
       validators: []
       type: entry
-  description: Located in a specific template stack.
+  description: Located in a specific template
   devices:
   - panorama
-  - ngfw
   validators: []
   required: false
   read_only: false
-- name: template_stack_vsys
+- name: template-stack-vsys
   xpath:
     path:
     - config
@@ -154,18 +163,18 @@ locations:
     - $vsys
     vars:
     - name: panorama_device
-      description: The panorama device.
+      description: Specific Panorama device
       required: false
       default: localhost.localdomain
       validators: []
       type: entry
     - name: template_stack
-      description: The template stack.
+      description: The template stack
       required: true
       validators: []
       type: entry
     - name: ngfw_device
-      description: The NGFW device.
+      description: The NGFW device
       required: false
       default: localhost.localdomain
       validators: []
@@ -179,23 +188,11 @@ locations:
         spec:
           values:
           - value: shared
-            error: The vsys cannot be "shared". Use the "shared" path instead.
+            error: The vsys cannot be "shared".
       type: entry
-  description: Located in a specific template stack, device and vsys.
+  description: Located in a specific template, device and vsys.
   devices:
   - panorama
-  - ngfw
-  validators: []
-  required: false
-  read_only: false
-- name: shared
-  xpath:
-    path:
-    - config
-    - shared
-    vars: []
-  description: Located in shared.
-  devices:
   - ngfw
   validators: []
   required: false
