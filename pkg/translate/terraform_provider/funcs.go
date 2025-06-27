@@ -330,13 +330,14 @@ const copyToPangoTmpl = `
 
 {{- define "renderSimpleAssignment" }}
   {{- if .Encryption }}
+
+	var {{ .TerraformName.LowerCamelCase }}_value *string
+	{
 	valueKey, err := CreateXpathForAttributeWithAncestors(ancestors, "{{ .TerraformName.Original }}")
 	if err != nil {
 		diags.AddError("Failed to create encrypted values state key", err.Error())
 		return diags
 	}
-
-	var {{ .TerraformName.LowerCamelCase }}_value *string
 
     {{- if eq .Encryption.HashingType "client" }}
 	stateValue, found := ev.GetPlaintextValue(valueKey)
@@ -371,6 +372,7 @@ const copyToPangoTmpl = `
 	}
 	{{ .TerraformName.LowerCamelCase }}_value = o.{{ .TerraformName.CamelCase }}.Value{{ CamelCaseType .Type }}Pointer()
     {{- end }}
+	}
   {{- else }}
 	{{ .TerraformName.LowerCamelCase }}_value := o.{{ .TerraformName.CamelCase }}.Value{{ CamelCaseType .Type }}Pointer()
   {{- end }}
