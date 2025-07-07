@@ -231,9 +231,9 @@ const copyToPangoTmpl = `
 		}
 		// ModelOrObject: {{ $.Spec.ModelOrObject }}
     {{- if eq $.Spec.ModelOrObject "Model" }}
-		diags.Append(o.{{ .TerraformName.CamelCase }}.CopyToPango(ctx, ancestors, &{{ $result }}_entry, ev)...)
+		diags.Append(o.{{ .TerraformName.CamelCase }}.CopyToPango(ctx, client, ancestors, &{{ $result }}_entry, ev)...)
     {{- else }}
-		diags.Append(o.{{ .TerraformName.CamelCase }}.CopyToPango(ctx, append(ancestors, o), &{{ $result }}_entry, ev)...)
+		diags.Append(o.{{ .TerraformName.CamelCase }}.CopyToPango(ctx, client, append(ancestors, o), &{{ $result }}_entry, ev)...)
     {{- end }}
 		if diags.HasError() {
 			return diags
@@ -260,7 +260,7 @@ const copyToPangoTmpl = `
 		}
 		for _, elt := range {{ $tfEntries }} {
 			var entry *{{ $pangoType }}
-			diags.Append(elt.CopyToPango(ctx, append(ancestors, elt), &entry, ev)...)
+			diags.Append(elt.CopyToPango(ctx, client, append(ancestors, elt), &entry, ev)...)
 			if diags.HasError() {
 				return diags
 			}
@@ -298,7 +298,7 @@ const copyToPangoTmpl = `
     {{- if eq .Encryption.HashingType "client" }}
 	stateValue, found := ev.GetPlaintextValue(valueKey)
 	if !found || stateValue != o.{{ .TerraformName.CamelCase }}.Value{{ CamelCaseType .Type }}() {
-		hashed, err := {{ .Encryption.HashingFunc }}(o.{{ .TerraformName.CamelCase }}.Value{{ CamelCaseType .Type }}())
+		hashed, err := {{ .Encryption.HashingFunc }}(ctx, client, o.{{ .TerraformName.CamelCase }}.Value{{ CamelCaseType .Type }}())
 		if err != nil {
 			diags.AddError("Failed to hash sensitive value", err.Error())
 			return diags
@@ -335,7 +335,7 @@ const copyToPangoTmpl = `
 
 {{- range .Specs }}
 {{- $spec := . }}
-func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Context, ancestors []Ancestor, obj **{{ .PangoReturnType }}, ev *EncryptedValuesManager) diag.Diagnostics {
+func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Context, client pangoutil.PangoClient, ancestors []Ancestor, obj **{{ .PangoReturnType }}, ev *EncryptedValuesManager) diag.Diagnostics {
 	var diags diag.Diagnostics
   {{- range .Params }}
     {{- $terraformType := printf "%s%s" $spec.TerraformType .TerraformName.CamelCase }}
@@ -477,7 +477,7 @@ var {{ .TerraformName.LowerCamelCase }}_list types.Set
 			entry := {{ $terraformType }}{
 				Name: types.StringValue(elt.Name),
 			}
-			diags.Append(entry.CopyFromPango(ctx, append(ancestors, entry), &elt, ev)...)
+			diags.Append(entry.CopyFromPango(ctx, client, append(ancestors, entry), &elt, ev)...)
 			if diags.HasError() {
 				return diags
 			}
@@ -539,9 +539,9 @@ var {{ .TerraformName.LowerCamelCase }}_list types.Set
 	{{ $result }}_object = new({{ $.Spec.TerraformType }}{{ .TerraformName.CamelCase }}Object)
 
     {{- if eq $.Spec.ModelOrObject "Model" }}
-	diags.Append({{ $result }}_object.CopyFromPango(ctx, ancestors, obj.{{ .PangoName.CamelCase }}, ev)...)
+	diags.Append({{ $result }}_object.CopyFromPango(ctx, client, ancestors, obj.{{ .PangoName.CamelCase }}, ev)...)
     {{- else }}
-	diags.Append({{ $result }}_object.CopyFromPango(ctx, append(ancestors, o), obj.{{ .PangoName.CamelCase }}, ev)...)
+	diags.Append({{ $result }}_object.CopyFromPango(ctx, client, append(ancestors, o), obj.{{ .PangoName.CamelCase }}, ev)...)
     {{- end }}
 	if diags.HasError() {
 		return diags
@@ -646,7 +646,7 @@ var {{ .TerraformName.LowerCamelCase }}_list types.Set
 {{- range .Specs }}
 {{- $spec := . }}
 {{ $terraformType := printf "%s%s" .TerraformType .ModelOrObject }}
-func (o *{{ $terraformType }}) CopyFromPango(ctx context.Context, ancestors []Ancestor, obj *{{ .PangoReturnType }}, ev *EncryptedValuesManager) diag.Diagnostics {
+func (o *{{ $terraformType }}) CopyFromPango(ctx context.Context, client pangoutil.PangoClient, ancestors []Ancestor, obj *{{ .PangoReturnType }}, ev *EncryptedValuesManager) diag.Diagnostics {
 	var diags diag.Diagnostics
 
   {{- template "terraformSetElementsAs" $spec }}
