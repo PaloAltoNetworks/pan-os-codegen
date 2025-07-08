@@ -1578,7 +1578,6 @@ func (spec *Normalization) HasPrivateParameters() bool {
 }
 
 func resolveXpath(xpath []string, spec *Spec) (*SpecParam, error) {
-	fmt.Printf("xpath[0]: %s\n", xpath[0])
 	elt := xpath[0]
 	if elt == "spec" {
 		elt = xpath[1]
