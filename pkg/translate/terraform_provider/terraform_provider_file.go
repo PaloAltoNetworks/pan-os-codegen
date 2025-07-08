@@ -45,7 +45,7 @@ func (g *GenerateTerraformProvider) updateProviderFile(spec *properties.Normaliz
 	if schemaTyp == properties.SchemaProvider {
 		terraformProvider.Code = renderedTemplate
 	} else {
-		log.Printf("updateProviderFile() renderedTemplate: %d", renderedTemplate.Len())
+		slog.Debug("updateProviderFile() renderedTemplate", "renderedTemplate.Len()", renderedTemplate.Len())
 		if _, err := terraformProvider.Code.WriteString(renderedTemplate.String()); err != nil {
 			return fmt.Errorf("error writing %v template: %v", resourceTyp, err)
 		}
