@@ -3,7 +3,7 @@ package codegen
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/generate"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/load"
@@ -56,12 +56,12 @@ func (c *Command) Setup() error {
 }
 
 func (c *Command) Execute() error {
-	log.Printf("Generating %s\n", c.commandType)
-
 	if len(c.args) == 0 {
 		return fmt.Errorf("path to configuration file is required")
 	}
 	configPath := c.args[0]
+
+	slog.Info("Generating code", "type", c.commandType)
 
 	content, err := load.File(configPath)
 	if err != nil {
@@ -78,7 +78,7 @@ func (c *Command) Execute() error {
 	specMetadata := make(map[string]properties.TerraformProviderSpecMetadata)
 
 	for _, specPath := range c.specs {
-		log.Printf("Parsing %s...\n", specPath)
+		slog.Info("Parsing YAML spec", "spec", specPath)
 		content, err := load.File(specPath)
 		if err != nil {
 			return fmt.Errorf("error loading %s - %s", specPath, err)
@@ -194,7 +194,7 @@ func (c *Command) Execute() error {
 		if err != nil {
 			return fmt.Errorf("error generating terraform code: %w", err)
 		}
-		log.Printf("Generated Terraform resources: %s\n Generated dataSources: %s", resourceList, dataSourceList)
+		slog.Debug("Generated Terraform resources", "resources", resourceList, "dataSources", dataSourceList)
 	}
 
 	if err = generate.CopyAssets(config, c.commandType); err != nil {
