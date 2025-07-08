@@ -3,6 +3,7 @@ package terraform_provider
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"runtime/debug"
 	"sort"
 	"strings"

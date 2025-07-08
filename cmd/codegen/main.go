@@ -3,7 +3,10 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
+	"log/slog"
+	"os"
 
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/commands/codegen"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
@@ -40,6 +43,22 @@ func runCommand(ctx context.Context, cmdType properties.CommandType, cfg string)
 }
 
 func main() {
+	logLevel := os.Getenv("CODEGEN_LOG_LEVEL")
+	if logLevel == "" {
+		logLevel = "ERROR"
+	}
+	var level slog.Level
+	var err = level.UnmarshalText([]byte(logLevel))
+	if err != nil {
+		fmt.Print(err.Error())
+		return
+	}
+
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: level,
+	}))
+	slog.SetDefault(logger)
+
 	cfg := parseFlags()
 
 	ctx := context.Background()
@@ -52,8 +71,7 @@ func main() {
 	} else {
 		opTypeMessage += cfg.OpType
 	}
-	log.Printf("Using configuration file: %s\n", cfg.ConfigFile)
-	log.Println(opTypeMessage)
+	slog.Debug("Parsed configuration file", "path", cfg.ConfigFile)
 
 	cmdType := properties.CommandTypeSDK // Default command type
 	if cfg.OpType == "mktp" {
