@@ -1088,10 +1088,11 @@ type modifierCtx struct {
 }
 
 type validatorFunctionCtx struct {
-	Type        string
-	Function    string
-	Expressions []string
-	Values      []string
+	Type              string
+	Function          string
+	FunctionOverriden bool
+	Expressions       []string
+	Values            []string
 }
 
 type validatorCtx struct {
@@ -1375,22 +1376,35 @@ func generateValidatorFnsMapForVariants(variants []*properties.SpecParam) map[in
 			continue
 		}
 
+		validatorFn := "ExactlyOneOf"
+		var validatorFnOverride *string
+		if elt.TerraformProviderConfig != nil && elt.TerraformProviderConfig.VariantCheck != nil {
+			validatorFnOverride = elt.TerraformProviderConfig.VariantCheck
+		}
+
 		validator, found := validatorFns[elt.VariantGroupId]
 		if !found {
-			validatorFn := "ExactlyOneOf"
-			if elt.TerraformProviderConfig != nil && elt.TerraformProviderConfig.VariantCheck != nil {
-				validatorFn = *elt.TerraformProviderConfig.VariantCheck
-			}
-
 			validator = &validatorFunctionCtx{
 				Type:     "Expressions",
 				Function: validatorFn,
+			}
+
+			if validatorFnOverride != nil {
+				validator.FunctionOverriden = true
+				validator.Function = *validatorFnOverride
+			}
+		} else {
+			if validator.FunctionOverriden {
+				if validatorFnOverride != nil && validator.Function != *validatorFnOverride {
+					panic("invalid yaml spec: parameter codegen override variant_check must be equal within variant group")
+				}
+			} else if validatorFnOverride != nil {
+				validator.Function = *validatorFnOverride
 			}
 		}
 
 		pathExpr := fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, elt.TerraformNameVariant().Underscore)
 		validator.Expressions = append(validator.Expressions, pathExpr)
-
 		validatorFns[elt.VariantGroupId] = validator
 	}
 
@@ -1477,7 +1491,7 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		var validators *validatorCtx
 		if schemaTyp == properties.SchemaResource {
 			validatorFn, found := validatorFns[elt.VariantGroupId]
-			if found {
+			if found && validatorFn.Function != "Disabled" {
 				typ := elt.ValidatorType()
 				validatorImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework-validators/%svalidator", typ)
 				manager.AddHashicorpImport(validatorImport, "")
@@ -1574,7 +1588,7 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 			var validators *validatorCtx
 
 			validatorFn, found := validatorFns[elt.VariantGroupId]
-			if found {
+			if found && validatorFn.Function != "Disabled" {
 				validatorImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework-validators/%svalidator", "object")
 				manager.AddHashicorpImport(validatorImport, "")
 				validators = &validatorCtx{
@@ -1993,7 +2007,7 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 		var validators *validatorCtx
 		if schemaTyp == properties.SchemaResource {
 			validatorFn, found := validatorFns[elt.VariantGroupId]
-			if found {
+			if found && validatorFn.Function != "Disabled" {
 				typ := elt.ValidatorType()
 				validatorImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework-validators/%svalidator", typ)
 				manager.AddHashicorpImport(validatorImport, "")
