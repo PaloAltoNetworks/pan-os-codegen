@@ -1059,7 +1059,8 @@ const locationSchemaGetterTmpl = `
 	Description: "{{ .Description }}",
   {{- if .Required }}
 	Required: true,
-  {{- else }}
+  {{- end }}
+  {{- if .Optional }}
 	Optional: true,
   {{- end }}
   {{- if .Computed }}
@@ -1220,6 +1221,7 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 				Name:        name,
 				Description: variable.Description,
 				SchemaType:  "rsschema.StringAttribute",
+				Optional:    true,
 				Required:    false,
 				Computed:    true,
 				Default: &defaultCtx{
@@ -1260,6 +1262,7 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 			Name:         data.Name,
 			SchemaType:   "rsschema.SingleNestedAttribute",
 			Description:  data.Description,
+			Optional:     true,
 			Required:     false,
 			Attributes:   variableAttrs,
 			ModifierType: modifierType,
@@ -1565,7 +1568,7 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		ReturnType:    returnType,
 		Description:   "",
 		Required:      required,
-		Optional:      !param.FinalRequired(),
+		Optional:      param.FinalOptional(),
 		Computed:      computed,
 		Sensitive:     param.FinalSensitive(),
 		Attributes:    attributes,
@@ -1690,12 +1693,14 @@ func createSchemaAttributeForParameter(schemaTyp properties.SchemaType, manager 
 		}
 	}
 
-	var computed, required bool
+	var computed, required, optional bool
 	switch schemaTyp {
 	case properties.SchemaDataSource:
+		optional = true
 		required = false
 		computed = true
 	case properties.SchemaResource, properties.SchemaEphemeralResource:
+		optional = param.FinalOptional()
 		computed = param.FinalComputed()
 		required = param.FinalRequired()
 	case properties.SchemaCommon, properties.SchemaProvider:
@@ -1709,7 +1714,7 @@ func createSchemaAttributeForParameter(schemaTyp properties.SchemaType, manager 
 		ElementType: elementType,
 		Description: param.Description,
 		Required:    required,
-		Optional:    !required,
+		Optional:    optional,
 		Sensitive:   param.FinalSensitive(),
 		Default:     defaultValue,
 		Computed:    computed,
