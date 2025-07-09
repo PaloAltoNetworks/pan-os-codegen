@@ -201,6 +201,7 @@ type SpecParamTerraformProviderConfig struct {
 	Type          *string `json:"type" yaml:"type"`
 	Private       *bool   `json:"ignored" yaml:"private"`
 	Sensitive     *bool   `json:"sensitive" yaml:"sensitive"`
+	Optional      *bool   `json:"optional" yaml:"optional"`
 	Computed      *bool   `json:"computed" yaml:"computed"`
 	Required      *bool   `json:"required" yaml:"required"`
 	VariantCheck  *string `json:"variant_check" yaml:"variant_check"`
@@ -319,6 +320,14 @@ func (o *SpecParam) FinalSensitive() bool {
 	}
 
 	return false
+}
+
+func (o *SpecParam) FinalOptional() bool {
+	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.Optional != nil {
+		return *o.TerraformProviderConfig.Optional
+	}
+
+	return !o.FinalRequired()
 }
 
 func (o *SpecParam) FinalComputed() bool {
@@ -590,6 +599,7 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 			Name:          schemaSpec.CodegenOverrides.Terraform.Name,
 			Type:          schemaSpec.CodegenOverrides.Terraform.Type,
 			Private:       schemaSpec.CodegenOverrides.Terraform.Private,
+			Optional:      schemaSpec.CodegenOverrides.Terraform.Optional,
 			Sensitive:     schemaSpec.CodegenOverrides.Terraform.Sensitive,
 			Computed:      schemaSpec.CodegenOverrides.Terraform.Computed,
 			Required:      schemaSpec.CodegenOverrides.Terraform.Required,
