@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"io"
 	"io/fs"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,7 +20,7 @@ func CopyAssets(config *properties.Config, commandType properties.CommandType) e
 			return err
 		}
 
-		log.Printf("%v", asset)
+		slog.Debug("Copying static assets", "source", asset)
 		if asset.Target.GoSdk && commandType == properties.CommandTypeSDK {
 			if err = copyAsset(config.Output.GoSdk, asset, files); err != nil {
 				return err
@@ -80,7 +80,7 @@ func copyAsset(target string, asset *properties.Asset, files []string) error {
 		}
 
 		destinationFilePath := filepath.Join(destinationDir, sourceFileDirRelative, filepath.Base(sourceFilePath))
-		log.Printf("Copy file from %s to %s\n", sourceFilePath, destinationFilePath)
+		slog.Debug("Copying rendered file", "source", sourceFilePath, "destination", destinationFilePath)
 
 		// Read the contents of the source files
 		data, err := os.ReadFile(sourceFilePath)
