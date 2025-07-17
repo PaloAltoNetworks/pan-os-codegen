@@ -195,10 +195,10 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 			return RenderModelAttributeTypesFunction(resourceTyp, properties.SchemaResource, names, spec)
 		},
 		"RenderCopyToPangoFunctions": func() (string, error) {
-			return RenderCopyToPangoFunctions(resourceTyp, names.PackageName, names.ResourceStructName, spec)
+			return RenderCopyToPangoFunctions(names, resourceTyp, properties.SchemaResource, names.PackageName, names.ResourceStructName, spec)
 		},
 		"RenderCopyFromPangoFunctions": func() (string, error) {
-			return RenderCopyFromPangoFunctions(resourceTyp, names.PackageName, names.ResourceStructName, spec)
+			return RenderCopyFromPangoFunctions(names, resourceTyp, properties.SchemaResource, names.PackageName, names.ResourceStructName, spec)
 		},
 		"RenderXpathComponentsGetter": func() (string, error) {
 			return RenderXpathComponentsGetter(names.ResourceStructName, spec)
@@ -458,10 +458,10 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 				return RenderModelAttributeTypesFunction(resourceTyp, properties.SchemaDataSource, names, spec)
 			},
 			"RenderCopyToPangoFunctions": func() (string, error) {
-				return RenderCopyToPangoFunctions(resourceTyp, names.PackageName, names.DataSourceStructName, spec)
+				return RenderCopyToPangoFunctions(names, resourceTyp, properties.SchemaDataSource, names.PackageName, names.DataSourceStructName, spec)
 			},
 			"RenderCopyFromPangoFunctions": func() (string, error) {
-				return RenderCopyFromPangoFunctions(resourceTyp, names.PackageName, names.DataSourceStructName, spec)
+				return RenderCopyFromPangoFunctions(names, resourceTyp, properties.SchemaDataSource, names.PackageName, names.DataSourceStructName, spec)
 			},
 			"RenderXpathComponentsGetter": func() (string, error) {
 				return RenderXpathComponentsGetter(names.DataSourceStructName, spec)

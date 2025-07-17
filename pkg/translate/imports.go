@@ -27,9 +27,6 @@ func RenderImports(spec *properties.Normalization, templateTypes ...string) (str
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "")
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/version", "")
 
-			if spec.Name == "global-protect-portal" && !spec.HasParametersWithStrconv() {
-				panic("WTF?")
-			}
 			if spec.HasParametersWithStrconv() {
 				manager.AddStandardImport("errors", "")
 			}
