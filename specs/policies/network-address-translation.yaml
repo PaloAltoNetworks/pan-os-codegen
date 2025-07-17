@@ -319,6 +319,9 @@ spec:
                     spec: {}
                     description: Floating IP address in HA Active-Active configuration
                     required: false
+                    codegen_overrides:
+                      terraform:
+                        variant_check: ConflictsWith
                     variant_group_id: 0
                   - name: ip
                     type: string
@@ -406,6 +409,9 @@ spec:
                 spec: {}
                 description: Floating IP address in HA Active-Active configuration
                 required: false
+                codegen_overrides:
+                  terraform:
+                    variant_check: ConflictsWith
                 variant_group_id: 0
               - name: ip
                 type: string
