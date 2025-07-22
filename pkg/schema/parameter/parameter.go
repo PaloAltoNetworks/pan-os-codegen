@@ -61,6 +61,7 @@ type CodegenOverridesTerraform struct {
 	Name          *string           `yaml:"name"`
 	Type          *string           `yaml:"type"`
 	Private       *bool             `yaml:"private"`
+	Optional      *bool             `yaml:"optional"`
 	Sensitive     *bool             `yaml:"sensitive"`
 	Computed      *bool             `yaml:"computed"`
 	Required      *bool             `yaml:"required"`
