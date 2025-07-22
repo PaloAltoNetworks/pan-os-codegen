@@ -47,6 +47,7 @@ type EnumSpecValue struct {
 type VariantCheckType string
 
 const (
+	VariantCheckDisabled      VariantCheckType = "Disabled"
 	VariantCheckConflictsWith VariantCheckType = "ConflictsWith"
 	VariantCheckExactlyOneOf  VariantCheckType = "ExactlyOneOf"
 )
