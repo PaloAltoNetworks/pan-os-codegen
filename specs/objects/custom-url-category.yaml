@@ -93,6 +93,7 @@ locations:
             error: The device group name cannot be "shared". Use the "shared" location
               instead
       type: entry
+      location_filter: true
   description: Located in a specific Device Group
   devices:
   - panorama

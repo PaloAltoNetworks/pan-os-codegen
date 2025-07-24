@@ -103,6 +103,7 @@ locations:
           - value: shared
             error: The device group cannot be "shared". Use the "shared" path instead.
       type: entry
+      location_filter: true
     - name: rulebase
       description: The rulebase.
       required: false

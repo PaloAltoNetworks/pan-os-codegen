@@ -15,6 +15,7 @@
       "type": "boolean"
     },
     "required": { "type": "boolean" },
+    "location_filter": { "type": "boolean" },
     "validators": {
       "type": "array",
       "items": {
