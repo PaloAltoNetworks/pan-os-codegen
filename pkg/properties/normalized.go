@@ -108,6 +108,16 @@ func (o Location) ValidatorType() string {
 	return "object"
 }
 
+func (o Location) HasFilter() bool {
+	for _, elt := range o.Vars {
+		if elt.LocationFilter {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (o *Location) OrderedVars() []*LocationVar {
 	elements := make([]*LocationVar, len(o.Vars))
 
@@ -124,12 +134,13 @@ type LocationDevice struct {
 }
 
 type LocationVar struct {
-	Name        *NameVariant
-	StateOrder  int
-	Description string                 `json:"description" yaml:"description"`
-	Default     string                 `json:"default" yaml:"default"`
-	Required    bool                   `json:"required" yaml:"required"`
-	Validation  *LocationVarValidation `json:"validation" yaml:"validation"`
+	Name           *NameVariant
+	StateOrder     int
+	Description    string                 `json:"description" yaml:"description"`
+	Default        string                 `json:"default" yaml:"default"`
+	Required       bool                   `json:"required" yaml:"required"`
+	LocationFilter bool                   `json:"location_filter" yaml:"location_filter"`
+	Validation     *LocationVarValidation `json:"validation" yaml:"validation"`
 }
 
 type LocationVarValidation struct {
@@ -649,11 +660,12 @@ func generateXpathVariables(variables []xpathschema.Variable) map[string]*Locati
 	xpathVars := make(map[string]*LocationVar)
 	for idx, variable := range variables {
 		entry := &LocationVar{
-			StateOrder:  idx,
-			Description: variable.Description,
-			Default:     variable.Default,
-			Required:    variable.Required,
-			Validation:  nil,
+			StateOrder:     idx,
+			Description:    variable.Description,
+			Default:        variable.Default,
+			Required:       variable.Required,
+			LocationFilter: variable.LocationFilter,
+			Validation:     nil,
 		}
 
 		for _, v := range variable.Validators {

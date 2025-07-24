@@ -257,6 +257,7 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		},
 		"SupportedMethod":           func(method object.GoSdkMethod) bool { return c.Spec.SupportedMethod(method) },
 		"RenderEntryImportStructs":  func() (string, error) { return translate.RenderEntryImportStructs(c.Spec) },
+		"RenderLocationFilter":      func() (string, error) { return translate.RenderLocationFilter(c.Spec) },
 		"packageName":               translate.PackageName,
 		"locationType":              translate.LocationType,
 		"specParamType":             translate.SpecParamType,
