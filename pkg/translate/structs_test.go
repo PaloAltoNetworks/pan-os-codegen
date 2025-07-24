@@ -462,6 +462,13 @@ var _ = Describe("createEntryXmlStructSpecsForParameter", func() {
 					XmlType:   "[]generic.Xml",
 					Tags:      "`xml:\",any\"`",
 				},
+				{
+					Name:      properties.NewNameVariant("misc-attributes"),
+					FieldType: "internal",
+					Type:      "[]xml.Attr",
+					XmlType:   "[]xml.Attr",
+					Tags:      "`xml:\",any,attr\"`",
+				},
 			}))
 		})
 	})
@@ -528,6 +535,13 @@ var _ = Describe("createEntryXmlStructSpecsForParameter", func() {
 					Type:      "[]generic.Xml",
 					XmlType:   "[]generic.Xml",
 					Tags:      "`xml:\",any\"`",
+				},
+				{
+					Name:      properties.NewNameVariant("misc-attributes"),
+					FieldType: "internal",
+					Type:      "[]xml.Attr",
+					XmlType:   "[]xml.Attr",
+					Tags:      "`xml:\",any,attr\"`",
 				},
 			}))
 
@@ -600,6 +614,13 @@ var _ = Describe("createEntryXmlStructSpecsForParameter", func() {
 					XmlType:   "[]generic.Xml",
 					Tags:      "`xml:\",any\"`",
 				},
+				{
+					Name:      properties.NewNameVariant("misc-attributes"),
+					FieldType: "internal",
+					Type:      "[]xml.Attr",
+					XmlType:   "[]xml.Attr",
+					Tags:      "`xml:\",any,attr\"`",
+				},
 			}))
 
 			Expect(result[1].StructName()).To(Equal("ParentParamChildParam1"))
@@ -647,6 +668,13 @@ var _ = Describe("createStructSpecs", func() {
 					Type:      "[]generic.Xml",
 					XmlType:   "[]generic.Xml",
 					Tags:      "`xml:\",any\"`",
+				},
+				{
+					Name:      properties.NewNameVariant("misc-attributes"),
+					FieldType: "internal",
+					Type:      "[]xml.Attr",
+					XmlType:   "[]xml.Attr",
+					Tags:      "`xml:\",any,attr\"`",
 				},
 			}))
 		})
@@ -719,6 +747,13 @@ var _ = Describe("createStructSpecs", func() {
 						XmlType:   "[]generic.Xml",
 						Tags:      "`xml:\",any\"`",
 					},
+					{
+						Name:      properties.NewNameVariant("misc-attributes"),
+						FieldType: "internal",
+						Type:      "[]xml.Attr",
+						XmlType:   "[]xml.Attr",
+						Tags:      "`xml:\",any,attr\"`",
+					},
 				}))
 				Expect(result[1].name).To(Equal(properties.NewNameVariant("param-one")))
 				Expect(result[1].Fields).To(Equal([]entryStructFieldContext{
@@ -745,6 +780,13 @@ var _ = Describe("createStructSpecs", func() {
 						Type:      "[]generic.Xml",
 						XmlType:   "[]generic.Xml",
 						Tags:      "`xml:\",any\"`",
+					},
+					{
+						Name:      properties.NewNameVariant("misc-attributes"),
+						FieldType: "internal",
+						Type:      "[]xml.Attr",
+						XmlType:   "[]xml.Attr",
+						Tags:      "`xml:\",any,attr\"`",
 					},
 				}))
 			})
@@ -787,6 +829,13 @@ var _ = Describe("createStructSpecs", func() {
 						Type:      "[]generic.Xml",
 						XmlType:   "[]generic.Xml",
 						Tags:      "`xml:\",any\"`",
+					},
+					{
+						Name:      properties.NewNameVariant("misc-attributes"),
+						FieldType: "internal",
+						Type:      "[]xml.Attr",
+						XmlType:   "[]xml.Attr",
+						Tags:      "`xml:\",any,attr\"`",
 					},
 				}))
 
@@ -835,6 +884,13 @@ var _ = Describe("createStructSpecs", func() {
 						Type:      "[]generic.Xml",
 						XmlType:   "[]generic.Xml",
 						Tags:      "`xml:\",any\"`",
+					},
+					{
+						Name:      properties.NewNameVariant("misc-attributes"),
+						FieldType: "internal",
+						Type:      "[]xml.Attr",
+						XmlType:   "[]xml.Attr",
+						Tags:      "`xml:\",any,attr\"`",
 					},
 				}))
 			})
@@ -966,6 +1022,13 @@ var _ = Describe("createStructSpecs", func() {
 					XmlType:   "[]generic.Xml",
 					Tags:      "`xml:\",any\"`",
 				},
+				{
+					Name:      properties.NewNameVariant("misc-attributes"),
+					FieldType: "internal",
+					Type:      "[]xml.Attr",
+					XmlType:   "[]xml.Attr",
+					Tags:      "`xml:\",any,attr\"`",
+				},
 			}))
 
 			result = createStructSpecs(structXmlType, spec, version11_0_0)
@@ -1004,6 +1067,13 @@ var _ = Describe("createStructSpecs", func() {
 					Type:      "[]generic.Xml",
 					XmlType:   "[]generic.Xml",
 					Tags:      "`xml:\",any\"`",
+				},
+				{
+					Name:      properties.NewNameVariant("misc-attributes"),
+					FieldType: "internal",
+					Type:      "[]xml.Attr",
+					XmlType:   "[]xml.Attr",
+					Tags:      "`xml:\",any,attr\"`",
 				},
 			}))
 		})

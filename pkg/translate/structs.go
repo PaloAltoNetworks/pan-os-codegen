@@ -729,13 +729,22 @@ func createEntryXmlStructSpecsForParameter(structTyp structType, parentPrefix *p
 		processParameter(prefixName, elt)
 	}
 
-	fields = append(fields, entryStructFieldContext{
-		Name:      properties.NewNameVariant("misc"),
-		FieldType: "internal",
-		Type:      "[]generic.Xml",
-		XmlType:   "[]generic.Xml",
-		Tags:      "`xml:\",any\"`",
-	})
+	fields = append(fields, []entryStructFieldContext{
+		{
+			Name:      properties.NewNameVariant("misc"),
+			FieldType: "internal",
+			Type:      "[]generic.Xml",
+			XmlType:   "[]generic.Xml",
+			Tags:      "`xml:\",any\"`",
+		},
+		{
+			Name:      properties.NewNameVariant("misc-attributes"),
+			FieldType: "internal",
+			Type:      "[]xml.Attr",
+			XmlType:   "[]xml.Attr",
+			Tags:      "`xml:\",any,attr\"`",
+		},
+	}...)
 
 	name := parentPrefix.WithSuffix(param.PangoNameVariant())
 	entries = append([]entryStructContext{{
@@ -835,13 +844,22 @@ func creasteStructSpecsForNormalization(structTyp structType, parentPrefix *prop
 		processParameter(parentPrefix, elt)
 	}
 
-	fields = append(fields, entryStructFieldContext{
-		Name:      properties.NewNameVariant("misc"),
-		FieldType: "internal",
-		Type:      "[]generic.Xml",
-		XmlType:   "[]generic.Xml",
-		Tags:      "`xml:\",any\"`",
-	})
+	fields = append(fields, []entryStructFieldContext{
+		{
+			Name:      properties.NewNameVariant("misc"),
+			FieldType: "internal",
+			Type:      "[]generic.Xml",
+			XmlType:   "[]generic.Xml",
+			Tags:      "`xml:\",any\"`",
+		},
+		{
+			Name:      properties.NewNameVariant("misc-attributes"),
+			FieldType: "internal",
+			Type:      "[]xml.Attr",
+			XmlType:   "[]xml.Attr",
+			Tags:      "`xml:\",any,attr\"`",
+		},
+	}...)
 
 	var name *properties.NameVariant
 	switch spec.TerraformProviderConfig.ResourceType {
@@ -1178,6 +1196,7 @@ func (o *{{ .StructName }}) matches(other *{{ .StructName }}) bool {
     {{- if .IsInternal }}{{ continue }}{{ end }}
     {{- if and $spec.TopLevel (eq .Name.CamelCase "Name") }}{{ continue }}{{ end }}
     {{- if eq .Name.CamelCase "Misc" }}{{ continue }}{{ end }}
+    {{- if eq .Name.CamelCase "MiscAttributes" }}{{ continue }}{{ end }}
     {{- if eq .FieldType "object" }}
 	if !o.{{ .Name.CamelCase }}.matches(other.{{ .Name.CamelCase }}) {
 		return false
