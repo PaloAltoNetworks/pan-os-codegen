@@ -59,6 +59,8 @@ return fmt.Errorf("multiple paths specified: only one should be specified")
 return nil
 }
 
+{{ RenderLocationFilter }}
+
 func (o Location) XpathPrefix(vn version.Number) ([]string, error) {
 
 var ans []string

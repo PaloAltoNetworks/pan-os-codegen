@@ -18,12 +18,13 @@ const (
 // Xpath variables are used to dynamically render parts of the
 // object xpath, using custom logic from pan-os-go utils.
 type Variable struct {
-	Name        string                `yaml:"name"`
-	Description string                `yaml:"description"`
-	Required    bool                  `yaml:"required"`
-	Type        VariableType          `yaml:"type"`
-	Default     string                `yaml:"default"`
-	Validators  []validator.Validator `yaml:"validators"`
+	Name           string                `yaml:"name"`
+	Description    string                `yaml:"description"`
+	Required       bool                  `yaml:"required"`
+	LocationFilter bool                  `yaml:"location_filter"`
+	Type           VariableType          `yaml:"type"`
+	Default        string                `yaml:"default"`
+	Validators     []validator.Validator `yaml:"validators"`
 }
 
 // Xpath describes xpath as used by locations and imports

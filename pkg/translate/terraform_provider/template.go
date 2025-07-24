@@ -854,7 +854,7 @@ if err != nil {
 	return
 }
 
-readEntries, err := o.manager.ReadMany(ctx, location, components, entries)
+readEntries, err := o.manager.ReadMany(ctx, location, components)
 if err != nil {
 	if errors.Is(err, sdkmanager.ErrObjectNotFound) {
 		resp.State.RemoveResource(ctx)
@@ -1161,20 +1161,32 @@ for idx, elt := range elements {
 }
 {{- end }}
 
+stateEntriesByName := make(map[string]*{{ $resourceSDKStructName }}, len(stateEntries))
+for _, elt := range stateEntries {
+	stateEntriesByName[elt.Name] = elt
+}
+
 components, err := state.resourceXpathParentComponents()
 if err != nil {
 	resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
 	return
 }
 
-existing, err := r.manager.ReadMany(ctx, location, components, stateEntries)
+existing, err := r.manager.ReadMany(ctx, location, components)
 if err != nil && !errors.Is(err, sdkmanager.ErrObjectNotFound) {
 	resp.Diagnostics.AddError("Error while reading entries from the server", err.Error())
 	return
 }
 
-existingEntriesByName := make(map[string]*{{ $resourceSDKStructName }}, len(existing))
+filtered := make([]*{{ $resourceSDKStructName }}, 0, len(stateEntries))
 for _, elt := range existing {
+	if _, found := stateEntriesByName[elt.EntryName()]; found {
+		filtered = append(filtered, elt)
+	}
+}
+
+existingEntriesByName := make(map[string]*{{ $resourceSDKStructName }}, len(filtered))
+for _, elt := range filtered {
 	existingEntriesByName[elt.Name] = elt
 }
 

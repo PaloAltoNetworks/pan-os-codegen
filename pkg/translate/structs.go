@@ -297,6 +297,86 @@ func RenderEntryImportStructs(spec *properties.Normalization) (string, error) {
 	return buf.String(), nil
 }
 
+const locationFilterTmpl = `
+func (o Location) LocationFilter() *string {
+{{ range .Specs }}
+  {{ $spec := . }}
+  {{- if not .HasFilter }}{{ continue }}{{ end }}
+	if o.{{ $spec.Name.CamelCase }} != nil {
+  {{- range .Variables }}
+    {{- if not .LocationFilter }}{{ continue }}{{ end }}
+		if o.{{ $spec.Name.CamelCase }}.{{ .Name.CamelCase }} == "" {
+			return nil
+		} else {
+			return &o.{{ $spec.Name.CamelCase }}.{{ .Name.CamelCase }}
+		}
+  {{- end }}
+	}
+{{- end }}
+	return nil
+}
+`
+
+type locationVariableSpec struct {
+	Name           *properties.NameVariant
+	LocationFilter bool
+}
+
+type locationSpec struct {
+	Name      *properties.NameVariant
+	Variables []locationVariableSpec
+	HasFilter bool
+}
+
+func createLocationVariableSpecForLocation(loc *properties.Location) []locationVariableSpec {
+	var variables []locationVariableSpec
+
+	for _, elt := range loc.OrderedVars() {
+		variables = append(variables, locationVariableSpec{
+			Name:           elt.Name,
+			LocationFilter: elt.LocationFilter,
+		})
+	}
+
+	return variables
+}
+
+func createLocationSpecForNormalization(spec *properties.Normalization) []locationSpec {
+	var locations []locationSpec
+	for _, elt := range spec.OrderedLocations() {
+		locations = append(locations, locationSpec{
+			Name:      elt.Name,
+			HasFilter: elt.HasFilter(),
+			Variables: createLocationVariableSpecForLocation(elt),
+		})
+	}
+
+	return locations
+}
+
+func RenderLocationFilter(spec *properties.Normalization) (string, error) {
+	type renderContext struct {
+		Specs []locationSpec
+	}
+
+	tmpl, err := template.New("render-entry-import-structs").Parse(locationFilterTmpl)
+	if err != nil {
+		return "", err
+	}
+
+	data := renderContext{
+		Specs: createLocationSpecForNormalization(spec),
+	}
+
+	var buf bytes.Buffer
+	err = tmpl.Execute(&buf, data)
+	if err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
+}
+
 // SpecParamType returns param type (it can be a nested spec) for structs based on spec from YAML files.
 func SpecParamType(parent string, param *properties.SpecParam) string {
 	prefix := determinePrefix(param, false)
