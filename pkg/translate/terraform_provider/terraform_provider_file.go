@@ -255,10 +255,10 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 		case properties.TerraformResourceEntry, properties.TerraformResourceUuid:
 			terraformProvider.ImportManager.AddStandardImport("encoding/base64", "")
 			terraformProvider.ImportManager.AddOtherImport("github.com/PaloAltoNetworks/terraform-provider-panos/internal/manager", "sdkmanager")
+			terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "pangoutil")
 		case properties.TerraformResourceConfig:
 			terraformProvider.ImportManager.AddOtherImport("github.com/PaloAltoNetworks/terraform-provider-panos/internal/manager", "sdkmanager")
 		case properties.TerraformResourceCustom:
-
 		}
 
 		// entry or uuid style resource
@@ -388,6 +388,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 		if spec.TerraformProviderConfig.ResourceType != properties.TerraformResourceCustom {
 			terraformProvider.ImportManager.AddStandardImport("errors", "")
 			terraformProvider.ImportManager.AddOtherImport("github.com/PaloAltoNetworks/terraform-provider-panos/internal/manager", "sdkmanager")
+			terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "pangoutil")
 		}
 
 		terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "")
