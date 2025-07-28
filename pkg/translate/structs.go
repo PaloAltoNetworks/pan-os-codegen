@@ -1044,7 +1044,7 @@ func (o *{{ .XmlStructName }}) MarshalFromObject(s {{ .StructName }}) {
 	if s.{{ .Name.CamelCase }} != nil {
 		o.{{ .Name.CamelCase }} = util.StrToMem(s.{{ .Name.CamelCase }})
 	}
-      {{- else if eq .ItemsType "int64" }}
+      {{- else if eq .ItemsType "[]int64" }}
 	if s.{{ .Name.CamelCase }} != nil {
 		o.{{ .Name.CamelCase }} = util.Int64ToMem(s.{{ .Name.CamelCase }})
 	}
