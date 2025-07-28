@@ -53,8 +53,7 @@ locations:
     - template
     - $template
     - config
-    - devices
-    - $ngfw_device
+    - shared
     vars:
     - name: panorama_device
       description: Specific Panorama device
@@ -67,13 +66,7 @@ locations:
       required: true
       validators: []
       type: entry
-    - name: ngfw_device
-      description: The NGFW device
-      required: false
-      default: localhost.localdomain
-      validators: []
-      type: entry
-  description: Located in a specific template
+  description: A shared resource located within a specific template
   devices:
   - panorama
   validators: []
@@ -137,8 +130,7 @@ locations:
     - template-stack
     - $template_stack
     - config
-    - devices
-    - $ngfw_device
+    - shared
     vars:
     - name: panorama_device
       description: Specific Panorama device
@@ -147,17 +139,11 @@ locations:
       validators: []
       type: entry
     - name: template_stack
-      description: Specific Panorama template stack
+      description: The template stack
       required: true
       validators: []
       type: entry
-    - name: ngfw_device
-      description: The NGFW device
-      required: false
-      default: localhost.localdomain
-      validators: []
-      type: entry
-  description: Located in a specific template stack
+  description: Located in a specific template
   devices:
   - panorama
   validators: []
