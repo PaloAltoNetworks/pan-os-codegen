@@ -28,10 +28,6 @@ $(GENERATED_OUT_PATH)/%: assets/%
 	@mkdir -p $(@D)
 	cp $< $@
 
-panos-creds.txt:
-	@curl --silent -k -H "Content-Type: application/x-www-form-urlencoded" -X POST \
-	    https://$(PANOS_HOSTNAME)/api/?type=keygen -d "user=$(PANOS_USERNAME)&password=$(PANOS_PASSWORD)" |xq -x //key > $@
-
 .PHONY: test
 test: test/codegen test/pango test/terraform
 
@@ -58,11 +54,11 @@ test/terraform-manager: codegen assets
 	go test -v ./internal/manager/
 
 .PHONY: test/terraform-acc
-test/terraform-acc: panos-creds.txt codegen assets
-	@export PANOS_API_KEY=$(shell cat panos-creds.txt) && \
+test/terraform-acc: codegen assets
 	cd $(GENERATED_OUT_PATH)/terraform/ && \
 	TF_ACC=1 PANOS_HOSTNAME=$(PANOS_HOSTNAME) \
 	PANOS_SKIP_VERIFY_CERTIFICATE=1 \
+	PANOS_USE_CREDENTIALS=1 \
 	PANOS_USERNAME=$(PANOS_USERNAME) PANOS_PASSWORD=$(PANOS_PASSWORD) \
 	go test -v ./test $(TESTARGS) |grep -v -E "(No slog handler provided|Pango logging configured)"
 
