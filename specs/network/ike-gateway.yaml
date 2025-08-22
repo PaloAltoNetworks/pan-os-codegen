@@ -6,730 +6,730 @@ terraform_provider_config:
   resource_type: entry
   resource_variants: []
   suffix: ike_gateway
-  plural_suffix: ""
-  plural_name: ""
-  plural_description: ""
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
 go_sdk_config:
   skip: false
   package:
-    - crypto
-    - ike
-    - gateway
+  - crypto
+  - ike
+  - gateway
 panos_xpath:
   path:
-    - network
-    - ike
-    - gateway
+  - network
+  - ike
+  - gateway
+  vars: []
 locations:
-  - name: ngfw
-    xpath:
-      path:
-        - config
-        - devices
-        - $ngfw_device
-      vars:
-        - name: ngfw_device
-          description: The NGFW device
-          required: false
-          default: localhost.localdomain
-          validators: []
-          type: entry
-    description: Located in a specific NGFW device
-    devices:
-      - ngfw
-    validators: []
-    required: false
-    read_only: false
-  - name: template
-    xpath:
-      path:
-        - config
-        - devices
-        - $panorama_device
-        - template
-        - $template
-        - config
-        - devices
-        - $ngfw_device
-      vars:
-        - name: panorama_device
-          description: Specific Panorama device
-          required: false
-          default: localhost.localdomain
-          validators: []
-          type: entry
-        - name: template
-          description: Specific Panorama template
-          required: true
-          validators: []
-          type: entry
-        - name: ngfw_device
-          description: The NGFW device
-          required: false
-          default: localhost.localdomain
-          validators: []
-          type: entry
-    description: Located in a specific template
-    devices:
-      - panorama
-    validators: []
-    required: false
-    read_only: false
-  - name: template-stack
-    xpath:
-      path:
-        - config
-        - devices
-        - $panorama_device
-        - template-stack
-        - $template_stack
-        - config
-        - devices
-        - $ngfw_device
-      vars:
-        - name: panorama_device
-          description: Specific Panorama device
-          required: false
-          default: localhost.localdomain
-          validators: []
-          type: entry
-        - name: template_stack
-          description: Specific Panorama template stack
-          required: true
-          validators: []
-          type: entry
-        - name: ngfw_device
-          description: The NGFW device
-          required: false
-          default: localhost.localdomain
-          validators: []
-          type: entry
-    description: Located in a specific template stack
-    devices:
-      - panorama
-    validators: []
-    required: false
-    read_only: false
+- name: ngfw
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific NGFW device
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
 entries:
-  - name: name
-    description: ""
-    validators: []
+- name: name
+  description: ''
+  validators: []
 imports: []
 spec:
   params:
-    - name: authentication
-      type: object
-      profiles:
+  - name: authentication
+    type: object
+    profiles:
+    - xpath:
+      - authentication
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: certificate
+        type: object
+        profiles:
         - xpath:
-            - authentication
-      validators: []
-      spec:
-        params: []
-        variants:
-          - name: certificate
-            type: object
-            profiles:
-              - xpath:
-                  - certificate
-            validators: []
-            spec:
-              params:
-                - name: allow-id-payload-mismatch
-                  type: bool
-                  profiles:
-                    - xpath:
-                        - allow-id-payload-mismatch
-                  validators: []
-                  spec: {}
-                  description:
-                    Permit peer identification and certificate payload identification
-                    mismatch
-                  required: false
-                - name: certificate-profile
-                  type: string
-                  profiles:
-                    - xpath:
-                        - certificate-profile
-                  validators: []
-                  spec: {}
-                  description: Profile for certificate valdiation during IKE negotiation
-                  required: false
-                - name: local-certificate
-                  type: object
-                  profiles:
-                    - xpath:
-                        - local-certificate
-                  validators: []
-                  spec:
-                    params:
-                      - name: hash-and-url
-                        type: object
-                        profiles:
-                          - xpath:
-                              - hash-and-url
-                        validators: []
-                        spec:
-                          params:
-                            - name: base-url
-                              type: string
-                              profiles:
-                                - xpath:
-                                    - base-url
-                              validators:
-                                - type: length
-                                  spec:
-                                    max: 1024
-                              spec: {}
-                              description:
-                                The host and directory part of URL for local certificates(http
-                                only)
-                              required: false
-                            - name: enable
-                              type: bool
-                              profiles:
-                                - xpath:
-                                    - enable
-                              validators: []
-                              spec: {}
-                              description: Use hash-and-url for local certificate
-                              required: false
-                          variants: []
-                        description: ""
-                        required: false
-                      - name: name
-                        type: string
-                        profiles:
-                          - xpath:
-                              - name
-                        validators:
-                          - type: length
-                            spec:
-                              max: 255
-                        spec: {}
-                        description: Local certificate name
-                        required: false
-                    variants: []
-                  description: ""
-                  required: false
-                - name: strict-validation-revocation
-                  type: bool
-                  profiles:
-                    - xpath:
-                        - strict-validation-revocation
-                  validators: []
-                  spec: {}
-                  description: Enable strict validation of peer's extended key use
-                  required: false
-                - name: use-management-as-source
-                  type: bool
-                  profiles:
-                    - xpath:
-                        - use-management-as-source
-                  validators: []
-                  spec: {}
-                  description: Use management interface IP as source to retrieve http certificates
-                  required: false
-              variants: []
-            description: Use RSA or ECDSA digital signature authentication
-            required: false
-          - name: pre-shared-key
-            type: object
-            profiles:
-              - xpath:
-                  - pre-shared-key
-            validators: []
-            spec:
-              params:
-                - name: key
-                  type: string
-                  profiles:
-                    - xpath:
-                        - key
-                  validators:
-                    - type: length
-                      spec:
-                        max: 255
-                  spec: {}
-                  description: the string used as pre-shared key
-                  required: false
-              variants: []
-            description: Use pre-shared key for mutual authentication
-            required: false
-      description: Authentication method
-      required: false
-    - name: comment
-      type: string
-      profiles:
-        - xpath:
-            - comment
-      validators:
-        - type: length
-          spec:
-            min: 0
-            max: 1023
-      spec: {}
-      description: ""
-      required: false
-    - name: disabled
-      type: bool
-      profiles:
-        - xpath:
-            - disabled
-      validators: []
-      spec: {}
-      description: Disable the IKE gateway
-      required: false
-    - name: ipv6
-      type: bool
-      profiles:
-        - xpath:
-            - ipv6
-      validators: []
-      spec: {}
-      description: use IPv6 for the IKE gateway
-      required: false
-    - name: local-address
-      type: object
-      profiles:
-        - xpath:
-            - local-address
-      validators: []
-      spec:
-        params:
-          - name: interface
-            type: string
-            profiles:
-              - xpath:
-                  - interface
-            validators: []
-            spec: {}
-            description: local gateway end-point
-            required: false
-        variants:
-          - name: floating-ip
-            type: string
-            profiles:
-              - xpath:
-                  - floating-ip
-            validators: []
-            spec: {}
-            description: Floating IP address in HA Active-Active configuration
-            required: false
-            codegen_overrides:
-              terraform:
-                variant_check: ConflictsWith
-          - name: ip
-            type: string
-            profiles:
-              - xpath:
-                  - ip
-            validators:
-              - type: length
-                spec:
-                  max: 63
-            spec: {}
-            description: specify exact IP address if interface has multiple addresses
-            required: false
-      description: IKE gateway local IP configuration
-      required: false
-    - name: local-id
-      type: object
-      profiles:
-        - xpath:
-            - local-id
-      validators: []
-      spec:
-        params:
-          - name: id
-            type: string
-            profiles:
-              - xpath:
-                  - id
-            validators:
-              - type: length
-                spec:
-                  min: 1
-                  max: 1024
-            spec: {}
-            description: Local ID string
-            required: false
-          - name: type
-            type: string
-            profiles:
-              - xpath:
-                  - type
-            validators: []
-            spec: {}
-            description: ""
-            required: false
-        variants: []
-      description:
-        optionally how peer gateway will identify local gateway instead of
-        using IP address
-      required: false
-    - name: peer-address
-      type: object
-      profiles:
-        - xpath:
-            - peer-address
-      validators: []
-      spec:
-        params: []
-        variants:
-          - name: dynamic
-            type: object
-            profiles:
-              - xpath:
-                  - dynamic
-            validators: []
-            spec:
-              params: []
-              variants: []
-            description: peer gateway has dynamic IP address
-            required: false
-          - name: fqdn
-            type: string
-            profiles:
-              - xpath:
-                  - fqdn
-            validators:
-              - type: length
-                spec:
-                  max: 255
-            spec: {}
-            description: peer gateway FQDN name
-            required: false
-          - name: ip
-            type: string
-            profiles:
-              - xpath:
-                  - ip
-            validators: []
-            spec: {}
-            description: peer gateway has static IP address
-            required: false
-      description: Peer gateway address
-      required: false
-    - name: peer-id
-      type: object
-      profiles:
-        - xpath:
-            - peer-id
-      validators: []
-      spec:
-        params:
-          - name: id
-            type: string
-            profiles:
-              - xpath:
-                  - id
-            validators:
-              - type: length
-                spec:
-                  min: 1
-                  max: 1024
-            spec: {}
-            description: Peer ID string
-            required: false
-          - name: matching
-            type: enum
-            profiles:
-              - xpath:
-                  - matching
-            validators:
-              - type: values
-                spec:
-                  values:
-                    - exact
-                    - wildcard
-            spec:
-              default: exact
-              values:
-                - value: exact
-                - value: wildcard
-            description: Enable peer ID wildcard match for certificate authentication
-            required: false
-          - name: type
-            type: string
-            profiles:
-              - xpath:
-                  - type
-            validators: []
-            spec: {}
-            description: ""
-            required: false
-        variants: []
-      description:
-        optionally how local gateway will identify peer gateway instead of
-        using IP address
-      required: false
-    - name: protocol
-      type: object
-      profiles:
-        - xpath:
-            - protocol
-      validators: []
-      spec:
-        params:
-          - name: ikev1
-            type: object
-            profiles:
-              - xpath:
-                  - ikev1
-            validators: []
-            spec:
-              params:
-                - name: dpd
-                  type: object
-                  profiles:
-                    - xpath:
-                        - dpd
-                  validators: []
-                  spec:
-                    params:
-                      - name: enable
-                        type: bool
-                        profiles:
-                          - xpath:
-                              - enable
-                        validators: []
-                        spec: {}
-                        description: Enable Dead-Peer-Detection
-                        required: false
-                      - name: interval
-                        type: int64
-                        profiles:
-                          - xpath:
-                              - interval
-                        validators:
-                          - type: length
-                            spec:
-                              min: 2
-                              max: 100
-                        spec:
-                          default: 5
-                        description: sending interval for probing packets (in seconds)
-                        required: false
-                      - name: retry
-                        type: int64
-                        profiles:
-                          - xpath:
-                              - retry
-                        validators:
-                          - type: length
-                            spec:
-                              min: 2
-                              max: 100
-                        spec:
-                          default: 5
-                        description: number of retries before disconnection
-                        required: false
-                    variants: []
-                  description: Dead-Peer-Detection settings
-                  required: false
-                - name: exchange-mode
-                  type: enum
-                  profiles:
-                    - xpath:
-                        - exchange-mode
-                  validators:
-                    - type: values
-                      spec:
-                        values:
-                          - auto
-                          - main
-                          - aggressive
-                  spec:
-                    default: auto
-                    values:
-                      - value: auto
-                      - value: main
-                      - value: aggressive
-                  description: Exchange mode
-                  required: false
-                - name: ike-crypto-profile
-                  type: string
-                  profiles:
-                    - xpath:
-                        - ike-crypto-profile
-                  validators: []
-                  spec:
-                    default: default
-                  description: IKE SA crypto profile name
-                  required: false
-              variants: []
-            description: IKEv1 setting
-            required: false
-          - name: ikev2
-            type: object
-            profiles:
-              - xpath:
-                  - ikev2
-            validators: []
-            spec:
-              params:
-                - name: dpd
-                  type: object
-                  profiles:
-                    - xpath:
-                        - dpd
-                  validators: []
-                  spec:
-                    params:
-                      - name: enable
-                        type: bool
-                        profiles:
-                          - xpath:
-                              - enable
-                        validators: []
-                        spec: {}
-                        description: Enable sending empty information liveness check message
-                        required: false
-                      - name: interval
-                        type: int64
-                        profiles:
-                          - xpath:
-                              - interval
-                        validators:
-                          - type: length
-                            spec:
-                              min: 2
-                              max: 100
-                        spec:
-                          default: 5
-                        description: delay interval before sending probing packets (in seconds)
-                        required: false
-                    variants: []
-                  description: IKEv2 liveness check setting
-                  required: false
-                - name: ike-crypto-profile
-                  type: string
-                  profiles:
-                    - xpath:
-                        - ike-crypto-profile
-                  validators: []
-                  spec:
-                    default: default
-                  description: IKE SA crypto profile name
-                  required: false
-                - name: require-cookie
-                  type: bool
-                  profiles:
-                    - xpath:
-                        - require-cookie
-                  validators: []
-                  spec: {}
-                  description: Require cookie
-                  required: false
-              variants: []
-            description: IKEv2 setting
-            required: false
-          - name: version
-            type: enum
-            profiles:
-              - xpath:
-                  - version
-            validators:
-              - type: values
-                spec:
-                  values:
-                    - ikev1
-                    - ikev2
-                    - ikev2-preferred
-            spec:
-              default: ikev1
-              values:
-                - value: ikev1
-                - value: ikev2
-                - value: ikev2-preferred
-            description: IKE protocol version
-            required: false
-        variants: []
-      description: IKE Protocol settings
-      required: false
-    - name: protocol-common
-      type: object
-      profiles:
-        - xpath:
-            - protocol-common
-      validators: []
-      spec:
-        params:
-          - name: fragmentation
-            type: object
-            profiles:
-              - xpath:
-                  - fragmentation
-            validators: []
-            spec:
-              params:
-                - name: enable
-                  type: bool
-                  profiles:
-                    - xpath:
-                        - enable
-                  validators: []
-                  spec: {}
-                  description: Enable IKE fragmentation
-                  required: false
-              variants: []
-            description: IKE fragmentation settings
-            required: false
-          - name: nat-traversal
-            type: object
-            profiles:
-              - xpath:
-                  - nat-traversal
-            validators: []
-            spec:
-              params:
-                - name: enable
-                  type: bool
-                  profiles:
-                    - xpath:
-                        - enable
-                  validators: []
-                  spec: {}
-                  description: Enable NAT-Traversal
-                  required: false
-                - name: keep-alive-interval
-                  type: int64
-                  profiles:
-                    - xpath:
-                        - keep-alive-interval
-                  validators:
-                    - type: length
-                      spec:
-                        min: 10
-                        max: 3600
-                  spec:
-                    default: 20
-                  description: sending interval for NAT keep-alive packets (in seconds)
-                  required: false
-                - name: udp-checksum-enable
-                  type: bool
-                  profiles:
-                    - xpath:
-                        - udp-checksum-enable
-                  validators: []
-                  spec: {}
-                  description: Enable UDP checksum
-                  required: false
-              variants: []
-            description: NAT-Traversal settings
-            required: false
-          - name: passive-mode
+          - certificate
+        validators: []
+        spec:
+          params:
+          - name: allow-id-payload-mismatch
             type: bool
             profiles:
-              - xpath:
-                  - passive-mode
+            - xpath:
+              - allow-id-payload-mismatch
             validators: []
             spec: {}
-            description: Enable passive mode (responder only)
+            description: Permit peer identification and certificate payload identification
+              mismatch
             required: false
-        variants: []
-      description:
-        IKE Protocol settings common to IKEv1 and IKEv2 (IKEv2 to be supported
-        in the future)
-      required: false
+          - name: certificate-profile
+            type: string
+            profiles:
+            - xpath:
+              - certificate-profile
+            validators: []
+            spec: {}
+            description: Profile for certificate valdiation during IKE negotiation
+            required: false
+          - name: local-certificate
+            type: object
+            profiles:
+            - xpath:
+              - local-certificate
+            validators: []
+            spec:
+              params:
+              - name: hash-and-url
+                type: object
+                profiles:
+                - xpath:
+                  - hash-and-url
+                validators: []
+                spec:
+                  params:
+                  - name: base-url
+                    type: string
+                    profiles:
+                    - xpath:
+                      - base-url
+                    validators:
+                    - type: length
+                      spec:
+                        max: 1024
+                    spec: {}
+                    description: The host and directory part of URL for local certificates(http
+                      only)
+                    required: false
+                  - name: enable
+                    type: bool
+                    profiles:
+                    - xpath:
+                      - enable
+                    validators: []
+                    spec: {}
+                    description: Use hash-and-url for local certificate
+                    required: false
+                  variants: []
+                description: ''
+                required: false
+              - name: name
+                type: string
+                profiles:
+                - xpath:
+                  - name
+                validators:
+                - type: length
+                  spec:
+                    max: 255
+                spec: {}
+                description: Local certificate name
+                required: false
+              variants: []
+            description: ''
+            required: false
+          - name: strict-validation-revocation
+            type: bool
+            profiles:
+            - xpath:
+              - strict-validation-revocation
+            validators: []
+            spec: {}
+            description: Enable strict validation of peer's extended key use
+            required: false
+          - name: use-management-as-source
+            type: bool
+            profiles:
+            - xpath:
+              - use-management-as-source
+            validators: []
+            spec: {}
+            description: Use management interface IP as source to retrieve http certificates
+            required: false
+          variants: []
+        description: Use RSA or ECDSA digital signature authentication
+        required: false
+      - name: pre-shared-key
+        type: object
+        profiles:
+        - xpath:
+          - pre-shared-key
+        validators: []
+        spec:
+          params:
+          - name: key
+            type: string
+            profiles:
+            - xpath:
+              - key
+            validators:
+            - type: length
+              spec:
+                max: 255
+            spec: {}
+            description: the string used as pre-shared key
+            required: false
+            hashing:
+              type: solo
+          variants: []
+        description: Use pre-shared key for mutual authentication
+        required: false
+    description: Authentication method
+    required: false
+  - name: comment
+    type: string
+    profiles:
+    - xpath:
+      - comment
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 1023
+    spec: {}
+    description: ''
+    required: false
+  - name: disabled
+    type: bool
+    profiles:
+    - xpath:
+      - disabled
+    validators: []
+    spec: {}
+    description: Disable the IKE gateway
+    required: false
+  - name: ipv6
+    type: bool
+    profiles:
+    - xpath:
+      - ipv6
+    validators: []
+    spec: {}
+    description: use IPv6 for the IKE gateway
+    required: false
+  - name: local-address
+    type: object
+    profiles:
+    - xpath:
+      - local-address
+    validators: []
+    spec:
+      params:
+      - name: interface
+        type: string
+        profiles:
+        - xpath:
+          - interface
+        validators: []
+        spec: {}
+        description: local gateway end-point
+        required: false
+      variants:
+      - name: floating-ip
+        type: string
+        profiles:
+        - xpath:
+          - floating-ip
+        validators: []
+        spec: {}
+        description: Floating IP address in HA Active-Active configuration
+        required: false
+        codegen_overrides:
+          terraform:
+            variant_check: ConflictsWith
+        variant_group_id: 0
+      - name: ip
+        type: string
+        profiles:
+        - xpath:
+          - ip
+        validators:
+        - type: length
+          spec:
+            max: 63
+        spec: {}
+        description: specify exact IP address if interface has multiple addresses
+        required: false
+        variant_group_id: 0
+    description: IKE gateway local IP configuration
+    required: false
+  - name: local-id
+    type: object
+    profiles:
+    - xpath:
+      - local-id
+    validators: []
+    spec:
+      params:
+      - name: id
+        type: string
+        profiles:
+        - xpath:
+          - id
+        validators:
+        - type: length
+          spec:
+            min: 1
+            max: 1024
+        spec: {}
+        description: Local ID string
+        required: false
+      - name: type
+        type: string
+        profiles:
+        - xpath:
+          - type
+        validators: []
+        spec: {}
+        description: ''
+        required: false
+      variants: []
+    description: optionally how peer gateway will identify local gateway instead of
+      using IP address
+    required: false
+  - name: peer-address
+    type: object
+    profiles:
+    - xpath:
+      - peer-address
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: dynamic
+        type: object
+        profiles:
+        - xpath:
+          - dynamic
+        validators: []
+        spec:
+          params: []
+          variants: []
+        description: peer gateway has dynamic IP address
+        required: false
+      - name: fqdn
+        type: string
+        profiles:
+        - xpath:
+          - fqdn
+        validators:
+        - type: length
+          spec:
+            max: 255
+        spec: {}
+        description: peer gateway FQDN name
+        required: false
+      - name: ip
+        type: string
+        profiles:
+        - xpath:
+          - ip
+        validators: []
+        spec: {}
+        description: peer gateway has static IP address
+        required: false
+    description: Peer gateway address
+    required: false
+  - name: peer-id
+    type: object
+    profiles:
+    - xpath:
+      - peer-id
+    validators: []
+    spec:
+      params:
+      - name: id
+        type: string
+        profiles:
+        - xpath:
+          - id
+        validators:
+        - type: length
+          spec:
+            min: 1
+            max: 1024
+        spec: {}
+        description: Peer ID string
+        required: false
+      - name: matching
+        type: enum
+        profiles:
+        - xpath:
+          - matching
+        validators:
+        - type: values
+          spec:
+            values:
+            - exact
+            - wildcard
+        spec:
+          default: exact
+          values:
+          - value: exact
+          - value: wildcard
+        description: Enable peer ID wildcard match for certificate authentication
+        required: false
+      - name: type
+        type: string
+        profiles:
+        - xpath:
+          - type
+        validators: []
+        spec: {}
+        description: ''
+        required: false
+      variants: []
+    description: optionally how local gateway will identify peer gateway instead of
+      using IP address
+    required: false
+  - name: protocol
+    type: object
+    profiles:
+    - xpath:
+      - protocol
+    validators: []
+    spec:
+      params:
+      - name: ikev1
+        type: object
+        profiles:
+        - xpath:
+          - ikev1
+        validators: []
+        spec:
+          params:
+          - name: dpd
+            type: object
+            profiles:
+            - xpath:
+              - dpd
+            validators: []
+            spec:
+              params:
+              - name: enable
+                type: bool
+                profiles:
+                - xpath:
+                  - enable
+                validators: []
+                spec: {}
+                description: Enable Dead-Peer-Detection
+                required: false
+              - name: interval
+                type: int64
+                profiles:
+                - xpath:
+                  - interval
+                validators:
+                - type: length
+                  spec:
+                    min: 2
+                    max: 100
+                spec:
+                  default: 5
+                description: sending interval for probing packets (in seconds)
+                required: false
+              - name: retry
+                type: int64
+                profiles:
+                - xpath:
+                  - retry
+                validators:
+                - type: length
+                  spec:
+                    min: 2
+                    max: 100
+                spec:
+                  default: 5
+                description: number of retries before disconnection
+                required: false
+              variants: []
+            description: Dead-Peer-Detection settings
+            required: false
+          - name: exchange-mode
+            type: enum
+            profiles:
+            - xpath:
+              - exchange-mode
+            validators:
+            - type: values
+              spec:
+                values:
+                - auto
+                - main
+                - aggressive
+            spec:
+              default: auto
+              values:
+              - value: auto
+              - value: main
+              - value: aggressive
+            description: Exchange mode
+            required: false
+          - name: ike-crypto-profile
+            type: string
+            profiles:
+            - xpath:
+              - ike-crypto-profile
+            validators: []
+            spec:
+              default: default
+            description: IKE SA crypto profile name
+            required: false
+          variants: []
+        description: IKEv1 setting
+        required: false
+      - name: ikev2
+        type: object
+        profiles:
+        - xpath:
+          - ikev2
+        validators: []
+        spec:
+          params:
+          - name: dpd
+            type: object
+            profiles:
+            - xpath:
+              - dpd
+            validators: []
+            spec:
+              params:
+              - name: enable
+                type: bool
+                profiles:
+                - xpath:
+                  - enable
+                validators: []
+                spec: {}
+                description: Enable sending empty information liveness check message
+                required: false
+              - name: interval
+                type: int64
+                profiles:
+                - xpath:
+                  - interval
+                validators:
+                - type: length
+                  spec:
+                    min: 2
+                    max: 100
+                spec:
+                  default: 5
+                description: delay interval before sending probing packets (in seconds)
+                required: false
+              variants: []
+            description: IKEv2 liveness check setting
+            required: false
+          - name: ike-crypto-profile
+            type: string
+            profiles:
+            - xpath:
+              - ike-crypto-profile
+            validators: []
+            spec:
+              default: default
+            description: IKE SA crypto profile name
+            required: false
+          - name: require-cookie
+            type: bool
+            profiles:
+            - xpath:
+              - require-cookie
+            validators: []
+            spec: {}
+            description: Require cookie
+            required: false
+          variants: []
+        description: IKEv2 setting
+        required: false
+      - name: version
+        type: enum
+        profiles:
+        - xpath:
+          - version
+        validators:
+        - type: values
+          spec:
+            values:
+            - ikev1
+            - ikev2
+            - ikev2-preferred
+        spec:
+          default: ikev1
+          values:
+          - value: ikev1
+          - value: ikev2
+          - value: ikev2-preferred
+        description: IKE protocol version
+        required: false
+      variants: []
+    description: IKE Protocol settings
+    required: false
+  - name: protocol-common
+    type: object
+    profiles:
+    - xpath:
+      - protocol-common
+    validators: []
+    spec:
+      params:
+      - name: fragmentation
+        type: object
+        profiles:
+        - xpath:
+          - fragmentation
+        validators: []
+        spec:
+          params:
+          - name: enable
+            type: bool
+            profiles:
+            - xpath:
+              - enable
+            validators: []
+            spec: {}
+            description: Enable IKE fragmentation
+            required: false
+          variants: []
+        description: IKE fragmentation settings
+        required: false
+      - name: nat-traversal
+        type: object
+        profiles:
+        - xpath:
+          - nat-traversal
+        validators: []
+        spec:
+          params:
+          - name: enable
+            type: bool
+            profiles:
+            - xpath:
+              - enable
+            validators: []
+            spec: {}
+            description: Enable NAT-Traversal
+            required: false
+          - name: keep-alive-interval
+            type: int64
+            profiles:
+            - xpath:
+              - keep-alive-interval
+            validators:
+            - type: length
+              spec:
+                min: 10
+                max: 3600
+            spec:
+              default: 20
+            description: sending interval for NAT keep-alive packets (in seconds)
+            required: false
+          - name: udp-checksum-enable
+            type: bool
+            profiles:
+            - xpath:
+              - udp-checksum-enable
+            validators: []
+            spec: {}
+            description: Enable UDP checksum
+            required: false
+          variants: []
+        description: NAT-Traversal settings
+        required: false
+      - name: passive-mode
+        type: bool
+        profiles:
+        - xpath:
+          - passive-mode
+        validators: []
+        spec: {}
+        description: Enable passive mode (responder only)
+        required: false
+      variants: []
+    description: IKE Protocol settings common to IKEv1 and IKEv2 (IKEv2 to be supported
+      in the future)
+    required: false
   variants: []
