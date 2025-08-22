@@ -1,0 +1,1293 @@
+name: globalprotect-gateway
+terraform_provider_config:
+  description: Global Protect Gateway
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: globalprotect_gateway
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - device
+  - globalprotect
+  - gateway
+panos_xpath:
+  path:
+  - global-protect
+  - global-protect-gateway
+  vars: []
+locations:
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: ngfw_device
+      description: The NGFW device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The Virtual System name
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys name cannot be "shared". Use the "shared" location instead
+      type: entry
+  description: Located in a specific Virtual System
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: block-quarantined-devices
+    type: bool
+    profiles:
+    - xpath:
+      - block-quarantined-devices
+    validators: []
+    spec: {}
+    description: Block login for quarantined devices
+    required: false
+  - name: certificate-profile
+    type: string
+    profiles:
+    - xpath:
+      - certificate-profile
+    validators: []
+    spec: {}
+    description: Profile for authenticating client certificates
+    required: false
+  - name: client-auth
+    type: list
+    profiles:
+    - xpath:
+      - client-auth
+      - entry
+      type: entry
+    validators: []
+    spec:
+      type: object
+      items:
+        type: object
+        spec:
+          params:
+          - name: os
+            type: string
+            profiles:
+            - xpath:
+              - os
+            validators: []
+            spec:
+              default: Any
+            description: Client OS
+            required: false
+          - name: authentication-profile
+            type: string
+            profiles:
+            - xpath:
+              - authentication-profile
+            validators: []
+            spec: {}
+            description: authentication profile used for this GlobalProtect
+            required: false
+          - name: auto-retrieve-passcode
+            type: bool
+            profiles:
+            - xpath:
+              - auto-retrieve-passcode
+            validators: []
+            spec: {}
+            description: Automatically retrieve passcode from SoftToken application
+            required: false
+          - name: username-label
+            type: string
+            profiles:
+            - xpath:
+              - username-label
+            validators:
+            - type: length
+              spec:
+                max: 20
+            spec:
+              default: Username
+            description: Username Label
+            required: false
+          - name: password-label
+            type: string
+            profiles:
+            - xpath:
+              - password-label
+            validators:
+            - type: length
+              spec:
+                max: 20
+            spec:
+              default: Password
+            description: Password Label
+            required: false
+          - name: authentication-message
+            type: string
+            profiles:
+            - xpath:
+              - authentication-message
+            validators:
+            - type: length
+              spec:
+                max: 256
+            spec:
+              default: Enter login credentials
+            description: Authentication Message
+            required: false
+          - name: user-credential-or-client-cert-required
+            type: enum
+            profiles:
+            - xpath:
+              - user-credential-or-client-cert-required
+            validators:
+            - type: values
+              spec:
+                values:
+                - 'no'
+                - 'yes'
+            spec:
+              default: 'no'
+              values:
+              - value: 'no'
+              - value: 'yes'
+            description: Allow Authentication with User Credentials OR Client Certificate
+            required: false
+          variants: []
+    description: ''
+    required: false
+  - name: hip-notification
+    type: list
+    profiles:
+    - xpath:
+      - hip-notification
+      - entry
+      type: entry
+    validators: []
+    spec:
+      type: object
+      items:
+        type: object
+        spec:
+          params:
+          - name: match-message
+            type: object
+            profiles:
+            - xpath:
+              - match-message
+            validators: []
+            spec:
+              params:
+              - name: include-app-list
+                type: bool
+                profiles:
+                - xpath:
+                  - include-app-list
+                validators: []
+                spec: {}
+                description: Whether include matched application list in message
+                required: false
+              - name: show-notification-as
+                type: enum
+                profiles:
+                - xpath:
+                  - show-notification-as
+                validators:
+                - type: values
+                  spec:
+                    values:
+                    - system-tray-balloon
+                    - pop-up-message
+                spec:
+                  default: system-tray-balloon
+                  values:
+                  - value: system-tray-balloon
+                  - value: pop-up-message
+                description: Show notification as
+                required: false
+              - name: message
+                type: string
+                profiles:
+                - xpath:
+                  - message
+                validators:
+                - type: length
+                  spec:
+                    max: 10239
+                spec: {}
+                description: Matched message
+                required: false
+              variants: []
+            description: Display message for matching result
+            required: false
+          - name: not-match-message
+            type: object
+            profiles:
+            - xpath:
+              - not-match-message
+            validators: []
+            spec:
+              params:
+              - name: show-notification-as
+                type: enum
+                profiles:
+                - xpath:
+                  - show-notification-as
+                validators:
+                - type: values
+                  spec:
+                    values:
+                    - system-tray-balloon
+                    - pop-up-message
+                spec:
+                  default: system-tray-balloon
+                  values:
+                  - value: system-tray-balloon
+                  - value: pop-up-message
+                description: Show notification as
+                required: false
+              - name: message
+                type: string
+                profiles:
+                - xpath:
+                  - message
+                validators:
+                - type: length
+                  spec:
+                    max: 10239
+                spec: {}
+                description: Not matched message
+                required: false
+              variants: []
+            description: Display message for matching result
+            required: false
+          variants: []
+    description: ''
+    required: false
+  - name: local-address
+    type: object
+    profiles:
+    - xpath:
+      - local-address
+    validators: []
+    spec:
+      params:
+      - name: interface
+        type: string
+        profiles:
+        - xpath:
+          - interface
+        validators: []
+        spec: {}
+        description: local gateway end-point
+        required: false
+      - name: ip-address-family
+        type: enum
+        profiles:
+        - xpath:
+          - ip-address-family
+        validators:
+        - type: values
+          spec:
+            values:
+            - ipv4
+            - ipv6
+            - ipv4_ipv6
+        spec:
+          default: ipv4
+          values:
+          - value: ipv4
+          - value: ipv6
+          - value: ipv4_ipv6
+        description: specify the family of the local address
+        required: false
+      variants:
+      - name: floating-ip
+        type: object
+        profiles:
+        - xpath:
+          - floating-ip
+        validators: []
+        spec:
+          params:
+          - name: ipv4
+            type: string
+            profiles:
+            - xpath:
+              - ipv4
+            validators: []
+            spec: {}
+            description: Floating IPv4 address
+            required: false
+          - name: ipv6
+            type: string
+            profiles:
+            - xpath:
+              - ipv6
+            validators:
+            - type: length
+              spec:
+                max: 63
+            spec: {}
+            description: Floating IPv6 address
+            required: false
+          variants: []
+        description: Floating IP address in HA Active-Active configuration
+        required: false
+        variant_group_id: 0
+      - name: ip
+        type: object
+        profiles:
+        - xpath:
+          - ip
+        validators: []
+        spec:
+          params:
+          - name: ipv4
+            type: string
+            profiles:
+            - xpath:
+              - ipv4
+            validators: []
+            spec: {}
+            description: IPv4 addresses
+            required: false
+          - name: ipv6
+            type: string
+            profiles:
+            - xpath:
+              - ipv6
+            validators:
+            - type: length
+              spec:
+                max: 63
+            spec: {}
+            description: IPv6 address
+            required: false
+          variants: []
+        description: specify exact IP address if interface has multiple addresses
+        required: false
+        variant_group_id: 0
+    description: Local IP configuration
+    required: false
+  - name: log-fail
+    type: bool
+    profiles:
+    - xpath:
+      - log-fail
+    validators: []
+    spec: {}
+    description: Log unsuccessful TLS handshakes
+    required: false
+  - name: log-setting
+    type: string
+    profiles:
+    - xpath:
+      - log-setting
+    validators:
+    - type: length
+      spec:
+        max: 63
+    spec: {}
+    description: ''
+    required: false
+  - name: log-success
+    type: bool
+    profiles:
+    - xpath:
+      - log-success
+    validators: []
+    spec: {}
+    description: Log successful TLS handshakes
+    required: false
+  - name: remote-user-tunnel
+    type: string
+    profiles:
+    - xpath:
+      - remote-user-tunnel
+    validators:
+    - type: length
+      spec:
+        max: 31
+    spec: {}
+    description: GlobalProtect user tunnel
+    required: false
+  - name: remote-user-tunnel-configs
+    type: list
+    profiles:
+    - xpath:
+      - remote-user-tunnel-configs
+      - entry
+      type: entry
+    validators: []
+    spec:
+      type: object
+      items:
+        type: object
+        spec:
+          params:
+          - name: source-user
+            type: list
+            profiles:
+            - xpath:
+              - source-user
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          - name: os
+            type: list
+            profiles:
+            - xpath:
+              - os
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          - name: dns-server
+            type: list
+            profiles:
+            - xpath:
+              - dns-server
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          - name: dns-suffix
+            type: list
+            profiles:
+            - xpath:
+              - dns-suffix
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          - name: ip-pool
+            type: list
+            profiles:
+            - xpath:
+              - ip-pool
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          - name: authentication-server-ip-pool
+            type: list
+            profiles:
+            - xpath:
+              - authentication-server-ip-pool
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          - name: authentication-override
+            type: object
+            profiles:
+            - xpath:
+              - authentication-override
+            validators: []
+            spec:
+              params:
+              - name: generate-cookie
+                type: bool
+                profiles:
+                - xpath:
+                  - generate-cookie
+                validators: []
+                spec: {}
+                description: Generate cookie for authentication override
+                required: false
+              - name: cookie-encrypt-decrypt-cert
+                type: string
+                profiles:
+                - xpath:
+                  - cookie-encrypt-decrypt-cert
+                validators:
+                - type: length
+                  spec:
+                    max: 255
+                spec: {}
+                description: Certificate to Encrypt/Decrypt Cookie
+                required: false
+              - name: accept-cookie
+                type: object
+                profiles:
+                - xpath:
+                  - accept-cookie
+                validators: []
+                spec:
+                  params:
+                  - name: cookie-lifetime
+                    type: object
+                    profiles:
+                    - xpath:
+                      - cookie-lifetime
+                    validators: []
+                    spec:
+                      params: []
+                      variants:
+                      - name: lifetime-in-days
+                        type: int64
+                        profiles:
+                        - xpath:
+                          - lifetime-in-days
+                        validators:
+                        - type: length
+                          spec:
+                            min: 1
+                            max: 365
+                        spec: {}
+                        description: Cookie lifetime in days
+                        required: false
+                      - name: lifetime-in-hours
+                        type: int64
+                        profiles:
+                        - xpath:
+                          - lifetime-in-hours
+                        validators:
+                        - type: length
+                          spec:
+                            min: 1
+                            max: 72
+                        spec: {}
+                        description: Cookie lifetime in hours
+                        required: false
+                      - name: lifetime-in-minutes
+                        type: int64
+                        profiles:
+                        - xpath:
+                          - lifetime-in-minutes
+                        validators:
+                        - type: length
+                          spec:
+                            min: 1
+                            max: 59
+                        spec: {}
+                        description: Cookie lifetime in minutes
+                        required: false
+                    description: Cookie Lifetime
+                    required: false
+                  variants: []
+                description: Accept cookie for authentication override
+                required: false
+              variants: []
+            description: Authentication Override
+            required: false
+          - name: source-address
+            type: object
+            profiles:
+            - xpath:
+              - source-address
+            validators: []
+            spec:
+              params:
+              - name: region
+                type: list
+                profiles:
+                - xpath:
+                  - region
+                  type: member
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ''
+                required: false
+              - name: ip-address
+                type: list
+                profiles:
+                - xpath:
+                  - ip-address
+                  type: member
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ''
+                required: false
+              variants: []
+            description: ''
+            required: false
+          - name: split-tunneling
+            type: object
+            profiles:
+            - xpath:
+              - split-tunneling
+            validators: []
+            spec:
+              params:
+              - name: access-route
+                type: list
+                profiles:
+                - xpath:
+                  - access-route
+                  type: member
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ''
+                required: false
+              - name: exclude-access-route
+                type: list
+                profiles:
+                - xpath:
+                  - exclude-access-route
+                  type: member
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ''
+                required: false
+              - name: include-applications
+                type: list
+                profiles:
+                - xpath:
+                  - include-applications
+                  type: member
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ''
+                required: false
+              - name: exclude-applications
+                type: list
+                profiles:
+                - xpath:
+                  - exclude-applications
+                  type: member
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ''
+                required: false
+              - name: include-domains
+                type: object
+                profiles:
+                - xpath:
+                  - include-domains
+                validators: []
+                spec:
+                  params:
+                  - name: list
+                    type: list
+                    profiles:
+                    - xpath:
+                      - list
+                      - entry
+                      type: entry
+                    validators: []
+                    spec:
+                      type: object
+                      items:
+                        type: object
+                        spec:
+                          params:
+                          - name: ports
+                            type: list
+                            profiles:
+                            - xpath:
+                              - ports
+                              type: member
+                            validators: []
+                            spec:
+                              type: int64
+                              items:
+                                type: int64
+                            description: ''
+                            required: false
+                          variants: []
+                    description: ''
+                    required: false
+                  variants: []
+                description: Domains need to go through tunnel
+                required: false
+              - name: exclude-domains
+                type: object
+                profiles:
+                - xpath:
+                  - exclude-domains
+                validators: []
+                spec:
+                  params:
+                  - name: list
+                    type: list
+                    profiles:
+                    - xpath:
+                      - list
+                      - entry
+                      type: entry
+                    validators: []
+                    spec:
+                      type: object
+                      items:
+                        type: object
+                        spec:
+                          params:
+                          - name: ports
+                            type: list
+                            profiles:
+                            - xpath:
+                              - ports
+                              type: member
+                            validators: []
+                            spec:
+                              type: int64
+                              items:
+                                type: int64
+                            description: ''
+                            required: false
+                          variants: []
+                    description: ''
+                    required: false
+                  variants: []
+                description: Domains need to go out of tunnel
+                required: false
+              variants: []
+            description: split tunneling settings
+            required: false
+          - name: no-direct-access-to-local-network
+            type: bool
+            profiles:
+            - xpath:
+              - no-direct-access-to-local-network
+            validators: []
+            spec: {}
+            description: No direct access to local network
+            required: false
+          - name: retrieve-framed-ip-address
+            type: bool
+            profiles:
+            - xpath:
+              - retrieve-framed-ip-address
+            validators: []
+            spec: {}
+            description: retrieve framed ip address
+            required: false
+          variants: []
+    description: ''
+    required: false
+  - name: roles
+    type: list
+    profiles:
+    - xpath:
+      - roles
+      - entry
+      type: entry
+    validators: []
+    spec:
+      type: object
+      items:
+        type: object
+        spec:
+          params:
+          - name: login-lifetime
+            type: object
+            profiles:
+            - xpath:
+              - login-lifetime
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: minutes
+                type: int64
+                profiles:
+                - xpath:
+                  - minutes
+                validators:
+                - type: length
+                  spec:
+                    min: 120
+                    max: 43200
+                spec: {}
+                description: specify lifetime in minutes
+                required: false
+              - name: hours
+                type: int64
+                profiles:
+                - xpath:
+                  - hours
+                validators:
+                - type: length
+                  spec:
+                    min: 2
+                    max: 720
+                spec: {}
+                description: specify lifetime in hours
+                required: false
+              - name: days
+                type: int64
+                profiles:
+                - xpath:
+                  - days
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 30
+                spec: {}
+                description: specify lifetime in days
+                required: false
+            description: GlobalProtect gateway  user login lifetime before re-authentication
+            required: false
+          - name: inactivity-logout
+            type: int64
+            profiles:
+            - xpath:
+              - inactivity-logout
+            validators:
+            - type: length
+              spec:
+                min: 5
+                max: 43200
+            spec:
+              default: 180
+            description: Logout the GlobalProtect user session if the GlobalProtect
+              app has not sent traffic in the specified amount of minutes.
+            required: false
+          - name: lifetime-notify-prior
+            type: int64
+            profiles:
+            - xpath:
+              - lifetime-notify-prior
+              min_version: 11.0.2
+              max_version: 11.0.3
+            validators:
+            - type: length
+              spec:
+                min: 0
+                max: 60
+            spec:
+              default: 30
+            description: Notify users before the lifetime expiration in the specified
+              amount of minutes.
+            required: false
+          - name: lifetime-notify-message
+            type: string
+            profiles:
+            - xpath:
+              - lifetime-notify-message
+              min_version: 11.0.2
+              max_version: 11.0.3
+            validators:
+            - type: length
+              spec:
+                max: 127
+            spec:
+              default: Your GlobalProtect session will expire in 30 minutes. Please
+                save your work before your session expires.
+            description: Lifetime expiration notification displayed on GP app
+            required: false
+          - name: inactivity-notify-prior
+            type: int64
+            profiles:
+            - xpath:
+              - inactivity-notify-prior
+              min_version: 11.0.2
+              max_version: 11.0.3
+            validators:
+            - type: length
+              spec:
+                min: 0
+                max: 60
+            spec:
+              default: 30
+            description: Notify users before the inactivity timeout in the specified
+              amount of minutes.
+            required: false
+          - name: inactivity-notify-message
+            type: string
+            profiles:
+            - xpath:
+              - inactivity-notify-message
+              min_version: 11.0.2
+              max_version: 11.0.3
+            validators:
+            - type: length
+              spec:
+                max: 127
+            spec:
+              default: Your GlobalProtect session will time out in 30 minutes. Please
+                save your work before your session times out.
+            description: Inactivity logout notification displayed on GP app
+            required: false
+          - name: admin-logout-notify
+            type: bool
+            profiles:
+            - xpath:
+              - admin-logout-notify
+              min_version: 11.0.2
+              max_version: 11.0.3
+            validators: []
+            spec: {}
+            description: Notify users on admin logout
+            required: false
+          - name: admin-logout-notify-message
+            type: string
+            profiles:
+            - xpath:
+              - admin-logout-notify-message
+              min_version: 11.0.2
+              max_version: 11.0.3
+            validators:
+            - type: length
+              spec:
+                max: 127
+            spec:
+              default: Your administrator has logged you out.
+            description: Admin logout notification displayed on GP app
+            required: false
+          variants: []
+    description: ''
+    required: false
+  - name: satellite-tunnel
+    type: string
+    profiles:
+    - xpath:
+      - satellite-tunnel
+    validators:
+    - type: length
+      spec:
+        max: 31
+    spec: {}
+    description: GlobalProtect satellite tunnel
+    required: false
+  - name: security-restrictions
+    type: object
+    profiles:
+    - xpath:
+      - security-restrictions
+    validators: []
+    spec:
+      params:
+      - name: disallow-automatic-restoration
+        type: bool
+        profiles:
+        - xpath:
+          - disallow-automatic-restoration
+        validators: []
+        spec: {}
+        description: Disallow Automatic Restoration of SSL VPN
+        required: false
+      - name: source-ip-enforcement
+        type: object
+        profiles:
+        - xpath:
+          - source-ip-enforcement
+        validators: []
+        spec:
+          params:
+          - name: enable
+            type: bool
+            profiles:
+            - xpath:
+              - enable
+            validators: []
+            spec: {}
+            description: Allow Authentication Cookie Usage Only
+            required: false
+          variants:
+          - name: custom
+            type: object
+            profiles:
+            - xpath:
+              - custom
+            validators: []
+            spec:
+              params:
+              - name: source-ipv4-netmask
+                type: int64
+                profiles:
+                - xpath:
+                  - source-ipv4-netmask
+                validators:
+                - type: length
+                  spec:
+                    min: 0
+                    max: 32
+                spec: {}
+                description: Source IPv4 Netmask
+                required: false
+              - name: source-ipv6-netmask
+                type: int64
+                profiles:
+                - xpath:
+                  - source-ipv6-netmask
+                validators:
+                - type: length
+                  spec:
+                    min: 0
+                    max: 128
+                spec: {}
+                description: Source IPv6 Netmask
+                required: false
+              variants: []
+            description: ''
+            required: false
+            variant_group_id: 0
+          - name: default
+            type: object
+            profiles:
+            - xpath:
+              - default
+            validators: []
+            spec:
+              params: []
+              variants: []
+            description: ''
+            required: false
+            variant_group_id: 0
+        description: Source IP Enforcement
+        required: false
+      variants: []
+    description: Security Hardening for GlobalProtect
+    required: false
+  - name: ssl-tls-service-profile
+    type: string
+    profiles:
+    - xpath:
+      - ssl-tls-service-profile
+    validators:
+    - type: length
+      spec:
+        max: 255
+    spec: {}
+    description: SSL TLS service profile
+    required: false
+  - name: tunnel-mode
+    type: bool
+    profiles:
+    - xpath:
+      - tunnel-mode
+    validators: []
+    spec: {}
+    description: Tunnel mode
+    required: false
+  variants: []
