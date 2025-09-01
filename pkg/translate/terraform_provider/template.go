@@ -503,7 +503,7 @@ entries := make([]*{{ $resourceSDKStructName }}, len(elements))
 idx := 0
 for name, elt := range elements {
 	var entry *{{ .resourceSDKName }}.{{ .EntryOrConfig }}
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, nil, &entry, ev)...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, r.client, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -521,7 +521,7 @@ if resp.Diagnostics.HasError() {
 entries := make([]*{{ $resourceSDKStructName }}, len(elements))
 for idx, elt := range elements {
 	var entry *{{ .resourceSDKName }}.{{ .EntryOrConfig }}
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, nil, &entry, ev)...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, r.client, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -549,7 +549,7 @@ for _, elt := range created {
 	}
 	var object {{ $resourceTFStructName }}
 	object.name = elt.Name
-	resp.Diagnostics.Append(object.CopyFromPango(ctx, nil, elt, ev)...)
+	resp.Diagnostics.Append(object.CopyFromPango(ctx, r.client, nil, elt, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -575,7 +575,7 @@ for _, elt := range created {
 	}
 
 	var object {{ $resourceTFStructName }}
-	resp.Diagnostics.Append(object.CopyFromPango(ctx, nil, elt, ev)...)
+	resp.Diagnostics.Append(object.CopyFromPango(ctx, r.client, nil, elt, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -627,7 +627,7 @@ if resp.Diagnostics.HasError() {
 entries := make([]*{{ $resourceSDKStructName }}, len(elements))
 for idx, elt := range elements {
 	var entry *{{ $resourceSDKStructName }}
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, nil, &entry, ev)...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, r.client, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -662,7 +662,7 @@ if err != nil {
 objects := make([]{{ $resourceTFStructName }}, len(processed))
 for idx, elt := range processed {
 	var object {{ $resourceTFStructName }}
-	copy_diags := object.CopyFromPango(ctx, nil, elt, ev)
+	copy_diags := object.CopyFromPango(ctx, r.client, nil, elt, ev)
 	resp.Diagnostics.Append(copy_diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -719,7 +719,7 @@ const resourceCreateFunction = `
 
 	// Load the desired config.
 	var obj *{{ .resourceSDKName }}.{{ .EntryOrConfig }}
-	resp.Diagnostics.Append(state.CopyToPango(ctx, nil, &obj, ev)...)
+	resp.Diagnostics.Append(state.CopyToPango(ctx, r.client, nil, &obj, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -763,7 +763,7 @@ const resourceCreateFunction = `
 {{- end }}
 
 
-	resp.Diagnostics.Append(state.CopyFromPango(ctx, nil, created, ev)...)
+	resp.Diagnostics.Append(state.CopyFromPango(ctx, r.client, nil, created, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -823,7 +823,7 @@ if len(elements) == 0 || resp.Diagnostics.HasError() {
 entries := make([]*{{ $resourceSDKStructName }}, 0, len(elements))
 for name, elt := range elements {
 	var entry *{{ $resourceSDKStructName }}
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, nil, &entry, ev)...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, o.client, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -840,7 +840,7 @@ if resp.Diagnostics.HasError() {
 entries := make([]*{{ $resourceSDKStructName }}, 0, len(elements))
 for _, elt := range elements {
 	var entry *{{ $resourceSDKStructName }}
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, nil, &entry, ev)...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, o.client, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -869,7 +869,7 @@ objects := make(map[string]{{ $resourceTFStructName }})
 for _, elt := range readEntries {
 	var object {{ $resourceTFStructName }}
 	object.name = elt.Name
-	resp.Diagnostics.Append(object.CopyFromPango(ctx, nil, elt, ev)...)
+	resp.Diagnostics.Append(object.CopyFromPango(ctx, o.client, nil, elt, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -879,7 +879,7 @@ for _, elt := range readEntries {
 objects := make([]{{ $resourceTFStructName }}, len(readEntries))
 for idx, elt := range readEntries {
 	var object {{ $resourceTFStructName }}
-	resp.Diagnostics.Append(object.CopyFromPango(ctx, nil, elt, ev)...)
+	resp.Diagnostics.Append(object.CopyFromPango(ctx, o.client, nil, elt, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -963,7 +963,7 @@ if resp.Diagnostics.HasError() || len(elements) == 0 {
 entries := make([]*{{ $resourceSDKStructName }}, 0, len(elements))
 for _, elt := range elements {
 	var entry *{{ $resourceSDKStructName }}
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, nil, &entry, ev)...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, o.client, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -1001,7 +1001,7 @@ if err != nil {
 var objects []{{ $resourceTFStructName }}
 for _, elt := range readEntries {
 	var object {{ $resourceTFStructName }}
-	err := object.CopyFromPango(ctx, nil, elt, ev)
+	err := object.CopyFromPango(ctx, o.client, nil, elt, ev)
 	resp.Diagnostics.Append(err...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -1077,7 +1077,7 @@ const resourceReadFunction = `
 		return
 	}
 
-	copy_diags := state.CopyFromPango(ctx, nil, object, ev)
+	copy_diags := state.CopyFromPango(ctx, o.client, nil, object, ev)
 	resp.Diagnostics.Append(copy_diags...)
 
 	/*
@@ -1135,7 +1135,7 @@ stateEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
 idx := 0
 for name, elt := range elements {
 	var entry *{{ .resourceSDKName }}.{{ .EntryOrConfig }}
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, nil, &entry, ev)...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, r.client, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -1153,7 +1153,7 @@ if resp.Diagnostics.HasError() {
 stateEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
 for idx, elt := range elements {
 	var entry *{{ $resourceSDKStructName }}
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, nil, &entry, ev)...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, r.client, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		 return
 	}
@@ -1200,7 +1200,7 @@ planEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
 idx = 0
 for name, elt := range elements {
 	entry, _ := existingEntriesByName[name]
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, nil, &entry, ev)...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, r.client, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -1213,7 +1213,7 @@ for name, elt := range elements {
 var planEntries []*{{ $resourceSDKStructName }}
 for _, elt := range elements {
 	existingEntry, _ := existingEntriesByName[elt.Name.ValueString()]
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, nil, &existingEntry, ev)...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, r.client, nil, &existingEntry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -1233,7 +1233,7 @@ objects := make(map[string]*{{ $resourceTFStructName }}, len(processed))
 for _, elt := range processed {
 	var object {{ $resourceTFStructName }}
 	object.name = elt.Name
-	copy_diags := object.CopyFromPango(ctx, nil, elt, ev)
+	copy_diags := object.CopyFromPango(ctx, r.client, nil, elt, ev)
 	resp.Diagnostics.Append(copy_diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -1244,7 +1244,7 @@ for _, elt := range processed {
 objects := make([]*{{ $resourceTFStructName }}, len(processed))
 for idx, elt := range processed {
 	var object {{ $resourceTFStructName }}
-	resp.Diagnostics.Append(object.CopyFromPango(ctx, nil, elt, ev)...)
+	resp.Diagnostics.Append(object.CopyFromPango(ctx, r.client, nil, elt, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -1301,7 +1301,7 @@ if resp.Diagnostics.HasError() {
 stateEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
 for idx, elt := range elements {
 	var entry *{{ $resourceSDKStructName }}
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, nil, &entry, ev)...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, r.client, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		 return
 	}
@@ -1340,7 +1340,7 @@ if resp.Diagnostics.HasError() {
 planEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
 for idx, elt := range elements {
 	entry, _ := existingEntriesByName[elt.Name.ValueString()]
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, nil, &entry, ev)...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, r.client, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -1361,7 +1361,7 @@ if err != nil {
 objects := make([]*{{ $resourceTFStructName }}, len(processed))
 for idx, elt := range processed {
 	var object {{ $resourceTFStructName }}
-	copy_diags := object.CopyFromPango(ctx, nil, elt, ev)
+	copy_diags := object.CopyFromPango(ctx, r.client, nil, elt, ev)
 	resp.Diagnostics.Append(copy_diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -1424,7 +1424,7 @@ const resourceUpdateFunction = `
 		return
 	}
 
-	resp.Diagnostics.Append(plan.CopyToPango(ctx, nil, &obj, ev)...)
+	resp.Diagnostics.Append(plan.CopyToPango(ctx, r.client, nil, &obj, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -1450,8 +1450,7 @@ const resourceUpdateFunction = `
 		state.Timeouts = plan.Timeouts
 	*/
 
-
-	copy_diags := plan.CopyFromPango(ctx, nil, updated, ev)
+	copy_diags := plan.CopyFromPango(ctx, r.client, nil, updated, ev)
 	resp.Diagnostics.Append(copy_diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -1949,7 +1948,7 @@ const resourceImportStateFunctionTmpl = `
 	}
 	for _, elt := range objectNames {
 		object := &{{ .ListStructName }}{}
-		resp.Diagnostics.Append(object.CopyFromPango(ctx, nil, &{{ .PangoStructName }}{}, ev)...)
+		resp.Diagnostics.Append(object.CopyFromPango(ctx, r.client, nil, &{{ .PangoStructName }}{}, ev)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
@@ -1972,7 +1971,7 @@ const resourceImportStateFunctionTmpl = `
 	}
 	for _, elt := range objectNames {
 		object := &{{ .ListStructName }}{}
-		resp.Diagnostics.Append(object.CopyFromPango(ctx, nil, &{{ .PangoStructName }}{}, ev)...)
+		resp.Diagnostics.Append(object.CopyFromPango(ctx, r.client, nil, &{{ .PangoStructName }}{}, ev)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
