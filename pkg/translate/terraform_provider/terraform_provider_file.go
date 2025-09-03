@@ -269,12 +269,10 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 
 			terraformProvider.ImportManager.AddStandardImport("errors", "")
 			switch resourceTyp {
-			case properties.ResourceUuid:
+			case properties.ResourceUuid, properties.ResourceUuidPlural:
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/movement", "")
 				terraformProvider.ImportManager.AddStandardImport("strings", "")
 			case properties.ResourceEntry:
-			case properties.ResourceUuidPlural:
-				terraformProvider.ImportManager.AddStandardImport("strings", "")
 			case properties.ResourceEntryPlural:
 			case properties.ResourceCustom, properties.ResourceConfig:
 			}

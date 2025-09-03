@@ -971,17 +971,20 @@ for _, elt := range elements {
 }
 
 {{ $exhaustive := "sdkmanager.NonExhaustive" }}
-// {{ .Exhaustive }}
 {{- if .Exhaustive }}
   {{ $exhaustive = "sdkmanager.Exhaustive" }}
 position := movement.PositionFirst{}
 {{- else }}
+var position movement.Position
 var positionAttribute TerraformPositionObject
-resp.Diagnostics.Append(state.Position.As(ctx, &positionAttribute, basetypes.ObjectAsOptions{})...)
-if resp.Diagnostics.HasError() {
-	return
+if !state.Position.IsNull() && !state.Position.IsUnknown() {
+	resp.Diagnostics.Append(state.Position.As(ctx, &positionAttribute, basetypes.ObjectAsOptions{})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	position = positionAttribute.CopyToPango()
 }
-position := positionAttribute.CopyToPango()
 {{- end }}
 
 {{- if .Exhaustive }}
