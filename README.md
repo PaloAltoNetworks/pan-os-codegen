@@ -38,6 +38,9 @@ This command can be parametrizes using options:
   - `mksdk` - create only PAN-OS SDK
 - `config` - specify path for the config file, default is `cmd/codegen/config.yaml`
 
+You can control logging level with `CODEGEN_LOG_LEVEL' environment variable, setting to accepted
+values: *error*, *warning*, *info*, *debug*.
+
 ## Generate SDK
 
 In order to use generated SDK code, go to directory defined in `config.yaml` e.g. `../generated/pango` and execute
@@ -70,7 +73,7 @@ export PANOS_API_KEY=...
 
 Consult this [documentation page](https://docs.paloaltonetworks.com/pan-os/11-0/pan-os-panorama-api/get-started-with-the-pan-os-xml-api/get-your-api-key) to obtain an API key. The same page mentions that:
 
-> If you have an existing key and generate another key for the same user, all existing sessions will end for the user and previous API sessions will be deleted. 
+> If you have an existing key and generate another key for the same user, all existing sessions will end for the user and previous API sessions will be deleted.
 
 This is the reason why we don't use user name and password for a provider configuration with the environment variables `PANOS_USERNAME` and `PANOS_PASSWORD` in the context of acceptance tests.
 

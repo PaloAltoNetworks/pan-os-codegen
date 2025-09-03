@@ -7,6 +7,7 @@ import (
 	"go/format"
 	"io"
 	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -37,8 +38,6 @@ func NewCreator(goOutputDir, templatesDir string, spec *properties.Normalization
 
 // RenderTemplate loops through all templates, parses them, and renders content, which is saved to the output file.
 func (c *Creator) RenderTemplate() error {
-	log.Println("Start rendering templates")
-
 	templates, err := c.listOfTemplates()
 	if err != nil {
 		return fmt.Errorf("error listing templates: %w", err)
@@ -46,7 +45,7 @@ func (c *Creator) RenderTemplate() error {
 
 	for _, templateName := range templates {
 		filePath := c.createFullFilePath(templateName)
-		log.Printf("Creating file: %s\n", filePath)
+		slog.Debug("Creating target file", "path", filePath)
 
 		if err := c.makeAllDirs(filePath); err != nil {
 			return fmt.Errorf("error creating directories for %s: %w", filePath, err)

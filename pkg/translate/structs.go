@@ -3,7 +3,6 @@ package translate
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"strings"
 	"text/template"
 
@@ -565,8 +564,6 @@ func checkIfDeviceVersionSupportedByProfile(param *properties.SpecParam, deviceV
 		if profile.MinVersion == nil && profile.MaxVersion == nil {
 			return true
 		}
-
-		log.Printf("Param: %s, deviceVersion: %s, MinVersion: %s, MaxVersion: %s", param.Name.CamelCase, deviceVersion, profile.MinVersion.String(), profile.MaxVersion.String())
 
 		if deviceVersion.GreaterThanOrEqualTo(*profile.MinVersion) && deviceVersion.LesserThan(*profile.MaxVersion) {
 			return true
