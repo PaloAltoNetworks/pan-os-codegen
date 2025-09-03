@@ -313,7 +313,7 @@ const copyToPangoTmpl = `
 		}
 
 		for _, elt := range object_entries {
-			{{ $pangoEntries }} = append({{ $pangoEntries }}, elt.ValueString())
+			{{ $pangoEntries }} = append({{ $pangoEntries }}, elt.Value{{ .ItemsType | PascalCase }}())
 		}
 	}
     {{- end }}
