@@ -1105,6 +1105,73 @@ func TestAccSecurityPolicyRules_Hierarchy_UniqueNames(t *testing.T) {
 	testAccSecurityPolicyRules_Hierarchy(t, parentRules, childRules)
 }
 
+const securityPolicyRules_UpdateMissing_Tmpl = `
+variable "prefix" { type = string }
+variable "rule_names" { type = list(string) }
+
+resource "panos_security_policy_rules" "policy" {
+  location = { device_group = { name = format("%s-dg", var.prefix) }}
+
+  position = { where = "first" }
+
+  rules = [
+    for index, name in var.rule_names: {
+      name = name
+
+      source_zones     = ["any"]
+      source_addresses = ["any"]
+
+      destination_zones     = ["any"]
+      destination_addresses = ["any"]
+
+      services = ["any"]
+      applications = ["any"]
+    }
+  ]
+}
+`
+
+func TestAccSecurityPolicyRules_UpdateMissing(t *testing.T) {
+	t.Parallel()
+
+	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
+	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
+	rules := []string{"rule-1", "rule-2", "rule-3"}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+
+		},
+		ProtoV6ProviderFactories: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: securityPolicyRules_UpdateMissing_Tmpl,
+				ConfigVariables: map[string]config.Variable{
+					"prefix":     config.StringVariable(prefix),
+					"rule_names": config.ListVariable(withPrefix(prefix, rules)...),
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					ExpectServerSecurityRulesOrder(prefix, rules),
+				},
+			},
+			{
+				Config: securityPolicyRules_UpdateMissing_Tmpl,
+				ConfigVariables: map[string]config.Variable{
+					"prefix":     config.StringVariable(prefix),
+					"rule_names": config.ListVariable(withPrefix(prefix, rules)...),
+				},
+				PreConfig: func() {
+					DeleteServerSecurityRules(prefix, []string{"rule-2"})
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					ExpectServerSecurityRulesOrder(prefix, rules),
+				},
+			},
+		},
+	})
+}
+
 func mergeConfigs(configs ...string) string {
 	return strings.Join(configs, "\n")
 }
