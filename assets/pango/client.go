@@ -1232,19 +1232,18 @@ func (c *Client) sendRequest(ctx context.Context, req *http.Request, strip bool,
 		return body, resp, fmt.Errorf("err unmarshaling into provided interface: %s", err)
 	}
 
-	c.logger.WithLogCategory(LogCategoryReceive).Debug("Received data from server", "body", c.prepareReceiveDataForLogging(body))
+	c.logger.WithLogCategory(LogCategoryReceive).Info("Received data from server", "body", c.prepareReceiveDataForLogging(body))
 
 	return body, resp, nil
 }
 
 func (c *Client) logSend(data url.Values) {
-	c.logger.WithLogCategory(LogCategoryPango).Debug("Hello World!")
 	sendData := slog.Group("data", c.prepareSendDataForLogging(data)...)
 	if c.logger.enabledFor(LogCategoryCurl) {
 		curlEquivalent := slog.Group("curl", c.prepareSendDataAsCurl(data)...)
-		c.logger.WithLogCategory(LogCategorySend).Debug("data sent to the server", sendData, curlEquivalent)
+		c.logger.WithLogCategory(LogCategorySend).Info("data sent to the server", sendData, curlEquivalent)
 	} else {
-		c.logger.WithLogCategory(LogCategorySend).Debug("data sent to the server", sendData)
+		c.logger.WithLogCategory(LogCategorySend).Info("data sent to the server", sendData)
 	}
 }
 
