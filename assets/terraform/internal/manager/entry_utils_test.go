@@ -96,8 +96,9 @@ func (o *MockEntryClient[E]) Versioning() version.Number {
 type entryState string
 
 const (
-	entryDeleted entryState = "delete"
-	entryOk      entryState = "ok"
+	entryInitial entryState = "initial"
+	entryDeleted entryState = "deleted"
+	entryUpdated entryState = "updated"
 )
 
 func (o *MockEntryClient[E]) ChunkedMultiConfig(ctx context.Context, updates *xmlapi.MultiConfig, strict bool, extras url.Values) ([]xmlapi.ChunkedMultiConfigResponse, error) {
