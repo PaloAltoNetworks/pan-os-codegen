@@ -1,0 +1,418 @@
+name: dhcp
+terraform_provider_config:
+  description: DNS Proxy
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: dns_proxy
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - network
+  - dnsproxy
+panos_xpath:
+  path:
+  - network
+  - dns-proxy
+  vars: []
+locations:
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: cache
+    type: object
+    profiles:
+    - xpath:
+      - cache
+    validators: []
+    spec:
+      params:
+      - name: cache-edns
+        type: bool
+        profiles:
+        - xpath:
+          - cache-edns
+        validators: []
+        spec: {}
+        description: Cache EDNS UDP response
+        required: false
+      - name: enabled
+        type: bool
+        profiles:
+        - xpath:
+          - enabled
+        validators: []
+        spec: {}
+        description: Turn on caching for this DNS object
+        required: false
+      - name: max-ttl
+        type: object
+        profiles:
+        - xpath:
+          - max-ttl
+        validators: []
+        spec:
+          params:
+          - name: enabled
+            type: bool
+            profiles:
+            - xpath:
+              - enabled
+            validators: []
+            spec: {}
+            description: Enable max ttl for this DNS object
+            required: false
+          - name: time-to-live
+            type: int64
+            profiles:
+            - xpath:
+              - time-to-live
+            validators:
+            - type: length
+              spec:
+                min: 60
+                max: 86400
+            spec: {}
+            description: Time in seconds after which entry is cleared
+            required: false
+          variants: []
+        description: Specify DNS cache related settings
+        required: false
+      variants: []
+    description: Specify DNS cache related settings
+    required: false
+  - name: default
+    type: object
+    profiles:
+    - xpath:
+      - default
+    validators: []
+    spec:
+      params:
+      - name: inheritance
+        type: object
+        profiles:
+        - xpath:
+          - inheritance
+        validators: []
+        spec:
+          params:
+          - name: source
+            type: string
+            profiles:
+            - xpath:
+              - source
+            validators: []
+            spec: {}
+            description: Dynamic interface
+            required: false
+          variants: []
+        description: Inherit settings from interface
+        required: false
+      - name: primary
+        type: string
+        profiles:
+        - xpath:
+          - primary
+        validators: []
+        spec: {}
+        description: Primary DNS Name server IP address
+        required: false
+      - name: secondary
+        type: string
+        profiles:
+        - xpath:
+          - secondary
+        validators: []
+        spec: {}
+        description: Secondary DNS Name server IP address
+        required: false
+      variants: []
+    description: Specify DNS default settings
+    required: false
+  - name: domain-servers
+    type: list
+    profiles:
+    - xpath:
+      - domain-servers
+      - entry
+      type: entry
+    validators: []
+    spec:
+      type: object
+      items:
+        type: object
+        spec:
+          params:
+          - name: cacheable
+            type: bool
+            profiles:
+            - xpath:
+              - cacheable
+            validators: []
+            spec: {}
+            description: Turn on caching of domains resolved by this mapping
+            required: false
+          - name: primary
+            type: string
+            profiles:
+            - xpath:
+              - primary
+            validators: []
+            spec: {}
+            description: Primary DNS Name server IP address
+            required: false
+          - name: secondary
+            type: string
+            profiles:
+            - xpath:
+              - secondary
+            validators: []
+            spec: {}
+            description: Secondary DNS Name server IP address
+            required: false
+          - name: domain-name
+            type: list
+            profiles:
+            - xpath:
+              - domain-name
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          variants: []
+    description: ''
+    required: false
+  - name: enabled
+    type: bool
+    profiles:
+    - xpath:
+      - enabled
+    validators: []
+    spec: {}
+    description: Enable or disable processing of DNS requests on interface(s) on this
+      object
+    required: false
+  - name: interface
+    type: list
+    profiles:
+    - xpath:
+      - interface
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: static-entries
+    type: list
+    profiles:
+    - xpath:
+      - static-entries
+      - entry
+      type: entry
+    validators: []
+    spec:
+      type: object
+      items:
+        type: object
+        spec:
+          params:
+          - name: domain
+            type: string
+            profiles:
+            - xpath:
+              - domain
+            validators:
+            - type: length
+              spec:
+                max: 255
+            spec: {}
+            description: Fully qualified domain name for specified IP address
+            required: false
+          - name: address
+            type: list
+            profiles:
+            - xpath:
+              - address
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          variants: []
+    description: ''
+    required: false
+  - name: tcp-queries
+    type: object
+    profiles:
+    - xpath:
+      - tcp-queries
+    validators: []
+    spec:
+      params:
+      - name: enabled
+        type: bool
+        profiles:
+        - xpath:
+          - enabled
+        validators: []
+        spec: {}
+        description: Turn on forwarding of TCP DNS queries
+        required: false
+      - name: max-pending-requests
+        type: int64
+        profiles:
+        - xpath:
+          - max-pending-requests
+        validators:
+        - type: length
+          spec:
+            min: 64
+            max: 256
+        spec:
+          default: 64
+        description: Upper limit on number of concurrent TCP DNS requests
+        required: false
+      variants: []
+    description: Specify TCP queries related settings
+    required: false
+  - name: udp-queries
+    type: object
+    profiles:
+    - xpath:
+      - udp-queries
+    validators: []
+    spec:
+      params:
+      - name: retries
+        type: object
+        profiles:
+        - xpath:
+          - retries
+        validators: []
+        spec:
+          params:
+          - name: attempts
+            type: int64
+            profiles:
+            - xpath:
+              - attempts
+            validators:
+            - type: length
+              spec:
+                min: 1
+                max: 30
+            spec:
+              default: 5
+            description: Maximum number of retries before trying next name server
+            required: false
+          - name: interval
+            type: int64
+            profiles:
+            - xpath:
+              - interval
+            validators:
+            - type: length
+              spec:
+                min: 1
+                max: 30
+            spec:
+              default: 2
+            description: Time in seconds for another request to be sent
+            required: false
+          variants: []
+        description: Tune DNS query forwarding retry parameters
+        required: false
+      variants: []
+    description: Specify UDP queries related settings
+    required: false
+  variants: []
