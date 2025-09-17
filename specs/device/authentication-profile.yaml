@@ -1,0 +1,785 @@
+name: authentication-profile
+terraform_provider_config:
+  description: Authentication Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: authentication_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - device
+  - authprofile
+panos_xpath:
+  path:
+  - authentication-profile
+  vars: []
+locations:
+- name: panorama
+  xpath:
+    path:
+    - config
+    - panorama
+    vars: []
+  description: Located in a panorama.
+  validators: []
+  required: false
+  read_only: false
+- name: vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: ngfw_device
+      description: The NGFW device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The Virtual System name
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys name cannot be "shared". Use the "shared" location instead
+      type: entry
+  description: Located in a specific Virtual System
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: allow-list
+    type: list
+    profiles:
+    - xpath:
+      - allow-list
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: lockout
+    type: object
+    profiles:
+    - xpath:
+      - lockout
+    validators: []
+    spec:
+      params:
+      - name: failed-attempts
+        type: int64
+        profiles:
+        - xpath:
+          - failed-attempts
+        validators:
+        - type: length
+          spec:
+            min: 0
+            max: 10
+        spec: {}
+        description: Number of failed login attempts to trigger lock-out
+        required: false
+      - name: lockout-time
+        type: int64
+        profiles:
+        - xpath:
+          - lockout-time
+        validators:
+        - type: length
+          spec:
+            min: 0
+            max: 60
+        spec:
+          default: 0
+        description: Number of minutes to lock-out
+        required: false
+      variants: []
+    description: Network user login lockout settings
+    required: false
+  - name: method
+    type: object
+    profiles:
+    - xpath:
+      - method
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: cloud
+        type: object
+        profiles:
+        - xpath:
+          - cloud
+        validators: []
+        spec:
+          params:
+          - name: clock-skew
+            type: int64
+            profiles:
+            - xpath:
+              - clock-skew
+            validators:
+            - type: length
+              spec:
+                min: 1
+                max: 900
+            spec:
+              default: 60
+            description: clock skew between CAS service and device
+            required: false
+          - name: region
+            type: object
+            profiles:
+            - xpath:
+              - region
+            validators: []
+            spec:
+              params:
+              - name: region_id
+                type: string
+                profiles:
+                - xpath:
+                  - region_id
+                validators:
+                - type: length
+                  spec:
+                    max: 128
+                spec: {}
+                description: Region Id
+                required: false
+              - name: tenant
+                type: object
+                profiles:
+                - xpath:
+                  - tenant
+                validators: []
+                spec:
+                  params:
+                  - name: profile
+                    type: object
+                    profiles:
+                    - xpath:
+                      - profile
+                    validators: []
+                    spec:
+                      params:
+                      - name: mfa
+                        type: object
+                        profiles:
+                        - xpath:
+                          - mfa
+                        validators: []
+                        spec:
+                          params:
+                          - name: force-mfa
+                            type: string
+                            profiles:
+                            - xpath:
+                              - force-mfa
+                            validators: []
+                            spec:
+                              default: 'no'
+                            description: force multi-factor authentication in cloud
+                            required: false
+                          variants: []
+                        description: MFA
+                        required: false
+                      - name: profile_id
+                        type: string
+                        profiles:
+                        - xpath:
+                          - profile_id
+                        validators:
+                        - type: length
+                          spec:
+                            max: 64
+                        spec: {}
+                        description: CAS Profile id
+                        required: false
+                      variants: []
+                    description: Profile
+                    required: false
+                  - name: tenant_id
+                    type: string
+                    profiles:
+                    - xpath:
+                      - tenant_id
+                    validators:
+                    - type: length
+                      spec:
+                        max: 64
+                    spec: {}
+                    description: Tenant id
+                    required: false
+                  variants: []
+                description: CAS Tenant
+                required: false
+              variants: []
+            description: Region
+            required: false
+          variants: []
+        description: Cloud Authentication Service
+        required: false
+      - name: kerberos
+        type: object
+        profiles:
+        - xpath:
+          - kerberos
+        validators: []
+        spec:
+          params:
+          - name: realm
+            type: string
+            profiles:
+            - xpath:
+              - realm
+            validators:
+            - type: length
+              spec:
+                max: 127
+            spec: {}
+            description: Realm name to be used for authentication
+            required: false
+          - name: server-profile
+            type: string
+            profiles:
+            - xpath:
+              - server-profile
+            validators:
+            - type: length
+              spec:
+                max: 63
+            spec: {}
+            description: Kerberos server profile object
+            required: false
+          variants: []
+        description: ''
+        required: false
+      - name: ldap
+        type: object
+        profiles:
+        - xpath:
+          - ldap
+        validators: []
+        spec:
+          params:
+          - name: login-attribute
+            type: string
+            profiles:
+            - xpath:
+              - login-attribute
+            validators:
+            - type: length
+              spec:
+                max: 63
+            spec: {}
+            description: Default is samAccountName for Active Directory, uid for other
+              directory servers
+            required: false
+          - name: passwd-exp-days
+            type: int64
+            profiles:
+            - xpath:
+              - passwd-exp-days
+            validators:
+            - type: length
+              spec:
+                min: 0
+                max: 255
+            spec:
+              default: 7
+            description: Avail for Active Directory, eDir
+            required: false
+          - name: server-profile
+            type: string
+            profiles:
+            - xpath:
+              - server-profile
+            validators:
+            - type: length
+              spec:
+                max: 63
+            spec: {}
+            description: LDAP server profile object
+            required: false
+          variants: []
+        description: ''
+        required: false
+      - name: local-database
+        type: object
+        profiles:
+        - xpath:
+          - local-database
+        validators: []
+        spec:
+          params: []
+          variants: []
+        description: ''
+        required: false
+      - name: none
+        type: object
+        profiles:
+        - xpath:
+          - none
+        validators: []
+        spec:
+          params: []
+          variants: []
+        description: ''
+        required: false
+      - name: radius
+        type: object
+        profiles:
+        - xpath:
+          - radius
+        validators: []
+        spec:
+          params:
+          - name: checkgroup
+            type: bool
+            profiles:
+            - xpath:
+              - checkgroup
+            validators: []
+            spec: {}
+            description: Retrieve user group from RADIUS
+            required: false
+          - name: server-profile
+            type: string
+            profiles:
+            - xpath:
+              - server-profile
+            validators:
+            - type: length
+              spec:
+                max: 63
+            spec: {}
+            description: RADIUS server profile object
+            required: false
+          variants: []
+        description: ''
+        required: false
+      - name: saml-idp
+        type: object
+        profiles:
+        - xpath:
+          - saml-idp
+        validators: []
+        spec:
+          params:
+          - name: attribute-name-access-domain
+            type: string
+            profiles:
+            - xpath:
+              - attribute-name-access-domain
+            validators:
+            - type: length
+              spec:
+                min: 1
+                max: 63
+            spec: {}
+            description: access-domain
+            required: false
+          - name: attribute-name-admin-role
+            type: string
+            profiles:
+            - xpath:
+              - attribute-name-admin-role
+            validators:
+            - type: length
+              spec:
+                min: 1
+                max: 63
+            spec: {}
+            description: admin-role
+            required: false
+          - name: attribute-name-usergroup
+            type: string
+            profiles:
+            - xpath:
+              - attribute-name-usergroup
+            validators:
+            - type: length
+              spec:
+                min: 1
+                max: 63
+            spec: {}
+            description: usergroup
+            required: false
+          - name: attribute-name-username
+            type: string
+            profiles:
+            - xpath:
+              - attribute-name-username
+            validators:
+            - type: length
+              spec:
+                min: 1
+                max: 63
+            spec:
+              default: username
+            description: Attribute name for username to be extracted from SAML response
+            required: false
+          - name: certificate-profile
+            type: string
+            profiles:
+            - xpath:
+              - certificate-profile
+            validators:
+            - type: length
+              spec:
+                max: 31
+            spec: {}
+            description: Certificate profile for IDP and SP
+            required: false
+          - name: enable-single-logout
+            type: bool
+            profiles:
+            - xpath:
+              - enable-single-logout
+            validators: []
+            spec: {}
+            description: Enable single logout
+            required: false
+          - name: request-signing-certificate
+            type: string
+            profiles:
+            - xpath:
+              - request-signing-certificate
+            validators:
+            - type: length
+              spec:
+                max: 64
+            spec: {}
+            description: Signing certificate for SAML requests
+            required: false
+          - name: server-profile
+            type: string
+            profiles:
+            - xpath:
+              - server-profile
+            validators:
+            - type: length
+              spec:
+                max: 63
+            spec: {}
+            description: IdP server profile object
+            required: false
+          variants: []
+        description: ''
+        required: false
+      - name: tacplus
+        type: object
+        profiles:
+        - xpath:
+          - tacplus
+        validators: []
+        spec:
+          params:
+          - name: checkgroup
+            type: bool
+            profiles:
+            - xpath:
+              - checkgroup
+            validators: []
+            spec: {}
+            description: Retrieve user group from TACACS+
+            required: false
+          - name: server-profile
+            type: string
+            profiles:
+            - xpath:
+              - server-profile
+            validators:
+            - type: length
+              spec:
+                max: 63
+            spec: {}
+            description: TACACS+ server profile object
+            required: false
+          variants: []
+        description: ''
+        required: false
+    description: ''
+    required: false
+  - name: multi-factor-auth
+    type: object
+    profiles:
+    - xpath:
+      - multi-factor-auth
+    validators: []
+    spec:
+      params:
+      - name: factors
+        type: list
+        profiles:
+        - xpath:
+          - factors
+          type: member
+        validators: []
+        spec:
+          type: string
+          items:
+            type: string
+        description: ''
+        required: false
+      - name: mfa-enable
+        type: bool
+        profiles:
+        - xpath:
+          - mfa-enable
+        validators: []
+        spec: {}
+        description: Enable Additional Authentication Factors
+        required: false
+      variants: []
+    description: ''
+    required: false
+  - name: single-sign-on
+    type: object
+    profiles:
+    - xpath:
+      - single-sign-on
+    validators: []
+    spec:
+      params:
+      - name: kerberos-keytab
+        type: string
+        profiles:
+        - xpath:
+          - kerberos-keytab
+        validators:
+        - type: length
+          spec:
+            max: 131072
+        spec: {}
+        description: Kerberos keytab
+        required: false
+      - name: realm
+        type: string
+        profiles:
+        - xpath:
+          - realm
+        validators:
+        - type: length
+          spec:
+            max: 127
+        spec: {}
+        description: Kerberos realm to be used for authentication
+        required: false
+      - name: service-principal
+        type: string
+        profiles:
+        - xpath:
+          - service-principal
+        validators:
+        - type: length
+          spec:
+            max: 255
+        spec: {}
+        description: Kerberos service principal
+        required: false
+      variants: []
+    description: Kerberos SSO settings
+    required: false
+  - name: user-domain
+    type: string
+    profiles:
+    - xpath:
+      - user-domain
+    validators:
+    - type: length
+      spec:
+        max: 63
+    spec: {}
+    description: Domain name(Not for SAML) to be used for authentication
+    required: false
+  - name: username-modifier
+    type: string
+    profiles:
+    - xpath:
+      - username-modifier
+    validators: []
+    spec:
+      default: '%USERINPUT%'
+    description: Username modifier(Not for SAML) to handle user domain
+    required: false
+  variants: []
