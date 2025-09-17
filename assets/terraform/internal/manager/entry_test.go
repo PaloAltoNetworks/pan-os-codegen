@@ -207,7 +207,20 @@ var _ = Describe("Entry", func() {
 	})
 
 	Context("Delete()", func() {
-		Context("when entries from the plan are missing from the server", func() {
+		When("deleting entries that exist", func() {
+			It("should delete the entries from the server", func() {
+				entries := []string{"1", "3"}
+				err := sdk.Delete(ctx, location, []string{}, entries)
+
+				Expect(err).ToNot(HaveOccurred())
+
+				remaining := client.list()
+				Expect(remaining).To(HaveLen(1))
+				Expect(remaining[0].EntryName()).To(Equal("2"))
+			})
+		})
+
+		When("entries from the plan are missing from the server", func() {
 			It("should not delete anything from the server", func() {
 				entries := []string{"4"}
 				err := sdk.Delete(ctx, location, []string{}, entries)

@@ -65,9 +65,12 @@ const (
 )
 
 type MultiConfigOper struct {
-	Operation MultiConfigOperType
-	EntryName string
-	EntryUuid *string
+	Operation   MultiConfigOperType
+	EntryName   string
+	EntryUuid   *string
+	Where       string
+	Destination string
+	NewName     string
 }
 
 func entryNameFromXpath(xpath string) string {
@@ -106,7 +109,7 @@ func MultiConfig[E sdkmanager.UuidObject](updates *xmlapi.MultiConfig, existingP
 		entry := e.Value.(E)
 		entriesByName[entry.EntryName()] = entryWithIdx{
 			Entry: entry,
-			State: entryOk,
+			State: entryInitial,
 			Idx:   idx,
 		}
 		idx += 1
@@ -131,14 +134,17 @@ func MultiConfig[E sdkmanager.UuidObject](updates *xmlapi.MultiConfig, existingP
 		op := oper.XMLName.Local
 
 		operEntry := MultiConfigOper{
-			Operation: MultiConfigOperType(op),
-			EntryName: entryName,
+			Operation:   MultiConfigOperType(op),
+			EntryName:   entryName,
+			Destination: oper.Destination,
+			Where:       oper.Where,
 		}
 
 		slog.Debug("MultiConfig", "operEntry", operEntry)
 
 		switch MultiConfigOperType(op) {
 		case MultiConfigOperSet, MultiConfigOperEdit:
+			slog.Debug("MultiConfig() OperSet/OperEdit")
 			entry := oper.Data.(E)
 
 			if existing, found := entriesByName[entryName]; found {
@@ -146,6 +152,7 @@ func MultiConfig[E sdkmanager.UuidObject](updates *xmlapi.MultiConfig, existingP
 					entry.SetEntryUuid(existing.Entry.EntryUuid())
 				}
 				existing.Entry = entry
+				entriesByName[entryName] = existing
 			} else {
 				entryUuid := fmt.Sprintf("%05d", uuid)
 				if objectType == multiConfigUuid {
@@ -153,13 +160,29 @@ func MultiConfig[E sdkmanager.UuidObject](updates *xmlapi.MultiConfig, existingP
 				}
 				entriesByName[entryName] = entryWithIdx{
 					Entry: entry,
-					State: entryOk,
+					State: entryUpdated,
 					Idx:   idx,
 				}
 
 				uuid += 1
 				idx += 1
 			}
+		case MultiConfigOperRename:
+			_, found := entriesByName[oper.NewName]
+			if found {
+				panic("old name and new name are same")
+			}
+
+			entry, found := entriesByName[entryName]
+			if !found {
+				continue
+			}
+			delete(entriesByName, entryName)
+			entry.Entry.SetEntryName(oper.NewName)
+			entry.State = entryUpdated
+			entriesByName[oper.NewName] = entry
+
+			operEntry.NewName = oper.NewName
 		case MultiConfigOperDelete:
 			entry, found := entriesByName[entryName]
 			if !found {
@@ -230,6 +253,8 @@ func MultiConfig[E sdkmanager.UuidObject](updates *xmlapi.MultiConfig, existingP
 					}
 					entriesByName[elt.Entry.EntryName()] = elt
 				}
+
+				entriesByName[moved.Entry.EntryName()] = moved
 			case "top":
 				movedOldIdx := moved.Idx
 				moved.Idx = 0
@@ -244,6 +269,9 @@ func MultiConfig[E sdkmanager.UuidObject](updates *xmlapi.MultiConfig, existingP
 			default:
 				panic(fmt.Sprintf("Unknown move where: %s", oper.Where))
 			}
+
+			operEntry.Where = oper.Where
+			operEntry.Destination = oper.Destination
 		default:
 			panic(fmt.Sprintf("UNKNOWN OPERATION: %s", op))
 		}
@@ -256,7 +284,7 @@ func MultiConfig[E sdkmanager.UuidObject](updates *xmlapi.MultiConfig, existingP
 	}
 
 	for _, elt := range entriesByName {
-		if elt.State != entryOk {
+		if elt.State == entryDeleted {
 			continue
 		}
 
@@ -279,7 +307,7 @@ func MultiConfig[E sdkmanager.UuidObject](updates *xmlapi.MultiConfig, existingP
 
 	transformed := list.New()
 	for _, elt := range entries {
-		if elt != nil && elt.State == entryOk {
+		if elt != nil && elt.State != entryDeleted {
 			transformed.PushBack(elt.Entry)
 		}
 	}
