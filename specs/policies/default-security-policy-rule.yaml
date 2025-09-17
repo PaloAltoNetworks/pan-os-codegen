@@ -1,0 +1,339 @@
+name: Default Security Policy
+terraform_provider_config:
+  description: Default Security policy
+  skip_resource: false
+  skip_datasource: false
+  resource_type: uuid
+  resource_variants:
+  - singular
+  suffix: default_security_policy
+  plural_suffix: ''
+  plural_name: rules
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - policies
+  - rules
+  - defaultsecurity
+panos_xpath:
+  path:
+  - default-security-rules
+  - rules
+  vars: []
+locations:
+- name: shared
+  xpath:
+    path:
+    - config
+    - shared
+    - post-rulebase
+    vars: []
+  description: Located in a shared rulebase
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: device-group
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - device-group
+    - $device_group
+    - post-rulebase
+    vars:
+    - name: panorama_device
+      description: The panorama device.
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: device_group
+      description: The device group.
+      required: true
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The device group cannot be "shared". Use the "shared" path instead.
+      type: entry
+      location_filter: true
+  description: Located in a specific device group.
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: action
+    type: enum
+    profiles:
+    - xpath:
+      - action
+    validators:
+    - type: values
+      spec:
+        values:
+        - deny
+        - allow
+        - drop
+        - reset-client
+        - reset-server
+        - reset-both
+    spec:
+      default: allow
+      values:
+      - value: deny
+      - value: allow
+      - value: drop
+      - value: reset-client
+      - value: reset-server
+      - value: reset-both
+    description: ''
+    required: false
+  - name: group-tag
+    type: string
+    profiles:
+    - xpath:
+      - group-tag
+    validators:
+    - type: length
+      spec:
+        max: 127
+    spec: {}
+    description: ''
+    required: false
+  - name: icmp-unreachable
+    type: bool
+    profiles:
+    - xpath:
+      - icmp-unreachable
+    validators: []
+    spec: {}
+    description: Send ICMP unreachable error when action is drop or reset
+    required: false
+  - name: log-end
+    type: bool
+    profiles:
+    - xpath:
+      - log-end
+    validators: []
+    spec: {}
+    description: Log at session end (required for certain ACC tables)
+    required: false
+  - name: log-setting
+    type: string
+    profiles:
+    - xpath:
+      - log-setting
+    validators:
+    - type: length
+      spec:
+        max: 63
+    spec: {}
+    description: ''
+    required: false
+  - name: log-start
+    type: bool
+    profiles:
+    - xpath:
+      - log-start
+    validators: []
+    spec: {}
+    description: Log at session start
+    required: false
+  - name: profile-setting
+    type: object
+    profiles:
+    - xpath:
+      - profile-setting
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: group
+        type: list
+        profiles:
+        - xpath:
+          - group
+          type: member
+        validators: []
+        spec:
+          type: string
+          items:
+            type: string
+        description: ''
+        required: false
+      - name: profiles
+        type: object
+        profiles:
+        - xpath:
+          - profiles
+        validators: []
+        spec:
+          params:
+          - name: data-filtering
+            type: list
+            profiles:
+            - xpath:
+              - data-filtering
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          - name: file-blocking
+            type: list
+            profiles:
+            - xpath:
+              - file-blocking
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          - name: gtp
+            type: list
+            profiles:
+            - xpath:
+              - gtp
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          - name: sctp
+            type: list
+            profiles:
+            - xpath:
+              - sctp
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          - name: spyware
+            type: list
+            profiles:
+            - xpath:
+              - spyware
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          - name: url-filtering
+            type: list
+            profiles:
+            - xpath:
+              - url-filtering
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          - name: virus
+            type: list
+            profiles:
+            - xpath:
+              - virus
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          - name: vulnerability
+            type: list
+            profiles:
+            - xpath:
+              - vulnerability
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          - name: wildfire-analysis
+            type: list
+            profiles:
+            - xpath:
+              - wildfire-analysis
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          variants: []
+        description: ''
+        required: false
+    description: ''
+    required: false
+  - name: tag
+    type: list
+    profiles:
+    - xpath:
+      - tag
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: uuid
+    type: string
+    profiles:
+    - xpath:
+      - uuid
+    validators:
+    - type: regexp
+      spec:
+        expr: '[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}'
+    - type: length
+      spec:
+        min: 36
+        max: 36
+    description: Entry UUID value
+    required: false
+    codegen_overrides:
+      terraform:
+        private: true
+  variants: []
