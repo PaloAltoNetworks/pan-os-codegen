@@ -1,0 +1,295 @@
+name: config-log-settings
+terraform_provider_config:
+  description: Config Log Settings
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: config_log_settings
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - device
+  - logsettings
+  - config
+panos_xpath:
+  path:
+  - log-settings
+  - config
+  - match-list
+  vars: []
+locations:
+- name: panorama
+  xpath:
+    path:
+    - config
+    - panorama
+    vars: []
+  description: Located in a panorama.
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+  description: A shared resource located within a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: description
+    type: string
+    profiles:
+    - xpath:
+      - description
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 1023
+    spec: {}
+    description: ''
+    required: false
+  - name: filter
+    type: string
+    profiles:
+    - xpath:
+      - filter
+    validators:
+    - type: length
+      spec:
+        max: 1023
+    spec: {}
+    description: ''
+    required: false
+  - name: send-email
+    type: list
+    profiles:
+    - xpath:
+      - send-email
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+    codegen_overrides:
+      terraform:
+        name: email-profiles
+  - name: send-http
+    type: list
+    profiles:
+    - xpath:
+      - send-http
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+    codegen_overrides:
+      terraform:
+        name: http-profiles
+  - name: send-snmptrap
+    type: list
+    profiles:
+    - xpath:
+      - send-snmptrap
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+    codegen_overrides:
+      terraform:
+        name: snmp-profiles
+  - name: send-syslog
+    type: list
+    profiles:
+    - xpath:
+      - send-syslog
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+    codegen_overrides:
+      terraform:
+        name: syslog-profiles
+  - name: send-to-panorama
+    type: bool
+    profiles:
+    - xpath:
+      - send-to-panorama
+    validators: []
+    spec: {}
+    description: ''
+    required: false
+  variants: []
