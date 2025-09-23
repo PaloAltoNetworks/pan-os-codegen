@@ -28,6 +28,14 @@ $(GENERATED_OUT_PATH)/%: assets/%
 	@mkdir -p $(@D)
 	cp $< $@
 
+.PHONY: install
+install: codegen
+	cd $(GENERATED_OUT_PATH)/terraform/ && go install
+
+.PHONY: examples
+examples: install
+	TF_CLI_CONFIG_FILE= ./scripts/validate-terraform-examples.sh
+
 .PHONY: test
 test: test/codegen test/pango test/terraform
 
