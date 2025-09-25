@@ -177,7 +177,50 @@ var _ = Describe("Entry", func() {
 	})
 
 	Context("Update()", func() {
+		BeforeEach(func() {
+			existing = []*MockEntryObject{{Name: "entry-to-rename", Value: "original"}}
+		})
+		Context("when just updating an entry", func() {
+			It("should update entry on the server without executing 'rename' command", func() {
+				updatedContent := &MockEntryObject{Name: "entry-to-rename", Value: "updated"}
+				updatedEntry, err := sdk.Update(ctx, location, []string{}, updatedContent, "")
 
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(updatedEntry).ToNot(BeNil())
+				Expect(updatedEntry.EntryName()).To(Equal("entry-to-rename"))
+				Expect(updatedEntry.Value).To(Equal("updated"))
+
+				Expect(client.MultiConfigOpers[0]).To(HaveExactElements([]MultiConfigOper{
+					{Operation: MultiConfigOperEdit, EntryName: "entry-to-rename"},
+				}))
+
+				expectedAfterUpdate := []*MockEntryObject{{Name: "entry-to-rename", Value: "updated"}}
+				Expect(client.list()).To(MatchEntries(expectedAfterUpdate))
+			})
+		})
+		Context("when renaming an entry", func() {
+
+			It("should rename the entry on the server", func() {
+				updatedContent := &MockEntryObject{Name: "entry-to-rename", Value: "updated"}
+				newName := "renamed-entry"
+				updatedEntry, err := sdk.Update(ctx, location, []string{}, updatedContent, newName)
+
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(updatedEntry).ToNot(BeNil())
+				Expect(updatedEntry.EntryName()).To(Equal(newName))
+				Expect(updatedEntry.Value).To(Equal("updated"))
+
+				Expect(client.MultiConfigOpers[0]).To(HaveExactElements([]MultiConfigOper{
+					{Operation: MultiConfigOperEdit, EntryName: "entry-to-rename"},
+					{Operation: MultiConfigOperRename, EntryName: "entry-to-rename", NewName: "renamed-entry"},
+				}))
+
+				expectedAfterUpdate := []*MockEntryObject{{Name: newName, Value: "updated"}}
+				Expect(client.list()).To(MatchEntries(expectedAfterUpdate))
+			})
+		})
 	})
 
 	Context("UpdateMany()", func() {
