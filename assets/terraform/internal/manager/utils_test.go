@@ -71,6 +71,7 @@ type MultiConfigOper struct {
 	Where       string
 	Destination string
 	NewName     string
+	Value       string
 }
 
 func entryNameFromXpath(xpath string) string {
@@ -138,6 +139,7 @@ func MultiConfig[E sdkmanager.UuidObject](updates *xmlapi.MultiConfig, existingP
 			EntryName:   entryName,
 			Destination: oper.Destination,
 			Where:       oper.Where,
+			NewName:     oper.NewName,
 		}
 
 		slog.Debug("MultiConfig", "operEntry", operEntry)
@@ -170,13 +172,14 @@ func MultiConfig[E sdkmanager.UuidObject](updates *xmlapi.MultiConfig, existingP
 		case MultiConfigOperRename:
 			_, found := entriesByName[oper.NewName]
 			if found {
-				panic("old name and new name are same")
+				panic(fmt.Sprintf("FIXME: should propagate back error from MultiConfig"))
 			}
 
 			entry, found := entriesByName[entryName]
 			if !found {
-				continue
+				panic(fmt.Sprintf("FIXME: should propagate back error from MultiConfig"))
 			}
+
 			delete(entriesByName, entryName)
 			entry.Entry.SetEntryName(oper.NewName)
 			entry.State = entryUpdated

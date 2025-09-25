@@ -1418,7 +1418,12 @@ const resourceUpdateFunction = `
 	}
 
 {{- if .HasEntryName }}
-	obj, err := o.manager.Read(ctx, location, components, plan.Name.ValueString())
+	var obj *{{ .resourceSDKName }}.Entry
+	if state.Name.ValueString() != plan.Name.ValueString() {
+		obj, err = o.manager.Read(ctx, location, components, state.Name.ValueString())
+	} else {
+		obj, err = o.manager.Read(ctx, location, components, plan.Name.ValueString())
+	}
 {{- else }}
 	obj, err := o.manager.Read(ctx, location, components)
 {{- end }}
@@ -1439,7 +1444,15 @@ const resourceUpdateFunction = `
 	}
 
 {{ if .HasEntryName }}
-	updated, err := o.manager.Update(ctx, location, components, obj, obj.Name)
+	// If name differs between plan and state, we need to set old name for the object
+	// before calling SDK Update() function to properly handle rename + edit cycle.
+	var newName string
+	if state.Name.ValueString() != plan.Name.ValueString() {
+		newName = plan.Name.ValueString()
+		obj.Name = state.Name.ValueString()
+	}
+
+	updated, err := o.manager.Update(ctx, location, components, obj, newName)
 {{ else }}
 	updated, err := o.manager.Update(ctx, location, components, obj)
 {{ end }}
