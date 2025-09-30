@@ -1,0 +1,424 @@
+name: saml-idp-profile
+terraform_provider_config:
+  description: SAML IDP Server Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: saml_idp_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - device
+  - profiles
+  - samlidp
+panos_xpath:
+  path:
+  - server-profile
+  - saml-idp
+  vars: []
+locations:
+- name: panorama
+  xpath:
+    path:
+    - config
+    - panorama
+    vars: []
+  description: Located in a panorama.
+  validators: []
+  required: false
+  read_only: false
+- name: shared
+  xpath:
+    path:
+    - config
+    - shared
+    vars: []
+  description: Panorama shared object
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: ngfw_device
+      description: The NGFW device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The Virtual System name
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys name cannot be "shared". Use the "shared" location instead
+      type: entry
+  description: Located in a specific Virtual System
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+  description: A shared resource located within a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: admin-use-only
+    type: bool
+    profiles:
+    - xpath:
+      - admin-use-only
+    validators: []
+    spec: {}
+    description: Can only be used for administrative purposes
+    required: false
+  - name: attribute-name-access-domain-import
+    type: string
+    profiles:
+    - xpath:
+      - attribute-name-access-domain-import
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 63
+    spec: {}
+    description: access-domain
+    required: false
+  - name: attribute-name-admin-role-import
+    type: string
+    profiles:
+    - xpath:
+      - attribute-name-admin-role-import
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 63
+    spec: {}
+    description: admin-role
+    required: false
+  - name: attribute-name-usergroup-import
+    type: string
+    profiles:
+    - xpath:
+      - attribute-name-usergroup-import
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 63
+    spec: {}
+    description: usergroup
+    required: false
+  - name: attribute-name-username-import
+    type: string
+    profiles:
+    - xpath:
+      - attribute-name-username-import
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 63
+    spec:
+      default: username
+    description: Attribute name for username to be extracted from SAML response
+    required: false
+  - name: certificate
+    type: string
+    profiles:
+    - xpath:
+      - certificate
+    validators:
+    - type: length
+      spec:
+        max: 63
+    spec: {}
+    description: Object name of IdP signing certificate
+    required: false
+  - name: entity-id
+    type: string
+    profiles:
+    - xpath:
+      - entity-id
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 1024
+    spec: {}
+    description: Unique identifier for SAML IdP
+    required: false
+  - name: max-clock-skew
+    type: int64
+    profiles:
+    - xpath:
+      - max-clock-skew
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 900
+    spec:
+      default: 60
+    description: maximum allowed clock skew in second between SAML entities' system
+      time
+    required: false
+  - name: slo-bindings
+    type: enum
+    profiles:
+    - xpath:
+      - slo-bindings
+    validators:
+    - type: values
+      spec:
+        values:
+        - post
+        - redirect
+    spec:
+      default: post
+      values:
+      - value: post
+      - value: redirect
+    description: ''
+    required: false
+  - name: slo-url
+    type: string
+    profiles:
+    - xpath:
+      - slo-url
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 255
+    spec: {}
+    description: The Single Logout Service URL for the IdP server
+    required: false
+  - name: sso-bindings
+    type: enum
+    profiles:
+    - xpath:
+      - sso-bindings
+    validators:
+    - type: values
+      spec:
+        values:
+        - post
+        - redirect
+    spec:
+      default: post
+      values:
+      - value: post
+      - value: redirect
+    description: ''
+    required: false
+  - name: sso-url
+    type: string
+    profiles:
+    - xpath:
+      - sso-url
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 255
+    spec: {}
+    description: The Single Sign On Service URL for the IdP server
+    required: false
+  - name: validate-idp-certificate
+    type: bool
+    profiles:
+    - xpath:
+      - validate-idp-certificate
+    validators: []
+    spec: {}
+    description: Certificate revocation check for IdP certificate when checking assertion
+      signature
+    required: false
+  - name: want-auth-requests-signed
+    type: bool
+    profiles:
+    - xpath:
+      - want-auth-requests-signed
+    validators: []
+    spec: {}
+    description: Client auth request signed by cert
+    required: false
+  variants: []
