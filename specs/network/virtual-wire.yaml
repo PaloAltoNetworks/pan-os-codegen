@@ -1,0 +1,200 @@
+name: Virtual Wire
+terraform_provider_config:
+  description: Virtual Wire
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: virtual_wire
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - network
+  - virtualwire
+panos_xpath:
+  path:
+  - network
+  - virtual-wire
+  vars: []
+locations:
+- name: shared
+  xpath:
+    path:
+    - config
+    - shared
+    vars: []
+  description: Panorama shared object
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: ngfw
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific NGFW device
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: interface1
+    type: string
+    profiles:
+    - xpath:
+      - interface1
+    validators: []
+    spec: {}
+    description: Interface 1
+    required: false
+  - name: interface2
+    type: string
+    profiles:
+    - xpath:
+      - interface2
+    validators: []
+    spec: {}
+    description: Interface 2
+    required: false
+  - name: link-state-pass-through
+    type: object
+    profiles:
+    - xpath:
+      - link-state-pass-through
+    validators: []
+    spec:
+      params:
+      - name: enable
+        type: bool
+        profiles:
+        - xpath:
+          - enable
+        validators: []
+        spec: {}
+        description: Enable link state passthrough
+        required: false
+      variants: []
+    description: Pass link state change from one interface to another
+    required: false
+  - name: multicast-firewalling
+    type: object
+    profiles:
+    - xpath:
+      - multicast-firewalling
+    validators: []
+    spec:
+      params:
+      - name: enable
+        type: bool
+        profiles:
+        - xpath:
+          - enable
+        validators: []
+        spec: {}
+        description: Enable firewalling for non-unicast traffic
+        required: false
+      variants: []
+    description: Firewalling for non-unicast traffic
+    required: false
+  - name: tag-allowed
+    type: string
+    profiles:
+    - xpath:
+      - tag-allowed
+    validators: []
+    spec: {}
+    description: Allowed 802.1q VLAN tags
+    required: false
+  variants: []
