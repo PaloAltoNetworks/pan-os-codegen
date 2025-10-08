@@ -1,0 +1,750 @@
+name: dos-protection-profile
+terraform_provider_config:
+  description: DoS Protection Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: dos_protection_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - device
+  - profiles
+  - dosprotection
+panos_xpath:
+  path:
+  - profiles
+  - dos-protection
+  vars: []
+locations:
+- name: shared
+  xpath:
+    path:
+    - config
+    - shared
+    vars: []
+  description: Panorama shared object
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: device-group
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - device-group
+    - $device_group
+    vars:
+    - name: panorama_device
+      description: Panorama device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: device_group
+      description: Device Group name
+      required: true
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The device group name cannot be "shared". Use the "shared" location
+              instead
+      type: entry
+  description: Located in a specific Device Group
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: description
+    type: string
+    profiles:
+    - xpath:
+      - description
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 255
+    spec: {}
+    description: ''
+    required: false
+  - name: disable-override
+    type: enum
+    profiles:
+    - xpath:
+      - disable-override
+    validators:
+    - type: values
+      spec:
+        values:
+        - 'yes'
+        - 'no'
+    spec:
+      values:
+      - value: 'yes'
+      - value: 'no'
+    description: disable object override in child device groups
+    required: false
+  - name: flood
+    type: object
+    profiles:
+    - xpath:
+      - flood
+    validators: []
+    spec:
+      params:
+      - name: icmp
+        type: object
+        profiles:
+        - xpath:
+          - icmp
+        validators: []
+        spec:
+          params:
+          - name: enable
+            type: bool
+            profiles:
+            - xpath:
+              - enable
+            validators: []
+            spec: {}
+            description: ''
+            required: false
+          - name: red
+            type: object
+            profiles:
+            - xpath:
+              - red
+            validators: []
+            spec:
+              params:
+              - name: activate-rate
+                type: int64
+                profiles:
+                - xpath:
+                  - activate-rate
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 2000000
+                spec:
+                  default: 10000
+                description: Connection rate (cps) to start RED
+                required: false
+              - name: alarm-rate
+                type: int64
+                profiles:
+                - xpath:
+                  - alarm-rate
+                validators:
+                - type: length
+                  spec:
+                    min: 0
+                    max: 2000000
+                spec:
+                  default: 10000
+                description: Connection rate (cps) to generate alarm
+                required: false
+              - name: block
+                type: object
+                profiles:
+                - xpath:
+                  - block
+                validators: []
+                spec:
+                  params:
+                  - name: duration
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - duration
+                    validators:
+                    - type: length
+                      spec:
+                        min: 1
+                        max: 21600
+                    spec:
+                      default: 300
+                    description: ''
+                    required: false
+                  variants: []
+                description: Parameters for blocking
+                required: false
+              - name: maximal-rate
+                type: int64
+                profiles:
+                - xpath:
+                  - maximal-rate
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 2000000
+                spec:
+                  default: 40000
+                description: Maximal connection rate (cps) allowed
+                required: false
+              variants: []
+            description: Random Early Drop
+            required: false
+          variants: []
+        description: ICMP flood
+        required: false
+      - name: icmpv6
+        type: object
+        profiles:
+        - xpath:
+          - icmpv6
+        validators: []
+        spec:
+          params:
+          - name: enable
+            type: bool
+            profiles:
+            - xpath:
+              - enable
+            validators: []
+            spec: {}
+            description: ''
+            required: false
+          - name: red
+            type: object
+            profiles:
+            - xpath:
+              - red
+            validators: []
+            spec:
+              params:
+              - name: activate-rate
+                type: int64
+                profiles:
+                - xpath:
+                  - activate-rate
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 2000000
+                spec:
+                  default: 10000
+                description: Connection rate (cps) to start RED
+                required: false
+              - name: alarm-rate
+                type: int64
+                profiles:
+                - xpath:
+                  - alarm-rate
+                validators:
+                - type: length
+                  spec:
+                    min: 0
+                    max: 2000000
+                spec:
+                  default: 10000
+                description: Connection rate (cps) to generate alarm
+                required: false
+              - name: block
+                type: object
+                profiles:
+                - xpath:
+                  - block
+                validators: []
+                spec:
+                  params:
+                  - name: duration
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - duration
+                    validators:
+                    - type: length
+                      spec:
+                        min: 1
+                        max: 21600
+                    spec:
+                      default: 300
+                    description: ''
+                    required: false
+                  variants: []
+                description: Parameters for blocking
+                required: false
+              - name: maximal-rate
+                type: int64
+                profiles:
+                - xpath:
+                  - maximal-rate
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 2000000
+                spec:
+                  default: 40000
+                description: Maximal connection rate (cps) allowed
+                required: false
+              variants: []
+            description: Random Early Drop
+            required: false
+          variants: []
+        description: ICMPv6 flood
+        required: false
+      - name: other-ip
+        type: object
+        profiles:
+        - xpath:
+          - other-ip
+        validators: []
+        spec:
+          params:
+          - name: enable
+            type: bool
+            profiles:
+            - xpath:
+              - enable
+            validators: []
+            spec: {}
+            description: ''
+            required: false
+          - name: red
+            type: object
+            profiles:
+            - xpath:
+              - red
+            validators: []
+            spec:
+              params:
+              - name: activate-rate
+                type: int64
+                profiles:
+                - xpath:
+                  - activate-rate
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 2000000
+                spec:
+                  default: 10000
+                description: Connection rate (cps) to start RED
+                required: false
+              - name: alarm-rate
+                type: int64
+                profiles:
+                - xpath:
+                  - alarm-rate
+                validators:
+                - type: length
+                  spec:
+                    min: 0
+                    max: 2000000
+                spec:
+                  default: 10000
+                description: Connection rate (cps) to generate alarm
+                required: false
+              - name: block
+                type: object
+                profiles:
+                - xpath:
+                  - block
+                validators: []
+                spec:
+                  params:
+                  - name: duration
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - duration
+                    validators:
+                    - type: length
+                      spec:
+                        min: 1
+                        max: 21600
+                    spec:
+                      default: 300
+                    description: ''
+                    required: false
+                  variants: []
+                description: Parameters for blocking
+                required: false
+              - name: maximal-rate
+                type: int64
+                profiles:
+                - xpath:
+                  - maximal-rate
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 2000000
+                spec:
+                  default: 40000
+                description: Maximal connection rate (cps) allowed
+                required: false
+              variants: []
+            description: Random Early Drop
+            required: false
+          variants: []
+        description: Other IP protocols
+        required: false
+      - name: tcp-syn
+        type: object
+        profiles:
+        - xpath:
+          - tcp-syn
+        validators: []
+        spec:
+          params:
+          - name: enable
+            type: bool
+            profiles:
+            - xpath:
+              - enable
+            validators: []
+            spec: {}
+            description: ''
+            required: false
+          variants:
+          - name: red
+            type: object
+            profiles:
+            - xpath:
+              - red
+            validators: []
+            spec:
+              params:
+              - name: activate-rate
+                type: int64
+                profiles:
+                - xpath:
+                  - activate-rate
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 2000000
+                spec:
+                  default: 10000
+                description: Connection rate (cps) to start RED
+                required: false
+              - name: alarm-rate
+                type: int64
+                profiles:
+                - xpath:
+                  - alarm-rate
+                validators:
+                - type: length
+                  spec:
+                    min: 0
+                    max: 2000000
+                spec:
+                  default: 10000
+                description: Connection rate (cps) to generate alarm
+                required: false
+              - name: block
+                type: object
+                profiles:
+                - xpath:
+                  - block
+                validators: []
+                spec:
+                  params:
+                  - name: duration
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - duration
+                    validators:
+                    - type: length
+                      spec:
+                        min: 1
+                        max: 21600
+                    spec:
+                      default: 300
+                    description: ''
+                    required: false
+                  variants: []
+                description: Parameters for blocking
+                required: false
+              - name: maximal-rate
+                type: int64
+                profiles:
+                - xpath:
+                  - maximal-rate
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 2000000
+                spec:
+                  default: 40000
+                description: Maximal connection rate (cps) allowed
+                required: false
+              variants: []
+            description: Random Early Drop
+            required: false
+            variant_group_id: 0
+          - name: syn-cookies
+            type: object
+            profiles:
+            - xpath:
+              - syn-cookies
+            validators: []
+            spec:
+              params:
+              - name: activate-rate
+                type: int64
+                profiles:
+                - xpath:
+                  - activate-rate
+                validators:
+                - type: length
+                  spec:
+                    min: 0
+                    max: 2000000
+                spec:
+                  default: 0
+                description: Connection rate (cps) to activate SYN cookies proxy
+                required: false
+              - name: alarm-rate
+                type: int64
+                profiles:
+                - xpath:
+                  - alarm-rate
+                validators:
+                - type: length
+                  spec:
+                    min: 0
+                    max: 2000000
+                spec:
+                  default: 10000
+                description: Connection rate (cps) to generate alarm
+                required: false
+              - name: block
+                type: object
+                profiles:
+                - xpath:
+                  - block
+                validators: []
+                spec:
+                  params:
+                  - name: duration
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - duration
+                    validators:
+                    - type: length
+                      spec:
+                        min: 1
+                        max: 21600
+                    spec:
+                      default: 300
+                    description: ''
+                    required: false
+                  variants: []
+                description: Parameters for blocking
+                required: false
+              - name: maximal-rate
+                type: int64
+                profiles:
+                - xpath:
+                  - maximal-rate
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 2000000
+                spec:
+                  default: 1000000
+                description: Maximal connection rate (cps) allowed
+                required: false
+              variants: []
+            description: SYN cookies
+            required: false
+            variant_group_id: 0
+        description: SYN flood
+        required: false
+      - name: udp
+        type: object
+        profiles:
+        - xpath:
+          - udp
+        validators: []
+        spec:
+          params:
+          - name: enable
+            type: bool
+            profiles:
+            - xpath:
+              - enable
+            validators: []
+            spec: {}
+            description: ''
+            required: false
+          - name: red
+            type: object
+            profiles:
+            - xpath:
+              - red
+            validators: []
+            spec:
+              params:
+              - name: activate-rate
+                type: int64
+                profiles:
+                - xpath:
+                  - activate-rate
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 2000000
+                spec:
+                  default: 10000
+                description: Connection rate (cps) to start RED
+                required: false
+              - name: alarm-rate
+                type: int64
+                profiles:
+                - xpath:
+                  - alarm-rate
+                validators:
+                - type: length
+                  spec:
+                    min: 0
+                    max: 2000000
+                spec:
+                  default: 10000
+                description: Connection rate (cps) to generate alarm
+                required: false
+              - name: block
+                type: object
+                profiles:
+                - xpath:
+                  - block
+                validators: []
+                spec:
+                  params:
+                  - name: duration
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - duration
+                    validators:
+                    - type: length
+                      spec:
+                        min: 1
+                        max: 21600
+                    spec:
+                      default: 300
+                    description: ''
+                    required: false
+                  variants: []
+                description: Parameters for blocking
+                required: false
+              - name: maximal-rate
+                type: int64
+                profiles:
+                - xpath:
+                  - maximal-rate
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 2000000
+                spec:
+                  default: 40000
+                description: Maximal connection rate (cps) allowed
+                required: false
+              variants: []
+            description: Random Early Drop
+            required: false
+          variants: []
+        description: UDP flood
+        required: false
+      variants: []
+    description: Flood protection
+    required: false
+  - name: resource
+    type: object
+    profiles:
+    - xpath:
+      - resource
+    validators: []
+    spec:
+      params:
+      - name: sessions
+        type: object
+        profiles:
+        - xpath:
+          - sessions
+        validators: []
+        spec:
+          params:
+          - name: enabled
+            type: bool
+            profiles:
+            - xpath:
+              - enabled
+            validators: []
+            spec: {}
+            description: ''
+            required: false
+          - name: max-concurrent-limit
+            type: int64
+            profiles:
+            - xpath:
+              - max-concurrent-limit
+            validators:
+            - type: length
+              spec:
+                min: 1
+                max: 4194304
+            spec:
+              default: 32768
+            description: ''
+            required: false
+          variants: []
+        description: Parameters to protect excessive sessions
+        required: false
+      variants: []
+    description: Parameters to protect resources
+    required: false
+  - name: type
+    type: enum
+    profiles:
+    - xpath:
+      - type
+    validators:
+    - type: values
+      spec:
+        values:
+        - aggregate
+        - classified
+    spec:
+      values:
+      - value: aggregate
+      - value: classified
+    description: ''
+    required: false
+  variants: []
