@@ -3,9 +3,9 @@ terraform_provider_config:
   skip_datasource: true
   description: VM Auth Key
   resource_type: custom
-  ephemeral: true
   custom_functions:
-    Open: vmAuthKeyEphemeralResourceOpen
+    Open: true
+  ephemeral: true
   suffix: vm_auth_key
 go_sdk_config:
   skip: true

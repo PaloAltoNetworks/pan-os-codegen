@@ -1391,17 +1391,6 @@ func RenderImportStateMarshallers(resourceTyp properties.ResourceType, names *Na
 	return processTemplate(locationMarshallersTmpl, "render-import-state-marshallers", context, commonFuncMap)
 }
 
-func RenderCustomImports(spec *properties.Normalization) string {
-	template, _ := getCustomTemplateForFunction(spec, "Imports")
-	return template
-}
-
-func RenderCustomCommonCode(names *NameProvider, spec *properties.Normalization) string {
-	template, _ := getCustomTemplateForFunction(spec, "Common")
-	return template
-
-}
-
 func generateValidatorFnsMapForVariants(variants []*properties.SpecParam) map[int]*validatorFunctionCtx {
 	validatorFns := make(map[int]*validatorFunctionCtx)
 
@@ -3078,16 +3067,17 @@ func RenderLocationAttributeTypes(names *NameProvider, spec *properties.Normaliz
 	return processTemplate(locationAttributeTypesTmpl, "render-location-structs", data, commonFuncMap)
 }
 
+const customTemplateForFunction = `
+o.{{ .Function }}Custom(ctx, req, resp)
+`
+
 func getCustomTemplateForFunction(spec *properties.Normalization, function string) (string, error) {
-	if resource, found := customResourceFuncsMap[spec.TerraformProviderConfig.Suffix]; !found {
-		return "", fmt.Errorf("cannot find a list of custom functions for %s", spec.TerraformProviderConfig.Suffix)
-	} else {
-		if template, found := resource[function]; !found {
-			return "", fmt.Errorf("No template for function '%s'", function)
-		} else {
-			return template, nil
-		}
+	data := struct {
+		Function string
+	}{
+		Function: function,
 	}
+	return processTemplate(customTemplateForFunction, "custom-template-for-function", data, nil)
 }
 
 func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProvider, serviceName string, paramSpec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, resourceSDKName string) (string, error) {
@@ -3187,7 +3177,7 @@ func DataSourceReadFunction(resourceTyp properties.ResourceType, names *NameProv
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 	case properties.ResourceCustom:
 		var err error
-		tmpl, err = getCustomTemplateForFunction(paramSpec, "DataSourceRead")
+		tmpl, err = getCustomTemplateForFunction(paramSpec, "Read")
 		if err != nil {
 			return "", err
 		}
@@ -3254,7 +3244,7 @@ func ResourceReadFunction(resourceTyp properties.ResourceType, names *NameProvid
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 	case properties.ResourceCustom:
 		var err error
-		tmpl, err = getCustomTemplateForFunction(paramSpec, "ResourceRead")
+		tmpl, err = getCustomTemplateForFunction(paramSpec, "Read")
 		if err != nil {
 			return "", err
 		}
@@ -3480,20 +3470,16 @@ func ResourceCloseFunction(resourceTyp properties.ResourceType, names *NameProvi
 }
 
 func FunctionSupported(spec *properties.Normalization, function string) (bool, error) {
+	if len(spec.TerraformProviderConfig.CustomFuncs) > 0 {
+		supported, found := spec.TerraformProviderConfig.CustomFuncs[function]
+		return (found && supported), nil
+	}
+
 	switch function {
 	case "Create", "Delete", "Read", "Update":
 		return !spec.TerraformProviderConfig.Ephemeral, nil
 	case "Open", "Close", "Renew":
-		if !spec.TerraformProviderConfig.Ephemeral {
-			return false, nil
-		}
-
-		if resource, found := customResourceFuncsMap[spec.TerraformProviderConfig.Suffix]; !found {
-			return false, fmt.Errorf("cannot find a list of custom functions for %s", spec.TerraformProviderConfig.Suffix)
-		} else {
-			_, found := resource[function]
-			return found, nil
-		}
+		return spec.TerraformProviderConfig.Ephemeral, nil
 	default:
 		return false, fmt.Errorf("invalid custom function name: %s", function)
 	}
@@ -3997,25 +3983,4 @@ func RenderResourceFuncMap(names map[string]properties.TerraformProviderSpecMeta
 	}
 
 	return processTemplate(resourceFuncMapTmpl, "resource-func-map", data, nil)
-}
-
-var customResourceFuncsMap = map[string]map[string]string{
-	"device_group_parent": {
-		"Imports":        deviceGroupParentImports,
-		"DataSourceRead": deviceGroupParentDataSourceRead,
-		"ResourceRead":   deviceGroupParentResourceRead,
-		"Create":         deviceGroupParentResourceCreate,
-		"Update":         deviceGroupParentResourceUpdate,
-		"Delete":         deviceGroupParentResourceDelete,
-		"Common":         deviceGroupParentCommon,
-	},
-	"api_key": {
-		"Imports": apiKeyImports,
-		"Open":    apiKeyOpen,
-	},
-	"vm_auth_key": {
-		"Common":  vmAuthKeyCommon,
-		"Imports": vmAuthKeyImports,
-		"Open":    vmAuthKeyOpen,
-	},
 }

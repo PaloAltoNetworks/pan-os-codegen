@@ -294,6 +294,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 			conditionallyAddDefaults(terraformProvider.ImportManager, spec.Spec)
 
 			if spec.TerraformProviderConfig.Ephemeral {
+				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/ephemeral", "")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/ephemeral/schema", "ephschema")
 			} else {
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
@@ -306,7 +307,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 			if len(spec.Locations) > 0 {
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/diag", "")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault", "")
-				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
+				if resourceTyp != properties.ResourceCustom {
+					terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
+				}
 			}
 
 			if spec.ResourceXpathVariablesWithChecks(false) {
@@ -339,6 +342,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 			conditionallyAddDefaults(terraformProvider.ImportManager, spec.Spec)
 
 			if spec.TerraformProviderConfig.Ephemeral {
+				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/ephemeral", "")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/ephemeral/schema", "ephschema")
 			} else {
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
@@ -351,7 +355,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 			if len(spec.Locations) > 0 {
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/diag", "")
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault", "")
-				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
+				if resourceTyp != properties.ResourceCustom {
+					terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
+				}
 			}
 
 			if spec.ResourceXpathVariablesWithChecks(false) {
@@ -385,6 +391,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 
 		if spec.TerraformProviderConfig.ResourceType != properties.TerraformResourceCustom {
 			terraformProvider.ImportManager.AddStandardImport("errors", "")
+			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
 			terraformProvider.ImportManager.AddOtherImport("github.com/PaloAltoNetworks/terraform-provider-panos/internal/manager", "sdkmanager")
 			terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "pangoutil")
 		}
@@ -394,7 +401,6 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 			terraformProvider.ImportManager.AddSdkImport(sdkPkgPath(spec), "")
 		}
 
-		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/attr", "")
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/diag", "")
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource/schema", "dsschema")
@@ -403,7 +409,6 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 
 		terraformProvider.ImportManager.AddStandardImport("context", "")
 		terraformProvider.ImportManager.AddStandardImport("fmt", "")
-		terraformProvider.ImportManager.AddStandardImport("errors", "")
 		terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "")
 		if spec.TerraformProviderConfig.ResourceType != properties.TerraformResourceCustom {
 			terraformProvider.ImportManager.AddOtherImport("github.com/PaloAltoNetworks/terraform-provider-panos/internal/manager", "sdkmanager")
@@ -416,7 +421,6 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 			terraformProvider.ImportManager.AddSdkImport(sdkPkgPath(spec), "")
 		}
 
-		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/attr", "")
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/diag", "")
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
@@ -528,20 +532,18 @@ func (g *GenerateTerraformProvider) GenerateCommonCode(resourceTyp properties.Re
 		"RenderLocationAttributeTypes": func() (string, error) {
 			return RenderLocationAttributeTypes(names, spec)
 		},
-		"RenderCustomCommonCode": func() string { return RenderCustomCommonCode(names, spec) },
 	}
 	return g.generateTerraformEntityTemplate(resourceTyp, properties.SchemaCommon, names, spec, terraformProvider, commonTemplate, funcMap)
 }
 
 // GenerateTerraformProviderFile generates the entire provider file.
-func (g *GenerateTerraformProvider) GenerateTerraformProviderFile(spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile) error {
+func (g *GenerateTerraformProvider) GenerateTerraformProviderFile(resourceTyp properties.ResourceType, spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile) error {
 	// TODO: Uncomment this once support for config and uuid style resouces is added
 	// terraformProvider.ImportManager.AddSdkImport(sdkPkgPath(spec), "")
 
 	funcMap := template.FuncMap{
-		"renderImports":       func() (string, error) { return terraformProvider.ImportManager.RenderImports() },
-		"renderCustomImports": func() string { return RenderCustomImports(spec) },
-		"renderCode":          func() string { return terraformProvider.Code.String() },
+		"renderImports": func() (string, error) { return terraformProvider.ImportManager.RenderImports() },
+		"renderCode":    func() string { return terraformProvider.Code.String() },
 	}
 	return g.generateTerraformEntityTemplate(properties.ResourceCustom, properties.SchemaProvider, &NameProvider{}, spec, terraformProvider, providerFile, funcMap)
 }
@@ -575,6 +577,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformProvider(terraformProvider 
 			return ParamToSchemaProvider(paramName, paramProp)
 		},
 	}
+
 	return g.generateTerraformEntityTemplate(properties.ResourceCustom, properties.SchemaProvider, &NameProvider{}, spec, terraformProvider, provider, funcMap)
 }
 

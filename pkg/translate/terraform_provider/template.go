@@ -272,7 +272,7 @@ func {{ resourceStructName }}LocationSchema() rsschema.Attribute {
 
 {{ RenderResourceStructs }}
 
-func (r *{{ resourceStructName }}) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+func (o *{{ resourceStructName }}) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
 {{- if HasPosition }}
 	{
 
@@ -347,59 +347,59 @@ func (r *{{ resourceStructName }}) ValidateConfig(ctx context.Context, req resou
 // <ResourceSchema>
 {{ RenderResourceSchema }}
 
-func (r *{{ resourceStructName }}) Metadata(ctx context.Context, req {{ tfresourcepkg }}.MetadataRequest, resp *{{ tfresourcepkg }}.MetadataResponse) {
+func (o *{{ resourceStructName }}) Metadata(ctx context.Context, req {{ tfresourcepkg }}.MetadataRequest, resp *{{ tfresourcepkg }}.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "{{ metaName }}"
 }
 
-func (r *{{ resourceStructName }}) Schema(_ context.Context, _ {{ tfresourcepkg }}.SchemaRequest, resp *{{ tfresourcepkg }}.SchemaResponse) {
+func (o *{{ resourceStructName }}) Schema(_ context.Context, _ {{ tfresourcepkg }}.SchemaRequest, resp *{{ tfresourcepkg }}.SchemaResponse) {
 	resp.Schema = {{ resourceStructName }}Schema()
 }
 
 // </ResourceSchema>
 
-func (r *{{ resourceStructName }}) Configure(ctx context.Context, req {{ tfresourcepkg }}.ConfigureRequest, resp *{{ tfresourcepkg }}.ConfigureResponse) {
+func (o *{{ resourceStructName }}) Configure(ctx context.Context, req {{ tfresourcepkg }}.ConfigureRequest, resp *{{ tfresourcepkg }}.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
 	}
 
 	providerData := req.ProviderData.(*ProviderData)
-	r.client = providerData.Client
+	o.client = providerData.Client
 
 {{- if IsCustom }}
 
 {{- else if and IsEntry HasImports }}
-	specifier, _, err := {{ resourceSDKName }}.Versioning(r.client.Versioning())
+	specifier, _, err := {{ resourceSDKName }}.Versioning(o.client.Versioning())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
 		return
 	}
 
 	batchSize := providerData.MultiConfigBatchSize
-	r.manager =  sdkmanager.NewImportableEntryObjectManager(r.client, {{ resourceSDKName }}.NewService(r.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
+	o.manager =  sdkmanager.NewImportableEntryObjectManager(o.client, {{ resourceSDKName }}.NewService(o.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsEntry }}
-	specifier, _, err := {{ resourceSDKName }}.Versioning(r.client.Versioning())
+	specifier, _, err := {{ resourceSDKName }}.Versioning(o.client.Versioning())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
 		return
 	}
 	batchSize := providerData.MultiConfigBatchSize
-	r.manager =  sdkmanager.NewEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](r.client, {{ resourceSDKName }}.NewService(r.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
+	o.manager =  sdkmanager.NewEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](o.client, {{ resourceSDKName }}.NewService(o.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsUuid }}
-	specifier, _, err := {{ resourceSDKName }}.Versioning(r.client.Versioning())
+	specifier, _, err := {{ resourceSDKName }}.Versioning(o.client.Versioning())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
 		return
 	}
 	batchSize := providerData.MultiConfigBatchSize
-	r.manager =  sdkmanager.NewUuidObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](r.client, {{ resourceSDKName }}.NewService(r.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
+	o.manager =  sdkmanager.NewUuidObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](o.client, {{ resourceSDKName }}.NewService(o.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsConfig }}
-	specifier, _, err := {{ resourceSDKName }}.Versioning(r.client.Versioning())
+	specifier, _, err := {{ resourceSDKName }}.Versioning(o.client.Versioning())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
 		return
 	}
-	r.manager =  sdkmanager.NewConfigObjectManager(r.client, {{ resourceSDKName }}.NewService(r.client), specifier)
+	o.manager =  sdkmanager.NewConfigObjectManager(o.client, {{ resourceSDKName }}.NewService(o.client), specifier)
 {{- end }}
 }
 
@@ -412,7 +412,7 @@ func (r *{{ resourceStructName }}) Configure(ctx context.Context, req {{ tfresou
 {{ RenderXpathComponentsGetter }}
 
 {{- if FunctionSupported "Create" }}
-func (r *{{ resourceStructName }}) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+func (o *{{ resourceStructName }}) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	{{ ResourceCreateFunction resourceStructName serviceName}}
 }
 {{- end }}
@@ -425,31 +425,31 @@ func (o *{{ resourceStructName }}) Read(ctx context.Context, req resource.ReadRe
 
 
 {{- if FunctionSupported "Update" }}
-func (r *{{ resourceStructName }}) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (o *{{ resourceStructName }}) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	{{ ResourceUpdateFunction resourceStructName serviceName}}
 }
 {{- end }}
 
 {{- if FunctionSupported "Delete" }}
-func (r *{{ resourceStructName }}) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+func (o *{{ resourceStructName }}) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	{{ ResourceDeleteFunction resourceStructName serviceName}}
 }
 {{- end }}
 
 {{- if FunctionSupported "Open" }}
-func (r *{{ resourceStructName }}) Open(ctx context.Context, req ephemeral.OpenRequest, resp *ephemeral.OpenResponse) {
+func (o *{{ resourceStructName }}) Open(ctx context.Context, req ephemeral.OpenRequest, resp *ephemeral.OpenResponse) {
 	{{ ResourceOpenFunction resourceStructName serviceName}}
 }
 {{- end }}
 
 {{- if FunctionSupported "Renew" }}
-func (r *{{ resourceStructName }}) Open(ctx context.Context, req ephemeral.RenewRequest, resp *ephemeral.RenewResponse) {
+func (o *{{ resourceStructName }}) Renew(ctx context.Context, req ephemeral.RenewRequest, resp *ephemeral.RenewResponse) {
 	{{ ResourceRenewFunction resourceStructName serviceName}}
 }
 {{- end }}
 
 {{- if FunctionSupported "Close" }}
-func (r *{{ resourceStructName }}) Open(ctx context.Context, req ephemeral.CloseRequest, resp *ephemeral.CloseResponse) {
+func (o *{{ resourceStructName }}) Close(ctx context.Context, req ephemeral.CloseRequest, resp *ephemeral.CloseResponse) {
 	{{ ResourceCloseFunction resourceStructName serviceName}}
 }
 {{- end }}
@@ -460,7 +460,7 @@ func (r *{{ resourceStructName }}) Open(ctx context.Context, req ephemeral.Close
 
 {{ RenderImportStateCreator }}
 
-func (r *{{ resourceStructName }}) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (o *{{ resourceStructName }}) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	{{ ResourceImportStateFunction }}
 }
 
@@ -503,7 +503,7 @@ entries := make([]*{{ $resourceSDKStructName }}, len(elements))
 idx := 0
 for name, elt := range elements {
 	var entry *{{ .resourceSDKName }}.{{ .EntryOrConfig }}
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, r.client, nil, &entry, ev)...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, o.client, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -521,7 +521,7 @@ if resp.Diagnostics.HasError() {
 entries := make([]*{{ $resourceSDKStructName }}, len(elements))
 for idx, elt := range elements {
 	var entry *{{ .resourceSDKName }}.{{ .EntryOrConfig }}
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, r.client, nil, &entry, ev)...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, o.client, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -536,7 +536,7 @@ if err != nil {
 	return
 }
 
-created, err := r.manager.CreateMany(ctx, location, components, entries)
+created, err := o.manager.CreateMany(ctx, location, components, entries)
 if err != nil {
 	resp.Diagnostics.AddError("Failed to create new entries", err.Error())
 	return
@@ -549,7 +549,7 @@ for _, elt := range created {
 	}
 	var object {{ $resourceTFStructName }}
 	object.name = elt.Name
-	resp.Diagnostics.Append(object.CopyFromPango(ctx, r.client, nil, elt, ev)...)
+	resp.Diagnostics.Append(object.CopyFromPango(ctx, o.client, nil, elt, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -575,7 +575,7 @@ for _, elt := range created {
 	}
 
 	var object {{ $resourceTFStructName }}
-	resp.Diagnostics.Append(object.CopyFromPango(ctx, r.client, nil, elt, ev)...)
+	resp.Diagnostics.Append(object.CopyFromPango(ctx, o.client, nil, elt, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -627,7 +627,7 @@ if resp.Diagnostics.HasError() {
 entries := make([]*{{ $resourceSDKStructName }}, len(elements))
 for idx, elt := range elements {
 	var entry *{{ $resourceSDKStructName }}
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, r.client, nil, &entry, ev)...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, o.client, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -641,7 +641,7 @@ if err != nil {
 }
 
 {{- if .Exhaustive }}
-processed, err := r.manager.CreateMany(ctx, location, components, entries, sdkmanager.Exhaustive, movement.PositionFirst{})
+processed, err := o.manager.CreateMany(ctx, location, components, entries, sdkmanager.Exhaustive, movement.PositionFirst{})
 if err != nil {
 	resp.Diagnostics.AddError("Error during CreateMany() call", err.Error())
 	return
@@ -653,7 +653,7 @@ if resp.Diagnostics.HasError() {
 	return
 }
 position := positionAttribute.CopyToPango()
-processed, err := r.manager.CreateMany(ctx, location, components, entries, sdkmanager.NonExhaustive, position)
+processed, err := o.manager.CreateMany(ctx, location, components, entries, sdkmanager.NonExhaustive, position)
 if err != nil {
 	resp.Diagnostics.AddError("Error during CreateMany() call", err.Error())
 	return
@@ -662,7 +662,7 @@ if err != nil {
 objects := make([]{{ $resourceTFStructName }}, len(processed))
 for idx, elt := range processed {
 	var object {{ $resourceTFStructName }}
-	copy_diags := object.CopyFromPango(ctx, r.client, nil, elt, ev)
+	copy_diags := object.CopyFromPango(ctx, o.client, nil, elt, ev)
 	resp.Diagnostics.Append(copy_diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -700,7 +700,7 @@ const resourceCreateFunction = `
 	})
 
 	// Verify mode.
-	if r.client.Hostname == "" {
+	if o.client.Hostname == "" {
 		resp.Diagnostics.AddError("Invalid mode error", InspectionModeError)
 		return
 	}
@@ -719,7 +719,7 @@ const resourceCreateFunction = `
 
 	// Load the desired config.
 	var obj *{{ .resourceSDKName }}.{{ .EntryOrConfig }}
-	resp.Diagnostics.Append(state.CopyToPango(ctx, r.client, nil, &obj, ev)...)
+	resp.Diagnostics.Append(state.CopyToPango(ctx, o.client, nil, &obj, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -741,21 +741,21 @@ const resourceCreateFunction = `
 {{- if .HasImports }}
 	var importLocation {{ .resourceSDKName }}.ImportLocation
 	{{ RenderImportLocationAssignment "state.Location" "importLocation" }}
-	created, err := r.manager.Create(ctx, location, components, obj)
+	created, err := o.manager.Create(ctx, location, components, obj)
 	if err != nil {
 		resp.Diagnostics.AddError("Error in create", err.Error())
 		return
 	}
 
 	if importLocation != nil {
-		err = r.manager.ImportToLocations(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, obj.Name)
+		err = o.manager.ImportToLocations(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, obj.Name)
 		if err != nil {
 			resp.Diagnostics.AddError("Failed to import resource into location", err.Error())
 			return
 		}
 	}
 {{- else }}
-	created, err := r.manager.Create(ctx, location, components, obj)
+	created, err := o.manager.Create(ctx, location, components, obj)
 	if err != nil {
 		resp.Diagnostics.AddError("Error in create", err.Error())
 		return
@@ -763,7 +763,7 @@ const resourceCreateFunction = `
 {{- end }}
 
 
-	resp.Diagnostics.Append(state.CopyFromPango(ctx, r.client, nil, created, ev)...)
+	resp.Diagnostics.Append(state.CopyFromPango(ctx, o.client, nil, created, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -1138,7 +1138,7 @@ stateEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
 idx := 0
 for name, elt := range elements {
 	var entry *{{ .resourceSDKName }}.{{ .EntryOrConfig }}
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, r.client, nil, &entry, ev)...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, o.client, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -1156,7 +1156,7 @@ if resp.Diagnostics.HasError() {
 stateEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
 for idx, elt := range elements {
 	var entry *{{ $resourceSDKStructName }}
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, r.client, nil, &entry, ev)...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, o.client, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		 return
 	}
@@ -1175,7 +1175,7 @@ if err != nil {
 	return
 }
 
-existing, err := r.manager.ReadMany(ctx, location, components)
+existing, err := o.manager.ReadMany(ctx, location, components)
 if err != nil && !errors.Is(err, sdkmanager.ErrObjectNotFound) {
 	resp.Diagnostics.AddError("Error while reading entries from the server", err.Error())
 	return
@@ -1203,7 +1203,7 @@ planEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
 idx = 0
 for name, elt := range elements {
 	entry, _ := existingEntriesByName[name]
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, r.client, nil, &entry, ev)...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, o.client, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -1216,7 +1216,7 @@ for name, elt := range elements {
 var planEntries []*{{ $resourceSDKStructName }}
 for _, elt := range elements {
 	existingEntry, _ := existingEntriesByName[elt.Name.ValueString()]
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, r.client, nil, &existingEntry, ev)...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, o.client, nil, &existingEntry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -1225,7 +1225,7 @@ for _, elt := range elements {
 }
 {{- end }}
 
-processed, err := r.manager.UpdateMany(ctx, location, components, stateEntries, planEntries)
+processed, err := o.manager.UpdateMany(ctx, location, components, stateEntries, planEntries)
 if err != nil {
 	resp.Diagnostics.AddError("Error while updating entries", err.Error())
 	return
@@ -1236,7 +1236,7 @@ objects := make(map[string]*{{ $resourceTFStructName }}, len(processed))
 for _, elt := range processed {
 	var object {{ $resourceTFStructName }}
 	object.name = elt.Name
-	copy_diags := object.CopyFromPango(ctx, r.client, nil, elt, ev)
+	copy_diags := object.CopyFromPango(ctx, o.client, nil, elt, ev)
 	resp.Diagnostics.Append(copy_diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -1247,7 +1247,7 @@ for _, elt := range processed {
 objects := make([]*{{ $resourceTFStructName }}, len(processed))
 for idx, elt := range processed {
 	var object {{ $resourceTFStructName }}
-	resp.Diagnostics.Append(object.CopyFromPango(ctx, r.client, nil, elt, ev)...)
+	resp.Diagnostics.Append(object.CopyFromPango(ctx, o.client, nil, elt, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -1304,7 +1304,7 @@ if resp.Diagnostics.HasError() {
 stateEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
 for idx, elt := range elements {
 	var entry *{{ $resourceSDKStructName }}
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, r.client, nil, &entry, ev)...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, o.client, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		 return
 	}
@@ -1324,7 +1324,7 @@ if resp.Diagnostics.HasError() {
 position := positionAttribute.CopyToPango()
 {{- end }}
 
-existing, _, err := r.manager.ReadMany(ctx, location, stateEntries, {{ $exhaustive }}, position)
+existing, _, err := o.manager.ReadMany(ctx, location, stateEntries, {{ $exhaustive }}, position)
 if err != nil && !errors.Is(err, sdkmanager.ErrObjectNotFound) {
 	resp.Diagnostics.AddError("Error while reading entries from the server", err.Error())
 	return
@@ -1343,7 +1343,7 @@ if resp.Diagnostics.HasError() {
 planEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
 for idx, elt := range elements {
 	entry, _ := existingEntriesByName[elt.Name.ValueString()]
-	resp.Diagnostics.Append(elt.CopyToPango(ctx, r.client, nil, &entry, ev)...)
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, o.client, nil, &entry, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -1356,7 +1356,7 @@ if err != nil {
 	return
 }
 
-processed, err := r.manager.UpdateMany(ctx, location, components, stateEntries, planEntries, {{ $exhaustive }}, position)
+processed, err := o.manager.UpdateMany(ctx, location, components, stateEntries, planEntries, {{ $exhaustive }}, position)
 if err != nil {
 	resp.Diagnostics.AddError("Failed to udpate entries", err.Error())
 }
@@ -1364,7 +1364,7 @@ if err != nil {
 objects := make([]*{{ $resourceTFStructName }}, len(processed))
 for idx, elt := range processed {
 	var object {{ $resourceTFStructName }}
-	copy_diags := object.CopyFromPango(ctx, r.client, nil, elt, ev)
+	copy_diags := object.CopyFromPango(ctx, o.client, nil, elt, ev)
 	resp.Diagnostics.Append(copy_diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -1406,7 +1406,7 @@ const resourceUpdateFunction = `
 	})
 
 	// Verify mode.
-	if r.client.Hostname == "" {
+	if o.client.Hostname == "" {
 		resp.Diagnostics.AddError("Invalid mode error", InspectionModeError)
 		return
 	}
@@ -1418,16 +1418,16 @@ const resourceUpdateFunction = `
 	}
 
 {{- if .HasEntryName }}
-	obj, err := r.manager.Read(ctx, location, components, plan.Name.ValueString())
+	obj, err := o.manager.Read(ctx, location, components, plan.Name.ValueString())
 {{- else }}
-	obj, err := r.manager.Read(ctx, location, components)
+	obj, err := o.manager.Read(ctx, location, components)
 {{- end }}
 	if err != nil {
 		resp.Diagnostics.AddError("Error in update", err.Error())
 		return
 	}
 
-	resp.Diagnostics.Append(plan.CopyToPango(ctx, r.client, nil, &obj, ev)...)
+	resp.Diagnostics.Append(plan.CopyToPango(ctx, o.client, nil, &obj, ev)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -1439,9 +1439,9 @@ const resourceUpdateFunction = `
 	}
 
 {{ if .HasEntryName }}
-	updated, err := r.manager.Update(ctx, location, components, obj, obj.Name)
+	updated, err := o.manager.Update(ctx, location, components, obj, obj.Name)
 {{ else }}
-	updated, err := r.manager.Update(ctx, location, components, obj)
+	updated, err := o.manager.Update(ctx, location, components, obj)
 {{ end }}
 	if err != nil {
 		resp.Diagnostics.AddError("Error in update", err.Error())
@@ -1453,7 +1453,7 @@ const resourceUpdateFunction = `
 		state.Timeouts = plan.Timeouts
 	*/
 
-	copy_diags := plan.CopyFromPango(ctx, r.client, nil, updated, ev)
+	copy_diags := plan.CopyFromPango(ctx, o.client, nil, updated, ev)
 	resp.Diagnostics.Append(copy_diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -1516,11 +1516,11 @@ if err != nil {
 }
 
 {{- if eq .Exhaustive "exhaustive" }}
-err = r.manager.Delete(ctx, location, components, names, sdkmanager.Exhaustive)
+err = o.manager.Delete(ctx, location, components, names, sdkmanager.Exhaustive)
 {{- else if eq .Exhaustive "non-exhaustive" }}
-err = r.manager.Delete(ctx, location, components, names, sdkmanager.NonExhaustive)
+err = o.manager.Delete(ctx, location, components, names, sdkmanager.NonExhaustive)
 {{- else }}
-err = r.manager.Delete(ctx, location, components, names)
+err = o.manager.Delete(ctx, location, components, names)
 {{- end }}
 if err != nil {
 	resp.Diagnostics.AddError("error while deleting entries", err.Error())
@@ -1547,7 +1547,7 @@ const resourceDeleteFunction = `
 	})
 
 	// Verify mode.
-	if r.client.Hostname == "" {
+	if o.client.Hostname == "" {
 		resp.Diagnostics.AddError("Invalid mode error", InspectionModeError)
 		return
 	}
@@ -1565,15 +1565,15 @@ const resourceDeleteFunction = `
 	var importLocation {{ .resourceSDKName }}.ImportLocation
 	{{ RenderImportLocationAssignment "state.Location" "importLocation" }}
 	if importLocation != nil {
-		err = r.manager.UnimportFromLocations(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, state.Name.ValueString())
+		err = o.manager.UnimportFromLocations(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, state.Name.ValueString())
 	}
 	if err != nil {
 		resp.Diagnostics.AddError("Error in delete", err.Error())
 		return
 	}
-	err = r.manager.Delete(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, components, []string{state.Name.ValueString()})
+	err = o.manager.Delete(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, components, []string{state.Name.ValueString()})
   {{- else }}
-	err = r.manager.Delete(ctx, location, components, []string{state.Name.ValueString()})
+	err = o.manager.Delete(ctx, location, components, []string{state.Name.ValueString()})
   {{- end }}
 	if err != nil && !errors.Is(err, sdkmanager.ErrObjectNotFound) {
 		resp.Diagnostics.AddError("Error in delete", err.Error())
@@ -1586,7 +1586,7 @@ const resourceDeleteFunction = `
 		return
 	}
 
-	existing, err := r.manager.Read(ctx, location, components)
+	existing, err := o.manager.Read(ctx, location, components)
 	if err != nil {
 		resp.Diagnostics.AddError("Error while deleting resource", err.Error())
 		return
@@ -1595,7 +1595,7 @@ const resourceDeleteFunction = `
 	var obj {{ $resourceSDKStructName }}
 	obj.Misc = existing.Misc
 
-	err = r.manager.Delete(ctx, location, &obj)
+	err = o.manager.Delete(ctx, location, &obj)
 	if err != nil && !errors.Is(err, sdkmanager.ErrObjectNotFound) {
 		resp.Diagnostics.AddError("Error in delete", err.Error())
 		return
@@ -1951,7 +1951,7 @@ const resourceImportStateFunctionTmpl = `
 	}
 	for _, elt := range objectNames {
 		object := &{{ .ListStructName }}{}
-		resp.Diagnostics.Append(object.CopyFromPango(ctx, r.client, nil, &{{ .PangoStructName }}{}, ev)...)
+		resp.Diagnostics.Append(object.CopyFromPango(ctx, o.client, nil, &{{ .PangoStructName }}{}, ev)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
@@ -1974,7 +1974,7 @@ const resourceImportStateFunctionTmpl = `
 	}
 	for _, elt := range objectNames {
 		object := &{{ .ListStructName }}{}
-		resp.Diagnostics.Append(object.CopyFromPango(ctx, r.client, nil, &{{ .PangoStructName }}{}, ev)...)
+		resp.Diagnostics.Append(object.CopyFromPango(ctx, o.client, nil, &{{ .PangoStructName }}{}, ev)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
@@ -1997,8 +1997,6 @@ const commonTemplate = `
 
 {{- RenderLocationAttributeTypes }}
 {{- end }}
-
-{{- RenderCustomCommonCode }}
 `
 
 const dataSourceSingletonObj = `
@@ -2123,7 +2121,6 @@ package provider
 // Note:  This file is automatically generated.  Manually made changes
 // will be overwritten when the provider is generated.
 {{ renderImports }}
-{{ renderCustomImports }}
 {{ renderCode }}
 
 {{- /* Done */ -}}
