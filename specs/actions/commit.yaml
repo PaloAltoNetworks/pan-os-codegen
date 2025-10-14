@@ -1,0 +1,21 @@
+name: commit
+terraform_provider_config:
+  description: Commit Action
+  skip_resource: true
+  skip_datasource: true
+  resource_type: custom
+  action: true
+  custom_functions:
+    Invoke: true
+  suffix: commit
+go_sdk_config:
+  skip: true
+  package: ["api_key"]
+panos_xpath:
+  path: ["api-key"]
+locations: []
+entries: []
+imports: []
+version: 11.0.2
+spec:
+  params: []
