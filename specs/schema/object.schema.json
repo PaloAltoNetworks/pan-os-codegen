@@ -37,7 +37,8 @@
             "Delete": { "type": "boolean" },
             "Open": { "type": "boolean" },
             "Refresh": { "type": "boolean" },
-            "Close": { "type": "boolean" }
+            "Close": { "type": "boolean" },
+            "Invoke": { "type": "boolean" }
           }
         },
         "resource_variants": {

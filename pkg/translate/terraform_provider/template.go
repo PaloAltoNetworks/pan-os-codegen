@@ -213,6 +213,46 @@ if !movementRequired {
 }
 `
 
+const actionObj = `
+var (
+	_ action.ActionWithConfigure = &{{ structName }}{}
+)
+
+func New{{ structName }}() action.Action {
+	return &{{ structName }}{}
+}
+
+type {{ structName }} struct {
+	client *pango.Client
+}
+
+{{ RenderStructs }}
+
+{{ RenderSchema }}
+
+func (o *{{ structName }}) Metadata(ctx context.Context, req action.MetadataRequest, resp *action.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "{{ metaName }}"
+}
+
+func (o *{{ structName }}) Schema(_ context.Context, _ action.SchemaRequest, resp *action.SchemaResponse) {
+	resp.Schema = {{ structName }}Schema()
+}
+
+func (o *{{ structName }}) Invoke(ctx context.Context, req action.InvokeRequest, resp *action.InvokeResponse) {
+	o.InvokeCustom(ctx, req, resp)
+}
+
+func (o *{{ structName }}) Configure(ctx context.Context, req action.ConfigureRequest, resp *action.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
+	}
+
+	providerData := req.ProviderData.(*ProviderData)
+	o.client = providerData.Client
+}
+`
+
 const resourceObj = `
 {{- /* Begin */ -}}
 
@@ -2145,6 +2185,8 @@ package provider
 // Ensure the provider implementation interface is sound.
 var (
 	_ provider.Provider = &PanosProvider{}
+	_ provider.ProviderWithFunctions = &PanosProvider{}
+	_ provider.ProviderWithActions = &PanosProvider{}
 )
 
 // PanosProvider is the provider implementation.
@@ -2300,6 +2342,14 @@ func (p *PanosProvider) Resources(_ context.Context) []func() resource.Resource 
 func (p *PanosProvider) EphemeralResources(_ context.Context) []func() ephemeral.EphemeralResource {
 	return []func() ephemeral.EphemeralResource{
 {{- range $fnName := EphemeralResources }}
+	New{{ $fnName }},
+{{- end }}
+	}
+}
+
+func (p *PanosProvider) Actions(_ context.Context) []func() action.Action {
+	return []func() action.Action{
+{{- range $fnName := Actions }}
 	New{{ $fnName }},
 {{- end }}
 	}

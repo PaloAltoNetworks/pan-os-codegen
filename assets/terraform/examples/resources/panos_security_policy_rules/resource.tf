@@ -35,7 +35,7 @@ resource "panos_security_policy_rules" "example-2" {
 
   position = { where = "after", directly = true, pivot = "rule-2" }
 
-  rules = [ for k in [10, 11, 12]: 
+  rules = [ for k in [10, 11, 12]:
     {
       name                  = "rule-${k}",
       source_zones          = ["any"],

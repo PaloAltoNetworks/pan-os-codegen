@@ -67,7 +67,11 @@ func (g *GenerateTerraformProvider) appendResourceType(spec *properties.Normaliz
 	case properties.SchemaEphemeralResource:
 		flags |= properties.TerraformSpecEphemeralResource
 		terraformProvider.EphemeralResources = append(terraformProvider.EphemeralResources, names.ResourceStructName)
+	case properties.SchemaAction:
+		terraformProvider.Actions = append(terraformProvider.Actions, names.ActionStructName())
 	case properties.SchemaProvider, properties.SchemaCommon:
+	default:
+		panic(fmt.Sprintf("unsupported schemaTyp: '%s'", schemaTyp))
 	}
 
 	switch resourceTyp {
@@ -104,6 +108,10 @@ func (g *GenerateTerraformProvider) generateTerraformEntityTemplate(resourceTyp 
 		resourceType = "Common"
 	case properties.SchemaProvider:
 		resourceType = "ProviderFile"
+	case properties.SchemaAction:
+		resourceType = "Action"
+	default:
+		panic(fmt.Sprintf("unsupported schemaTyp: '%+v'", schemaTyp))
 	}
 
 	template, err := g.createTemplate(resourceType, spec, templateStr, funcMap)
@@ -375,6 +383,32 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 	return nil
 }
 
+func (o *GenerateTerraformProvider) GenerateTerraformAction(spec *properties.Normalization, provider *properties.TerraformProviderFile) error {
+	provider.ImportManager.AddStandardImport("context", "")
+	provider.ImportManager.AddStandardImport("fmt", "")
+
+	provider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/action", "")
+	provider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/action/schema", "")
+	provider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/attr", "")
+
+	provider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "")
+
+	resourceTyp := properties.ResourceEntry
+	names := NewNameProvider(spec, resourceTyp)
+
+	funcMap := template.FuncMap{
+		"structName": func() string { return names.ActionStructName() },
+		"metaName":   func() string { return names.MetaName },
+
+		"RenderStructs": func() (string, error) { return RenderStructs(resourceTyp, properties.SchemaAction, names, spec) },
+		"RenderSchema": func() (string, error) {
+			return RenderSchema(resourceTyp, properties.SchemaAction, names, spec, provider.ImportManager)
+		},
+	}
+
+	return o.generateTerraformEntityTemplate(resourceTyp, properties.SchemaAction, names, spec, provider, actionObj, funcMap)
+}
+
 // GenerateTerraformDataSource generates a Terraform data source and data source template.
 func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp properties.ResourceType, spec *properties.Normalization, terraformProvider *properties.TerraformProviderFile) error {
 
@@ -557,6 +591,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformProvider(terraformProvider 
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource", "")
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/function", "")
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/provider", "")
+	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/action", "")
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/provider/schema", "")
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource", "")
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/ephemeral", "")
@@ -568,6 +603,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformProvider(terraformProvider 
 		"DataSources":           func() []string { return terraformProvider.DataSources },
 		"EphemeralResources":    func() []string { return terraformProvider.EphemeralResources },
 		"Resources":             func() []string { return terraformProvider.Resources },
+		"Actions":               func() []string { return terraformProvider.Actions },
 		"RenderResourceFuncMap": func() (string, error) { return RenderResourceFuncMap(terraformProvider.SpecMetadata) },
 		"ProviderParams":        func() map[string]properties.TerraformProviderParams { return providerConfig.TerraformProviderParams },
 		"ParamToModelBasic": func(paramName string, paramProp properties.TerraformProviderParams) (string, error) {
