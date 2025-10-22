@@ -8,6 +8,7 @@ var (
 	_ provider.Provider = &PanosProvider{}
 	_ provider.ProviderWithFunctions = &PanosProvider{}
 	_ provider.ProviderWithActions = &PanosProvider{}
+	_ provider.ProviderWithListResources = &PanosProvider{}
 )
 
 // PanosProvider is the provider implementation.
@@ -138,6 +139,7 @@ func (p *PanosProvider) Configure(ctx context.Context, req provider.ConfigureReq
 	resp.ResourceData = providerData
 	resp.EphemeralResourceData = providerData
 	resp.ActionData = providerData
+	resp.ListResourceData = providerData
 
 	// Done.
 	tflog.Info(ctx, "Configured client", map[string]any{"success": true})
@@ -164,6 +166,14 @@ func (p *PanosProvider) Resources(_ context.Context) []func() resource.Resource 
 func (p *PanosProvider) EphemeralResources(_ context.Context) []func() ephemeral.EphemeralResource {
 	return []func() ephemeral.EphemeralResource{
 {{- range $fnName := EphemeralResources }}
+	New{{ $fnName }},
+{{- end }}
+	}
+}
+
+func (p *PanosProvider) ListResources(_ context.Context) []func() list.ListResource {
+	return []func() list.ListResource{
+{{- range $fnName := ListResources }}
 	New{{ $fnName }},
 {{- end }}
 	}
