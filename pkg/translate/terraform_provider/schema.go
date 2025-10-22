@@ -402,6 +402,34 @@ func createSchemaAttributeForParameter(schemaTyp properties.SchemaType, manager 
 	}
 }
 
+func createSchemaSpecForListResourceModel(_ properties.ResourceType, _ properties.SchemaType, spec *properties.Normalization, packageName string, structName string, _ *imports.Manager) []schemaCtx {
+	var schemas []schemaCtx
+	var attributes []attributeCtx
+
+	if len(spec.Locations) > 0 {
+		location := properties.NewNameVariant("location")
+
+		attributes = append(attributes, attributeCtx{
+			Package:    packageName,
+			Name:       location,
+			Required:   true,
+			SchemaType: "SingleNestedAttribute",
+		})
+	}
+
+	schemas = append(schemas, schemaCtx{
+		Package:       packageName,
+		ObjectOrModel: "Model",
+		IsResource:    false,
+		StructName:    structName,
+		ReturnType:    "Schema",
+		Attributes:    attributes,
+	})
+
+	return schemas
+
+}
+
 // createSchemaSpecForUuidModel creates a schema for uuid-type resources.
 func createSchemaSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, spec *properties.Normalization, packageName string, structName string, manager *imports.Manager) []schemaCtx {
 	var schemas []schemaCtx
@@ -607,6 +635,8 @@ func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp pro
 		}
 	case properties.SchemaEphemeralResource:
 		packageName = "ephschema"
+	case properties.SchemaListResource:
+		packageName = "listschema"
 	case properties.SchemaAction:
 		packageName = "schema"
 	case properties.SchemaCommon, properties.SchemaProvider:
@@ -627,12 +657,18 @@ func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp pro
 		structName = names.DataSourceStructName
 	case properties.SchemaResource, properties.SchemaEphemeralResource:
 		structName = names.ResourceStructName
+	case properties.SchemaListResource:
+		structName = names.ListResourceStructName()
 	case properties.SchemaAction:
 		structName = names.ActionStructName()
 	case properties.SchemaCommon, properties.SchemaProvider:
 		fallthrough
 	default:
 		panic(fmt.Sprintf("unsupported schemaTyp: '%s'", schemaTyp))
+	}
+
+	if schemaTyp == properties.SchemaListResource {
+		return createSchemaSpecForListResourceModel(resourceTyp, schemaTyp, spec, packageName, structName, manager)
 	}
 
 	switch resourceTyp {
