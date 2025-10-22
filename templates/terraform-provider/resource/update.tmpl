@@ -12,6 +12,9 @@
 
 	var location {{ .resourceSDKName }}.Location
 	{{ RenderLocationsStateToPango "state.Location" "location" }}
+	if resp.Diagnostics.HasError() {
+		return;
+	}
 
 	// Basic logging.
 	tflog.Info(ctx, "performing resource update", map[string]any{

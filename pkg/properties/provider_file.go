@@ -68,6 +68,10 @@ func (o TerraformNameProvider) IdentityModelStructName() string {
 	return fmt.Sprintf("%sIdentityModel", o.ResourceStructName)
 }
 
+func (o TerraformNameProvider) ListResourceStructName() string {
+	return fmt.Sprintf("%sListResource", o.StructName)
+}
+
 type TerraformSpecFlags uint
 
 const (
@@ -91,6 +95,7 @@ type TerraformProviderFile struct {
 	DataSources        []string
 	Resources          []string
 	EphemeralResources []string
+	ListResources      []string
 	Actions            []string
 	SpecMetadata       map[string]TerraformProviderSpecMetadata
 	Code               *strings.Builder

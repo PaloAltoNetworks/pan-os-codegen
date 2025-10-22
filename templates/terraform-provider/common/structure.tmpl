@@ -1,0 +1,14 @@
+type {{ .StructName }} struct {
+	client *pango.Client
+{{- if .IsCustom }}
+	custom *{{ .BareStructName }}Custom
+{{- else if .IsImportableEntry }}
+	manager *sdkmanager.ImportableEntryObjectManager[*{{ .SDKName }}.Entry, {{ .SDKName }}.Location, *{{ .SDKName }}.Service]
+{{- else if .IsEntry }}
+	manager *sdkmanager.EntryObjectManager[*{{ .SDKName }}.Entry, {{ .SDKName }}.Location, *{{ .SDKName }}.Service]
+{{- else if .IsUuid }}
+	manager *sdkmanager.UuidObjectManager[*{{ .SDKName }}.Entry, {{ .SDKName }}.Location, *{{ .SDKName }}.Service]
+{{- else if .IsConfig }}
+	manager *sdkmanager.ConfigObjectManager[*{{ .SDKName }}.Config, {{ .SDKName }}.Location, *{{ .SDKName }}.Service]
+{{- end }}
+}

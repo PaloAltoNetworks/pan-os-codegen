@@ -30,6 +30,9 @@ if resp.Diagnostics.HasError() {
 
 var location {{ .resourceSDKName }}.Location
 {{ RenderLocationsStateToPango "state.Location" "location" }}
+if resp.Diagnostics.HasError() {
+	return;
+}
 
 var names []string
 {{- if eq .PluralType "map" }}

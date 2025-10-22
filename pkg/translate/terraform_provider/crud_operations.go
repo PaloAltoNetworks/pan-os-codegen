@@ -35,7 +35,7 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 			return RendeCreateUpdateMovementRequired(state, entries)
 		},
 		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
-			return RenderLocationsStateToPango(names, paramSpec, source, dest)
+			return RenderLocationsStateToPango(names, paramSpec, source, dest, "resp.Diagnostics")
 		},
 	}
 
@@ -151,7 +151,7 @@ func DataSourceReadFunction(resourceTyp properties.ResourceType, names *NameProv
 			return RenderLocationsPangoToState(names, paramSpec, source, dest)
 		},
 		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
-			return RenderLocationsStateToPango(names, paramSpec, source, dest)
+			return RenderLocationsStateToPango(names, paramSpec, source, dest, "resp.Diagnostics")
 		},
 	}
 
@@ -219,7 +219,7 @@ func ResourceReadFunction(resourceTyp properties.ResourceType, names *NameProvid
 			return RenderLocationsPangoToState(names, paramSpec, source, dest)
 		},
 		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
-			return RenderLocationsStateToPango(names, paramSpec, source, dest)
+			return RenderLocationsStateToPango(names, paramSpec, source, dest, "resp.Diagnostics")
 		},
 	}
 
@@ -281,7 +281,7 @@ func ResourceUpdateFunction(resourceTyp properties.ResourceType, names *NameProv
 			return RendeCreateUpdateMovementRequired(state, entries)
 		},
 		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
-			return RenderLocationsStateToPango(names, paramSpec, source, dest)
+			return RenderLocationsStateToPango(names, paramSpec, source, dest, "resp.Diagnostics")
 		},
 		"RenderLocationsPangoToState": func(source string, dest string) (string, error) {
 			return RenderLocationsPangoToState(names, paramSpec, source, dest)
@@ -345,7 +345,7 @@ func ResourceDeleteFunction(resourceTyp properties.ResourceType, names *NameProv
 			return RenderImportLocationAssignment(names, paramSpec, source, dest)
 		},
 		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
-			return RenderLocationsStateToPango(names, paramSpec, source, dest)
+			return RenderLocationsStateToPango(names, paramSpec, source, dest, "resp.Diagnostics")
 		},
 	}
 

@@ -65,6 +65,7 @@ type TerraformProviderConfig struct {
 	Action                bool                       `json:"action" yaml:"action"`
 	CustomValidation      bool                       `json:"custom_validation" yaml:"custom_validation"`
 	SkipResource          bool                       `json:"skip_resource" yaml:"skip_resource"`
+	SkipListResource      *bool                      `json:"skip_list_resource" yaml:"skip_list_resource"`
 	SkipDatasource        bool                       `json:"skip_datasource" yaml:"skip_datasource"`
 	SkipDatasourceListing bool                       `json:"skip_datasource_listing" yaml:"skip_datasource_listing"`
 	ResourceType          TerraformResourceType      `json:"resource_type" yaml:"resource_type"`
@@ -702,6 +703,7 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 			Action:                object.TerraformConfig.Action,
 			CustomValidation:      object.TerraformConfig.CustomValidation,
 			SkipResource:          object.TerraformConfig.SkipResource,
+			SkipListResource:      object.TerraformConfig.SkipListResource,
 			SkipDatasource:        object.TerraformConfig.SkipDatasource,
 			SkipDatasourceListing: object.TerraformConfig.SkipdatasourceListing,
 			ResourceType:          TerraformResourceType(object.TerraformConfig.ResourceType),
