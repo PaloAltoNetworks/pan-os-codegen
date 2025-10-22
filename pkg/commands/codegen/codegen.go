@@ -76,6 +76,7 @@ func (c *Command) Execute() error {
 	var dataSourceList []string
 	var ephemeralResourceList []string
 	var actionsList []string
+	var listResourceList []string
 	specMetadata := make(map[string]properties.TerraformProviderSpecMetadata)
 
 	for _, specPath := range c.specs {
@@ -138,6 +139,7 @@ func (c *Command) Execute() error {
 				dataSourceList = append(dataSourceList, data.DataSources...)
 				ephemeralResourceList = append(ephemeralResourceList, data.EphemeralResources...)
 				actionsList = append(actionsList, data.Actions...)
+				listResourceList = append(listResourceList, data.ListResources...)
 
 				for k, v := range data.SpecMetadata {
 					specMetadata[k] = v
@@ -168,6 +170,7 @@ func (c *Command) Execute() error {
 				dataSourceList = append(dataSourceList, data.DataSources...)
 				ephemeralResourceList = append(ephemeralResourceList, data.EphemeralResources...)
 				actionsList = append(actionsList, data.Actions...)
+				listResourceList = append(listResourceList, data.ListResources...)
 
 				for k, v := range data.SpecMetadata {
 					specMetadata[k] = v
@@ -190,6 +193,7 @@ func (c *Command) Execute() error {
 		newProviderObject.DataSources = append(newProviderObject.DataSources, dataSourceList...)
 		newProviderObject.Resources = append(newProviderObject.Resources, resourceList...)
 		newProviderObject.EphemeralResources = append(newProviderObject.EphemeralResources, ephemeralResourceList...)
+		newProviderObject.ListResources = append(newProviderObject.ListResources, listResourceList...)
 		newProviderObject.Actions = append(newProviderObject.Actions, actionsList...)
 		newProviderObject.SpecMetadata = specMetadata
 

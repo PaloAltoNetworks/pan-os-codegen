@@ -42,6 +42,7 @@ type TerraformConfig struct {
 	SkipResource          bool                       `yaml:"skip_resource"`
 	SkipDatasource        bool                       `yaml:"skip_datasource"`
 	SkipdatasourceListing bool                       `yaml:"skip_datasource_listing"`
+	SkipListResource      *bool                      `yaml:"skip_list_resource"`
 	ResourceType          TerraformResourceType      `yaml:"resource_type"`
 	XmlNode               *string                    `yaml:"xml_node"`
 	CustomFunctions       map[string]bool            `yaml:"custom_functions"`
@@ -164,6 +165,11 @@ func (o *Object) UnmarshalYAML(n *yaml.Node) error {
 		}
 	} else if obj.TerraformConfig.ResourceType == TerraformResourceUuid && obj.TerraformConfig.PluralType != "list" {
 		return fmt.Errorf("failed to unmarshal yaml spec: plural_type must be list for uuid resource types")
+	}
+
+	if obj.TerraformConfig.SkipListResource == nil {
+		skipListResource := true
+		obj.TerraformConfig.SkipListResource = &skipListResource
 	}
 
 	return nil

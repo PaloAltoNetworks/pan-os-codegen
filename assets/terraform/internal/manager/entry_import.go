@@ -18,6 +18,7 @@ type SDKImportableEntryService[E EntryObject, L EntryLocation, IL ImportLocation
 	Delete(context.Context, L, []IL, ...string) error
 	ImportToLocations(context.Context, L, []IL, string) error
 	UnimportFromLocations(context.Context, L, []IL, []string) error
+	ListWithXpath(context.Context, string, string, string, string) ([]E, error)
 }
 
 type ImportableEntryObjectManager[E EntryObject, L EntryLocation, IL ImportLocation, IS SDKImportableEntryService[E, L, IL]] struct {
@@ -38,8 +39,22 @@ func NewImportableEntryObjectManager[E EntryObject, L EntryLocation, IL ImportLo
 	}
 }
 
-func (o *ImportableEntryObjectManager[E, L, IL, IS]) ReadMany(ctx context.Context, location L, entries []E) ([]E, error) {
-	return nil, &Error{err: ErrInternal, message: "called ReadMany on an importable singular resource"}
+func (o *ImportableEntryObjectManager[E, L, IL, IS]) ReadMany(ctx context.Context, location L, components []string) ([]E, error) {
+	xpath, err := location.XpathWithComponents(o.client.Versioning(), append(components, util.AsEntryXpath(""))...)
+	if err != nil {
+		return nil, err
+	}
+
+	existing, err := o.service.ListWithXpath(ctx, util.AsXpath(xpath), "get", "", "")
+	if err != nil {
+		if sdkerrors.IsObjectNotFound(err) {
+			return nil, ErrObjectNotFound
+		} else {
+			return nil, &Error{err: err, message: "Failed to read entries from the server"}
+		}
+	}
+
+	return existing, nil
 }
 
 func (o *ImportableEntryObjectManager[E, L, IL, IS]) Read(ctx context.Context, location L, components []string, name string) (E, error) {

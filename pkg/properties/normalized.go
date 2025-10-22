@@ -83,6 +83,7 @@ type TerraformProviderConfig struct {
 	Ephemeral             bool                       `json:"ephemeral" yaml:"ephemeral"`
 	Action                bool                       `json:"action" yaml:"action"`
 	SkipResource          bool                       `json:"skip_resource" yaml:"skip_resource"`
+	SkipListResource      *bool                      `json:"skip_list_resource", yaml:"skip_list_resource"`
 	SkipDatasource        bool                       `json:"skip_datasource" yaml:"skip_datasource"`
 	SkipDatasourceListing bool                       `json:"skip_datasource_listing" yaml:"skip_datasource_listing"`
 	ResourceType          TerraformResourceType      `json:"resource_type" yaml:"resource_type"`
@@ -719,6 +720,7 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 			Ephemeral:             object.TerraformConfig.Epheneral,
 			Action:                object.TerraformConfig.Action,
 			SkipResource:          object.TerraformConfig.SkipResource,
+			SkipListResource:      object.TerraformConfig.SkipListResource,
 			SkipDatasource:        object.TerraformConfig.SkipDatasource,
 			SkipDatasourceListing: object.TerraformConfig.SkipdatasourceListing,
 			ResourceType:          TerraformResourceType(object.TerraformConfig.ResourceType),

@@ -213,6 +213,38 @@ if !movementRequired {
 }
 `
 
+const listResourceObj = `
+var (
+	_ list.ListResourceWithConfigure = &{{ structName }}ListResource{}
+)
+
+func New{{ structName }}ListResource() list.ListResource {
+	return &{{ structName }}ListResource{}
+}
+
+func (o *{{ structName }}ListResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "{{ metaName }}"
+}
+
+{{ RenderMainStruct }}
+
+{{ RenderConfigureFunc }}
+
+{{ RenderModelStructs }}
+
+{{ RenderSchema }}
+
+func {{ structName }}ListResourceLocationSchema() listschema.Attribute {
+	return {{ structName }}LocationSchema()
+}
+
+func (o *{{ structName }}ListResource) ListResourceConfigSchema(_ context.Context, _ list.ListResourceSchemaRequest, resp *list.ListResourceSchemaResponse) {
+	resp.Schema = {{ structName }}ListResourceSchema()
+}
+
+{{ RenderListFunc }}
+`
+
 const actionObj = `
 var (
 	_ action.ActionWithConfigure = &{{ structName }}{}
@@ -226,7 +258,7 @@ type {{ structName }} struct {
 	client *pango.Client
 }
 
-{{ RenderStructs }}
+{{ RenderModelStructs }}
 
 {{ RenderSchema }}
 
@@ -250,6 +282,76 @@ func (o *{{ structName }}) Configure(ctx context.Context, req action.ConfigureRe
 
 	providerData := req.ProviderData.(*ProviderData)
 	o.client = providerData.Client
+}
+`
+
+const structureTmpl = `
+type {{ .StructName }} struct {
+	client *pango.Client
+{{- if .IsCustom }}
+	custom *{{ .BareStructName }}Custom
+{{- else if .IsImportableEntry }}
+	manager *sdkmanager.ImportableEntryObjectManager[*{{ .SDKName }}.Entry, {{ .SDKName }}.Location, {{ .SDKName }}.ImportLocation, *{{ .SDKName }}.Service]
+{{- else if .IsEntry }}
+	manager *sdkmanager.EntryObjectManager[*{{ .SDKName }}.Entry, {{ .SDKName }}.Location, *{{ .SDKName }}.Service]
+{{- else if .IsUuid }}
+	manager *sdkmanager.UuidObjectManager[*{{ .SDKName }}.Entry, {{ .SDKName }}.Location, *{{ .SDKName }}.Service]
+{{- else if .IsConfig }}
+	manager *sdkmanager.ConfigObjectManager[*{{ .SDKName }}.Config, {{ .SDKName }}.Location, *{{ .SDKName }}.Service]
+{{- end }}
+}
+`
+
+const configureFuncTmpl = `
+func (o *{{ .StructName }}) Configure(ctx context.Context, req {{ .PackageName }}.ConfigureRequest, resp *{{ .PackageName }}.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
+	}
+
+	providerData := req.ProviderData.(*ProviderData)
+	o.client = providerData.Client
+
+{{- if .IsCustom }}
+	custom, err := New{{ .BareStructName }}Custom(providerData)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
+		return
+	}
+	o.custom = custom
+{{- else if and .IsImportableEntry }}
+	specifier, _, err := {{ .SDKName }}.Versioning(o.client.Versioning())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
+		return
+	}
+
+	batchSize := providerData.MultiConfigBatchSize
+	o.manager =  sdkmanager.NewImportableEntryObjectManager(o.client, {{ .SDKName }}.NewService(o.client), batchSize, specifier, {{ .SDKName }}.SpecMatches)
+{{- else if .IsEntry }}
+	specifier, _, err := {{ .SDKName }}.Versioning(o.client.Versioning())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
+		return
+	}
+	batchSize := providerData.MultiConfigBatchSize
+	o.manager =  sdkmanager.NewEntryObjectManager[*{{ .SDKName }}.Entry, {{ .SDKName }}.Location, *{{ .SDKName }}.Service](o.client, {{ .SDKName }}.NewService(o.client), batchSize, specifier, {{ .SDKName }}.SpecMatches)
+{{- else if .IsUuid }}
+	specifier, _, err := {{ .SDKName }}.Versioning(o.client.Versioning())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
+		return
+	}
+	batchSize := providerData.MultiConfigBatchSize
+	o.manager =  sdkmanager.NewUuidObjectManager[*{{ .SDKName }}.Entry, {{ .SDKName }}.Location, *{{ .SDKName }}.Service](o.client, {{ .SDKName }}.NewService(o.client), batchSize, specifier, {{ .SDKName }}.SpecMatches)
+{{- else if .IsConfig }}
+	specifier, _, err := {{ .SDKName }}.Versioning(o.client.Versioning())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
+		return
+	}
+	o.manager =  sdkmanager.NewConfigObjectManager(o.client, {{ .SDKName }}.NewService(o.client), specifier)
+{{- end }}
 }
 `
 
@@ -292,20 +394,7 @@ func New{{ resourceStructName }}() resource.Resource {
 }
 {{- end }}
 
-type {{ resourceStructName }} struct {
-	client *pango.Client
-{{- if IsCustom }}
-	custom *{{ structName }}Custom
-{{- else if and IsEntry HasImports }}
-	manager *sdkmanager.ImportableEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, {{ resourceSDKName }}.ImportLocation, *{{ resourceSDKName }}.Service]
-{{- else if IsEntry }}
-	manager *sdkmanager.EntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service]
-{{- else if IsUuid }}
-	manager *sdkmanager.UuidObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service]
-{{- else if IsConfig }}
-	manager *sdkmanager.ConfigObjectManager[*{{ resourceSDKName }}.Config, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service]
-{{- end }}
-}
+{{ RenderMainStruct }}
 
 {{- if HasLocations }}
 func {{ resourceStructName }}LocationSchema() rsschema.Attribute {
@@ -313,7 +402,7 @@ func {{ resourceStructName }}LocationSchema() rsschema.Attribute {
 }
 {{- end }}
 
-{{ RenderResourceStructs }}
+{{ RenderModelStructs }}
 
 func (o *{{ resourceStructName }}) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
 {{- if HasPosition }}
@@ -400,56 +489,7 @@ func (o *{{ resourceStructName }}) Schema(_ context.Context, _ {{ tfresourcepkg 
 
 // </ResourceSchema>
 
-func (o *{{ resourceStructName }}) Configure(ctx context.Context, req {{ tfresourcepkg }}.ConfigureRequest, resp *{{ tfresourcepkg }}.ConfigureResponse) {
-	// Prevent panic if the provider has not been configured.
-	if req.ProviderData == nil {
-		return
-	}
-
-	providerData := req.ProviderData.(*ProviderData)
-	o.client = providerData.Client
-
-{{- if IsCustom }}
-	custom, err := New{{ structName }}Custom(providerData)
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
-		return
-	}
-	o.custom = custom
-{{- else if and IsEntry HasImports }}
-	specifier, _, err := {{ resourceSDKName }}.Versioning(o.client.Versioning())
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
-		return
-	}
-
-	batchSize := providerData.MultiConfigBatchSize
-	o.manager =  sdkmanager.NewImportableEntryObjectManager(o.client, {{ resourceSDKName }}.NewService(o.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
-{{- else if IsEntry }}
-	specifier, _, err := {{ resourceSDKName }}.Versioning(o.client.Versioning())
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
-		return
-	}
-	batchSize := providerData.MultiConfigBatchSize
-	o.manager =  sdkmanager.NewEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](o.client, {{ resourceSDKName }}.NewService(o.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
-{{- else if IsUuid }}
-	specifier, _, err := {{ resourceSDKName }}.Versioning(o.client.Versioning())
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
-		return
-	}
-	batchSize := providerData.MultiConfigBatchSize
-	o.manager =  sdkmanager.NewUuidObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](o.client, {{ resourceSDKName }}.NewService(o.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
-{{- else if IsConfig }}
-	specifier, _, err := {{ resourceSDKName }}.Versioning(o.client.Versioning())
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
-		return
-	}
-	o.manager =  sdkmanager.NewConfigObjectManager(o.client, {{ resourceSDKName }}.NewService(o.client), specifier)
-{{- end }}
-}
+{{ RenderConfigureFunc }}
 
 {{ RenderModelAttributeTypesFunction }}
 
@@ -534,6 +574,9 @@ tflog.Info(ctx, "performing resource create", map[string]any{
 
 var location {{ .resourceSDKName }}.Location
 {{ RenderLocationsStateToPango "state.Location" "location" }}
+if resp.Diagnostics.HasError() {
+	return
+}
 
 type entryWithState struct {
 	Entry    *{{ $resourceSDKStructName }}
@@ -665,6 +708,9 @@ tflog.Info(ctx, "performing resource create", map[string]any{
 
 var location {{ .resourceSDKName }}.Location
 {{ RenderLocationsStateToPango "state.Location" "location" }}
+if resp.Diagnostics.HasError() {
+	return
+}
 
 var elements []{{ $resourceTFStructName }}
 resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
@@ -759,6 +805,9 @@ const resourceCreateFunction = `
 
 	var location {{ .resourceSDKName }}.Location
 	{{ RenderLocationsStateToPango "state.Location" "location" }}
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	if err := location.IsValid(); err != nil {
 		resp.Diagnostics.AddError("Invalid location", err.Error())
@@ -875,6 +924,9 @@ tflog.Info(ctx, "performing resource create", map[string]any{
 
 var location {{ .resourceSDKName }}.Location
 {{ RenderLocationsStateToPango "state.Location" "location" }}
+if resp.Diagnostics.HasError() {
+	return
+}
 
 {{- if eq .PluralType "map" }}
 elements := make(map[string]{{ $resourceTFStructName }})
@@ -1016,6 +1068,9 @@ tflog.Info(ctx, "performing resource create", map[string]any{
 
 var location {{ .resourceSDKName }}.Location
 {{ RenderLocationsStateToPango "state.Location" "location" }}
+if resp.Diagnostics.HasError() {
+	return
+}
 
 var elements []{{ $resourceTFStructName }}
 resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
@@ -1109,6 +1164,9 @@ const resourceReadFunction = `
 
 	var location {{ .resourceSDKName }}.Location
 	{{ RenderLocationsStateToPango "state.Location" "location" }}
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Basic logging.
 	tflog.Info(ctx, "performing resource read", map[string]any{
@@ -1183,6 +1241,9 @@ tflog.Info(ctx, "performing resource create", map[string]any{
 
 var location {{ .resourceSDKName }}.Location
 {{ RenderLocationsStateToPango "plan.Location" "location" }}
+if resp.Diagnostics.HasError() {
+	return
+}
 
 // Basic logging.
 tflog.Info(ctx, "performing resource update", map[string]any{
@@ -1358,6 +1419,9 @@ tflog.Info(ctx, "performing resource create", map[string]any{
 
 var location {{ .resourceSDKName }}.Location
 {{ RenderLocationsStateToPango "plan.Location" "location" }}
+if resp.Diagnostics.HasError() {
+	return
+}
 
 var elements []{{ $resourceTFStructName }}
 resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
@@ -1461,6 +1525,9 @@ const resourceUpdateFunction = `
 
 	var location {{ .resourceSDKName }}.Location
 	{{ RenderLocationsStateToPango "state.Location" "location" }}
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Basic logging.
 	tflog.Info(ctx, "performing resource update", map[string]any{
@@ -1560,6 +1627,9 @@ if resp.Diagnostics.HasError() {
 
 var location {{ .resourceSDKName }}.Location
 {{ RenderLocationsStateToPango "state.Location" "location" }}
+if resp.Diagnostics.HasError() {
+	return
+}
 
 var names []string
 {{- if eq .PluralType "map" }}
@@ -1617,6 +1687,9 @@ const resourceDeleteFunction = `
 
 	var location {{ .resourceSDKName }}.Location
 	{{ RenderLocationsStateToPango "state.Location" "location" }}
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 {{- if .HasEntryName }}
 	components, err := state.resourceXpathParentComponents()
@@ -2101,7 +2174,7 @@ type {{ dataSourceStructName }}Filter struct {
 //TODO: Generate Data Source filter via function
 }
 
-{{ RenderDataSourceStructs }}
+{{ RenderModelStructs }}
 
 {{ RenderModelAttributeTypesFunction }}
 
@@ -2211,6 +2284,7 @@ var (
 	_ provider.Provider = &PanosProvider{}
 	_ provider.ProviderWithFunctions = &PanosProvider{}
 	_ provider.ProviderWithActions = &PanosProvider{}
+	_ provider.ProviderWithListResources = &PanosProvider{}
 )
 
 // PanosProvider is the provider implementation.
@@ -2340,6 +2414,7 @@ func (p *PanosProvider) Configure(ctx context.Context, req provider.ConfigureReq
 	resp.DataSourceData = providerData
 	resp.ResourceData = providerData
 	resp.EphemeralResourceData = providerData
+	resp.ListResourceData = providerData
 
 	// Done.
 	tflog.Info(ctx, "Configured client", map[string]any{"success": true})
@@ -2366,6 +2441,14 @@ func (p *PanosProvider) Resources(_ context.Context) []func() resource.Resource 
 func (p *PanosProvider) EphemeralResources(_ context.Context) []func() ephemeral.EphemeralResource {
 	return []func() ephemeral.EphemeralResource{
 {{- range $fnName := EphemeralResources }}
+	New{{ $fnName }},
+{{- end }}
+	}
+}
+
+func (p *PanosProvider) ListResources(_ context.Context) []func() list.ListResource {
+	return []func() list.ListResource{
+{{- range $fnName := ListResources }}
 	New{{ $fnName }},
 {{- end }}
 	}
