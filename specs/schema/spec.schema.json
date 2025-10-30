@@ -35,7 +35,15 @@
                 "private": { "type": "boolean" },
                 "computed": { "type": "boolean" },
                 "sensitive": { "type": "boolean" },
-                "variant_check": { "type": "string" }
+                "variant_check": { "type": "string" },
+                "xpath_variable": { "type": "string" }
+              }
+            },
+            "gosdk": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "skip": { "type": "boolean" }
               }
             }
           }
@@ -110,7 +118,14 @@
           "additionalProperties": false,
           "properties": {
             "type": { "$ref": "#/$defs/type" },
-            "spec": { "$ref": "#" },
+            "spec": {
+              "oneOf": [
+                { "$ref": "#/$defs/simple" },
+                { "$ref": "#/$defs/enum" },
+                { "$ref": "#/$defs/list" },
+                { "$ref": "#" }
+              ]
+            },
             "validators": {
               "type": "array",
               "items": { "$ref": "validator.schema.json" }
@@ -122,7 +137,7 @@
     "type": {
       "type": "string",
       "oneOf": [
-        { "enum": ["string", "bool", "int64", "object", "list", "enum", "nil"] }
+        { "enum": ["string", "bool", "int64", "float64", "object", "list", "enum", "nil"] }
       ]
     }
   }

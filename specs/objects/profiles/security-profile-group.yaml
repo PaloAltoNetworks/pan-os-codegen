@@ -70,7 +70,6 @@ entries:
 - name: name
   description: ''
   validators: []
-imports: []
 spec:
   params:
   - name: data-filtering

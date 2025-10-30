@@ -1,12 +1,6 @@
 package {{packageName .GoSdkPath}}
 
-{{- if $.Imports}}
-  {{ renderImports "location" "imports"}}
-{{- else }}
-  {{ renderImports "location"}}
-{{- end }}
-
-{{ RenderEntryImportStructs }}
+{{ renderImports "location"}}
 
 type Location struct {
 {{range $location := .OrderedLocations}}
