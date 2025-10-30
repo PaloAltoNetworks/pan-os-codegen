@@ -1,0 +1,267 @@
+name: lldp-profile
+terraform_provider_config:
+  description: LLDP Network Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: lldp_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - network
+  - profiles
+  - lldp
+panos_xpath:
+  path:
+  - network
+  - profiles
+  - lldp-profile
+  vars: []
+locations:
+- name: ngfw
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific NGFW device
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: mode
+    type: enum
+    profiles:
+    - xpath:
+      - mode
+    validators:
+    - type: values
+      spec:
+        values:
+        - transmit-receive
+        - transmit-only
+        - receive-only
+    spec:
+      default: transmit-receive
+      values:
+      - value: transmit-receive
+      - value: transmit-only
+      - value: receive-only
+    description: lldp operation mode
+    required: false
+  - name: option-tlvs
+    type: object
+    profiles:
+    - xpath:
+      - option-tlvs
+    validators: []
+    spec:
+      params:
+      - name: management-address
+        type: object
+        profiles:
+        - xpath:
+          - management-address
+        validators: []
+        spec:
+          params:
+          - name: enabled
+            type: bool
+            profiles:
+            - xpath:
+              - enabled
+            validators: []
+            spec: {}
+            description: ''
+            required: false
+          - name: iplist
+            type: list
+            profiles:
+            - xpath:
+              - iplist
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: interface
+                    type: string
+                    profiles:
+                    - xpath:
+                      - interface
+                    validators: []
+                    spec: {}
+                    description: interface name
+                    required: false
+                  variants:
+                  - name: ipv4
+                    type: string
+                    profiles:
+                    - xpath:
+                      - ipv4
+                    validators: []
+                    spec: {}
+                    description: IPv4 address
+                    required: false
+                    variant_group_id: 0
+                  - name: ipv6
+                    type: string
+                    profiles:
+                    - xpath:
+                      - ipv6
+                    validators:
+                    - type: length
+                      spec:
+                        max: 50
+                    spec: {}
+                    description: IPv6 address
+                    required: false
+                    variant_group_id: 0
+            description: ''
+            required: false
+          variants: []
+        description: ''
+        required: false
+      - name: port-description
+        type: bool
+        profiles:
+        - xpath:
+          - port-description
+        validators: []
+        spec: {}
+        description: ''
+        required: false
+      - name: system-capabilities
+        type: bool
+        profiles:
+        - xpath:
+          - system-capabilities
+        validators: []
+        spec: {}
+        description: ''
+        required: false
+      - name: system-description
+        type: bool
+        profiles:
+        - xpath:
+          - system-description
+        validators: []
+        spec: {}
+        description: ''
+        required: false
+      - name: system-name
+        type: bool
+        profiles:
+        - xpath:
+          - system-name
+        validators: []
+        spec: {}
+        description: ''
+        required: false
+      variants: []
+    description: optional lldp tlv values
+    required: false
+  - name: snmp-syslog-notification
+    type: bool
+    profiles:
+    - xpath:
+      - snmp-syslog-notification
+    validators: []
+    spec: {}
+    description: ''
+    required: false
+  variants: []
