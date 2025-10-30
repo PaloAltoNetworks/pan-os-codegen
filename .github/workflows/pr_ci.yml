@@ -114,35 +114,35 @@ jobs:
               }
             }
           }
-  
+
           provider "panos" {
             alias = "ci"
           }
           EOF
-  
+
           # Find all directories containing .tf files except ephemeral-resources
           DIRS=$(find . -type f -name "*.tf" -exec dirname {} \; | sort -u)
-          
+
           # Loop through each directory and validate
           for dir in $DIRS; do
-          
+
             # Copy provider configuration for validation
             cp provider.tf.template $dir/provider.tf
-            
+
             echo "Validating configurations in: $dir"
             cd "$dir"
 
             # Initialize and validate
             terraform init -no-color
             terraform validate -no-color
-            
+
             # Clean up provider configuration
             rm provider.tf
-            
+
             # Return to the examples directory
             cd - > /dev/null
           done
-          
+
           # Clean up template
           rm provider.tf.template
 

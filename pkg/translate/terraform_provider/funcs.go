@@ -457,7 +457,7 @@ const copyFromPangoTmpl = `
 {{- define "renderListValueSimple" }}
 var {{ .TerraformName.LowerCamelCase }}_list types.{{ .Type | PascalCase }}
 {
-	schema := rsschema.{{ .Type | PascalCase }}Attribute{}	
+	schema := rsschema.{{ .Type | PascalCase }}Attribute{}
 	{{ .TerraformName.LowerCamelCase }}_list, {{ .TerraformName.LowerCamelCase }}_diags := types.ListValueFrom(ctx, obj.{{ .PangoName.CamelCase }}, schema.GetType())
 	diags.Append({{ .TerraformName.LowerCamelCase }}_diags...)
 }
@@ -612,7 +612,7 @@ var {{ .TerraformName.LowerCamelCase }}_list types.Set
 	}
   }
   {{ $result }}_object := types.ObjectNull({{ $result }}_obj.AttributeTypes())
-  if obj.{{ .PangoName.CamelCase }} != nil {  
+  if obj.{{ .PangoName.CamelCase }} != nil {
     {{- if eq $.Spec.ModelOrObject "Model" }}
 	diags.Append({{ $result }}_obj.CopyFromPango(ctx, client, ancestors, obj.{{ .PangoName.CamelCase }}, ev)...)
     {{- else }}
@@ -998,20 +998,12 @@ func getLocationStructsContext(names *NameProvider, spec *properties.Normalizati
 
 		var fields []locationStructFieldCtx
 
-		for _, i := range spec.Imports {
-			if i.Type.CamelCase != data.Name.CamelCase {
-				continue
-			}
-
-			for _, elt := range i.OrderedLocations() {
-				if elt.Required {
-					fields = append(fields, locationStructFieldCtx{
-						Name: elt.Name,
-						Type: "types.String",
-						Tags: []string{fmt.Sprintf("`tfsdk:\"%s\"`", elt.Name.Underscore)},
-					})
-				}
-			}
+		if data.Name.Original == "template" && len(spec.Imports.Variants) > 0 {
+			fields = append(fields, locationStructFieldCtx{
+				Name: properties.NewNameVariant("vsys"),
+				Type: "types.String",
+				Tags: []string{"`tfsdk:\"vsys\"`"},
+			})
 		}
 
 		for _, param := range data.OrderedVars() {
@@ -1183,33 +1175,23 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 	for _, data := range spec.OrderedLocations() {
 		var variableAttrs []attributeCtx
 
-		for _, i := range spec.Imports {
-			if i.Type.CamelCase != data.Name.CamelCase {
-				continue
-			}
-
-			for _, elt := range i.OrderedLocations() {
-				if elt.Required {
-					var defaultValue *defaultCtx
-					for varName, variable := range elt.XpathVariables {
-						if varName == elt.Name.Original && variable.Default != "" {
-							defaultValue = &defaultCtx{
-								Type:  "stringdefault.StaticString",
-								Value: fmt.Sprintf(`"%s"`, variable.Default),
-							}
-						}
-					}
-					variableAttrs = append(variableAttrs, attributeCtx{
-						Name:         elt.Name,
-						SchemaType:   "rsschema.StringAttribute",
-						Required:     defaultValue == nil,
-						Optional:     defaultValue != nil,
-						Computed:     defaultValue != nil,
-						ModifierType: "String",
-						Default:      defaultValue,
-					})
+		if data.Name.Original == "template" && len(spec.Imports.Variants) > 0 {
+			var defaultValue *defaultCtx
+			if spec.Imports.DefaultValue != nil {
+				defaultValue = &defaultCtx{
+					Type:  "stringdefault.StaticString",
+					Value: fmt.Sprintf(`"%s"`, *spec.Imports.DefaultValue),
 				}
 			}
+			variableAttrs = append(variableAttrs, attributeCtx{
+				Name:         properties.NewNameVariant("vsys"),
+				SchemaType:   "rsschema.StringAttribute",
+				Required:     false,
+				Optional:     true,
+				Computed:     true,
+				ModifierType: "String",
+				Default:      defaultValue,
+			})
 		}
 
 		for _, variable := range data.OrderedVars() {
@@ -1338,20 +1320,12 @@ func createLocationMarshallerSpecs(names *NameProvider, spec *properties.Normali
 		}
 
 		// Add import location (e.g. vsys) name to location
-		for _, i := range spec.Imports {
-			if i.Type.CamelCase != loc.Name.CamelCase {
-				continue
-			}
-
-			for _, elt := range i.OrderedLocations() {
-				if elt.Required {
-					fields = append(fields, marshallerFieldSpec{
-						Name: elt.Name,
-						Type: "string",
-						Tags: fmt.Sprintf("`tfsdk:\"%s\"`", elt.Name.Underscore),
-					})
-				}
-			}
+		if loc.Name.Original == "template" && len(spec.Imports.Variants) > 0 {
+			fields = append(fields, marshallerFieldSpec{
+				Name: properties.NewNameVariant("vsys"),
+				Type: "string",
+				Tags: "`tfsdk:\"vsys\"`",
+			})
 		}
 
 		specs = append(specs, marshallerSpec{
@@ -2268,130 +2242,79 @@ func RenderDataSourceSchema(resourceTyp properties.ResourceType, names *NameProv
 
 const importLocationAssignmentTmpl = `
 {
-var terraformLocation {{ .TerraformStructName }}
-resp.Diagnostics.Append({{ $.Source }}.As(ctx, &terraformLocation, basetypes.ObjectAsOptions{})...)
+var terraformLocation {{ .StructName }}Location
+resp.Diagnostics.Append({{ $.Source }}.Location.As(ctx, &terraformLocation, basetypes.ObjectAsOptions{})...)
 if resp.Diagnostics.HasError() {
 	return
 }
-{{- range .Specs }}
-{{ $type := . }}
-{{ $locationName := .Name }}
-if location.{{ .Name.CamelCase }} != nil {
-  {{- range .Locations }}
-	{
-	var terraformInnerLocation {{ .TerraformStructName }}
-	resp.Diagnostics.Append(terraformLocation.{{ $locationName.CamelCase }}.As(ctx, &terraformInnerLocation, basetypes.ObjectAsOptions{})...)
+
+{{- if .Variants }}
+var supportedVariant bool
+  {{- range .Variants }}
+if !{{ $.Source }}.{{ .CamelCase }}.IsNull() {
+	supportedVariant = true
+}
+  {{- end }}
+{{- else }}
+supportedVariant := true
+{{- end }}
+
+if !terraformLocation.Template.IsNull() {
+	var terraformInnerLocation {{ .StructName }}TemplateLocation
+	resp.Diagnostics.Append(terraformLocation.Template.As(ctx, &terraformInnerLocation, basetypes.ObjectAsOptions{})...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-    {{- $pangoStruct := GetPangoStructForLocation $.Variants $type.Name .Name }}
-	{{ $.Dest }} = {{ $.PackageName }}.New{{ $pangoStruct }}({{ $.PackageName }}.{{ $pangoStruct }}Spec{
-    {{- range .Fields }}
-		{{ . }}: terraformInnerLocation.{{ . }}.ValueString(),
-    {{- end }}
-	})
+
+	// if the vsys value is not known at this stage, we must explicitly set it to null ourselves.
+	if terraformInnerLocation.Vsys.IsUnknown() {
+		terraformInnerLocation.Vsys = types.StringNull()
+		object, diags := types.ObjectValueFrom(ctx, terraformInnerLocation.AttributeTypes(), terraformInnerLocation)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		terraformLocation.Template = object
+
+		object, diags = types.ObjectValueFrom(ctx, terraformLocation.AttributeTypes(), terraformLocation)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		{{ $.Source }}.Location = object
+	} else if supportedVariant && !terraformInnerLocation.Vsys.IsNull() && terraformInnerLocation.Vsys.ValueString() != "" {
+		{{ $.Destination }} = terraformInnerLocation.Vsys.ValueString()
 	}
-  {{- end }}
 }
+
 }
-{{- end }}
 `
 
 func RenderImportLocationAssignment(names *NameProvider, spec *properties.Normalization, source string, dest string) (string, error) {
-	if len(spec.Imports) == 0 {
-		return "", nil
-	}
-
-	type importVariantSpec struct {
-		PangoStructNames *map[string]string
-	}
-
-	type importLocationSpec struct {
-		TerraformStructName string
-		Name                *properties.NameVariant
-		Fields              []string
-	}
-
-	type importSpec struct {
-		TerraformStructName string
-		Name                *properties.NameVariant
-		Locations           []importLocationSpec
-	}
-
-	var importSpecs []importSpec
-	variantsByName := make(map[string]importVariantSpec)
-	for _, elt := range spec.Imports {
-		existing, found := variantsByName[elt.Type.CamelCase]
-		if !found {
-			pangoStructNames := make(map[string]string)
-			existing = importVariantSpec{
-				PangoStructNames: &pangoStructNames,
-			}
-		}
-
-		var locations []importLocationSpec
-		for _, loc := range elt.Locations {
-			if !loc.Required {
-				continue
-			}
-
-			var fields []string
-			for _, elt := range loc.XpathVariables {
-				fields = append(fields, elt.Name.CamelCase)
-			}
-
-			tfStructName := fmt.Sprintf("%s%sLocation", names.StructName, elt.Type.CamelCase)
-			pangoStructName := fmt.Sprintf("%s%s%sImportLocation", elt.Variant.CamelCase, elt.Type.CamelCase, loc.Name.CamelCase)
-			(*existing.PangoStructNames)[loc.Name.CamelCase] = pangoStructName
-			locations = append(locations, importLocationSpec{
-				TerraformStructName: tfStructName,
-				Name:                loc.Name,
-				Fields:              fields,
-			})
-		}
-		variantsByName[elt.Type.CamelCase] = existing
-
-		importSpecs = append(importSpecs, importSpec{
-			Name:      elt.Type,
-			Locations: locations,
-		})
-	}
-
 	type context struct {
-		TerraformStructName string
-		PackageName         string
-		Source              string
-		Dest                string
-		Variants            map[string]importVariantSpec
-		Specs               []importSpec
+		Variants    []*properties.NameVariant
+		StructName  string
+		Source      string
+		Destination string
+	}
+
+	var variants []*properties.NameVariant
+
+	for _, elt := range spec.Imports.Variants {
+		if elt == "*" {
+			continue
+		}
+		variants = append(variants, properties.NewNameVariant(elt))
 	}
 
 	data := context{
-		TerraformStructName: fmt.Sprintf("%sLocation", names.StructName),
-		PackageName:         names.PackageName,
-		Source:              source,
-		Dest:                dest,
-		Variants:            variantsByName,
-		Specs:               importSpecs,
+		Variants:    variants,
+		StructName:  names.StructName,
+		Source:      source,
+		Destination: dest,
 	}
 
-	funcMap := template.FuncMap{
-		"GetPangoStructForLocation": func(variants map[string]importVariantSpec, typ *properties.NameVariant, location *properties.NameVariant) (string, error) {
-			variantSpec, found := variants[typ.CamelCase]
-			if !found {
-				return "", fmt.Errorf("failed to find variant for type '%s'", typ.CamelCase)
-			}
-
-			structName, found := (*variantSpec.PangoStructNames)[location.CamelCase]
-			if !found {
-				return "", fmt.Errorf("failed to find variant for type '%s', location '%s'", typ.CamelCase, location.CamelCase)
-			}
-
-			return structName, nil
-		},
-	}
-
-	return processTemplate(importLocationAssignmentTmpl, "render-locations-pango-to-state", data, funcMap)
+	return processTemplate(importLocationAssignmentTmpl, "render-locations-pango-to-state", data, commonFuncMap)
 }
 
 type locationFieldCtx struct {
@@ -3135,7 +3058,7 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 	data := map[string]interface{}{
 		"PluralType":            paramSpec.TerraformProviderConfig.PluralType,
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
-		"HasImports":            len(paramSpec.Imports) > 0,
+		"HasImports":            len(paramSpec.Imports.Variants) > 0,
 		"Exhaustive":            exhaustive,
 		"ListAttribute":         listAttributeVariant,
 		"EntryOrConfig":         paramSpec.EntryOrConfig(),
@@ -3383,7 +3306,7 @@ func ResourceDeleteFunction(resourceTyp properties.ResourceType, names *NameProv
 	data := map[string]interface{}{
 		"PluralType":            paramSpec.TerraformProviderConfig.PluralType,
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
-		"HasImports":            len(paramSpec.Imports) > 0,
+		"HasImports":            len(paramSpec.Imports.Variants) > 0,
 		"EntryOrConfig":         paramSpec.EntryOrConfig(),
 		"ListAttribute":         listAttributeVariant,
 		"Exhaustive":            exhaustive,

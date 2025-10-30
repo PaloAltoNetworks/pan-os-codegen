@@ -31,7 +31,7 @@ for dir in $DIRS; do
 
   # Copy provider configuration for validation
   cp provider.tf.template "$dir/provider.tf"
-  
+
   echo "Validating configurations in: $dir"
   (
     cd "$dir"
@@ -44,7 +44,7 @@ for dir in $DIRS; do
         echo "${OUTPUT}"
         exit 1
     fi
-    
+
     # Clean up provider configuration
     rm provider.tf
   )
