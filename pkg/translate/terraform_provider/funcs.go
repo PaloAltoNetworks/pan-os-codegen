@@ -660,10 +660,9 @@ var {{ .TerraformName.LowerCamelCase }}_list types.Set
   {{- end }}
 {{- end }}
 
-{{- define "terraformCreateSimpleValues" }}
-  {{- range .Params }}
-    {{- $terraformType := printf "types.%s" (.Type | PascalCase) }}
-    {{- if (not (or (eq .Type "") (eq .Type "list") (eq .Type "set") (eq .ComplexType "string-as-member"))) }}
+{{- define "terraformCreateSimpleValue" }}
+  {{- $terraformType := printf "types.%s" (.Type | PascalCase) }}
+  {{- if (not (or (eq .Type "") (eq .Type "list") (eq .Type "set") (eq .ComplexType "string-as-member"))) }}
 	var {{ .TerraformName.LowerCamelCase }}_value {{ $terraformType }}
 	if obj.{{ .PangoName.CamelCase }} != nil {
 {{- if .Encryption }}
@@ -696,16 +695,15 @@ var {{ .TerraformName.LowerCamelCase }}_list types.Set
 {{- end }}
 	}
     {{- end }}
+{{- end }}
+
+{{- define "terraformCreateSimpleValues" }}
+  {{- range .Params }}
+    {{- template "terraformCreateSimpleValue" . }}
   {{- end }}
 
   {{- range .OneOf }}
-    {{- $terraformType := printf "types.%s" (.Type | PascalCase) }}
-    {{- if (not (or (eq .Type "") (eq .Type "list") (eq .Type "set") (eq .ComplexType "string-as-member"))) }}
-	var {{ .TerraformName.LowerCamelCase }}_value {{ $terraformType }}
-	if obj.{{ .PangoName.CamelCase }} != nil {
-		{{ .TerraformName.LowerCamelCase }}_value = types.{{ .Type | PascalCase }}Value(*obj.{{ .PangoName.CamelCase }})
-	}
-    {{- end }}
+    {{- template "terraformCreateSimpleValue" . }}
   {{- end }}
 {{- end }}
 
