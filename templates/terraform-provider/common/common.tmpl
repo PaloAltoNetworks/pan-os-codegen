@@ -1,3 +1,6 @@
+{{ RenderIdentityModel }}
+
+{{ RenderIdentitySchema }}
 
 {{- if HasLocations }}
 {{- RenderLocationStructs }}
@@ -7,4 +10,6 @@
 {{- RenderLocationMarshallers }}
 
 {{- RenderLocationAttributeTypes }}
+
+{{- RenderLocationAsIdentityGetter }}
 {{- end }}
