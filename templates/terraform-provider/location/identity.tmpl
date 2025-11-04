@@ -1,0 +1,51 @@
+
+{{- define "topLevelLocation" }}
+  {{- range $.Specs }}
+    {{- if not .TopLevel }}{{- continue }}{{- end }}
+    {{- range .Fields }}
+if !o.{{ .Name.CamelCase }}.IsNull() {
+	var location {{ .TerraformType }}
+	diags := o.{{ .Name.CamelCase }}.As(ctx, &location, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return types.StringNull(), diags
+	}
+
+	identity, innerDiags := location.Identity(ctx)
+	diags.Append(innerDiags...)
+	if diags.HasError() {
+		return types.StringNull(), diags
+	}
+
+	formatted := fmt.Sprintf("/{{ .Name.Dashed }}%s", identity.ValueString())
+	return types.StringValue(formatted), nil
+}
+    {{- end }}
+  {{- end }}
+return types.StringNull(), diag.Diagnostics{diag.NewAttributeErrorDiagnostic(
+	path.Root("location"),
+	"Location Attribute is Not Set",
+	"The 'location' attribute must be configured with a non-empty value.",
+)}
+{{- end }}
+
+{{- define "location" }}
+identity := []string{""}
+  {{- range .Fields }}
+  {{- if not .AsIdentity }}{{- continue }}{{- end }}
+{
+value := fmt.Sprintf("{{ .Name.Dashed }}[\"%s\"]", o.{{ .Name.CamelCase }}.ValueString())
+identity = append(identity, value)
+}
+  {{- end }}
+return types.StringValue(strings.Join(identity, "/")), nil
+{{- end }}
+
+{{- range .Specs }}
+func (o *{{ .StructName }}) Identity(ctx context.Context) (types.String, diag.Diagnostics) {
+  {{- if .TopLevel }}
+    {{- template "topLevelLocation" Map "Specs" $.Specs }}
+  {{- else }}
+    {{- template "location" . }}
+  {{- end }}
+}
+{{- end }}

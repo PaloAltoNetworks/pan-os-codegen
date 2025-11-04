@@ -9,6 +9,7 @@ import (
 type NameVariant struct {
 	Original       string
 	Underscore     string
+	Dashed         string
 	CamelCase      string
 	LowerCamelCase string
 }
@@ -16,6 +17,7 @@ type NameVariant struct {
 func NewNameVariant(name string) *NameVariant {
 	return &NameVariant{
 		Original:       name,
+		Dashed:         naming.Dashed("", name, ""),
 		Underscore:     naming.Underscore("", name, ""),
 		CamelCase:      naming.CamelCase("", name, "", true),
 		LowerCamelCase: naming.CamelCase("", name, "", false),
