@@ -12,6 +12,9 @@ var (
 	_ resource.Resource                = &{{ resourceStructName }}{}
 	_ resource.ResourceWithConfigure   = &{{ resourceStructName }}{}
 	_ resource.ResourceWithImportState = &{{ resourceStructName }}{}
+  {{- if and (not IsCustom) (not IsResourcePlural) (not IsConfig) }}
+	_ resource.ResourceWithIdentity    = &{{ resourceStructName }}{}
+  {{- end }}
 )
 {{- end }}
 

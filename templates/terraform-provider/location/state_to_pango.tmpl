@@ -1,6 +1,6 @@
 
-{
 var terraformLocation {{ .TerraformStructName }}
+{
 resp.Diagnostics.Append({{ $.Source }}.As(ctx, &terraformLocation, basetypes.ObjectAsOptions{})...)
 if resp.Diagnostics.HasError() {
 	return
