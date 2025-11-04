@@ -133,6 +133,11 @@ func Underscore(prefix, value, suffix string) string {
 	return builder.String()
 }
 
+func Dashed(prefix, value, suffix string) string {
+	underscored := Underscore(prefix, value, suffix)
+	return strings.ReplaceAll(underscored, "_", "-")
+}
+
 // writeRuneAndApplyChangesForUnderscore contains logic to check all conditions for create under_score names and writes rune value.
 func writeRuneAndApplyChangesForUnderscore(runeValue int32, builder *strings.Builder, isFirstCharacter *bool) {
 	if shouldResetFirstCharacterFlag(runeValue) {
