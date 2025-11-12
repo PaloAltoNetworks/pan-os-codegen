@@ -1,0 +1,390 @@
+name: filters-prefix-list-routing-profile
+terraform_provider_config:
+  description: Filters Prefix List Routing Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: filters_prefix_list_routing_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - network
+  - routing-profile
+  - filters
+  - prefixlist
+panos_xpath:
+  path:
+  - network
+  - routing-profile
+  - filters
+  - prefix-list
+  vars: []
+locations:
+- name: ngfw
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific NGFW device
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: description
+    type: string
+    profiles:
+    - xpath:
+      - description
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 1024
+    spec: {}
+    description: Describe Prefix-List
+    required: false
+  - name: type
+    type: object
+    profiles:
+    - xpath:
+      - type
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: ipv4
+        type: object
+        profiles:
+        - xpath:
+          - ipv4
+        validators: []
+        spec:
+          params:
+          - name: ipv4-entry
+            type: list
+            profiles:
+            - xpath:
+              - ipv4-entry
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - deny
+                        - permit
+                    spec:
+                      default: deny
+                      values:
+                      - value: deny
+                      - value: permit
+                    description: Permit or Deny (default) this Prefix-List Entry
+                    required: false
+                  - name: prefix
+                    type: object
+                    profiles:
+                    - xpath:
+                      - prefix
+                    validators: []
+                    spec:
+                      params: []
+                      variants:
+                      - name: network
+                        type: enum
+                        profiles:
+                        - xpath:
+                          - network
+                        validators:
+                        - type: values
+                          spec:
+                            values:
+                            - any
+                        spec:
+                          values:
+                          - value: any
+                        description: Select pre-defined Prefix
+                        required: false
+                      - name: entry
+                        type: object
+                        profiles:
+                        - xpath:
+                          - entry
+                        validators: []
+                        spec:
+                          params:
+                          - name: network
+                            type: string
+                            profiles:
+                            - xpath:
+                              - network
+                            validators: []
+                            spec: {}
+                            description: ''
+                            required: false
+                          - name: greater-than-or-equal
+                            type: int64
+                            profiles:
+                            - xpath:
+                              - greater-than-or-equal
+                            validators:
+                            - type: length
+                              spec:
+                                min: 0
+                                max: 32
+                            spec: {}
+                            description: Maximum Prefix length to be matched
+                            required: false
+                          - name: less-than-or-equal
+                            type: int64
+                            profiles:
+                            - xpath:
+                              - less-than-or-equal
+                            validators:
+                            - type: length
+                              spec:
+                                min: 0
+                                max: 32
+                            spec: {}
+                            description: Minimum Prefix length to be matched
+                            required: false
+                          variants: []
+                        description: Configure IPv4 Prefix-List Network
+                        required: false
+                    description: Configure IPv4 Prefix
+                    required: false
+                  variants: []
+            description: ''
+            required: false
+            codegen_overrides:
+              terraform:
+                name: ipv4-entries
+          variants: []
+        description: Configure IPv4 Prefix-List Entries
+        required: false
+      - name: ipv6
+        type: object
+        profiles:
+        - xpath:
+          - ipv6
+        validators: []
+        spec:
+          params:
+          - name: ipv6-entry
+            type: list
+            profiles:
+            - xpath:
+              - ipv6-entry
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - deny
+                        - permit
+                    spec:
+                      default: deny
+                      values:
+                      - value: deny
+                      - value: permit
+                    description: Permit or Deny (default) this Prefix-List Entry
+                    required: false
+                  - name: prefix
+                    type: object
+                    profiles:
+                    - xpath:
+                      - prefix
+                    validators: []
+                    spec:
+                      params: []
+                      variants:
+                      - name: network
+                        type: enum
+                        profiles:
+                        - xpath:
+                          - network
+                        validators:
+                        - type: values
+                          spec:
+                            values:
+                            - any
+                        spec:
+                          values:
+                          - value: any
+                        description: Select pre-defined Prefix
+                        required: false
+                      - name: entry
+                        type: object
+                        profiles:
+                        - xpath:
+                          - entry
+                        validators: []
+                        spec:
+                          params:
+                          - name: network
+                            type: string
+                            profiles:
+                            - xpath:
+                              - network
+                            validators: []
+                            spec: {}
+                            description: ''
+                            required: false
+                          - name: greater-than-or-equal
+                            type: int64
+                            profiles:
+                            - xpath:
+                              - greater-than-or-equal
+                            validators:
+                            - type: length
+                              spec:
+                                min: 0
+                                max: 128
+                            spec: {}
+                            description: Maximum Prefix length to be matched
+                            required: false
+                          - name: less-than-or-equal
+                            type: int64
+                            profiles:
+                            - xpath:
+                              - less-than-or-equal
+                            validators:
+                            - type: length
+                              spec:
+                                min: 0
+                                max: 128
+                            spec: {}
+                            description: Minimum Prefix length to be matched
+                            required: false
+                          variants: []
+                        description: Configure IPv6 Prefix-List Network
+                        required: false
+                    description: Configure IPv6 Prefix
+                    required: false
+                  variants: []
+            description: ''
+            required: false
+            codegen_overrides:
+              terraform:
+                name: ipv6-entries
+          variants: []
+        description: Configure IPv6 Prefix-List Entries
+        required: false
+    description: Configure Prefix-List Entries
+    required: false
+  variants: []
