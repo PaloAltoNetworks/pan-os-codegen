@@ -1,0 +1,413 @@
+name: filters-access-list-routing-profile
+terraform_provider_config:
+  description: Filters Access List Routing Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: filters_access_list_routing_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - network
+  - routing-profile
+  - filters
+  - acl
+panos_xpath:
+  path:
+  - network
+  - routing-profile
+  - filters
+  - access-list
+  vars: []
+locations:
+- name: ngfw
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific NGFW device
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: description
+    type: string
+    profiles:
+    - xpath:
+      - description
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 1024
+    spec: {}
+    description: Describe Access-List
+    required: false
+  - name: type
+    type: object
+    profiles:
+    - xpath:
+      - type
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: ipv4
+        type: object
+        profiles:
+        - xpath:
+          - ipv4
+        validators: []
+        spec:
+          params:
+          - name: ipv4-entry
+            type: list
+            profiles:
+            - xpath:
+              - ipv4-entry
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - deny
+                        - permit
+                    spec:
+                      default: deny
+                      values:
+                      - value: deny
+                      - value: permit
+                    description: Permit or Deny (default) this Access-List Entry
+                    required: false
+                  - name: source-address
+                    type: object
+                    profiles:
+                    - xpath:
+                      - source-address
+                    validators: []
+                    spec:
+                      params: []
+                      variants:
+                      - name: address
+                        type: enum
+                        profiles:
+                        - xpath:
+                          - address
+                        validators:
+                        - type: values
+                          spec:
+                            values:
+                            - any
+                        spec:
+                          values:
+                          - value: any
+                        description: Select pre-defined Source Address
+                        required: false
+                      - name: entry
+                        type: object
+                        profiles:
+                        - xpath:
+                          - entry
+                        validators: []
+                        spec:
+                          params:
+                          - name: address
+                            type: string
+                            profiles:
+                            - xpath:
+                              - address
+                            validators: []
+                            spec: {}
+                            description: Configure IPv4 Source Address
+                            required: false
+                          - name: wildcard
+                            type: string
+                            profiles:
+                            - xpath:
+                              - wildcard
+                            validators: []
+                            spec: {}
+                            description: Configure IPv4 Source Wildcard
+                            required: false
+                          variants: []
+                        description: Configure IPv4 Access-List Source Address and
+                          Wildcard
+                        required: false
+                    description: Configure IPv4 Access-List Source Address
+                    required: false
+                  - name: destination-address
+                    type: object
+                    profiles:
+                    - xpath:
+                      - destination-address
+                    validators: []
+                    spec:
+                      params: []
+                      variants:
+                      - name: address
+                        type: enum
+                        profiles:
+                        - xpath:
+                          - address
+                        validators:
+                        - type: values
+                          spec:
+                            values:
+                            - any
+                        spec:
+                          values:
+                          - value: any
+                        description: Select pre-defined Destination Address
+                        required: false
+                      - name: entry
+                        type: object
+                        profiles:
+                        - xpath:
+                          - entry
+                        validators: []
+                        spec:
+                          params:
+                          - name: address
+                            type: string
+                            profiles:
+                            - xpath:
+                              - address
+                            validators: []
+                            spec: {}
+                            description: Configure IPv4 Destination Address
+                            required: false
+                          - name: wildcard
+                            type: string
+                            profiles:
+                            - xpath:
+                              - wildcard
+                            validators: []
+                            spec: {}
+                            description: Configure IPv4 Destination Wildcard
+                            required: false
+                          variants: []
+                        description: Configure IPv4 Access-List Destination Address
+                          and Wildcard
+                        required: false
+                    description: Configure IPv4 Access-List Destination Address
+                    required: false
+                  variants: []
+            description: ''
+            required: false
+            codegen_overrides:
+              terraform:
+                name: ipv4-entries
+          variants: []
+        description: Configure IPv4 Access-List Entries
+        required: false
+      - name: ipv6
+        type: object
+        profiles:
+        - xpath:
+          - ipv6
+        validators: []
+        spec:
+          params:
+          - name: ipv6-entry
+            type: list
+            profiles:
+            - xpath:
+              - ipv6-entry
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - deny
+                        - permit
+                    spec:
+                      default: deny
+                      values:
+                      - value: deny
+                      - value: permit
+                    description: Permit or Deny (default) this Access-List Entry
+                    required: false
+                  - name: source-address
+                    type: object
+                    profiles:
+                    - xpath:
+                      - source-address
+                    validators: []
+                    spec:
+                      params: []
+                      variants:
+                      - name: address
+                        type: enum
+                        profiles:
+                        - xpath:
+                          - address
+                        validators:
+                        - type: values
+                          spec:
+                            values:
+                            - any
+                        spec:
+                          values:
+                          - value: any
+                        description: Select pre-defined Source Address
+                        required: false
+                      - name: entry
+                        type: object
+                        profiles:
+                        - xpath:
+                          - entry
+                        validators: []
+                        spec:
+                          params:
+                          - name: address
+                            type: string
+                            profiles:
+                            - xpath:
+                              - address
+                            validators: []
+                            spec: {}
+                            description: Configure IPv6 Access-List Address
+                            required: false
+                          - name: exact-match
+                            type: bool
+                            profiles:
+                            - xpath:
+                              - exact-match
+                            validators: []
+                            spec: {}
+                            description: Exact Match of this address
+                            required: false
+                          variants: []
+                        description: Configure IPv6 Access-List Source Address
+                        required: false
+                    description: Configure IPv6 Access-List Source Address
+                    required: false
+                  variants: []
+            description: ''
+            required: false
+            codegen_overrides:
+              terraform:
+                name: ipv6-entries
+          variants: []
+        description: Configure IPv6 Access-List Entries
+        required: false
+    description: Configure Access-List Entries
+    required: false
+  variants: []
