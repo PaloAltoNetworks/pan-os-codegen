@@ -1,0 +1,345 @@
+name: filters-community-list-routing-profile
+terraform_provider_config:
+  description: Filters Community List Routing Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: filters_community_list_routing_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - network
+  - routing-profile
+  - filters
+  - communitylist
+panos_xpath:
+  path:
+  - network
+  - routing-profile
+  - filters
+  - community-list
+  vars: []
+locations:
+- name: ngfw
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific NGFW device
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: description
+    type: string
+    profiles:
+    - xpath:
+      - description
+    validators:
+    - type: length
+      spec:
+        max: 1024
+    spec: {}
+    description: Describe BGP Community-List
+    required: false
+  - name: type
+    type: object
+    profiles:
+    - xpath:
+      - type
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: extended
+        type: object
+        profiles:
+        - xpath:
+          - extended
+        validators: []
+        spec:
+          params:
+          - name: extended-entry
+            type: list
+            profiles:
+            - xpath:
+              - extended-entry
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - deny
+                        - permit
+                    spec:
+                      default: deny
+                      values:
+                      - value: deny
+                      - value: permit
+                    description: Permit or Deny (default) this Extended Community-List
+                      Entry
+                    required: false
+                  - name: ec-regex
+                    type: list
+                    profiles:
+                    - xpath:
+                      - ec-regex
+                      type: member
+                    validators: []
+                    spec:
+                      type: string
+                      items:
+                        type: string
+                    description: ''
+                    required: false
+                    codegen_overrides:
+                      terraform:
+                        name: extended-community-regexes
+                  variants: []
+            description: ''
+            required: false
+            codegen_overrides:
+              terraform:
+                name: extended-entries
+          variants: []
+        description: Configure Extended Community-List Entries
+        required: false
+      - name: large
+        type: object
+        profiles:
+        - xpath:
+          - large
+        validators: []
+        spec:
+          params:
+          - name: large-entry
+            type: list
+            profiles:
+            - xpath:
+              - large-entry
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - deny
+                        - permit
+                    spec:
+                      default: deny
+                      values:
+                      - value: deny
+                      - value: permit
+                    description: Permit or Deny (default) this Large Community-List
+                      Entry
+                    required: false
+                  - name: lc-regex
+                    type: list
+                    profiles:
+                    - xpath:
+                      - lc-regex
+                      type: member
+                    validators: []
+                    spec:
+                      type: string
+                      items:
+                        type: string
+                    description: ''
+                    required: false
+                    codegen_overrides:
+                      terraform:
+                        name: large-community-regexes
+                  variants: []
+            description: ''
+            required: false
+            codegen_overrides:
+              terraform:
+                name: large-entries
+          variants: []
+        description: Configure Large Community-List Entries
+        required: false
+      - name: regular
+        type: object
+        profiles:
+        - xpath:
+          - regular
+        validators: []
+        spec:
+          params:
+          - name: regular-entry
+            type: list
+            profiles:
+            - xpath:
+              - regular-entry
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - deny
+                        - permit
+                    spec:
+                      default: deny
+                      values:
+                      - value: deny
+                      - value: permit
+                    description: Permit or Deny (default) this Regular Community-List
+                      Entry
+                    required: false
+                  - name: community
+                    type: list
+                    profiles:
+                    - xpath:
+                      - community
+                      type: member
+                    validators: []
+                    spec:
+                      type: string
+                      items:
+                        type: string
+                    description: ''
+                    required: false
+                    codegen_overrides:
+                      terraform:
+                        name: communities
+                  variants: []
+            description: ''
+            required: false
+            codegen_overrides:
+              terraform:
+                name: regular-entries
+          variants: []
+        description: Configure Regular Community-List Entries
+        required: false
+    description: Configure Community-List Entries
+    required: false
+  variants: []
