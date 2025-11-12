@@ -1,0 +1,193 @@
+name: bgp-dampening-routing-profile
+terraform_provider_config:
+  description: BGP Dampening Routing Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: bgp_dampening_routing_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - network
+  - routing-profile
+  - bgp
+  - dampening
+panos_xpath:
+  path:
+  - network
+  - routing-profile
+  - bgp
+  - dampening-profile
+  vars: []
+locations:
+- name: ngfw
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific NGFW device
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: description
+    type: string
+    profiles:
+    - xpath:
+      - description
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 1024
+    spec: {}
+    description: Describe BGP Dampening Profile
+    required: false
+  - name: half-life
+    type: int64
+    profiles:
+    - xpath:
+      - half-life
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 45
+    spec:
+      default: 15
+    description: Half-life for the penalty Default:15 (in minutes)
+    required: false
+  - name: max-suppress-limit
+    type: int64
+    profiles:
+    - xpath:
+      - max-suppress-limit
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 255
+    spec:
+      default: 60
+    description: Maximum duration (in minutes) a route can be suppressed. Default:60
+    required: false
+  - name: reuse-limit
+    type: int64
+    profiles:
+    - xpath:
+      - reuse-limit
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 20000
+    spec:
+      default: 750
+    description: Value to start reusing a route. Default:750
+    required: false
+  - name: suppress-limit
+    type: int64
+    profiles:
+    - xpath:
+      - suppress-limit
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 20000
+    spec:
+      default: 2000
+    description: Value to start supressing the route. Default:2000
+    required: false
+  variants: []
