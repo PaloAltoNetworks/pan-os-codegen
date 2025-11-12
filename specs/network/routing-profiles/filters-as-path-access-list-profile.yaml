@@ -1,0 +1,187 @@
+name: filters-as-path-access-list-routing-profile
+terraform_provider_config:
+  description: Filters AS Path Access List Routing Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: filters_as_path_access_list_routing_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - network
+  - routing-profile
+  - filters
+  - aspathacl
+panos_xpath:
+  path:
+  - network
+  - routing-profile
+  - filters
+  - as-path-access-list
+  vars: []
+locations:
+- name: ngfw
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific NGFW device
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: aspath-entry
+    type: list
+    profiles:
+    - xpath:
+      - aspath-entry
+      - entry
+      type: entry
+    validators: []
+    spec:
+      type: object
+      items:
+        type: object
+        spec:
+          params:
+          - name: action
+            type: enum
+            profiles:
+            - xpath:
+              - action
+            validators:
+            - type: values
+              spec:
+                values:
+                - deny
+                - permit
+            spec:
+              default: deny
+              values:
+              - value: deny
+              - value: permit
+            description: Permit or Deny (default) this BGP AS-Path Access-List Entry
+            required: false
+          - name: aspath-regex
+            type: string
+            profiles:
+            - xpath:
+              - aspath-regex
+            validators:
+            - type: length
+              spec:
+                max: 512
+            spec: {}
+            description: Set regular-expression (1234567890_^|[,{}()]$*+.?-\) to match
+              the BGP AS path
+            required: false
+          variants: []
+    description: ''
+    required: false
+    codegen_overrides:
+      terraform:
+        name: aspath-entries
+  - name: description
+    type: string
+    profiles:
+    - xpath:
+      - description
+    validators:
+    - type: length
+      spec:
+        max: 1024
+    spec: {}
+    description: Describe BGP AS-Path Access-List
+    required: false
+  variants: []
