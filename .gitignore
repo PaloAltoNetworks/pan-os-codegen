@@ -29,6 +29,9 @@
 # IDE
 .idea/
 
+/assets/terraform/examples/**/provider.tf
+/assets/terraform/examples/provider.tf.template
+
 # Local semantic-release configuration if you create one for testing
 release.config.local.js
 release.config.local.json
