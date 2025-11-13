@@ -1,0 +1,914 @@
+name: bgp-filtering-routing-profile
+terraform_provider_config:
+  description: BGP Filtering Routing Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: bgp_filtering_routing_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - network
+  - routing-profile
+  - bgp
+  - filtering
+panos_xpath:
+  path:
+  - network
+  - routing-profile
+  - bgp
+  - filtering-profile
+  vars: []
+locations:
+- name: ngfw
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific NGFW device
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: description
+    type: string
+    profiles:
+    - xpath:
+      - description
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 1024
+    spec: {}
+    description: Describe BGP Filtering Profile
+    required: false
+  variants:
+  - name: ipv4
+    type: object
+    profiles:
+    - xpath:
+      - ipv4
+    validators: []
+    spec:
+      params:
+      - name: multicast
+        type: object
+        profiles:
+        - xpath:
+          - multicast
+        validators: []
+        spec:
+          params:
+          - name: conditional-advertisement
+            type: object
+            profiles:
+            - xpath:
+              - conditional-advertisement
+            validators: []
+            spec:
+              params:
+              - name: exist
+                type: object
+                profiles:
+                - xpath:
+                  - exist
+                validators: []
+                spec:
+                  params:
+                  - name: advertise-map
+                    type: string
+                    profiles:
+                    - xpath:
+                      - advertise-map
+                    validators:
+                    - type: length
+                      spec:
+                        max: 63
+                    spec: {}
+                    description: Specify Route-Map match criteria to advertise routes
+                    required: false
+                  - name: exist-map
+                    type: string
+                    profiles:
+                    - xpath:
+                      - exist-map
+                    validators:
+                    - type: length
+                      spec:
+                        max: 63
+                    spec: {}
+                    description: Specify Route-Map to Match existing routes in BGP
+                      local-rib
+                    required: false
+                  variants: []
+                description: Conditionally Advertise Selected Routes, if selected
+                  routes exists in BGP local-rib
+                required: false
+              - name: non-exist
+                type: object
+                profiles:
+                - xpath:
+                  - non-exist
+                validators: []
+                spec:
+                  params:
+                  - name: advertise-map
+                    type: string
+                    profiles:
+                    - xpath:
+                      - advertise-map
+                    validators:
+                    - type: length
+                      spec:
+                        max: 63
+                    spec: {}
+                    description: Specify Route-Map match criteria to advertise routes
+                    required: false
+                  - name: non-exist-map
+                    type: string
+                    profiles:
+                    - xpath:
+                      - non-exist-map
+                    validators:
+                    - type: length
+                      spec:
+                        max: 63
+                    spec: {}
+                    description: Specify Route-Map to match non-existing routes in
+                      BGP local-rib
+                    required: false
+                  variants: []
+                description: Conditionally Advertise Selected Routes, if selected
+                  routes not available in BGP local-rib
+                required: false
+              variants: []
+            description: Conditionally Advertise selected routes
+            required: false
+          - name: filter-list
+            type: object
+            profiles:
+            - xpath:
+              - filter-list
+            validators: []
+            spec:
+              params:
+              - name: inbound
+                type: string
+                profiles:
+                - xpath:
+                  - inbound
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Incoming AS-Path Access-List
+                required: false
+              - name: outbound
+                type: string
+                profiles:
+                - xpath:
+                  - outbound
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Outgoing AS-Path Access-List
+                required: false
+              variants: []
+            description: Select Inbound/Outbound AS-Path Filters
+            required: false
+          - name: inbound-network-filters
+            type: object
+            profiles:
+            - xpath:
+              - inbound-network-filters
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: distribute-list
+                type: string
+                profiles:
+                - xpath:
+                  - distribute-list
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Incoming Distribute-List (Access-List)
+                required: false
+              - name: prefix-list
+                type: string
+                profiles:
+                - xpath:
+                  - prefix-list
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Incoming Prefix-List
+                required: false
+            description: Select Inbound Network Filters
+            required: false
+          - name: inherit
+            type: bool
+            profiles:
+            - xpath:
+              - inherit
+            validators: []
+            spec: {}
+            description: Either Configure or Inherit Filtering Profile from Unicast
+            required: false
+          - name: outbound-network-filters
+            type: object
+            profiles:
+            - xpath:
+              - outbound-network-filters
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: distribute-list
+                type: string
+                profiles:
+                - xpath:
+                  - distribute-list
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Outgoing Distribute-List (Access-List)
+                required: false
+              - name: prefix-list
+                type: string
+                profiles:
+                - xpath:
+                  - prefix-list
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Outgoing Prefix-List
+                required: false
+            description: Select Outgoing Network Filters
+            required: false
+          - name: route-maps
+            type: object
+            profiles:
+            - xpath:
+              - route-maps
+            validators: []
+            spec:
+              params:
+              - name: inbound
+                type: string
+                profiles:
+                - xpath:
+                  - inbound
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Incoming Route-Map
+                required: false
+              - name: outbound
+                type: string
+                profiles:
+                - xpath:
+                  - outbound
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Outgoing Route-Map
+                required: false
+              variants: []
+            description: Configure Inbound/Outbound Route-Maps
+            required: false
+          - name: unsuppress-map
+            type: string
+            profiles:
+            - xpath:
+              - unsuppress-map
+            validators:
+            - type: length
+              spec:
+                max: 63
+            spec: {}
+            description: Route-Map selectively unsuppress suppressed routes
+            required: false
+          variants: []
+        description: Configure BGP IPv4 Multicast Filtering Profile
+        required: false
+      - name: unicast
+        type: object
+        profiles:
+        - xpath:
+          - unicast
+        validators: []
+        spec:
+          params:
+          - name: conditional-advertisement
+            type: object
+            profiles:
+            - xpath:
+              - conditional-advertisement
+            validators: []
+            spec:
+              params:
+              - name: exist
+                type: object
+                profiles:
+                - xpath:
+                  - exist
+                validators: []
+                spec:
+                  params:
+                  - name: advertise-map
+                    type: string
+                    profiles:
+                    - xpath:
+                      - advertise-map
+                    validators:
+                    - type: length
+                      spec:
+                        max: 63
+                    spec: {}
+                    description: Specify Route-Map match criteria to advertise routes
+                    required: false
+                  - name: exist-map
+                    type: string
+                    profiles:
+                    - xpath:
+                      - exist-map
+                    validators:
+                    - type: length
+                      spec:
+                        max: 63
+                    spec: {}
+                    description: Specify Route-Map to Match existing routes in BGP
+                      local-rib
+                    required: false
+                  variants: []
+                description: Conditionally Advertise Selected Routes, if selected
+                  routes exists in BGP local-rib
+                required: false
+              - name: non-exist
+                type: object
+                profiles:
+                - xpath:
+                  - non-exist
+                validators: []
+                spec:
+                  params:
+                  - name: advertise-map
+                    type: string
+                    profiles:
+                    - xpath:
+                      - advertise-map
+                    validators:
+                    - type: length
+                      spec:
+                        max: 63
+                    spec: {}
+                    description: Specify Route-Map match criteria to advertise routes
+                    required: false
+                  - name: non-exist-map
+                    type: string
+                    profiles:
+                    - xpath:
+                      - non-exist-map
+                    validators:
+                    - type: length
+                      spec:
+                        max: 63
+                    spec: {}
+                    description: Specify Route-Map to match non-existing routes in
+                      BGP local-rib
+                    required: false
+                  variants: []
+                description: Conditionally Advertise Selected Routes, if selected
+                  routes not available in BGP local-rib
+                required: false
+              variants: []
+            description: Conditionally Advertise selected routes
+            required: false
+          - name: filter-list
+            type: object
+            profiles:
+            - xpath:
+              - filter-list
+            validators: []
+            spec:
+              params:
+              - name: inbound
+                type: string
+                profiles:
+                - xpath:
+                  - inbound
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Incoming AS-Path Access-List
+                required: false
+              - name: outbound
+                type: string
+                profiles:
+                - xpath:
+                  - outbound
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Outgoing AS-Path Access-List
+                required: false
+              variants: []
+            description: Select Inbound/Outbound AS-Path Filters
+            required: false
+          - name: inbound-network-filters
+            type: object
+            profiles:
+            - xpath:
+              - inbound-network-filters
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: distribute-list
+                type: string
+                profiles:
+                - xpath:
+                  - distribute-list
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Incoming Distribute-List (Access-List)
+                required: false
+              - name: prefix-list
+                type: string
+                profiles:
+                - xpath:
+                  - prefix-list
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Incoming Prefix-List
+                required: false
+            description: Select Inbound Network Filters
+            required: false
+          - name: outbound-network-filters
+            type: object
+            profiles:
+            - xpath:
+              - outbound-network-filters
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: distribute-list
+                type: string
+                profiles:
+                - xpath:
+                  - distribute-list
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Outgoing Distribute-List (Access-List)
+                required: false
+              - name: prefix-list
+                type: string
+                profiles:
+                - xpath:
+                  - prefix-list
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Outgoing Prefix-List
+                required: false
+            description: Select Outgoing Network Filters
+            required: false
+          - name: route-maps
+            type: object
+            profiles:
+            - xpath:
+              - route-maps
+            validators: []
+            spec:
+              params:
+              - name: inbound
+                type: string
+                profiles:
+                - xpath:
+                  - inbound
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Incoming Route-Map
+                required: false
+              - name: outbound
+                type: string
+                profiles:
+                - xpath:
+                  - outbound
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Outgoing Route-Map
+                required: false
+              variants: []
+            description: Configure Inbound/Outbound Route-Maps
+            required: false
+          - name: unsuppress-map
+            type: string
+            profiles:
+            - xpath:
+              - unsuppress-map
+            validators:
+            - type: length
+              spec:
+                max: 63
+            spec: {}
+            description: Route-Map selectively unsuppress suppressed routes
+            required: false
+          variants: []
+        description: Configure BGP IPv4 Unicast Filtering Profile
+        required: false
+      variants: []
+    description: Configure BGP IPv4 Filtering Profile
+    required: false
+    variant_group_id: 0
+  - name: ipv6
+    type: object
+    profiles:
+    - xpath:
+      - ipv6
+    validators: []
+    spec:
+      params:
+      - name: unicast
+        type: object
+        profiles:
+        - xpath:
+          - unicast
+        validators: []
+        spec:
+          params:
+          - name: conditional-advertisement
+            type: object
+            profiles:
+            - xpath:
+              - conditional-advertisement
+            validators: []
+            spec:
+              params:
+              - name: exist
+                type: object
+                profiles:
+                - xpath:
+                  - exist
+                validators: []
+                spec:
+                  params:
+                  - name: advertise-map
+                    type: string
+                    profiles:
+                    - xpath:
+                      - advertise-map
+                    validators:
+                    - type: length
+                      spec:
+                        max: 63
+                    spec: {}
+                    description: Specify Route-Map match criteria to advertise routes
+                    required: false
+                  - name: exist-map
+                    type: string
+                    profiles:
+                    - xpath:
+                      - exist-map
+                    validators:
+                    - type: length
+                      spec:
+                        max: 63
+                    spec: {}
+                    description: Specify Route-Map to Match existing routes in BGP
+                      local-rib
+                    required: false
+                  variants: []
+                description: Conditionally Advertise Selected Routes, if selected
+                  routes exists in BGP local-rib
+                required: false
+              - name: non-exist
+                type: object
+                profiles:
+                - xpath:
+                  - non-exist
+                validators: []
+                spec:
+                  params:
+                  - name: advertise-map
+                    type: string
+                    profiles:
+                    - xpath:
+                      - advertise-map
+                    validators:
+                    - type: length
+                      spec:
+                        max: 63
+                    spec: {}
+                    description: Specify Route-Map match criteria to advertise routes
+                    required: false
+                  - name: non-exist-map
+                    type: string
+                    profiles:
+                    - xpath:
+                      - non-exist-map
+                    validators:
+                    - type: length
+                      spec:
+                        max: 63
+                    spec: {}
+                    description: Specify Route-Map to match non-existing routes in
+                      BGP local-rib
+                    required: false
+                  variants: []
+                description: Conditionally Advertise Selected Routes, if selected
+                  routes not available in BGP local-rib
+                required: false
+              variants: []
+            description: Conditionally Advertise selected routes
+            required: false
+          - name: filter-list
+            type: object
+            profiles:
+            - xpath:
+              - filter-list
+            validators: []
+            spec:
+              params:
+              - name: inbound
+                type: string
+                profiles:
+                - xpath:
+                  - inbound
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Incoming AS-Path Access-List
+                required: false
+              - name: outbound
+                type: string
+                profiles:
+                - xpath:
+                  - outbound
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Outgoing AS-Path Access-List
+                required: false
+              variants: []
+            description: Select Inbound/Outbound AS-Path Filters
+            required: false
+          - name: inbound-network-filters
+            type: object
+            profiles:
+            - xpath:
+              - inbound-network-filters
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: distribute-list
+                type: string
+                profiles:
+                - xpath:
+                  - distribute-list
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Incoming Distribute-List (Access-List)
+                required: false
+              - name: prefix-list
+                type: string
+                profiles:
+                - xpath:
+                  - prefix-list
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Incoming Prefix-List
+                required: false
+            description: Select Inbound Network Filters
+            required: false
+          - name: outbound-network-filters
+            type: object
+            profiles:
+            - xpath:
+              - outbound-network-filters
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: distribute-list
+                type: string
+                profiles:
+                - xpath:
+                  - distribute-list
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Outgoing Distribute-List (Access-List)
+                required: false
+              - name: prefix-list
+                type: string
+                profiles:
+                - xpath:
+                  - prefix-list
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Outgoing Prefix-List
+                required: false
+            description: Select Outbound Network Filters
+            required: false
+          - name: route-maps
+            type: object
+            profiles:
+            - xpath:
+              - route-maps
+            validators: []
+            spec:
+              params:
+              - name: inbound
+                type: string
+                profiles:
+                - xpath:
+                  - inbound
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Incoming Route-Map
+                required: false
+              - name: outbound
+                type: string
+                profiles:
+                - xpath:
+                  - outbound
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Outgoing Route-Map
+                required: false
+              variants: []
+            description: Configure Incoming/Outgoing Route-Maps
+            required: false
+          - name: unsuppress-map
+            type: string
+            profiles:
+            - xpath:
+              - unsuppress-map
+            validators:
+            - type: length
+              spec:
+                max: 63
+            spec: {}
+            description: Route-Map selectively unsuppress suppressed routes
+            required: false
+          variants: []
+        description: Configure BGP IPv6 Unicast Filtering Profile
+        required: false
+      variants: []
+    description: Configure BGP IPv6 Filtering Profile
+    required: false
+    variant_group_id: 0
