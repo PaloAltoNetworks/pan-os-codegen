@@ -1,7 +1,7 @@
 -include Makefile.local
 
 TESTARGS ?=
-GENERATED_OUT_PATH=../generated
+GENERATED_OUT_PATH=target/
 
 CODEGEN_LOG_LEVEL ?= error
 

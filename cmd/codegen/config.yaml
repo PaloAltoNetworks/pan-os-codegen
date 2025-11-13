@@ -2,8 +2,8 @@
 #~~~~~~~   CodeGen General Config Section   ~~~~~~~#
 ####################################################
 output:
-  go_sdk: "../generated/pango"
-  terraform_provider: "../generated/terraform-provider-panos"
+  go_sdk: "target/pango"
+  terraform_provider: "target/terraform"
 ####################################################
 #~~~~~~~  CodeGen Static File Copy Section  ~~~~~~~#
 ####################################################

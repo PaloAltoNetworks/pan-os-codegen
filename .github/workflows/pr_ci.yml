@@ -81,16 +81,17 @@ jobs:
 
       - name: Test generated code
         run: |
-          for dir in $(ls ../generated); do
+          for dir in $(ls target/); do
+            [ ! -d $dir ] && continue
             echo "Run tests for ${dir}"
-            cd ../generated/${dir}
+            cd target/${dir}
             go test -v ./...
             cd -
           done
 
       - name: Build provider
         run: |
-          cd ../generated/terraform-provider-panos/
+          cd target/terraform/
           go build -o terraform-provider-panos
           mkdir -p ~/.terraform.d/plugins/registry.terraform.io/PaloAltoNetworks/panos/1.0.0/linux_amd64
           mv terraform-provider-panos ~/.terraform.d/plugins/registry.terraform.io/PaloAltoNetworks/panos/1.0.0/linux_amd64
@@ -147,7 +148,7 @@ jobs:
 
       - name: Workaround actions/upload-artifact#176
         run: |
-          echo "artifacts_path=$(realpath ../generated/pango)" >> $GITHUB_ENV
+          echo "artifacts_path=$(realpath target/pango)" >> $GITHUB_ENV
 
       - name: Upload generated files for pango SDK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
