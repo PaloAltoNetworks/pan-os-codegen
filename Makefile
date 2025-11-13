@@ -48,6 +48,11 @@ test/pango: codegen assets
 	cd $(GENERATED_OUT_PATH)/pango && \
 	go test -v ./...
 
+.PHONY: test/pango-movement
+test/pango-movement: codegen assets
+	cd $(GENERATED_OUT_PATH)/pango && \
+	go test -v ./movement/
+
 .PHONY: test/pango-example
 test/pango-example:
 	cd $(GENERATED_OUT_PATH)/pango && \
