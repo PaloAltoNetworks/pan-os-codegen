@@ -63,8 +63,8 @@ test/terraform: test/terraform-acc test/terraform-manager
 
 .PHONY: test/terraform-manager
 test/terraform-manager: codegen assets
-	cd $(GENERATED_OUT_PATH)/terraform-provider-panos/ && \
-	go test -v ./internal/manager/
+	cd $(GENERATED_OUT_PATH)/terraform/ && \
+	go test -coverprofile cover.profile -v ./internal/manager/
 
 .PHONY: test/terraform-acc
 test/terraform-acc: codegen assets
