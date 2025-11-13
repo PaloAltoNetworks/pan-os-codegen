@@ -68,6 +68,8 @@ type MultiConfigOper struct {
 	Operation MultiConfigOperType
 	EntryName string
 	EntryUuid *string
+	NewName   string
+	Value     string
 }
 
 func entryNameFromXpath(xpath string) string {
@@ -133,6 +135,7 @@ func MultiConfig[E sdkmanager.UuidObject](updates *xmlapi.MultiConfig, existingP
 		operEntry := MultiConfigOper{
 			Operation: MultiConfigOperType(op),
 			EntryName: entryName,
+			NewName:   oper.NewName,
 		}
 
 		slog.Debug("MultiConfig", "operEntry", operEntry)
@@ -146,6 +149,7 @@ func MultiConfig[E sdkmanager.UuidObject](updates *xmlapi.MultiConfig, existingP
 					entry.SetEntryUuid(existing.Entry.EntryUuid())
 				}
 				existing.Entry = entry
+				entriesByName[entryName] = existing
 			} else {
 				entryUuid := fmt.Sprintf("%05d", uuid)
 				if objectType == multiConfigUuid {
@@ -169,6 +173,19 @@ func MultiConfig[E sdkmanager.UuidObject](updates *xmlapi.MultiConfig, existingP
 			fixIndices(entry.Idx)
 			delete(entriesByName, entryName)
 			idx -= 1
+		case MultiConfigOperRename:
+			if _, found := entriesByName[oper.NewName]; found {
+				panic(fmt.Sprintf("FIXME: should propagate back error from MultiConfig"))
+			}
+
+			existing, found := entriesByName[entryName]
+			if !found {
+				panic(fmt.Sprintf("FIXME: should propagate back erro from MultiConfig"))
+			}
+
+			delete(entriesByName, entryName)
+			existing.Entry.SetEntryName(oper.NewName)
+			entriesByName[oper.NewName] = existing
 		case MultiConfigOperMove:
 			pivot, found := entriesByName[oper.Destination]
 			if !found && oper.Destination != "top" && oper.Destination != "bottom" {
