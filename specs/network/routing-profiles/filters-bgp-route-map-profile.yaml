@@ -1,0 +1,874 @@
+name: filters-bgp-route-map-routing-profile
+terraform_provider_config:
+  description: Filters BGP Route Map Routing Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: filters_bgp_route_map_routing_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - network
+  - routing-profile
+  - filters
+  - bgproutemap
+panos_xpath:
+  path:
+  - network
+  - routing-profile
+  - filters
+  - route-maps
+  - bgp
+  - bgp-entry
+  vars: []
+locations:
+- name: ngfw
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific NGFW device
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: description
+    type: string
+    profiles:
+    - xpath:
+      - description
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 1024
+    spec: {}
+    description: Describe BGP Route Map
+    required: false
+  - name: route-map
+    type: list
+    profiles:
+    - xpath:
+      - route-map
+      - entry
+      type: entry
+    validators: []
+    spec:
+      type: object
+      items:
+        type: object
+        spec:
+          params:
+          - name: action
+            type: enum
+            profiles:
+            - xpath:
+              - action
+            validators:
+            - type: values
+              spec:
+                values:
+                - deny
+                - permit
+            spec:
+              default: deny
+              values:
+              - value: deny
+              - value: permit
+            description: Permit or Deny (default) Route Map
+            required: false
+          - name: description
+            type: string
+            profiles:
+            - xpath:
+              - description
+            validators:
+            - type: length
+              spec:
+                min: 0
+                max: 1024
+            spec: {}
+            description: Describe Route Map
+            required: false
+          - name: match
+            type: object
+            profiles:
+            - xpath:
+              - match
+            validators: []
+            spec:
+              params:
+              - name: as-path-access-list
+                type: string
+                profiles:
+                - xpath:
+                  - as-path-access-list
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: AS Path Access List Name
+                required: false
+              - name: regular-community
+                type: string
+                profiles:
+                - xpath:
+                  - regular-community
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Regular Community Name
+                required: false
+              - name: large-community
+                type: string
+                profiles:
+                - xpath:
+                  - large-community
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Large Community Name
+                required: false
+              - name: extended-community
+                type: string
+                profiles:
+                - xpath:
+                  - extended-community
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Extended Community Name
+                required: false
+              - name: interface
+                type: string
+                profiles:
+                - xpath:
+                  - interface
+                validators:
+                - type: length
+                  spec:
+                    max: 64
+                spec: {}
+                description: Match Interface of the route
+                required: false
+              - name: origin
+                type: enum
+                profiles:
+                - xpath:
+                  - origin
+                validators:
+                - type: values
+                  spec:
+                    values:
+                    - none
+                    - egp
+                    - igp
+                    - incomplete
+                spec:
+                  values:
+                  - value: none
+                  - value: egp
+                  - value: igp
+                  - value: incomplete
+                description: Match origin
+                required: false
+              - name: metric
+                type: int64
+                profiles:
+                - xpath:
+                  - metric
+                validators:
+                - type: length
+                  spec:
+                    min: 0
+                    max: 4294967295
+                spec: {}
+                description: Match Metric (BGP MED) of route
+                required: false
+              - name: tag
+                type: int64
+                profiles:
+                - xpath:
+                  - tag
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 4294967295
+                spec: {}
+                description: Match Tag of route
+                required: false
+              - name: local-preference
+                type: int64
+                profiles:
+                - xpath:
+                  - local-preference
+                validators:
+                - type: length
+                  spec:
+                    min: 0
+                    max: 4294967295
+                spec: {}
+                description: Match Local Preference of route
+                required: false
+              - name: peer
+                type: string
+                profiles:
+                - xpath:
+                  - peer
+                validators: []
+                spec: {}
+                description: Match Peer Address
+                required: false
+              - name: ipv4
+                type: object
+                profiles:
+                - xpath:
+                  - ipv4
+                validators: []
+                spec:
+                  params:
+                  - name: address
+                    type: object
+                    profiles:
+                    - xpath:
+                      - address
+                    validators: []
+                    spec:
+                      params:
+                      - name: access-list
+                        type: string
+                        profiles:
+                        - xpath:
+                          - access-list
+                        validators:
+                        - type: length
+                          spec:
+                            max: 63
+                        spec: {}
+                        description: Access-List Name
+                        required: false
+                      - name: prefix-list
+                        type: string
+                        profiles:
+                        - xpath:
+                          - prefix-list
+                        validators:
+                        - type: length
+                          spec:
+                            max: 63
+                        spec: {}
+                        description: Prefix-List Name
+                        required: false
+                      variants: []
+                    description: Match IPv4 Route
+                    required: false
+                  - name: next-hop
+                    type: object
+                    profiles:
+                    - xpath:
+                      - next-hop
+                    validators: []
+                    spec:
+                      params:
+                      - name: access-list
+                        type: string
+                        profiles:
+                        - xpath:
+                          - access-list
+                        validators:
+                        - type: length
+                          spec:
+                            max: 63
+                        spec: {}
+                        description: Access-List Name
+                        required: false
+                      - name: prefix-list
+                        type: string
+                        profiles:
+                        - xpath:
+                          - prefix-list
+                        validators:
+                        - type: length
+                          spec:
+                            max: 63
+                        spec: {}
+                        description: Prefix-List Name
+                        required: false
+                      variants: []
+                    description: Match IPv4 Next-Hop of Route
+                    required: false
+                  - name: route-source
+                    type: object
+                    profiles:
+                    - xpath:
+                      - route-source
+                    validators: []
+                    spec:
+                      params:
+                      - name: access-list
+                        type: string
+                        profiles:
+                        - xpath:
+                          - access-list
+                        validators:
+                        - type: length
+                          spec:
+                            max: 63
+                        spec: {}
+                        description: Access-List Name
+                        required: false
+                      - name: prefix-list
+                        type: string
+                        profiles:
+                        - xpath:
+                          - prefix-list
+                        validators:
+                        - type: length
+                          spec:
+                            max: 63
+                        spec: {}
+                        description: Prefix-List Name
+                        required: false
+                      variants: []
+                    description: Match IPv4 Advertising Source Address of route
+                    required: false
+                  variants: []
+                description: Match IPv4 Details
+                required: false
+              - name: ipv6
+                type: object
+                profiles:
+                - xpath:
+                  - ipv6
+                validators: []
+                spec:
+                  params:
+                  - name: address
+                    type: object
+                    profiles:
+                    - xpath:
+                      - address
+                    validators: []
+                    spec:
+                      params:
+                      - name: access-list
+                        type: string
+                        profiles:
+                        - xpath:
+                          - access-list
+                        validators:
+                        - type: length
+                          spec:
+                            max: 63
+                        spec: {}
+                        description: Access-List Name
+                        required: false
+                      - name: prefix-list
+                        type: string
+                        profiles:
+                        - xpath:
+                          - prefix-list
+                        validators:
+                        - type: length
+                          spec:
+                            max: 63
+                        spec: {}
+                        description: Prefix-List Name
+                        required: false
+                      variants: []
+                    description: Match IPv6 Route
+                    required: false
+                  - name: next-hop
+                    type: object
+                    profiles:
+                    - xpath:
+                      - next-hop
+                    validators: []
+                    spec:
+                      params:
+                      - name: access-list
+                        type: string
+                        profiles:
+                        - xpath:
+                          - access-list
+                        validators:
+                        - type: length
+                          spec:
+                            max: 63
+                        spec: {}
+                        description: Access-List Name
+                        required: false
+                      - name: prefix-list
+                        type: string
+                        profiles:
+                        - xpath:
+                          - prefix-list
+                        validators:
+                        - type: length
+                          spec:
+                            max: 63
+                        spec: {}
+                        description: Prefix-List Name
+                        required: false
+                      variants: []
+                    description: Match IPv6 next-hop of Route
+                    required: false
+                  variants: []
+                description: Match IPv6 Details
+                required: false
+              variants: []
+            description: Configure Route-Map Match Conditions
+            required: false
+          - name: set
+            type: object
+            profiles:
+            - xpath:
+              - set
+            validators: []
+            spec:
+              params:
+              - name: aggregator
+                type: object
+                profiles:
+                - xpath:
+                  - aggregator
+                validators: []
+                spec:
+                  params:
+                  - name: as
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - as
+                    validators:
+                    - type: length
+                      spec:
+                        min: 1
+                        max: 4294967295
+                    spec: {}
+                    description: Set BGP Aggregator AS <1-4294967295>
+                    required: false
+                  - name: router-id
+                    type: string
+                    profiles:
+                    - xpath:
+                      - router-id
+                    validators: []
+                    spec: {}
+                    description: Set BGP Aggregator Router ID
+                    required: false
+                  variants: []
+                description: Set Aggregator AS Number and Router ID
+                required: false
+              - name: metric
+                type: object
+                profiles:
+                - xpath:
+                  - metric
+                validators: []
+                spec:
+                  params:
+                  - name: value
+                    type: int64
+                    profiles:
+                    - xpath:
+                      - value
+                    validators:
+                    - type: length
+                      spec:
+                        min: 0
+                        max: 4294967295
+                    spec: {}
+                    description: Set Metric value (BGP MED) of route
+                    required: false
+                  - name: action
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - action
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - set
+                        - add
+                        - subtract
+                    spec:
+                      values:
+                      - value: set
+                      - value: add
+                      - value: subtract
+                    description: Set Metric action (BGP MED) of route
+                    required: false
+                  variants: []
+                description: Set Metric action and value (BGP MED) of route
+                required: false
+              - name: ipv4
+                type: object
+                profiles:
+                - xpath:
+                  - ipv4
+                validators: []
+                spec:
+                  params:
+                  - name: source-address
+                    type: string
+                    profiles:
+                    - xpath:
+                      - source-address
+                    validators:
+                    - type: length
+                      spec:
+                        max: 128
+                    spec: {}
+                    description: Set Source IPv4 Address
+                    required: false
+                  - name: next-hop
+                    type: string
+                    profiles:
+                    - xpath:
+                      - next-hop
+                    validators: []
+                    spec: {}
+                    description: Set IPv4 Next-Hop Address
+                    required: false
+                  variants: []
+                description: Set IPv4 Address Details
+                required: false
+              - name: ipv6
+                type: object
+                profiles:
+                - xpath:
+                  - ipv6
+                validators: []
+                spec:
+                  params:
+                  - name: source-address
+                    type: string
+                    profiles:
+                    - xpath:
+                      - source-address
+                    validators:
+                    - type: length
+                      spec:
+                        max: 128
+                    spec: {}
+                    description: Set Source IPv6 Address
+                    required: false
+                  - name: next-hop
+                    type: string
+                    profiles:
+                    - xpath:
+                      - next-hop
+                    validators: []
+                    spec: {}
+                    description: Set IPv6 Next-Hop Address
+                    required: false
+                  variants: []
+                description: Set IPv6 Address Details
+                required: false
+              - name: tag
+                type: int64
+                profiles:
+                - xpath:
+                  - tag
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 4294967295
+                spec: {}
+                description: Set Tag of route
+                required: false
+              - name: local-preference
+                type: int64
+                profiles:
+                - xpath:
+                  - local-preference
+                validators:
+                - type: length
+                  spec:
+                    min: 0
+                    max: 4294967295
+                spec: {}
+                description: Set Local Preference of route
+                required: false
+              - name: weight
+                type: int64
+                profiles:
+                - xpath:
+                  - weight
+                validators:
+                - type: length
+                  spec:
+                    min: 0
+                    max: 4294967295
+                spec: {}
+                description: Set BGP weight of the route
+                required: false
+              - name: origin
+                type: enum
+                profiles:
+                - xpath:
+                  - origin
+                validators:
+                - type: values
+                  spec:
+                    values:
+                    - none
+                    - egp
+                    - igp
+                    - incomplete
+                spec:
+                  values:
+                  - value: none
+                  - value: egp
+                  - value: igp
+                  - value: incomplete
+                description: Set BGP origin
+                required: false
+              - name: atomic-aggregate
+                type: bool
+                profiles:
+                - xpath:
+                  - atomic-aggregate
+                validators: []
+                spec: {}
+                description: Enable BGP atomic aggregate
+                required: false
+              - name: originator-id
+                type: string
+                profiles:
+                - xpath:
+                  - originator-id
+                validators: []
+                spec: {}
+                description: Set BGP Originator Id
+                required: false
+              - name: ipv6-nexthop-prefer-global
+                type: bool
+                profiles:
+                - xpath:
+                  - ipv6-nexthop-prefer-global
+                validators: []
+                spec: {}
+                description: If enabled, IPv6 prefixes will prefer global address
+                  over link-local address
+                required: false
+              - name: overwrite-regular-community
+                type: bool
+                profiles:
+                - xpath:
+                  - overwrite-regular-community
+                validators: []
+                spec: {}
+                description: If enabled, set community will overwite existing communities,
+                  instead of appending
+                required: false
+              - name: overwrite-large-community
+                type: bool
+                profiles:
+                - xpath:
+                  - overwrite-large-community
+                validators: []
+                spec: {}
+                description: If enabled, set community will overwite existing large
+                  communities, instead of appending
+                required: false
+              - name: remove-regular-community
+                type: string
+                profiles:
+                - xpath:
+                  - remove-regular-community
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Remove Regular Community Name
+                required: false
+              - name: remove-large-community
+                type: string
+                profiles:
+                - xpath:
+                  - remove-large-community
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Remove Large Community Name
+                required: false
+              - name: aspath-prepend
+                type: list
+                profiles:
+                - xpath:
+                  - aspath-prepend
+                  type: member
+                validators: []
+                spec:
+                  type: int64
+                  items:
+                    type: int64
+                description: ''
+                required: false
+              - name: regular-community
+                type: list
+                profiles:
+                - xpath:
+                  - regular-community
+                  type: member
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ''
+                required: false
+              - name: large-community
+                type: list
+                profiles:
+                - xpath:
+                  - large-community
+                  type: member
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ''
+                required: false
+              - name: aspath-exclude
+                type: list
+                profiles:
+                - xpath:
+                  - aspath-exclude
+                  type: member
+                validators: []
+                spec:
+                  type: int64
+                  items:
+                    type: int64
+                description: ''
+                required: false
+              - name: extended-community
+                type: list
+                profiles:
+                - xpath:
+                  - extended-community
+                  type: member
+                  min_version: 11.0.2
+                  max_version: 11.0.3
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ''
+                required: false
+              variants: []
+            description: Configure Route-Map Action set details
+            required: false
+          variants: []
+    description: ''
+    required: false
+  variants: []
