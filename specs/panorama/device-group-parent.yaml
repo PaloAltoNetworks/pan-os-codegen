@@ -1,13 +1,6 @@
 name: "Device group Parent"
 terraform_provider_config:
   resource_type: custom
-  custom_functions:
-    Imports: deviceGroupParentImports
-    ResourceRead: deviceGroupParentResourceRead
-    DataSourceRead: deviceGroupParentDataSouceRead
-    Create: deviceGroupParentResourceCreate
-    Update: deviceGroupParentResourceUpdate
-    Delete: deviceGroupParentResourceDelete
   suffix: "device_group_parent"
 go_sdk_config:
   skip: true

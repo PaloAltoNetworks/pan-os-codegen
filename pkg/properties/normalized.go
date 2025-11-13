@@ -85,7 +85,7 @@ type TerraformProviderConfig struct {
 	SkipDatasource        bool                       `json:"skip_datasource" yaml:"skip_datasource"`
 	SkipDatasourceListing bool                       `json:"skip_datasource_listing" yaml:"skip_datasource_listing"`
 	ResourceType          TerraformResourceType      `json:"resource_type" yaml:"resource_type"`
-	CustomFuncs           map[string]string          `json:"custom_functions" yaml:"custom_functions"`
+	CustomFuncs           map[string]bool            `json:"custom_functions" yaml:"custom_functions"`
 	ResourceVariants      []TerraformResourceVariant `json:"resource_variants" yaml:"resource_variants"`
 	Suffix                string                     `json:"suffix" yaml:"suffix"`
 	PluralSuffix          string                     `json:"plural_suffix" yaml:"plural_suffix"`

@@ -42,7 +42,7 @@ type TerraformConfig struct {
 	SkipDatasource        bool                       `yaml:"skip_datasource"`
 	SkipdatasourceListing bool                       `yaml:"skip_datasource_listing"`
 	ResourceType          TerraformResourceType      `yaml:"resource_type"`
-	CustomFunctions       map[string]string          `yaml:"custom_functions"`
+	CustomFunctions       map[string]bool            `yaml:"custom_functions"`
 	ResourceVariants      []TerraformResourceVariant `yaml:"resource_variants"`
 	Suffix                string                     `yaml:"suffix"`
 	PluralSuffix          string                     `yaml:"plural_suffix"`

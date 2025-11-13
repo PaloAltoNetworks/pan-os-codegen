@@ -86,7 +86,7 @@ func (c *Creator) RenderTerraformProviderFile(spec *properties.Normalization, ty
 		return nil, nil, nil, nil, err
 	}
 
-	if err := tfp.GenerateTerraformProviderFile(spec, terraformProvider); err != nil {
+	if err := tfp.GenerateTerraformProviderFile(typ, spec, terraformProvider); err != nil {
 		return nil, nil, nil, nil, err
 	}
 
