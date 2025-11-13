@@ -1,0 +1,1372 @@
+name: bgp-address-family-routing-profile
+terraform_provider_config:
+  description: BGP Address Family Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: bgp_address_family_routing_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - network
+  - routing-profile
+  - bgp
+  - addressfamily
+panos_xpath:
+  path:
+  - network
+  - routing-profile
+  - bgp
+  - address-family-profile
+  vars: []
+locations:
+- name: ngfw
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific NGFW device
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params: []
+  variants:
+  - name: ipv4
+    type: object
+    profiles:
+    - xpath:
+      - ipv4
+    validators: []
+    spec:
+      params:
+      - name: multicast
+        type: object
+        profiles:
+        - xpath:
+          - multicast
+        validators: []
+        spec:
+          params:
+          - name: add-path
+            type: object
+            profiles:
+            - xpath:
+              - add-path
+            validators: []
+            spec:
+              params:
+              - name: tx-all-paths
+                type: bool
+                profiles:
+                - xpath:
+                  - tx-all-paths
+                validators: []
+                spec: {}
+                description: Advertise all paths to peer
+                required: false
+              - name: tx-bestpath-per-AS
+                type: bool
+                profiles:
+                - xpath:
+                  - tx-bestpath-per-AS
+                validators: []
+                spec: {}
+                description: Advertise the bestpath per each neighboring AS
+                required: false
+                codegen_overrides:
+                  terraform:
+                    name: tx-bestpath-per-as
+              variants: []
+            description: Use AddPath Capability
+            required: false
+          - name: allowas-in
+            type: object
+            profiles:
+            - xpath:
+              - allowas-in
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: occurrence
+                type: int64
+                profiles:
+                - xpath:
+                  - occurrence
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 10
+                spec: {}
+                description: Number of occurrences of AS number
+                required: false
+                variant_group_id: 0
+              - name: origin
+                type: object
+                profiles:
+                - xpath:
+                  - origin
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: 'Accept my AS in AS_PATH if route originated in my AS '
+                required: false
+                variant_group_id: 0
+            description: Accept AS-Path with my ASN present in it
+            required: false
+          - name: as-override
+            type: bool
+            profiles:
+            - xpath:
+              - as-override
+            validators: []
+            spec: {}
+            description: Override ASNs in outbound updates if AS-Path equals Remote-AS
+            required: false
+          - name: default-originate
+            type: bool
+            profiles:
+            - xpath:
+              - default-originate
+            validators: []
+            spec: {}
+            description: Originate Default Route
+            required: false
+          - name: default-originate-map
+            type: string
+            profiles:
+            - xpath:
+              - default-originate-map
+            validators:
+            - type: length
+              spec:
+                max: 63
+            spec: {}
+            description: Route-Map used in Default Originate Configuration
+            required: false
+          - name: enable
+            type: bool
+            profiles:
+            - xpath:
+              - enable
+            validators: []
+            spec: {}
+            description: Enable
+            required: false
+          - name: maximum-prefix
+            type: object
+            profiles:
+            - xpath:
+              - maximum-prefix
+            validators: []
+            spec:
+              params:
+              - name: action
+                type: object
+                profiles:
+                - xpath:
+                  - action
+                validators: []
+                spec:
+                  params: []
+                  variants:
+                  - name: restart
+                    type: object
+                    profiles:
+                    - xpath:
+                      - restart
+                    validators: []
+                    spec:
+                      params:
+                      - name: interval
+                        type: int64
+                        profiles:
+                        - xpath:
+                          - interval
+                        validators:
+                        - type: length
+                          spec:
+                            min: 1
+                            max: 65535
+                        spec:
+                          default: 1
+                        description: Restart interval in minutes
+                        required: false
+                      variants: []
+                    description: Restart connection when limit exceeded
+                    required: false
+                    variant_group_id: 0
+                  - name: warning-only
+                    type: object
+                    profiles:
+                    - xpath:
+                      - warning-only
+                    validators: []
+                    spec:
+                      params: []
+                      variants: []
+                    description: Give warning message when limit exceeded
+                    required: false
+                    variant_group_id: 0
+                description: Action if max-prefixes reached
+                required: false
+              - name: num_prefixes
+                type: int64
+                profiles:
+                - xpath:
+                  - num_prefixes
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 4294967295
+                spec:
+                  default: 1000
+                description: Max allowed prefixes from this peer
+                required: false
+                codegen_overrides:
+                  terraform:
+                    name: max-prefixes
+              - name: threshold
+                type: int64
+                profiles:
+                - xpath:
+                  - threshold
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 100
+                spec:
+                  default: 100
+                description: Threshold value (%) at which to generate a warning msg
+                required: false
+              variants: []
+            description: Maximum allowed prefixes
+            required: false
+          - name: next-hop
+            type: object
+            profiles:
+            - xpath:
+              - next-hop
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: self
+                type: object
+                profiles:
+                - xpath:
+                  - self
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Disable next-hop calculation
+                required: false
+                variant_group_id: 0
+              - name: self-force
+                type: object
+                profiles:
+                - xpath:
+                  - self-force
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Set next-hop to self for reflected routes
+                required: false
+                variant_group_id: 0
+            description: Disable next-hop calculation
+            required: false
+          - name: orf
+            type: object
+            profiles:
+            - xpath:
+              - orf
+            validators: []
+            spec:
+              params:
+              - name: orf-prefix-list
+                type: enum
+                profiles:
+                - xpath:
+                  - orf-prefix-list
+                validators:
+                - type: values
+                  spec:
+                    values:
+                    - none
+                    - both
+                    - receive
+                    - send
+                spec:
+                  default: none
+                  values:
+                  - value: none
+                  - value: both
+                  - value: receive
+                  - value: send
+                description: Advertise Prefix-List ORF Capability
+                required: false
+              variants: []
+            description: Advertise ORF (Outbound Route Filtering) Capability
+            required: false
+          - name: remove-private-AS
+            type: object
+            profiles:
+            - xpath:
+              - remove-private-AS
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: all
+                type: object
+                profiles:
+                - xpath:
+                  - all
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Apply to all ASNs
+                required: false
+                variant_group_id: 0
+              - name: replace-AS
+                type: object
+                profiles:
+                - xpath:
+                  - replace-AS
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Replace with our ASN
+                required: false
+                codegen_overrides:
+                  terraform:
+                    name: replace-as
+                variant_group_id: 0
+            description: Remove private ASNs in outbound updates
+            required: false
+            codegen_overrides:
+              terraform:
+                name: remove-private-as
+          - name: route-reflector-client
+            type: bool
+            profiles:
+            - xpath:
+              - route-reflector-client
+            validators: []
+            spec: {}
+            description: Route Reflector Client
+            required: false
+          - name: send-community
+            type: object
+            profiles:
+            - xpath:
+              - send-community
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: all
+                type: object
+                profiles:
+                - xpath:
+                  - all
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Send Standard,  Large and Extended Community attributes
+                required: false
+                variant_group_id: 0
+              - name: both
+                type: object
+                profiles:
+                - xpath:
+                  - both
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Send Standard and Extended Community attributes
+                required: false
+                variant_group_id: 0
+              - name: extended
+                type: object
+                profiles:
+                - xpath:
+                  - extended
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Send Extended Community attributes
+                required: false
+                variant_group_id: 0
+              - name: large
+                type: object
+                profiles:
+                - xpath:
+                  - large
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Send Large Community attributes
+                required: false
+                variant_group_id: 0
+              - name: standard
+                type: object
+                profiles:
+                - xpath:
+                  - standard
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Send Standard Community attributes
+                required: false
+                variant_group_id: 0
+            description: Send community attributes
+            required: false
+          - name: soft-reconfig-with-stored-info
+            type: bool
+            profiles:
+            - xpath:
+              - soft-reconfig-with-stored-info
+            validators: []
+            spec: {}
+            description: Soft reconfiguration of peer with stored routes
+            required: false
+          variants: []
+        description: IPv4 Multicast Profile
+        required: false
+      - name: unicast
+        type: object
+        profiles:
+        - xpath:
+          - unicast
+        validators: []
+        spec:
+          params:
+          - name: add-path
+            type: object
+            profiles:
+            - xpath:
+              - add-path
+            validators: []
+            spec:
+              params:
+              - name: tx-all-paths
+                type: bool
+                profiles:
+                - xpath:
+                  - tx-all-paths
+                validators: []
+                spec: {}
+                description: Advertise all paths to peer
+                required: false
+              - name: tx-bestpath-per-AS
+                type: bool
+                profiles:
+                - xpath:
+                  - tx-bestpath-per-AS
+                validators: []
+                spec: {}
+                description: Advertise the bestpath per each neighboring AS
+                required: false
+                codegen_overrides:
+                  terraform:
+                    name: tx-bestpath-per-as
+              variants: []
+            description: Use AddPath Capability
+            required: false
+          - name: allowas-in
+            type: object
+            profiles:
+            - xpath:
+              - allowas-in
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: occurrence
+                type: int64
+                profiles:
+                - xpath:
+                  - occurrence
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 10
+                spec: {}
+                description: Number of occurrences of AS number
+                required: false
+                variant_group_id: 0
+              - name: origin
+                type: object
+                profiles:
+                - xpath:
+                  - origin
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: 'Accept my AS in AS_PATH if route originated in my AS '
+                required: false
+                variant_group_id: 0
+            description: Accept AS-Path with my ASN present in it
+            required: false
+          - name: as-override
+            type: bool
+            profiles:
+            - xpath:
+              - as-override
+            validators: []
+            spec: {}
+            description: Override ASNs in outbound updates if AS-Path equals Remote-AS
+            required: false
+          - name: default-originate
+            type: bool
+            profiles:
+            - xpath:
+              - default-originate
+            validators: []
+            spec: {}
+            description: Originate Default Route
+            required: false
+          - name: default-originate-map
+            type: string
+            profiles:
+            - xpath:
+              - default-originate-map
+            validators:
+            - type: length
+              spec:
+                max: 63
+            spec: {}
+            description: Route-Map used in Default Originate Configuration
+            required: false
+          - name: enable
+            type: bool
+            profiles:
+            - xpath:
+              - enable
+            validators: []
+            spec: {}
+            description: Enable
+            required: false
+          - name: maximum-prefix
+            type: object
+            profiles:
+            - xpath:
+              - maximum-prefix
+            validators: []
+            spec:
+              params:
+              - name: action
+                type: object
+                profiles:
+                - xpath:
+                  - action
+                validators: []
+                spec:
+                  params: []
+                  variants:
+                  - name: restart
+                    type: object
+                    profiles:
+                    - xpath:
+                      - restart
+                    validators: []
+                    spec:
+                      params:
+                      - name: interval
+                        type: int64
+                        profiles:
+                        - xpath:
+                          - interval
+                        validators:
+                        - type: length
+                          spec:
+                            min: 1
+                            max: 65535
+                        spec:
+                          default: 1
+                        description: Restart interval in minutes
+                        required: false
+                      variants: []
+                    description: Restart connection when limit exceeded
+                    required: false
+                    variant_group_id: 0
+                  - name: warning-only
+                    type: object
+                    profiles:
+                    - xpath:
+                      - warning-only
+                    validators: []
+                    spec:
+                      params: []
+                      variants: []
+                    description: Give warning message when limit exceeded
+                    required: false
+                    variant_group_id: 0
+                description: Action if max-prefixes reached
+                required: false
+              - name: num_prefixes
+                type: int64
+                profiles:
+                - xpath:
+                  - num_prefixes
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 4294967295
+                spec:
+                  default: 1000
+                description: Max allowed prefixes from this peer
+                required: false
+                codegen_overrides:
+                  terraform:
+                    name: max-prefixes
+              - name: threshold
+                type: int64
+                profiles:
+                - xpath:
+                  - threshold
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 100
+                spec:
+                  default: 100
+                description: Threshold value (%) at which to generate a warning msg
+                required: false
+              variants: []
+            description: Maximum allowed prefixes
+            required: false
+          - name: next-hop
+            type: object
+            profiles:
+            - xpath:
+              - next-hop
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: self
+                type: object
+                profiles:
+                - xpath:
+                  - self
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Disable next-hop calculation
+                required: false
+                variant_group_id: 0
+              - name: self-force
+                type: object
+                profiles:
+                - xpath:
+                  - self-force
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Set next-hop to self for reflected routes
+                required: false
+                variant_group_id: 0
+            description: Disable next-hop calculation
+            required: false
+          - name: orf
+            type: object
+            profiles:
+            - xpath:
+              - orf
+            validators: []
+            spec:
+              params:
+              - name: orf-prefix-list
+                type: enum
+                profiles:
+                - xpath:
+                  - orf-prefix-list
+                validators:
+                - type: values
+                  spec:
+                    values:
+                    - none
+                    - both
+                    - receive
+                    - send
+                spec:
+                  default: none
+                  values:
+                  - value: none
+                  - value: both
+                  - value: receive
+                  - value: send
+                description: Advertise Prefix-List ORF Capability
+                required: false
+              variants: []
+            description: Advertise ORF (Outbound Route Filtering) Capability
+            required: false
+          - name: remove-private-AS
+            type: object
+            profiles:
+            - xpath:
+              - remove-private-AS
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: all
+                type: object
+                profiles:
+                - xpath:
+                  - all
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Apply to all ASNs
+                required: false
+                variant_group_id: 0
+              - name: replace-AS
+                type: object
+                profiles:
+                - xpath:
+                  - replace-AS
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Replace with our ASN
+                required: false
+                codegen_overrides:
+                  terraform:
+                    name: replace-as
+                variant_group_id: 0
+            description: Remove private ASNs in outbound updates
+            required: false
+            codegen_overrides:
+              terraform:
+                name: remove-private-as
+          - name: route-reflector-client
+            type: bool
+            profiles:
+            - xpath:
+              - route-reflector-client
+            validators: []
+            spec: {}
+            description: Route Reflector Client
+            required: false
+          - name: send-community
+            type: object
+            profiles:
+            - xpath:
+              - send-community
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: all
+                type: object
+                profiles:
+                - xpath:
+                  - all
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Send Standard,  Large and Extended Community attributes
+                required: false
+                variant_group_id: 0
+              - name: both
+                type: object
+                profiles:
+                - xpath:
+                  - both
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Send Standard and Extended Community attributes
+                required: false
+                variant_group_id: 0
+              - name: extended
+                type: object
+                profiles:
+                - xpath:
+                  - extended
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Send Extended Community attributes
+                required: false
+                variant_group_id: 0
+              - name: large
+                type: object
+                profiles:
+                - xpath:
+                  - large
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Send Large Community attributes
+                required: false
+                variant_group_id: 0
+              - name: standard
+                type: object
+                profiles:
+                - xpath:
+                  - standard
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Send Standard Community attributes
+                required: false
+                variant_group_id: 0
+            description: Send community attributes
+            required: false
+          - name: soft-reconfig-with-stored-info
+            type: bool
+            profiles:
+            - xpath:
+              - soft-reconfig-with-stored-info
+            validators: []
+            spec: {}
+            description: Soft reconfiguration of peer with stored routes
+            required: false
+          variants: []
+        description: IPv4 Unicast Profile
+        required: false
+      variants: []
+    description: enable IPv4 route exchange
+    required: false
+    variant_group_id: 0
+  - name: ipv6
+    type: object
+    profiles:
+    - xpath:
+      - ipv6
+    validators: []
+    spec:
+      params:
+      - name: unicast
+        type: object
+        profiles:
+        - xpath:
+          - unicast
+        validators: []
+        spec:
+          params:
+          - name: add-path
+            type: object
+            profiles:
+            - xpath:
+              - add-path
+            validators: []
+            spec:
+              params:
+              - name: tx-all-paths
+                type: bool
+                profiles:
+                - xpath:
+                  - tx-all-paths
+                validators: []
+                spec: {}
+                description: Advertise all paths to peer
+                required: false
+              - name: tx-bestpath-per-AS
+                type: bool
+                profiles:
+                - xpath:
+                  - tx-bestpath-per-AS
+                validators: []
+                spec: {}
+                description: Advertise the bestpath per each neighboring AS
+                required: false
+                codegen_overrides:
+                  terraform:
+                    name: tx-bestpath-per-as
+              variants: []
+            description: Use AddPath Capability
+            required: false
+          - name: allowas-in
+            type: object
+            profiles:
+            - xpath:
+              - allowas-in
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: occurrence
+                type: int64
+                profiles:
+                - xpath:
+                  - occurrence
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 10
+                spec: {}
+                description: Number of occurrences of AS number
+                required: false
+                variant_group_id: 0
+              - name: origin
+                type: object
+                profiles:
+                - xpath:
+                  - origin
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: 'Accept my AS in AS_PATH if route originated in my AS '
+                required: false
+                variant_group_id: 0
+            description: Accept AS-Path with my ASN present in it
+            required: false
+          - name: as-override
+            type: bool
+            profiles:
+            - xpath:
+              - as-override
+            validators: []
+            spec: {}
+            description: Override ASNs in outbound updates if AS-Path equals Remote-AS
+            required: false
+          - name: default-originate
+            type: bool
+            profiles:
+            - xpath:
+              - default-originate
+            validators: []
+            spec: {}
+            description: Originate Default Route
+            required: false
+          - name: default-originate-map
+            type: string
+            profiles:
+            - xpath:
+              - default-originate-map
+            validators:
+            - type: length
+              spec:
+                max: 63
+            spec: {}
+            description: Route-Map used in Default Originate Configuration
+            required: false
+          - name: enable
+            type: bool
+            profiles:
+            - xpath:
+              - enable
+            validators: []
+            spec: {}
+            description: Enable
+            required: false
+          - name: maximum-prefix
+            type: object
+            profiles:
+            - xpath:
+              - maximum-prefix
+            validators: []
+            spec:
+              params:
+              - name: action
+                type: object
+                profiles:
+                - xpath:
+                  - action
+                validators: []
+                spec:
+                  params: []
+                  variants:
+                  - name: restart
+                    type: object
+                    profiles:
+                    - xpath:
+                      - restart
+                    validators: []
+                    spec:
+                      params:
+                      - name: interval
+                        type: int64
+                        profiles:
+                        - xpath:
+                          - interval
+                        validators:
+                        - type: length
+                          spec:
+                            min: 1
+                            max: 65535
+                        spec:
+                          default: 1
+                        description: Restart interval in minutes
+                        required: false
+                      variants: []
+                    description: Restart connection when limit exceeded
+                    required: false
+                    variant_group_id: 0
+                  - name: warning-only
+                    type: object
+                    profiles:
+                    - xpath:
+                      - warning-only
+                    validators: []
+                    spec:
+                      params: []
+                      variants: []
+                    description: Give warning message when limit exceeded
+                    required: false
+                    variant_group_id: 0
+                description: Action if max-prefixes reached
+                required: false
+              - name: num_prefixes
+                type: int64
+                profiles:
+                - xpath:
+                  - num_prefixes
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 4294967295
+                spec:
+                  default: 1000
+                description: Max allowed prefixes from this peer
+                required: false
+                codegen_overrides:
+                  terraform:
+                    name: max-prefixes
+              - name: threshold
+                type: int64
+                profiles:
+                - xpath:
+                  - threshold
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 100
+                spec:
+                  default: 100
+                description: Threshold value (%) at which to generate a warning msg
+                required: false
+              variants: []
+            description: Maximum allowed prefixes
+            required: false
+          - name: next-hop
+            type: object
+            profiles:
+            - xpath:
+              - next-hop
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: self
+                type: object
+                profiles:
+                - xpath:
+                  - self
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Disable next-hop calculation
+                required: false
+                variant_group_id: 0
+              - name: self-force
+                type: object
+                profiles:
+                - xpath:
+                  - self-force
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Set next-hop to self for reflected routes
+                required: false
+                variant_group_id: 0
+            description: Disable next-hop calculation
+            required: false
+          - name: orf
+            type: object
+            profiles:
+            - xpath:
+              - orf
+            validators: []
+            spec:
+              params:
+              - name: orf-prefix-list
+                type: enum
+                profiles:
+                - xpath:
+                  - orf-prefix-list
+                validators:
+                - type: values
+                  spec:
+                    values:
+                    - none
+                    - both
+                    - receive
+                    - send
+                spec:
+                  default: none
+                  values:
+                  - value: none
+                  - value: both
+                  - value: receive
+                  - value: send
+                description: Advertise Prefix-List ORF Capability
+                required: false
+              variants: []
+            description: Advertise ORF (Outbound Route Filtering) Capability
+            required: false
+          - name: remove-private-AS
+            type: object
+            profiles:
+            - xpath:
+              - remove-private-AS
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: all
+                type: object
+                profiles:
+                - xpath:
+                  - all
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Apply to all ASNs
+                required: false
+                variant_group_id: 0
+              - name: replace-AS
+                type: object
+                profiles:
+                - xpath:
+                  - replace-AS
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Replace with our ASN
+                required: false
+                codegen_overrides:
+                  terraform:
+                    name: replace-as
+                variant_group_id: 0
+            description: Remove private ASNs in outbound updates
+            required: false
+            codegen_overrides:
+              terraform:
+                name: remove-private-as
+          - name: route-reflector-client
+            type: bool
+            profiles:
+            - xpath:
+              - route-reflector-client
+            validators: []
+            spec: {}
+            description: Route Reflector Client
+            required: false
+          - name: send-community
+            type: object
+            profiles:
+            - xpath:
+              - send-community
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: all
+                type: object
+                profiles:
+                - xpath:
+                  - all
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Send Standard,  Large and Extended Community attributes
+                required: false
+                variant_group_id: 0
+              - name: both
+                type: object
+                profiles:
+                - xpath:
+                  - both
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Send Standard and Extended Community attributes
+                required: false
+                variant_group_id: 0
+              - name: extended
+                type: object
+                profiles:
+                - xpath:
+                  - extended
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Send Extended Community attributes
+                required: false
+                variant_group_id: 0
+              - name: large
+                type: object
+                profiles:
+                - xpath:
+                  - large
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Send Large Community attributes
+                required: false
+                variant_group_id: 0
+              - name: standard
+                type: object
+                profiles:
+                - xpath:
+                  - standard
+                validators: []
+                spec:
+                  params: []
+                  variants: []
+                description: Send Standard Community attributes
+                required: false
+                variant_group_id: 0
+            description: Send community attributes
+            required: false
+          - name: soft-reconfig-with-stored-info
+            type: bool
+            profiles:
+            - xpath:
+              - soft-reconfig-with-stored-info
+            validators: []
+            spec: {}
+            description: Soft reconfiguration of peer with stored routes
+            required: false
+          variants: []
+        description: IPv6 Unicast Profile
+        required: false
+      variants: []
+    description: enable IPv6 route exchange
+    required: false
+    variant_group_id: 0
