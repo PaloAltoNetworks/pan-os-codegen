@@ -21,6 +21,7 @@ func NewTerraformProviderFile(filename string) *TerraformProviderFile {
 		ImportManager: imports.NewManager(),
 		DataSources:   make([]string, 0, 10),
 		Resources:     make([]string, 0, 10),
+		Actions:       make([]string, 0, 10),
 		SpecMetadata:  make(map[string]TerraformProviderSpecMetadata),
 		Code:          &code,
 	}
@@ -59,6 +60,10 @@ func NewTerraformNameProvider(spec *Normalization, resourceTyp ResourceType) *Te
 	return &TerraformNameProvider{tfName, metaName, structName, dataSourceStructName, resourceStructName, packageName}
 }
 
+func (o TerraformNameProvider) ActionStructName() string {
+	return fmt.Sprintf("%sAction", o.StructName)
+}
+
 type TerraformSpecFlags uint
 
 const (
@@ -82,6 +87,7 @@ type TerraformProviderFile struct {
 	DataSources        []string
 	Resources          []string
 	EphemeralResources []string
+	Actions            []string
 	SpecMetadata       map[string]TerraformProviderSpecMetadata
 	Code               *strings.Builder
 }
