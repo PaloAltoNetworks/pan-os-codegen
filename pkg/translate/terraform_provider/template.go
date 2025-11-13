@@ -252,7 +252,7 @@ func New{{ resourceStructName }}() resource.Resource {
 type {{ resourceStructName }} struct {
 	client *pango.Client
 {{- if IsCustom }}
-
+	custom *{{ structName }}Custom
 {{- else if and IsEntry HasImports }}
 	manager *sdkmanager.ImportableEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, {{ resourceSDKName }}.ImportLocation, *{{ resourceSDKName }}.Service]
 {{- else if IsEntry }}
@@ -367,7 +367,12 @@ func (o *{{ resourceStructName }}) Configure(ctx context.Context, req {{ tfresou
 	o.client = providerData.Client
 
 {{- if IsCustom }}
-
+	custom, err := New{{ structName }}Custom(providerData)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
+		return
+	}
+	o.custom = custom
 {{- else if and IsEntry HasImports }}
 	specifier, _, err := {{ resourceSDKName }}.Versioning(o.client.Versioning())
 	if err != nil {
@@ -2016,7 +2021,7 @@ type {{ dataSourceStructName }} struct {
     client *pango.Client
 
 {{- if IsCustom }}
-
+	custom *{{ structName }}Custom
 {{- else if and IsEntry HasImports }}
 	manager *sdkmanager.ImportableEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, {{ resourceSDKName }}.ImportLocation, *{{ resourceSDKName }}.Service]
 {{- else if IsEntry }}
@@ -2070,7 +2075,12 @@ func (d *{{ dataSourceStructName }}) Configure(_ context.Context, req datasource
 	d.client = providerData.Client
 
 {{- if IsCustom }}
-
+	custom, err := New{{ structName }}Custom(providerData)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
+		return
+	}
+	d.custom = custom
 {{- else if and IsEntry HasImports }}
 	specifier, _, err := {{ resourceSDKName }}.Versioning(d.client.Versioning())
 	if err != nil {
