@@ -1,0 +1,487 @@
+name: bgp-redistribution-routing-profile
+terraform_provider_config:
+  description: BGP Redistribution Routing Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: bgp_redistribution_routing_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - network
+  - routing-profile
+  - bgp
+  - redistribution
+panos_xpath:
+  path:
+  - network
+  - routing-profile
+  - bgp
+  - redistribution-profile
+  vars: []
+locations:
+- name: ngfw
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific NGFW device
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params: []
+  variants:
+  - name: ipv4
+    type: object
+    profiles:
+    - xpath:
+      - ipv4
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: unicast
+        type: object
+        profiles:
+        - xpath:
+          - unicast
+        validators: []
+        spec:
+          params:
+          - name: connected
+            type: object
+            profiles:
+            - xpath:
+              - connected
+            validators: []
+            spec:
+              params:
+              - name: enable
+                type: bool
+                profiles:
+                - xpath:
+                  - enable
+                validators: []
+                spec: {}
+                description: ''
+                required: false
+              - name: metric
+                type: int64
+                profiles:
+                - xpath:
+                  - metric
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 65535
+                spec: {}
+                description: Set Metric (Field ignored if route-map configured).
+                required: false
+              - name: route-map
+                type: string
+                profiles:
+                - xpath:
+                  - route-map
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Apply Route-Map on Redistributed Routes
+                required: false
+              variants: []
+            description: Connected Routes
+            required: false
+          - name: ospf
+            type: object
+            profiles:
+            - xpath:
+              - ospf
+            validators: []
+            spec:
+              params:
+              - name: enable
+                type: bool
+                profiles:
+                - xpath:
+                  - enable
+                validators: []
+                spec: {}
+                description: ''
+                required: false
+              - name: metric
+                type: int64
+                profiles:
+                - xpath:
+                  - metric
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 65535
+                spec: {}
+                description: Set Metric (Field ignored if route-map configured).
+                required: false
+              - name: route-map
+                type: string
+                profiles:
+                - xpath:
+                  - route-map
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Apply Route-Map on Redistributed Routes
+                required: false
+              variants: []
+            description: Redistribute from OSPF Source
+            required: false
+          - name: rip
+            type: object
+            profiles:
+            - xpath:
+              - rip
+            validators: []
+            spec:
+              params:
+              - name: enable
+                type: bool
+                profiles:
+                - xpath:
+                  - enable
+                validators: []
+                spec: {}
+                description: ''
+                required: false
+              - name: metric
+                type: int64
+                profiles:
+                - xpath:
+                  - metric
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 65535
+                spec: {}
+                description: Set Metric (Field ignored if route-map configured).
+                required: false
+              - name: route-map
+                type: string
+                profiles:
+                - xpath:
+                  - route-map
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Apply Route-Map on Redistributed Routes
+                required: false
+              variants: []
+            description: Redistribute from RIP Source
+            required: false
+          - name: static
+            type: object
+            profiles:
+            - xpath:
+              - static
+            validators: []
+            spec:
+              params:
+              - name: enable
+                type: bool
+                profiles:
+                - xpath:
+                  - enable
+                validators: []
+                spec: {}
+                description: ''
+                required: false
+              - name: metric
+                type: int64
+                profiles:
+                - xpath:
+                  - metric
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 65535
+                spec: {}
+                description: Set Metric (Field ignored if route-map configured).
+                required: false
+              - name: route-map
+                type: string
+                profiles:
+                - xpath:
+                  - route-map
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Apply Route-Map on Redistributed Routes
+                required: false
+              variants: []
+            description: Static Routes
+            required: false
+          variants: []
+        description: IPv4 Unicast Route Redistribute
+        required: false
+        variant_group_id: 0
+    description: IPv4 Route Redistribute
+    required: false
+    variant_group_id: 0
+  - name: ipv6
+    type: object
+    profiles:
+    - xpath:
+      - ipv6
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: unicast
+        type: object
+        profiles:
+        - xpath:
+          - unicast
+        validators: []
+        spec:
+          params:
+          - name: connected
+            type: object
+            profiles:
+            - xpath:
+              - connected
+            validators: []
+            spec:
+              params:
+              - name: enable
+                type: bool
+                profiles:
+                - xpath:
+                  - enable
+                validators: []
+                spec: {}
+                description: ''
+                required: false
+              - name: metric
+                type: int64
+                profiles:
+                - xpath:
+                  - metric
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 65535
+                spec: {}
+                description: Set Metric (Field ignored if route-map configured).
+                required: false
+              - name: route-map
+                type: string
+                profiles:
+                - xpath:
+                  - route-map
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Apply Route-Map on Redistributed Routes
+                required: false
+              variants: []
+            description: Connected Routes
+            required: false
+          - name: ospfv3
+            type: object
+            profiles:
+            - xpath:
+              - ospfv3
+            validators: []
+            spec:
+              params:
+              - name: enable
+                type: bool
+                profiles:
+                - xpath:
+                  - enable
+                validators: []
+                spec: {}
+                description: ''
+                required: false
+              - name: metric
+                type: int64
+                profiles:
+                - xpath:
+                  - metric
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 65535
+                spec: {}
+                description: Set Metric (Field ignored if route-map configured).
+                required: false
+              - name: route-map
+                type: string
+                profiles:
+                - xpath:
+                  - route-map
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Apply Route-Map on Redistributed Routes
+                required: false
+              variants: []
+            description: Redistribute from OSPFv3 Source
+            required: false
+          - name: static
+            type: object
+            profiles:
+            - xpath:
+              - static
+            validators: []
+            spec:
+              params:
+              - name: enable
+                type: bool
+                profiles:
+                - xpath:
+                  - enable
+                validators: []
+                spec: {}
+                description: ''
+                required: false
+              - name: metric
+                type: int64
+                profiles:
+                - xpath:
+                  - metric
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 65535
+                spec: {}
+                description: Set Metric (Field ignored if route-map configured).
+                required: false
+              - name: route-map
+                type: string
+                profiles:
+                - xpath:
+                  - route-map
+                validators:
+                - type: length
+                  spec:
+                    max: 63
+                spec: {}
+                description: Apply Route-Map on Redistributed Routes
+                required: false
+              variants: []
+            description: Static Routes
+            required: false
+          variants: []
+        description: IPv6 Unicast Route Redistribute
+        required: false
+        variant_group_id: 0
+    description: IPv6 Route Redistribute
+    required: false
+    variant_group_id: 0
