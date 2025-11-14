@@ -1,0 +1,172 @@
+name: proxy-settings
+terraform_provider_config:
+  description: Proxy configuration
+  skip_resource: false
+  skip_datasource: false
+  resource_type: config
+  resource_variants: []
+  suffix: proxy_settings
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - device
+  - services
+  - proxy
+panos_xpath:
+  path:
+  - deviceconfig
+  - system
+  vars: []
+locations:
+- name: system
+  xpath:
+    path:
+    - config
+    - devices
+    - $device
+    vars:
+    - name: device
+      description: Device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: System-level configuration
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries: []
+imports: []
+spec:
+  params:
+  - name: lcaas-use-proxy
+    type: bool
+    profiles:
+    - xpath:
+      - lcaas-use-proxy
+    validators: []
+    spec: {}
+    description: Enable proxy access to CDL
+    required: false
+  - name: secure-proxy-password
+    type: string
+    profiles:
+    - xpath:
+      - secure-proxy-password
+    validators: []
+    spec: {}
+    description: Secure Proxy password to use
+    required: false
+    hashing:
+      type: solo
+  - name: secure-proxy-port
+    type: int64
+    profiles:
+    - xpath:
+      - secure-proxy-port
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 65535
+    spec: {}
+    description: Port for secure proxy server
+    required: false
+  - name: secure-proxy-server
+    type: string
+    profiles:
+    - xpath:
+      - secure-proxy-server
+    validators:
+    - type: length
+      spec:
+        max: 63
+    spec: {}
+    description: Secure Proxy server to use
+    required: false
+  - name: secure-proxy-user
+    type: string
+    profiles:
+    - xpath:
+      - secure-proxy-user
+    validators: []
+    spec: {}
+    description: Secure Proxy user name to use
+    required: false
+  variants: []
