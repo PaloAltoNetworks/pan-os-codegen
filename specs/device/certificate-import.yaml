@@ -1,0 +1,270 @@
+name: certificate-import
+terraform_provider_config:
+  suffix: certificate_import
+  description: Certificate Import
+  resource_type: custom
+  skip_datasource: true
+  custom_functions:
+    Read: true
+    Create: true
+    Update: true
+    Delete: true
+go_sdk_config:
+  skip: true
+  package: ["certificateimport"]
+xpath_suffix: []
+locations:
+  - name: "panorama"
+    description: "Located in a specific Panorama."
+    devices:
+      - panorama
+    xpath:
+      path:
+        - "config"
+        - "devices"
+        - "$panorama_device"
+      vars:
+        - name: "panorama_device"
+          description: "The Panorama device."
+          default: "localhost.localdomain"
+  - name: vsys
+    xpath:
+      path:
+        - config
+        - devices
+        - $ngfw_device
+        - vsys
+        - $vsys
+      vars:
+        - name: ngfw_device
+          description: The NGFW device name
+          required: false
+          default: localhost.localdomain
+          validators: []
+          type: entry
+        - name: vsys
+          description: The Virtual System name
+          required: false
+          default: vsys1
+          validators:
+            - type: not-values
+              spec:
+                values:
+                  - value: shared
+                    error: The vsys name cannot be "shared". Use the "shared" location instead
+          type: entry
+    description: Located in a specific Virtual System
+    devices:
+      - ngfw
+    validators: []
+    required: false
+    read_only: false
+  - name: template
+    xpath:
+      path:
+        - config
+        - devices
+        - $panorama_device
+        - template
+        - $template
+        - config
+        - shared
+      vars:
+        - name: panorama_device
+          description: Specific Panorama device
+          required: false
+          default: localhost.localdomain
+          validators: []
+          type: entry
+        - name: template
+          description: Specific Panorama template
+          required: true
+          validators: []
+          type: entry
+    description: Located in a specific template
+    devices:
+      - panorama
+    validators: []
+    required: false
+    read_only: false
+  - name: template-vsys
+    xpath:
+      path:
+        - config
+        - devices
+        - $panorama_device
+        - template
+        - $template
+        - config
+        - devices
+        - $ngfw_device
+        - vsys
+        - $vsys
+      vars:
+        - name: panorama_device
+          description: Specific Panorama device
+          required: false
+          default: localhost.localdomain
+          validators: []
+          type: entry
+        - name: template
+          description: Specific Panorama template
+          required: true
+          validators: []
+          type: entry
+        - name: ngfw_device
+          description: The NGFW device
+          required: false
+          default: localhost.localdomain
+          validators: []
+          type: entry
+        - name: vsys
+          description: The vsys.
+          required: false
+          default: vsys1
+          validators:
+            - type: not-values
+              spec:
+                values:
+                  - value: shared
+                    error: The vsys cannot be "shared".
+          type: entry
+    description: Located in a specific template, device and vsys.
+    devices:
+      - panorama
+      - ngfw
+    validators: []
+    required: false
+    read_only: false
+  - name: template-stack
+    xpath:
+      path:
+        - config
+        - devices
+        - $panorama_device
+        - template-stack
+        - $template_stack
+        - config
+        - shared
+      vars:
+        - name: panorama_device
+          description: Specific Panorama device
+          required: false
+          default: localhost.localdomain
+          validators: []
+          type: entry
+        - name: template_stack
+          description: The template stack
+          required: true
+          validators: []
+          type: entry
+    description: Located in a specific template
+    devices:
+      - panorama
+    validators: []
+    required: false
+    read_only: false
+  - name: template-stack-vsys
+    xpath:
+      path:
+        - config
+        - devices
+        - $panorama_device
+        - template-stack
+        - $template_stack
+        - config
+        - devices
+        - $ngfw_device
+        - vsys
+        - $vsys
+      vars:
+        - name: panorama_device
+          description: Specific Panorama device
+          required: false
+          default: localhost.localdomain
+          validators: []
+          type: entry
+        - name: template_stack
+          description: The template stack
+          required: true
+          validators: []
+          type: entry
+        - name: ngfw_device
+          description: The NGFW device
+          required: false
+          default: localhost.localdomain
+          validators: []
+          type: entry
+        - name: vsys
+          description: The vsys.
+          required: false
+          default: vsys1
+          validators:
+            - type: not-values
+              spec:
+                values:
+                  - value: shared
+                    error: The vsys cannot be "shared".
+          type: entry
+    description: Located in a specific template, device and vsys.
+    devices:
+      - panorama
+      - ngfw
+    validators: []
+    required: false
+    read_only: false
+entries:
+  - name: name
+version: 10.1.0
+spec:
+  params: []
+  variants:
+    - name: local
+      description: Import certificate from local data
+      type: object
+      profiles:
+        - xpath: ["local"]
+      spec:
+        params:
+        variants:
+          - name: pem
+            description: Base64-encoded PEM certificate data
+            type: object
+            profiles:
+              - xpath: ["pem"]
+            spec:
+              params:
+                - name: certificate
+                  type: string
+                  required: true
+                  profiles:
+                    - xpath: ["certificate"]
+                - name: private-key
+                  type: string
+                  profiles:
+                    - xpath: ["private-key"]
+                - name: passphrase
+                  type: string
+                  profiles:
+                    - xpath: ["passphrase"]
+                  codegen_overrides:
+                    terraform:
+                      sensitive: true
+          - name: pkcs12
+            type: object
+            profiles:
+              - xpath: ["pkcs12"]
+            spec:
+              params:
+                - name: certificate
+                  type: string
+                  required: true
+                  profiles:
+                    - xpath: ["certificate"]
+                - name: passphrase
+                  type: string
+                  profiles:
+                    - xpath: ["passphrase"]
+                  codegen_overrides:
+                    terraform:
+                      sensitive: true

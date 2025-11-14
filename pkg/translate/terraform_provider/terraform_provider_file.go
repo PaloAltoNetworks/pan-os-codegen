@@ -253,6 +253,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 
 		switch spec.TerraformProviderConfig.ResourceType {
 		case properties.TerraformResourceEntry, properties.TerraformResourceUuid:
+			terraformProvider.ImportManager.AddStandardImport("errors", "")
 			terraformProvider.ImportManager.AddStandardImport("encoding/base64", "")
 			terraformProvider.ImportManager.AddOtherImport("github.com/PaloAltoNetworks/terraform-provider-panos/internal/manager", "sdkmanager")
 			terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "pangoutil")
@@ -267,7 +268,6 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 				return fmt.Errorf("invalid resource configuration")
 			}
 
-			terraformProvider.ImportManager.AddStandardImport("errors", "")
 			switch resourceTyp {
 			case properties.ResourceUuid, properties.ResourceUuidPlural:
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/movement", "")
