@@ -1562,6 +1562,18 @@ func (spec *Normalization) HasEntryName() bool {
 	return spec.Entry != nil
 }
 
+func (spec *Normalization) HasAuditComments() bool {
+	var hasVsysLocation bool
+	for _, location := range spec.Locations {
+		if location.Name.CamelCase == "Vsys" {
+			hasVsysLocation = true
+			break
+		}
+	}
+
+	return hasVsysLocation && spec.HasEntryUuid()
+}
+
 func (spec *Normalization) HasEntryUuid() bool {
 	_, found := spec.Spec.Params["uuid"]
 	return found
