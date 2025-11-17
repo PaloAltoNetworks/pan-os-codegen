@@ -839,15 +839,19 @@ func creasteStructSpecsForNormalization(structTyp structType, parentPrefix *prop
 
 	if structTyp == structXmlType {
 		var xmlTags string
-		switch spec.TerraformProviderConfig.ResourceType {
-		case properties.TerraformResourceEntry, properties.TerraformResourceUuid:
-			xmlTags = "`xml:\"entry\"`"
-		case properties.TerraformResourceConfig:
-			xmlTags = "`xml:\"system\"`"
-		case properties.TerraformResourceCustom:
-			fallthrough
-		default:
-			panic(fmt.Sprintf("unreachable resource type: '%s'", spec.TerraformProviderConfig.ResourceType))
+		if spec.TerraformProviderConfig.XmlNode != nil {
+			xmlTags = fmt.Sprintf("`xml:\"%s\"`", *spec.TerraformProviderConfig.XmlNode)
+		} else {
+			switch spec.TerraformProviderConfig.ResourceType {
+			case properties.TerraformResourceEntry, properties.TerraformResourceUuid:
+				xmlTags = "`xml:\"entry\"`"
+			case properties.TerraformResourceConfig:
+				xmlTags = "`xml:\"system\"`"
+			case properties.TerraformResourceCustom:
+				fallthrough
+			default:
+				panic(fmt.Sprintf("unreachable resource type: '%s'", spec.TerraformProviderConfig.ResourceType))
+			}
 		}
 
 		fields = append(fields, entryStructFieldContext{

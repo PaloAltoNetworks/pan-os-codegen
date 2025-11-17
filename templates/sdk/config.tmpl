@@ -1,7 +1,7 @@
 {{- define "configXmlContainerStructTmpl" }}
 type configXmlContainer{{createGoSuffixFromVersion $.Version }} struct {
 	XMLName xml.Name `xml:"result"`
-	Answer []configXml{{createGoSuffixFromVersion $.Version }} `xml:"system"`
+	Answer []configXml{{createGoSuffixFromVersion $.Version }} `xml:"{{ $.XmlNode }}"`
 }
 {{- end }}
 
@@ -12,7 +12,7 @@ type configXmlContainer{{createGoSuffixFromVersion $.Version }} struct {
 
     {{- RenderApiStructs $ }}
 
-    {{- template "configXmlContainerStructTmpl" Map "Version" nil }}
+    {{- template "configXmlContainerStructTmpl" Map "Version" nil "XmlNode" .XmlNode }}
 
     {{- range $version := .SupportedVersionRanges }}
       {{- template "configXmlContainerStructTmpl" Map "Version" $version.Minimum }}
