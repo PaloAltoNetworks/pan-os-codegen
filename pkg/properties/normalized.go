@@ -85,6 +85,7 @@ type TerraformProviderConfig struct {
 	SkipDatasource        bool                       `json:"skip_datasource" yaml:"skip_datasource"`
 	SkipDatasourceListing bool                       `json:"skip_datasource_listing" yaml:"skip_datasource_listing"`
 	ResourceType          TerraformResourceType      `json:"resource_type" yaml:"resource_type"`
+	XmlNode               *string                    `json:"xml_node" yaml:"xml_node"`
 	CustomFuncs           map[string]bool            `json:"custom_functions" yaml:"custom_functions"`
 	ResourceVariants      []TerraformResourceVariant `json:"resource_variants" yaml:"resource_variants"`
 	Suffix                string                     `json:"suffix" yaml:"suffix"`
@@ -719,6 +720,7 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 			SkipDatasource:        object.TerraformConfig.SkipDatasource,
 			SkipDatasourceListing: object.TerraformConfig.SkipdatasourceListing,
 			ResourceType:          TerraformResourceType(object.TerraformConfig.ResourceType),
+			XmlNode:               object.TerraformConfig.XmlNode,
 			CustomFuncs:           object.TerraformConfig.CustomFunctions,
 			ResourceVariants:      resourceVariants,
 			Suffix:                object.TerraformConfig.Suffix,
@@ -1384,6 +1386,22 @@ func (spec *Normalization) SupportedVersions() []string {
 		return versions
 	}
 	return nil
+}
+
+func (spec Normalization) XmlNode() string {
+	if spec.TerraformProviderConfig.XmlNode != nil {
+		return *spec.TerraformProviderConfig.XmlNode
+	}
+	switch spec.TerraformProviderConfig.ResourceType {
+	case TerraformResourceConfig:
+		return "system"
+	case TerraformResourceEntry, TerraformResourceUuid:
+		return "entry"
+	case TerraformResourceCustom:
+		panic(fmt.Sprintf("unexpected ResourceType: %s ", spec.TerraformProviderConfig.ResourceType))
+	default:
+		panic("unreachable")
+	}
 }
 
 // SupportedVersionDefinitions returns a map of versions keyed by their variable name.
