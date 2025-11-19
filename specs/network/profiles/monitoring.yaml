@@ -1,0 +1,168 @@
+name: monitor-profile
+terraform_provider_config:
+  description: Monitor Network Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: monitor_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - network
+  - profiles
+  - monitor
+panos_xpath:
+  path:
+  - network
+  - profiles
+  - monitor-profile
+  vars: []
+locations:
+- name: ngfw
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific NGFW device
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: action
+    type: enum
+    profiles:
+    - xpath:
+      - action
+    validators:
+    - type: values
+      spec:
+        values:
+        - wait-recover
+        - fail-over
+    spec:
+      default: wait-recover
+      values:
+      - value: wait-recover
+      - value: fail-over
+    description: configure action triggered when tunnel status change
+    required: false
+  - name: interval
+    type: int64
+    profiles:
+    - xpath:
+      - interval
+    validators:
+    - type: length
+      spec:
+        min: 2
+        max: 100
+    spec:
+      default: 3
+    description: probing interval in seconds
+    required: false
+  - name: threshold
+    type: int64
+    profiles:
+    - xpath:
+      - threshold
+    validators:
+    - type: length
+      spec:
+        min: 2
+        max: 10
+    spec:
+      default: 5
+    description: number of failed probe to determine tunnel is down
+    required: false
+  variants: []
