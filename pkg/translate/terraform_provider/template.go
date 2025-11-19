@@ -830,6 +830,7 @@ for name, elt := range elements {
 	entry.Name = name
 	entries = append(entries, entry)
 }
+
 {{- else if or (eq .PluralType "list") (eq .PluralType "set") }}
 var elements []{{ $resourceTFStructName }}
 resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
@@ -865,8 +866,17 @@ if err != nil {
 }
 
 {{- if eq .PluralType "map" }}
+entriesByName := make(map[string]*{{ $resourceSDKStructName }})
+for _, elt := range entries {
+	entriesByName[elt.EntryName()] = elt
+}
+
 objects := make(map[string]{{ $resourceTFStructName }})
 for _, elt := range readEntries {
+	if _, found := entriesByName[elt.EntryName()]; !found {
+		continue
+	}
+
 	var object {{ $resourceTFStructName }}
 	object.name = elt.Name
 	resp.Diagnostics.Append(object.CopyFromPango(ctx, o.client, nil, elt, ev)...)
