@@ -964,11 +964,14 @@ type locationStructFieldCtx struct {
 	Name          *properties.NameVariant
 	TerraformType string
 	Type          string
+	AsIdentity    bool
 	Tags          []string
 }
 
 type locationStructCtx struct {
 	StructName string
+	XpathName  *properties.NameVariant
+	TopLevel   bool
 	Fields     []locationStructFieldCtx
 }
 
@@ -982,6 +985,7 @@ func getLocationStructsContext(names *NameProvider, spec *properties.Normalizati
 	// Create the top location structure that references other locations
 	topLocation := locationStructCtx{
 		StructName: fmt.Sprintf("%sLocation", names.StructName),
+		TopLevel:   true,
 	}
 
 	for _, data := range spec.OrderedLocations() {
@@ -993,6 +997,7 @@ func getLocationStructsContext(names *NameProvider, spec *properties.Normalizati
 			Name:          data.Name,
 			TerraformType: structName,
 			Type:          structType,
+			AsIdentity:    true,
 			Tags:          []string{tfTag},
 		})
 
@@ -1022,13 +1027,15 @@ func getLocationStructsContext(names *NameProvider, spec *properties.Normalizati
 				paramTag = "`tfsdk:\"name\"`"
 			}
 			fields = append(fields, locationStructFieldCtx{
-				Name: name,
-				Type: "types.String",
-				Tags: []string{paramTag},
+				Name:       name,
+				Type:       "types.String",
+				AsIdentity: true,
+				Tags:       []string{paramTag},
 			})
 		}
 
 		location := locationStructCtx{
+			XpathName:  data.Name,
 			StructName: structName,
 			Fields:     fields,
 		}
@@ -2483,8 +2490,8 @@ func RenderLocationsPangoToState(names *NameProvider, spec *properties.Normaliza
 }
 
 const locationsStateToPango = `
-{
 var terraformLocation {{ .TerraformStructName }}
+{
 resp.Diagnostics.Append({{ $.Source }}.As(ctx, &terraformLocation, basetypes.ObjectAsOptions{})...)
 if resp.Diagnostics.HasError() {
 	return
@@ -2998,6 +3005,132 @@ func RenderStructs(resourceTyp properties.ResourceType, schemaTyp properties.Sch
 	return processTemplate(dataSourceStructs, "render-structs", data, commonFuncMap)
 }
 
+const identityModelTmpl = `
+type {{ .StructName }} struct {
+{{- range .Fields }}
+	{{ .Name }} {{ .Type }} ` + "`" + `tfsdk:"{{ .Tag }}"` + "`" + `
+{{ end }}
+}
+`
+
+func RenderIdentityModel(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
+	switch resourceTyp {
+	case properties.ResourceUuid, properties.ResourceUuidPlural, properties.ResourceEntryPlural:
+		return "", nil
+	case properties.ResourceConfig, properties.ResourceCustom:
+		return "", nil
+	case properties.ResourceEntry:
+	}
+
+	if spec.TerraformProviderConfig.Ephemeral {
+		return "", nil
+	}
+
+	if spec.TerraformProviderConfig.SkipResource {
+		return "", nil
+	}
+
+	type fieldCtx struct {
+		Name string
+		Type string
+		Tag  string
+	}
+
+	type context struct {
+		StructName string
+		Fields     []fieldCtx
+	}
+
+	var fields []fieldCtx
+	if spec.HasEntryName() {
+		fields = []fieldCtx{
+			{Name: "Name", Type: "types.String", Tag: "name"},
+			{Name: "Location", Type: "types.String", Tag: "location"},
+		}
+	} else {
+		fields = []fieldCtx{
+			{Name: "Config", Type: "types.String", Tag: "config"},
+			{Name: "Location", Type: "types.String", Tag: "location"},
+		}
+	}
+
+	data := context{
+		StructName: names.IdentityModelStructName(),
+		Fields:     fields,
+	}
+
+	return processTemplate(identityModelTmpl, "render-identity-model", data, commonFuncMap)
+}
+
+const identitySchemaTmpl = `
+func (o {{ .StructName }}) IdentitySchema(_ context.Context, _ resource.IdentitySchemaRequest, resp *resource.IdentitySchemaResponse) {
+	resp.IdentitySchema = identityschema.Schema{
+		Attributes: map[string]identityschema.Attribute{
+{{- range .Fields }}
+			"{{ .Name }}": {{ .Type }}{
+  {{- if .RequiredForImport }}
+				RequiredForImport: true,
+  {{- else if .OptionalForImport }}
+				OptionalForImport: true,
+  {{- end }}
+			},
+{{- end }}
+		},
+	}
+}
+`
+
+func RenderIdentitySchema(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
+	switch resourceTyp {
+	case properties.ResourceUuid, properties.ResourceUuidPlural, properties.ResourceEntryPlural:
+		return "", nil
+	case properties.ResourceConfig, properties.ResourceCustom:
+		return "", nil
+	case properties.ResourceEntry:
+	}
+
+	if spec.TerraformProviderConfig.Ephemeral {
+		return "", nil
+	}
+
+	if spec.TerraformProviderConfig.SkipResource {
+		return "", nil
+	}
+
+	type fieldCtx struct {
+		Name              string
+		Type              string
+		RequiredForImport bool
+		OptionalForImport bool
+	}
+
+	type context struct {
+		StructName string
+		Fields     []fieldCtx
+	}
+
+	var fields []fieldCtx
+	if spec.HasEntryName() {
+		fields = []fieldCtx{
+			{Name: "name", Type: "identityschema.StringAttribute", RequiredForImport: true},
+			{Name: "location", Type: "identityschema.StringAttribute", RequiredForImport: true},
+		}
+	} else {
+		fields = []fieldCtx{
+			{Name: "config", Type: "identityschema.StringAttribute", RequiredForImport: true},
+			{Name: "location", Type: "identityschema.StringAttribute", RequiredForImport: true},
+		}
+	}
+
+	data := context{
+		StructName: fmt.Sprintf("%sResource", names.StructName),
+		Fields:     fields,
+	}
+
+	return processTemplate(identitySchemaTmpl, "render-identity-model", data, commonFuncMap)
+
+}
+
 const attributeTypesTmpl = `
 {{- range .Structs }}
 func (o *{{ .StructName }}{{ .ModelOrObject }}) AttributeTypes() map[string]attr.Type {
@@ -3099,6 +3232,91 @@ func RenderLocationAttributeTypes(names *NameProvider, spec *properties.Normaliz
 		Specs: locations,
 	}
 	return processTemplate(locationAttributeTypesTmpl, "render-location-structs", data, commonFuncMap)
+}
+
+const locationAsIdentityTmpl = `
+{{- define "topLevelLocation" }}
+  {{- range $.Specs }}
+    {{- if not .TopLevel }}{{- continue }}{{- end }}
+    {{- range .Fields }}
+if !o.{{ .Name.CamelCase }}.IsNull() {
+	var location {{ .TerraformType }}
+	diags := o.{{ .Name.CamelCase }}.As(ctx, &location, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return types.StringNull(), diags
+	}
+
+	identity, innerDiags := location.Identity(ctx)
+	diags.Append(innerDiags...)
+	if diags.HasError() {
+		return types.StringNull(), diags
+	}
+
+	formatted := fmt.Sprintf("/{{ .Name.Dashed }}%s", identity.ValueString())
+	return types.StringValue(formatted), nil
+}
+    {{- end }}
+  {{- end }}
+return types.StringNull(), diag.Diagnostics{diag.NewAttributeErrorDiagnostic(
+	path.Root("location"),
+	"Location Attribute is Not Set",
+	"The 'location' attribute must be configured with a non-empty value.",
+)}
+{{- end }}
+
+{{- define "location" }}
+identity := []string{""}
+  {{- range .Fields }}
+  {{- if not .AsIdentity }}{{- continue }}{{- end }}
+{
+value := fmt.Sprintf("{{ .Name.Dashed }}[\"%s\"]", o.{{ .Name.CamelCase }}.ValueString())
+identity = append(identity, value)
+}
+  {{- end }}
+return types.StringValue(strings.Join(identity, "/")), nil
+{{- end }}
+
+{{- range .Specs }}
+func (o *{{ .StructName }}) Identity(ctx context.Context) (types.String, diag.Diagnostics) {
+  {{- if .TopLevel }}
+    {{- template "topLevelLocation" Map "Specs" $.Specs }}
+  {{- else }}
+    {{- template "location" . }}
+  {{- end }}
+}
+{{- end }}
+`
+
+func RenderLocationAsIdentityGetter(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
+	switch resourceTyp {
+	case properties.ResourceUuid, properties.ResourceUuidPlural, properties.ResourceEntryPlural:
+		return "", nil
+	case properties.ResourceConfig, properties.ResourceCustom:
+		return "", nil
+	case properties.ResourceEntry:
+	}
+
+	if spec.TerraformProviderConfig.Ephemeral {
+		return "", nil
+	}
+
+	if spec.TerraformProviderConfig.SkipResource {
+		return "", nil
+	}
+
+	type context struct {
+		StructName string
+		Specs      []locationStructCtx
+	}
+
+	locations := getLocationStructsContext(names, spec)
+
+	data := context{
+		StructName: names.StructName,
+		Specs:      locations,
+	}
+
+	return processTemplate(locationAsIdentityTmpl, "render-location-as-identity", data, commonFuncMap)
 }
 
 const customTemplateForFunction = `

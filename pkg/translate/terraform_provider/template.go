@@ -268,6 +268,9 @@ var (
 	_ resource.Resource                = &{{ resourceStructName }}{}
 	_ resource.ResourceWithConfigure   = &{{ resourceStructName }}{}
 	_ resource.ResourceWithImportState = &{{ resourceStructName }}{}
+  {{- if and (not IsCustom) (not IsResourcePlural) (not IsConfig) }}
+	_ resource.ResourceWithIdentity    = &{{ resourceStructName }}{}
+  {{- end }}
 )
 {{- end }}
 
@@ -815,9 +818,24 @@ const resourceCreateFunction = `
 
 	{{ RenderEncryptedValuesFinalizer }}
 
-	// Done.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 
+{{- if .HasEntryName }}
+	identityLocation, diags := terraformLocation.Identity(ctx)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	identity := {{ .structName }}IdentityModel{
+{{- if .HasEntryName }}
+		Name: state.Name,
+{{- end }}
+		Location: identityLocation,
+	}
+
+	resp.Diagnostics.Append(resp.Identity.Set(ctx, identity)...)
+{{- end }}
 {{- /* Done */ -}}
 `
 
@@ -2033,6 +2051,10 @@ const resourceImportStateFunctionTmpl = `
 `
 
 const commonTemplate = `
+{{ RenderIdentityModel }}
+
+{{ RenderIdentitySchema }}
+
 {{- if HasLocations }}
 {{- RenderLocationStructs }}
 
@@ -2041,6 +2063,8 @@ const commonTemplate = `
 {{- RenderLocationMarshallers }}
 
 {{- RenderLocationAttributeTypes }}
+
+{{- RenderLocationAsIdentityGetter }}
 {{- end }}
 `
 
