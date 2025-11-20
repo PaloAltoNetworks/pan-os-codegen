@@ -58,8 +58,16 @@ func (c *Creator) RenderTemplate() error {
 	return nil
 }
 
+type TerraformProviderFileData struct {
+	EphemeralResources []string
+	Resources          []string
+	DataSources        []string
+	Actions            []string
+	SpecMetadata       map[string]properties.TerraformProviderSpecMetadata
+}
+
 // RenderTerraformProviderFile generates a Go file for a Terraform provider based on the provided TerraformProviderFile and Normalization arguments.
-func (c *Creator) RenderTerraformProviderFile(spec *properties.Normalization, typ properties.ResourceType) ([]string, []string, []string, map[string]properties.TerraformProviderSpecMetadata, error) {
+func (c *Creator) RenderTerraformProviderFile(spec *properties.Normalization, typ properties.ResourceType) (*TerraformProviderFileData, error) {
 	var name string
 	switch typ {
 	case properties.ResourceUuidPlural:
@@ -75,19 +83,25 @@ func (c *Creator) RenderTerraformProviderFile(spec *properties.Normalization, ty
 	tfp := terraform_provider.GenerateTerraformProvider{}
 
 	if err := tfp.GenerateTerraformDataSource(typ, spec, terraformProvider); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, err
 	}
 
 	if err := tfp.GenerateTerraformResource(typ, spec, terraformProvider); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, err
+	}
+
+	if spec.TerraformProviderConfig.Action {
+		if err := tfp.GenerateTerraformAction(spec, terraformProvider); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := tfp.GenerateCommonCode(typ, spec, terraformProvider); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, err
 	}
 
 	if err := tfp.GenerateTerraformProviderFile(typ, spec, terraformProvider); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, err
 	}
 
 	var filePath string
@@ -103,10 +117,17 @@ func (c *Creator) RenderTerraformProviderFile(spec *properties.Normalization, ty
 	}
 
 	if err := c.writeFormattedContentToFile(filePath, terraformProvider.Code.String()); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, err
 	}
 
-	return terraformProvider.DataSources, terraformProvider.Resources, terraformProvider.EphemeralResources, terraformProvider.SpecMetadata, nil
+	data := &TerraformProviderFileData{
+		Resources:          terraformProvider.Resources,
+		DataSources:        terraformProvider.DataSources,
+		EphemeralResources: terraformProvider.EphemeralResources,
+		Actions:            terraformProvider.Actions,
+		SpecMetadata:       terraformProvider.SpecMetadata,
+	}
+	return data, nil
 }
 
 // RenderTerraformProvider generates and writes a Terraform provider file.

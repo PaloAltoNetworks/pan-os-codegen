@@ -97,7 +97,7 @@ func renderSpecsForParams(names *NameProvider, schemaTyp properties.SchemaType, 
 			structPrefix = names.DataSourceStructName
 		case properties.SchemaResource, properties.SchemaEphemeralResource:
 			structPrefix = names.ResourceStructName
-		case properties.SchemaCommon, properties.SchemaProvider:
+		case properties.SchemaCommon, properties.SchemaProvider, properties.SchemaAction:
 			panic(fmt.Sprintf("invalid schema type: %s", schemaTyp))
 		}
 
@@ -457,7 +457,7 @@ const copyFromPangoTmpl = `
 {{- define "renderListValueSimple" }}
 var {{ .TerraformName.LowerCamelCase }}_list types.{{ .Type | PascalCase }}
 {
-	schema := rsschema.{{ .Type | PascalCase }}Attribute{}	
+	schema := rsschema.{{ .Type | PascalCase }}Attribute{}
 	{{ .TerraformName.LowerCamelCase }}_list, {{ .TerraformName.LowerCamelCase }}_diags := types.ListValueFrom(ctx, obj.{{ .PangoName.CamelCase }}, schema.GetType())
 	diags.Append({{ .TerraformName.LowerCamelCase }}_diags...)
 }
@@ -612,7 +612,7 @@ var {{ .TerraformName.LowerCamelCase }}_list types.Set
 	}
   }
   {{ $result }}_object := types.ObjectNull({{ $result }}_obj.AttributeTypes())
-  if obj.{{ .PangoName.CamelCase }} != nil {  
+  if obj.{{ .PangoName.CamelCase }} != nil {
     {{- if eq $.Spec.ModelOrObject "Model" }}
 	diags.Append({{ $result }}_obj.CopyFromPango(ctx, client, ancestors, obj.{{ .PangoName.CamelCase }}, ev)...)
     {{- else }}
@@ -1545,7 +1545,7 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 	case properties.SchemaResource, properties.SchemaEphemeralResource:
 		computed = param.FinalComputed()
 		required = param.FinalRequired()
-	case properties.SchemaCommon, properties.SchemaProvider:
+	case properties.SchemaCommon, properties.SchemaProvider, properties.SchemaAction:
 		panic("unreachable")
 	}
 
@@ -1692,7 +1692,7 @@ func createSchemaAttributeForParameter(schemaTyp properties.SchemaType, manager 
 		optional = param.FinalOptional()
 		computed = param.FinalComputed()
 		required = param.FinalRequired()
-	case properties.SchemaCommon, properties.SchemaProvider:
+	case properties.SchemaCommon, properties.SchemaProvider, properties.SchemaAction:
 		panic("unreachable")
 	}
 
@@ -1924,8 +1924,12 @@ func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp pro
 		}
 	case properties.SchemaEphemeralResource:
 		packageName = "ephschema"
+	case properties.SchemaAction:
+		packageName = "schema"
 	case properties.SchemaCommon, properties.SchemaProvider:
 		panic("unreachable")
+	default:
+		panic(fmt.Sprintf("unsupported schemaTyp: '%s'", schemaTyp))
 	}
 
 	if spec.Spec == nil {
@@ -1940,8 +1944,12 @@ func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp pro
 		structName = names.DataSourceStructName
 	case properties.SchemaResource, properties.SchemaEphemeralResource:
 		structName = names.ResourceStructName
+	case properties.SchemaAction:
+		structName = names.ActionStructName()
 	case properties.SchemaCommon, properties.SchemaProvider:
 		panic("unreachable")
+	default:
+		panic(fmt.Sprintf("unsupported schemaTyp: '%s'", schemaTyp))
 	}
 
 	switch resourceTyp {
@@ -2227,10 +2235,12 @@ func (o *{{ .StructName }}{{ .ObjectOrModel }}) getTypeFor(name string) attr.Typ
 		panic(fmt.Sprintf("could not resolve schema for attribute %s", name))
 	} else {
 		switch attr := attr.(type) {
+  {{- if not (eq .Package "schema") }}
 		case {{ .Package }}.ListNestedAttribute:
 			return attr.NestedObject.Type()
 		case {{ .Package }}.MapNestedAttribute:
 			return attr.NestedObject.Type()
+  {{- end }}
 		default:
 			return attr.GetType()
 		}
@@ -2264,6 +2274,18 @@ func RenderDataSourceSchema(resourceTyp properties.ResourceType, names *NameProv
 	}
 
 	return processTemplate(renderSchemaTemplate, "render-resource-schema", data, commonFuncMap)
+}
+
+func RenderSchema(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider, spec *properties.Normalization, manager *imports.Manager) (string, error) {
+	type context struct {
+		Schemas []schemaCtx
+	}
+
+	data := context{
+		Schemas: createSchemaSpecForModel(resourceTyp, schemaTyp, spec, manager),
+	}
+
+	return processTemplate(renderSchemaTemplate, "render-schema", data, commonFuncMap)
 }
 
 const importLocationAssignmentTmpl = `
@@ -2697,7 +2719,7 @@ func createStructSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 		structName = names.ResourceStructName
 	case properties.SchemaDataSource:
 		structName = names.DataSourceStructName
-	case properties.SchemaCommon, properties.SchemaProvider:
+	case properties.SchemaCommon, properties.SchemaProvider, properties.SchemaAction:
 		panic("unreachable")
 	}
 
@@ -2755,7 +2777,7 @@ func createStructSpecForEntryListModel(resourceTyp properties.ResourceType, sche
 		structName = names.ResourceStructName
 	case properties.SchemaDataSource:
 		structName = names.DataSourceStructName
-	case properties.SchemaCommon, properties.SchemaProvider:
+	case properties.SchemaCommon, properties.SchemaProvider, properties.SchemaAction:
 		panic("unreachable")
 	}
 
@@ -2843,8 +2865,12 @@ func createStructSpecForEntryModel(resourceTyp properties.ResourceType, schemaTy
 		structName = names.DataSourceStructName
 	case properties.SchemaResource, properties.SchemaEphemeralResource:
 		structName = names.ResourceStructName
+	case properties.SchemaAction:
+		structName = names.ActionStructName()
 	case properties.SchemaCommon, properties.SchemaProvider:
 		panic("unreachable")
+	default:
+		panic(fmt.Sprintf("unsupported schemaTyp: '%s'", schemaTyp))
 	}
 
 	normalizationFields, normalizationStructs := createStructSpecForNormalization(resourceTyp, structName, spec, hackStructAsTypeObjects)
@@ -2955,6 +2981,18 @@ func RenderDataSourceStructs(resourceTyp properties.ResourceType, names *NamePro
 
 	data := context{
 		Structs: createStructSpecForModel(resourceTyp, properties.SchemaDataSource, spec, names, true),
+	}
+
+	return processTemplate(dataSourceStructs, "render-structs", data, commonFuncMap)
+}
+
+func RenderStructs(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider, spec *properties.Normalization) (string, error) {
+	type context struct {
+		Structs []datasourceStructSpec
+	}
+
+	data := context{
+		Structs: createStructSpecForModel(resourceTyp, schemaTyp, spec, names, true),
 	}
 
 	return processTemplate(dataSourceStructs, "render-structs", data, commonFuncMap)
@@ -3476,6 +3514,8 @@ func FunctionSupported(spec *properties.Normalization, function string) (bool, e
 		return !spec.TerraformProviderConfig.Ephemeral, nil
 	case "Open", "Close", "Renew":
 		return spec.TerraformProviderConfig.Ephemeral, nil
+	case "Invoke":
+		return spec.TerraformProviderConfig.Action, nil
 	default:
 		return false, fmt.Errorf("invalid custom function name: %s", function)
 	}

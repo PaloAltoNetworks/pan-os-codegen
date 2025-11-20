@@ -881,7 +881,7 @@ func (s *Service) MoveGroup(ctx context.Context, loc Location, position movement
 
         return nil, fmt.Errorf("unsupported location")
         }
-        
+
         // SetAuditComment sets the given audit comment for the given rule.
         func (s *Service) SetAuditComment(ctx context.Context, loc Location, name, comment string) error {
         if name == "" {
@@ -997,7 +997,7 @@ func (s *Service) MoveGroup(ctx context.Context, loc Location, position movement
         }
 
         return resp.Comments, nil
-        }    
+        }
     {{- end}}
   {{- end }}
 {{- end}}

@@ -6,7 +6,7 @@ resource "panos_interface_management_profile" "example" {
   }
 
   name = "example"
-  
+
   http = true
   ping = true
 
