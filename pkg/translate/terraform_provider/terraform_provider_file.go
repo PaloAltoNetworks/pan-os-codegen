@@ -69,6 +69,8 @@ func (g *GenerateTerraformProvider) appendResourceType(spec *properties.Normaliz
 		terraformProvider.EphemeralResources = append(terraformProvider.EphemeralResources, names.ResourceStructName)
 	case properties.SchemaAction:
 		terraformProvider.Actions = append(terraformProvider.Actions, names.ActionStructName())
+	case properties.SchemaListResource:
+		terraformProvider.ListResources = append(terraformProvider.ListResources, names.ListResourceStructName())
 	case properties.SchemaProvider, properties.SchemaCommon:
 	default:
 		panic(fmt.Sprintf("unsupported schemaTyp: '%s'", schemaTyp))
@@ -110,6 +112,8 @@ func (g *GenerateTerraformProvider) generateTerraformEntityTemplate(resourceTyp 
 		resourceType = "ProviderFile"
 	case properties.SchemaAction:
 		resourceType = "Action"
+	case properties.SchemaListResource:
+		resourceType = "ListResource"
 	default:
 		panic(fmt.Sprintf("unsupported schemaTyp: '%+v'", schemaTyp))
 	}
@@ -195,7 +199,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 		"serviceName":             func() string { return names.TfName },
 		"CreateTfIdStruct":        func() (string, error) { return CreateTfIdStruct(structType, spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
 		"CreateTfIdResourceModel": func() (string, error) { return CreateTfIdResourceModel(structType, names.StructName) },
-		"RenderResourceStructs":   func() (string, error) { return RenderResourceStructs(resourceTyp, names, spec) },
+		"RenderMainStruct":        func() (string, error) { return RenderMainStruct(resourceTyp, schemaTyp, names, spec) },
+		"RenderConfigureFunc":     func() (string, error) { return RenderConfigureFunc(resourceTyp, schemaTyp, names, spec) },
+		"RenderModelStructs":      func() (string, error) { return RenderModelStructs(resourceTyp, schemaTyp, names, spec) },
 		"RenderResourceSchema": func() (string, error) {
 			return RenderResourceSchema(resourceTyp, names, spec, terraformProvider.ImportManager)
 		},
@@ -393,6 +399,36 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 	return nil
 }
 
+func (o *GenerateTerraformProvider) GenerateTerraformListResource(resourceTyp properties.ResourceType, spec *properties.Normalization, provider *properties.TerraformProviderFile) error {
+	provider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/list", "")
+	provider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/list/schema", "listschema")
+
+	names := NewNameProvider(spec, resourceTyp)
+
+	funcMap := template.FuncMap{
+		"structName": func() string { return names.StructName },
+		"metaName":   func() string { return names.MetaName },
+
+		"RenderModelStructs": func() (string, error) {
+			return RenderModelStructs(resourceTyp, properties.SchemaListResource, names, spec)
+		},
+		"RenderMainStruct": func() (string, error) {
+			return RenderMainStruct(resourceTyp, properties.SchemaListResource, names, spec)
+		},
+		"RenderConfigureFunc": func() (string, error) {
+			return RenderConfigureFunc(resourceTyp, properties.SchemaListResource, names, spec)
+		},
+		"RenderSchema": func() (string, error) {
+			return RenderSchema(resourceTyp, properties.SchemaListResource, names, spec, provider.ImportManager)
+		},
+		"RenderListFunc": func() (string, error) {
+			return RenderListFunc(resourceTyp, properties.SchemaListResource, names, spec, provider.ImportManager)
+		},
+	}
+
+	return o.generateTerraformEntityTemplate(resourceTyp, properties.SchemaListResource, names, spec, provider, listResourceObj, funcMap)
+}
+
 func (o *GenerateTerraformProvider) GenerateTerraformAction(spec *properties.Normalization, provider *properties.TerraformProviderFile) error {
 	provider.ImportManager.AddStandardImport("context", "")
 	provider.ImportManager.AddStandardImport("fmt", "")
@@ -410,7 +446,7 @@ func (o *GenerateTerraformProvider) GenerateTerraformAction(spec *properties.Nor
 		"structName": func() string { return names.ActionStructName() },
 		"metaName":   func() string { return names.MetaName },
 
-		"RenderStructs": func() (string, error) { return RenderStructs(resourceTyp, properties.SchemaAction, names, spec) },
+		"RenderModelStructs": func() (string, error) { return RenderModelStructs(resourceTyp, properties.SchemaAction, names, spec) },
 		"RenderSchema": func() (string, error) {
 			return RenderSchema(resourceTyp, properties.SchemaAction, names, spec, provider.ImportManager)
 		},
@@ -514,7 +550,13 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 			"RenderXpathComponentsGetter": func() (string, error) {
 				return RenderXpathComponentsGetter(names.DataSourceStructName, spec)
 			},
-			"RenderDataSourceStructs": func() (string, error) { return RenderDataSourceStructs(resourceTyp, names, spec) },
+			"RenderMainStruct": func() (string, error) { return RenderMainStruct(resourceTyp, properties.SchemaDataSource, names, spec) },
+			"RenderConfigureFunc": func() (string, error) {
+				return RenderConfigureFunc(resourceTyp, properties.SchemaDataSource, names, spec)
+			},
+			"RenderModelStructs": func() (string, error) {
+				return RenderModelStructs(resourceTyp, properties.SchemaDataSource, names, spec)
+			},
 			"RenderDataSourceSchema": func() (string, error) {
 				return RenderDataSourceSchema(resourceTyp, names, spec, terraformProvider.ImportManager)
 			},
@@ -613,6 +655,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformProvider(terraformProvider 
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/provider/schema", "")
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource", "")
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/ephemeral", "")
+	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/list", "")
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types", "")
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
 
@@ -620,6 +663,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformProvider(terraformProvider 
 		"RenderImports":         func() (string, error) { return terraformProvider.ImportManager.RenderImports() },
 		"DataSources":           func() []string { return terraformProvider.DataSources },
 		"EphemeralResources":    func() []string { return terraformProvider.EphemeralResources },
+		"ListResources":         func() []string { return terraformProvider.ListResources },
 		"Resources":             func() []string { return terraformProvider.Resources },
 		"Actions":               func() []string { return terraformProvider.Actions },
 		"RenderResourceFuncMap": func() (string, error) { return RenderResourceFuncMap(terraformProvider.SpecMetadata) },

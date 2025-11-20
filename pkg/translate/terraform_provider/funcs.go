@@ -1787,6 +1787,34 @@ func createSchemaSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 	return schemas
 }
 
+func createSchemaSpecForListResourceModel(_ properties.ResourceType, _ properties.SchemaType, spec *properties.Normalization, packageName string, structName string, _ *imports.Manager) []schemaCtx {
+	var schemas []schemaCtx
+	var attributes []attributeCtx
+
+	if len(spec.Locations) > 0 {
+		location := properties.NewNameVariant("location")
+
+		attributes = append(attributes, attributeCtx{
+			Package:    packageName,
+			Name:       location,
+			Required:   true,
+			SchemaType: "SingleNestedAttribute",
+		})
+	}
+
+	schemas = append(schemas, schemaCtx{
+		Package:       packageName,
+		ObjectOrModel: "Model",
+		IsResource:    false,
+		StructName:    structName,
+		ReturnType:    "Schema",
+		Attributes:    attributes,
+	})
+
+	return schemas
+
+}
+
 // createSchemaSpecForEntrySingularModel creates a schema for entry-type singular resources.
 //
 // Entry-type singular resources are resources that manage a single object in PAN-OS, e.g. `resource_ethernet_interface`.
@@ -1933,6 +1961,8 @@ func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp pro
 		packageName = "ephschema"
 	case properties.SchemaAction:
 		packageName = "schema"
+	case properties.SchemaListResource:
+		packageName = "listschema"
 	case properties.SchemaCommon, properties.SchemaProvider:
 		panic("unreachable")
 	default:
@@ -1953,10 +1983,16 @@ func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp pro
 		structName = names.ResourceStructName
 	case properties.SchemaAction:
 		structName = names.ActionStructName()
+	case properties.SchemaListResource:
+		structName = names.ListResourceStructName()
 	case properties.SchemaCommon, properties.SchemaProvider:
 		panic("unreachable")
 	default:
 		panic(fmt.Sprintf("unsupported schemaTyp: '%s'", schemaTyp))
+	}
+
+	if schemaTyp == properties.SchemaListResource {
+		return createSchemaSpecForListResourceModel(resourceTyp, schemaTyp, spec, packageName, structName, manager)
 	}
 
 	switch resourceTyp {
@@ -2491,34 +2527,38 @@ func RenderLocationsPangoToState(names *NameProvider, spec *properties.Normaliza
 
 const locationsStateToPango = `
 var terraformLocation {{ .TerraformStructName }}
-{
-resp.Diagnostics.Append({{ $.Source }}.As(ctx, &terraformLocation, basetypes.ObjectAsOptions{})...)
-if resp.Diagnostics.HasError() {
-	return
-}
+terraformLocationToPango := func() diag.Diagnostics {
+	diags := {{ $.Source }}.As(ctx, &terraformLocation, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return diags
+	}
 
 {{- range .Locations }}
-{{ $locationType := .Name }}
-if !terraformLocation.{{ $locationType }}.IsNull() {
-	{{ $.Dest }}.{{ $locationType }} = &{{ .PangoStructName }}{}
-	var innerLocation {{ .TerraformStructName }}
-	resp.Diagnostics.Append(terraformLocation.{{ .Name }}.As(ctx, &innerLocation, basetypes.ObjectAsOptions{})...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
+  {{ $locationType := .Name }}
+	if !terraformLocation.{{ $locationType }}.IsNull() {
+		{{ $.Dest }}.{{ $locationType }} = &{{ .PangoStructName }}{}
+		var innerLocation {{ .TerraformStructName }}
+		diags.Append(terraformLocation.{{ .Name }}.As(ctx, &innerLocation, basetypes.ObjectAsOptions{})...)
+		if diags.HasError() {
+			return diags
+		}
   {{- range .Fields }}
-	{{ $.Dest }}.{{ $locationType }}.{{ .PangoName }} = innerLocation.{{ .TerraformName }}.ValueString()
+		{{ $.Dest }}.{{ $locationType }}.{{ .PangoName }} = innerLocation.{{ .TerraformName }}.ValueString()
   {{- end }}
-}
+	}
 {{- end }}
+	return nil
 }
+
+{{ $.Diags }}.Append(terraformLocationToPango()...)
 `
 
-func RenderLocationsStateToPango(names *NameProvider, spec *properties.Normalization, source string, dest string) (string, error) {
+func RenderLocationsStateToPango(names *NameProvider, spec *properties.Normalization, source string, dest string, diags string) (string, error) {
 	type context struct {
 		TerraformStructName string
 		Source              string
 		Dest                string
+		Diags               string
 		Locations           []locationCtx
 	}
 	data := context{
@@ -2526,6 +2566,7 @@ func RenderLocationsStateToPango(names *NameProvider, spec *properties.Normaliza
 		Locations:           renderLocationsGetContext(names, spec),
 		Source:              source,
 		Dest:                dest,
+		Diags:               diags,
 	}
 	return processTemplate(locationsStateToPango, "render-locations-state-to-pango", data, commonFuncMap)
 }
@@ -2851,6 +2892,30 @@ func createStructSpecForEntryListModel(resourceTyp properties.ResourceType, sche
 	return structs
 }
 
+func createStructSpecForListResourceModel(_ properties.ResourceType, _ properties.SchemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
+	var structs []datasourceStructSpec
+
+	var fields []datasourceStructFieldSpec
+
+	if len(spec.Locations) > 0 {
+		fields = append(fields, datasourceStructFieldSpec{
+			Name:                properties.NewNameVariant("location"),
+			TerraformType:       fmt.Sprintf("%sLocation", names.StructName),
+			TerraformStructType: fmt.Sprintf("%sLocation", names.StructName),
+			Type:                "types.Object",
+			Tags:                []string{"`tfsdk:\"location\"`"},
+		})
+	}
+
+	structs = append(structs, datasourceStructSpec{
+		StructName:    names.ListResourceStructName(),
+		ModelOrObject: "Model",
+		Fields:        fields,
+	})
+
+	return structs
+}
+
 func createStructSpecForEntryModel(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, spec *properties.Normalization, names *NameProvider, hackStructAsTypeObjects bool) []datasourceStructSpec {
 	var structs []datasourceStructSpec
 
@@ -2897,6 +2962,10 @@ func createStructSpecForEntryModel(resourceTyp properties.ResourceType, schemaTy
 func createStructSpecForModel(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, spec *properties.Normalization, names *NameProvider, hackStructsAsTypeObjects bool) []datasourceStructSpec {
 	if spec.Spec == nil {
 		return nil
+	}
+
+	if schemaTyp == properties.SchemaListResource {
+		return createStructSpecForListResourceModel(resourceTyp, schemaTyp, spec, names)
 	}
 
 	switch resourceTyp {
@@ -2969,31 +3038,161 @@ func createStructSpecForNormalization(resourceTyp properties.ResourceType, struc
 	return fields, structs
 }
 
-func RenderResourceStructs(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
+func renderMainAndConfigureTmpls(tmpl string, resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider, spec *properties.Normalization) (string, error) {
 	type context struct {
-		Structs []datasourceStructSpec
+		BareStructName    string
+		StructName        string
+		PackageName       string
+		SDKName           string
+		IsCustom          bool
+		IsImportableEntry bool
+		IsEntry           bool
+		IsUuid            bool
+		IsConfig          bool
+	}
+
+	data := context{}
+
+	switch resourceTyp {
+	case properties.ResourceConfig:
+		data.IsConfig = true
+	case properties.ResourceCustom:
+		data.IsCustom = true
+	case properties.ResourceEntry, properties.ResourceEntryPlural:
+		if len(spec.Imports) > 0 {
+			data.IsImportableEntry = true
+		} else {
+			data.IsEntry = true
+		}
+	case properties.ResourceUuid, properties.ResourceUuidPlural:
+		data.IsUuid = true
+	}
+
+	data.BareStructName = names.StructName
+	data.SDKName = names.PackageName
+
+	switch schemaTyp {
+	case properties.SchemaListResource:
+		data.StructName = names.ListResourceStructName()
+	case properties.SchemaDataSource:
+		data.StructName = names.DataSourceStructName
+	case properties.SchemaResource, properties.SchemaEphemeralResource:
+		data.StructName = names.ResourceStructName
+	}
+
+	if spec.TerraformProviderConfig.Ephemeral == true {
+		data.PackageName = "ephemeral"
+	} else {
+		data.PackageName = "resource"
+	}
+
+	return processTemplate(tmpl, "render-main-and-configure-tmpls", data, commonFuncMap)
+}
+
+func RenderMainStruct(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider, spec *properties.Normalization) (string, error) {
+	return renderMainAndConfigureTmpls(structureTmpl, resourceTyp, schemaTyp, names, spec)
+}
+
+func RenderConfigureFunc(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider, spec *properties.Normalization) (string, error) {
+	return renderMainAndConfigureTmpls(configureFuncTmpl, resourceTyp, schemaTyp, names, spec)
+}
+
+const listFuncTmpl = `
+func (o *{{ .StructName }}) List(ctx context.Context, req list.ListRequest, stream *list.ListResultsStream) {
+	var data {{ .StructName }}Model
+
+	diags := req.Config.Get(ctx, &data)
+	if diags.HasError() {
+		stream.Results = list.ListResultsStreamDiagnostics(diags)
+		return
+	}
+
+	var location {{ .SDKName }}.Location
+	{{ RenderLocationsStateToPango "data.Location" "location" }}
+	if diags.HasError() {
+		stream.Results = list.ListResultsStreamDiagnostics(diags)
+		return
+	}
+
+	components := []string{}
+	entries, err := o.manager.ReadMany(ctx, location, components)
+	if err != nil && !errors.Is(err, sdkmanager.ErrObjectNotFound) {
+		stream.Results = list.ListResultsStreamDiagnostics(diag.Diagnostics{
+			diag.NewErrorDiagnostic("Error while listing entries on the server", err.Error()),
+		})
+		return
+	}
+
+	stream.Results = func(push func(list.ListResult) bool) {
+		for _, elt := range entries {
+			result := req.NewListResult(ctx)
+
+			identityLocation, diags := terraformLocation.Identity(ctx)
+			result.Diagnostics.Append(diags...)
+			if result.Diagnostics.HasError() {
+				push(result)
+				return
+			}
+
+			identity := {{ .IdentityModel }}{
+				Name: types.StringValue(elt.EntryName()),
+				Location: identityLocation,
+			}
+
+			result.Diagnostics.Append(result.Identity.Set(ctx, identity)...)
+			if result.Diagnostics.HasError() {
+				push(result)
+				return
+			}
+
+			var object {{ .ResourceStructName }}Model
+			object.Location = data.Location
+
+			result.Diagnostics.Append(object.CopyFromPango(ctx, o.client, nil, elt, nil)...)
+			if result.Diagnostics.HasError() {
+				push(result)
+				return
+			}
+
+			result.Diagnostics.Append(result.Resource.Set(ctx, object)...)
+			if result.Diagnostics.HasError() {
+				push(result)
+				return
+			}
+
+			if !push(result) {
+				return
+			}
+		}
+	}
+}
+`
+
+func RenderListFunc(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider, spec *properties.Normalization, manager *imports.Manager) (string, error) {
+	type context struct {
+		StructName         string
+		IdentityModel      string
+		ResourceStructName string
+		SDKName            string
 	}
 
 	data := context{
-		Structs: createStructSpecForModel(resourceTyp, properties.SchemaResource, spec, names, true),
+		StructName:         names.ListResourceStructName(),
+		IdentityModel:      fmt.Sprintf("%sIdentityModel", names.ResourceStructName),
+		ResourceStructName: names.ResourceStructName,
+		SDKName:            names.PackageName,
 	}
 
-	return processTemplate(dataSourceStructs, "render-structs", data, commonFuncMap)
+	funcMap := template.FuncMap{
+		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
+			return RenderLocationsStateToPango(names, spec, source, dest, "diags")
+		},
+	}
+
+	return processTemplate(listFuncTmpl, "render-list-func", data, funcMap)
 }
 
-func RenderDataSourceStructs(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
-	type context struct {
-		Structs []datasourceStructSpec
-	}
-
-	data := context{
-		Structs: createStructSpecForModel(resourceTyp, properties.SchemaDataSource, spec, names, true),
-	}
-
-	return processTemplate(dataSourceStructs, "render-structs", data, commonFuncMap)
-}
-
-func RenderStructs(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider, spec *properties.Normalization) (string, error) {
+func RenderModelStructs(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider, spec *properties.Normalization) (string, error) {
 	type context struct {
 		Structs []datasourceStructSpec
 	}
@@ -3002,7 +3201,7 @@ func RenderStructs(resourceTyp properties.ResourceType, schemaTyp properties.Sch
 		Structs: createStructSpecForModel(resourceTyp, schemaTyp, spec, names, true),
 	}
 
-	return processTemplate(dataSourceStructs, "render-structs", data, commonFuncMap)
+	return processTemplate(dataSourceStructs, "render-model-structs", data, commonFuncMap)
 }
 
 const identityModelTmpl = `
@@ -3348,7 +3547,7 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 			return RendeCreateUpdateMovementRequired(state, entries)
 		},
 		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
-			return RenderLocationsStateToPango(names, paramSpec, source, dest)
+			return RenderLocationsStateToPango(names, paramSpec, source, dest, "resp.Diagnostics")
 		},
 		"ResourceParamToSchema": func(paramName string, paramParameters properties.SpecParam) (string, error) {
 			return ParamToSchemaResource(paramName, paramParameters, terraformProvider)
@@ -3466,7 +3665,7 @@ func DataSourceReadFunction(resourceTyp properties.ResourceType, names *NameProv
 			return RenderLocationsPangoToState(names, paramSpec, source, dest)
 		},
 		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
-			return RenderLocationsStateToPango(names, paramSpec, source, dest)
+			return RenderLocationsStateToPango(names, paramSpec, source, dest, "resp.Diagnostics")
 		},
 	}
 
@@ -3533,7 +3732,7 @@ func ResourceReadFunction(resourceTyp properties.ResourceType, names *NameProvid
 			return RenderLocationsPangoToState(names, paramSpec, source, dest)
 		},
 		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
-			return RenderLocationsStateToPango(names, paramSpec, source, dest)
+			return RenderLocationsStateToPango(names, paramSpec, source, dest, "resp.Diagnostics")
 		},
 	}
 
@@ -3594,7 +3793,7 @@ func ResourceUpdateFunction(resourceTyp properties.ResourceType, names *NameProv
 			return RendeCreateUpdateMovementRequired(state, entries)
 		},
 		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
-			return RenderLocationsStateToPango(names, paramSpec, source, dest)
+			return RenderLocationsStateToPango(names, paramSpec, source, dest, "resp.Diagnostics")
 		},
 		"RenderLocationsPangoToState": func(source string, dest string) (string, error) {
 			return RenderLocationsPangoToState(names, paramSpec, source, dest)
@@ -3657,7 +3856,7 @@ func ResourceDeleteFunction(resourceTyp properties.ResourceType, names *NameProv
 			return RenderImportLocationAssignment(names, paramSpec, source, dest)
 		},
 		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
-			return RenderLocationsStateToPango(names, paramSpec, source, dest)
+			return RenderLocationsStateToPango(names, paramSpec, source, dest, "resp.Diagnostics")
 		},
 	}
 
