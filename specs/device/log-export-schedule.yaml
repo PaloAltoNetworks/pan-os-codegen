@@ -1,0 +1,369 @@
+name: log-export-schedule
+terraform_provider_config:
+  description: Log Export Schedule configuration
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants: []
+  suffix: log_export_schedule
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - device
+  - services
+  - logexport
+panos_xpath:
+  path:
+  - deviceconfig
+  - system
+  - log-export-schedule
+  vars: []
+locations:
+- name: system
+  xpath:
+    path:
+    - config
+    - devices
+    - $device
+    vars:
+    - name: device
+      description: Device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: System-level configuration
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+spec:
+  params:
+  - name: description
+    type: string
+    profiles:
+    - xpath:
+      - description
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 255
+    spec: {}
+    description: ''
+    required: false
+  - name: enable
+    type: bool
+    profiles:
+    - xpath:
+      - enable
+    validators: []
+    spec: {}
+    description: ''
+    required: false
+  - name: log-type
+    type: enum
+    profiles:
+    - xpath:
+      - log-type
+    validators:
+    - type: values
+      spec:
+        values:
+        - traffic
+        - threat
+        - gtp
+        - sctp
+        - tunnel
+        - userid
+        - iptag
+        - auth
+        - url
+        - data
+        - hipmatch
+        - wildfire
+        - decryption
+        - globalprotect
+    spec:
+      values:
+      - value: traffic
+      - value: threat
+      - value: gtp
+      - value: sctp
+      - value: tunnel
+      - value: userid
+      - value: iptag
+      - value: auth
+      - value: url
+      - value: data
+      - value: hipmatch
+      - value: wildfire
+      - value: decryption
+      - value: globalprotect
+    description: ''
+    required: false
+  - name: protocol
+    type: object
+    profiles:
+    - xpath:
+      - protocol
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: ftp
+        type: object
+        profiles:
+        - xpath:
+          - ftp
+        validators: []
+        spec:
+          params:
+          - name: hostname
+            type: string
+            profiles:
+            - xpath:
+              - hostname
+            validators:
+            - type: length
+              spec:
+                max: 63
+            spec: {}
+            description: ftp hostname
+            required: false
+          - name: passive-mode
+            type: bool
+            profiles:
+            - xpath:
+              - passive-mode
+            validators: []
+            spec: {}
+            description: Enable FTP Passive Mode
+            required: false
+          - name: password
+            type: string
+            profiles:
+            - xpath:
+              - password
+            validators:
+            - type: length
+              spec:
+                min: 0
+                max: 255
+            spec: {}
+            description: ftp password
+            required: false
+            hashing:
+              type: solo
+          - name: path
+            type: string
+            profiles:
+            - xpath:
+              - path
+            validators:
+            - type: length
+              spec:
+                max: 255
+            spec: {}
+            description: ftp server path
+            required: false
+          - name: port
+            type: int64
+            profiles:
+            - xpath:
+              - port
+            validators:
+            - type: length
+              spec:
+                min: 1
+                max: 65535
+            spec: {}
+            description: ftp port
+            required: false
+          - name: username
+            type: string
+            profiles:
+            - xpath:
+              - username
+            validators:
+            - type: length
+              spec:
+                min: 1
+                max: 255
+            spec: {}
+            description: ftp username
+            required: false
+          variants: []
+        description: use ftp protocol for export
+        required: false
+      - name: scp
+        type: object
+        profiles:
+        - xpath:
+          - scp
+        validators: []
+        spec:
+          params:
+          - name: hostname
+            type: string
+            profiles:
+            - xpath:
+              - hostname
+            validators:
+            - type: length
+              spec:
+                max: 63
+            spec: {}
+            description: ftp hostname
+            required: false
+          - name: password
+            type: string
+            profiles:
+            - xpath:
+              - password
+            validators:
+            - type: length
+              spec:
+                min: 0
+                max: 255
+            spec: {}
+            description: scp password
+            required: false
+            hashing:
+              type: solo
+          - name: path
+            type: string
+            profiles:
+            - xpath:
+              - path
+            validators:
+            - type: length
+              spec:
+                max: 255
+            spec: {}
+            description: scp server path
+            required: false
+          - name: port
+            type: int64
+            profiles:
+            - xpath:
+              - port
+            validators:
+            - type: length
+              spec:
+                min: 1
+                max: 65535
+            spec: {}
+            description: scp port
+            required: false
+          - name: username
+            type: string
+            profiles:
+            - xpath:
+              - username
+            validators:
+            - type: length
+              spec:
+                min: 1
+                max: 255
+            spec: {}
+            description: scp username
+            required: false
+          variants: []
+        description: use ssh protocol for export
+        required: false
+    description: ''
+    required: false
+  - name: start-time
+    type: string
+    profiles:
+    - xpath:
+      - start-time
+    validators:
+    - type: length
+      spec:
+        min: 5
+        max: 5
+    spec: {}
+    description: Time to start the scheduled export hh:mm (e.g. 03:30)
+    required: false
+  variants: []
