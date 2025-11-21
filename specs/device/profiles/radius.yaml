@@ -1,0 +1,503 @@
+name: radius-profile
+terraform_provider_config:
+  description: RADIUS Server Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: radius_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - device
+  - profiles
+  - radius
+panos_xpath:
+  path:
+  - server-profile
+  - radius
+  vars: []
+locations:
+- name: panorama
+  xpath:
+    path:
+    - config
+    - panorama
+    vars: []
+  description: Located in a panorama.
+  validators: []
+  required: false
+  read_only: false
+- name: shared
+  xpath:
+    path:
+    - config
+    - shared
+    vars: []
+  description: Panorama shared object
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: ngfw_device
+      description: The NGFW device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The Virtual System name
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys name cannot be "shared". Use the "shared" location instead
+      type: entry
+  description: Located in a specific Virtual System
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+  description: A shared resource located within a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+spec:
+  params:
+  - name: protocol
+    type: object
+    profiles:
+    - xpath:
+      - protocol
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: CHAP
+        type: object
+        profiles:
+        - xpath:
+          - CHAP
+        validators: []
+        spec:
+          params: []
+          variants: []
+        description: CHAP
+        required: false
+        codegen_overrides:
+          gosdk:
+            name: chap
+          terraform:
+            name: chap
+      - name: EAP-TTLS-with-PAP
+        type: object
+        profiles:
+        - xpath:
+          - EAP-TTLS-with-PAP
+        validators: []
+        spec:
+          params:
+          - name: anon-outer-id
+            type: bool
+            profiles:
+            - xpath:
+              - anon-outer-id
+            validators: []
+            spec: {}
+            description: Make Outer Identity Anonymous
+            required: false
+            codegen_overrides:
+              terraform:
+                name: anonymous-outer-identity
+          - name: radius-cert-profile
+            type: string
+            profiles:
+            - xpath:
+              - radius-cert-profile
+            validators: []
+            spec: {}
+            description: Certificate profile for verifying the RADIUS server
+            required: false
+            codegen_overrides:
+              terraform:
+                name: radius-certificate-profile
+          variants: []
+        description: EAP-TTLS with PAP
+        required: false
+        codegen_overrides:
+          gosdk:
+            name: eap-ttls-with-pap
+          terraform:
+            name: eap-ttls-with-pap
+      - name: PAP
+        type: object
+        profiles:
+        - xpath:
+          - PAP
+        validators: []
+        spec:
+          params: []
+          variants: []
+        description: PAP
+        required: false
+        codegen_overrides:
+          gosdk:
+            name: pap
+          terraform:
+            name: pap
+      - name: PEAP-MSCHAPv2
+        type: object
+        profiles:
+        - xpath:
+          - PEAP-MSCHAPv2
+        validators: []
+        spec:
+          params:
+          - name: allow-pwd-change
+            type: bool
+            profiles:
+            - xpath:
+              - allow-pwd-change
+            validators: []
+            spec: {}
+            description: Allow users to change passwords after expiry
+            required: false
+            codegen_overrides:
+              terraform:
+                name: allow-password-change
+          - name: anon-outer-id
+            type: bool
+            profiles:
+            - xpath:
+              - anon-outer-id
+            validators: []
+            spec: {}
+            description: Make Outer Identity Anonymous
+            required: false
+            codegen_overrides:
+              terraform:
+                name: anonymous-outer-identity
+          - name: radius-cert-profile
+            type: string
+            profiles:
+            - xpath:
+              - radius-cert-profile
+            validators: []
+            spec: {}
+            description: Certificate profile for verifying the RADIUS server
+            required: false
+            codegen_overrides:
+              terraform:
+                name: radius-certificate-profile
+          variants: []
+        description: PEAP-MSCHAPv2
+        required: false
+        codegen_overrides:
+          gosdk:
+            name: peap-mschapv2
+          terraform:
+            name: peap-mschapv2
+      - name: PEAP-with-GTC
+        type: object
+        profiles:
+        - xpath:
+          - PEAP-with-GTC
+        validators: []
+        spec:
+          params:
+          - name: anon-outer-id
+            type: bool
+            profiles:
+            - xpath:
+              - anon-outer-id
+            validators: []
+            spec: {}
+            description: Make Outer Identity Anonymous
+            required: false
+            codegen_overrides:
+              terraform:
+                name: anonymous-outer-identity
+          - name: radius-cert-profile
+            type: string
+            profiles:
+            - xpath:
+              - radius-cert-profile
+            validators: []
+            spec: {}
+            description: Certificate profile for verifying the RADIUS server
+            required: false
+            codegen_overrides:
+              terraform:
+                name: radius-certificate-profile
+          variants: []
+        description: PEAP with GTC
+        required: false
+        codegen_overrides:
+          gosdk:
+            name: peap-with-gtc
+          terraform:
+            name: peap-with-gtc
+    description: Select authentication protocol
+    required: false
+  - name: retries
+    type: int64
+    profiles:
+    - xpath:
+      - retries
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 5
+    spec:
+      default: 3
+    description: number of attempts before giving up authentication
+    required: false
+  - name: server
+    type: list
+    profiles:
+    - xpath:
+      - server
+      - entry
+      type: entry
+    validators: []
+    spec:
+      type: object
+      items:
+        type: object
+        spec:
+          params:
+          - name: ip-address
+            type: string
+            profiles:
+            - xpath:
+              - ip-address
+            validators: []
+            spec: {}
+            description: RADIUS server IP or host name
+            required: false
+          - name: secret
+            type: string
+            profiles:
+            - xpath:
+              - secret
+            validators:
+            - type: length
+              spec:
+                max: 64
+            spec: {}
+            description: Shared secret for RADIUS communication
+            required: false
+            codegen_overrides:
+              terraform:
+                sensitive: false
+            hashing:
+              type: solo
+          - name: port
+            type: int64
+            profiles:
+            - xpath:
+              - port
+            validators:
+            - type: length
+              spec:
+                min: 1
+                max: 65535
+            spec:
+              default: 1812
+            description: RADIUS server port
+            required: false
+          variants: []
+    description: ''
+    required: false
+    codegen_overrides:
+      terraform:
+        name: servers
+  - name: timeout
+    type: int64
+    profiles:
+    - xpath:
+      - timeout
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 120
+    spec:
+      default: 3
+    description: number of seconds to wait for when performing authentication
+    required: false
+  variants: []
