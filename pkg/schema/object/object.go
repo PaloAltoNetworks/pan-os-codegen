@@ -39,6 +39,7 @@ type TerraformConfig struct {
 	Description           string                     `yaml:"description"`
 	Action                bool                       `yaml:"action"`
 	Epheneral             bool                       `yaml:"ephemeral"`
+	CustomValidation      bool                       `yaml:"custom_validation"`
 	SkipResource          bool                       `yaml:"skip_resource"`
 	SkipDatasource        bool                       `yaml:"skip_datasource"`
 	SkipdatasourceListing bool                       `yaml:"skip_datasource_listing"`
