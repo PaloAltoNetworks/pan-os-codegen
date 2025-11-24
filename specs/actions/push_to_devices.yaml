@@ -1,0 +1,84 @@
+name: push_to_devices
+terraform_provider_config:
+  description: Push to Devices Action
+  skip_resource: true
+  skip_datasource: true
+  resource_type: custom
+  action: true
+  custom_functions:
+    Invoke: true
+  suffix: push_to_devices
+go_sdk_config:
+  skip: true
+  package: ["api_key"]
+panos_xpath:
+  path: ["api-key"]
+locations: []
+entries: []
+imports: []
+version: 11.0.2
+spec:
+  params:
+    - name: type
+      type: string
+      profiles:
+        - xpath:
+            - ""
+      validators: []
+      spec: {}
+      description: "Type of push operation. Valid values: device_group, template, template_stack, log_collector_group, wildfire_appliance, wildfire_cluster"
+      required: true
+
+    - name: name
+      type: string
+      profiles:
+        - xpath:
+            - ""
+      validators: []
+      spec: {}
+      description: "Name of the target (device group, template, etc.) to push configuration to"
+      required: true
+
+    - name: description
+      type: string
+      profiles:
+        - xpath:
+            - ""
+      validators: []
+      spec: {}
+      description: "Push operation description"
+      required: false
+
+    - name: include_template
+      type: bool
+      profiles:
+        - xpath:
+            - ""
+      validators: []
+      spec: {}
+      description: "Include template configuration when pushing to a device group. Only applicable when type is device_group"
+      required: false
+
+    - name: force_template_values
+      type: bool
+      profiles:
+        - xpath:
+            - ""
+      validators: []
+      spec: {}
+      description: "Force template values to override local values on devices. Applicable for device_group, template, and template_stack types"
+      required: false
+
+    - name: devices
+      type: list
+      profiles:
+        - xpath:
+            - ""
+          type: member
+      validators: []
+      spec:
+        type: string
+        items:
+          type: string
+      description: "List of device serial numbers to push configuration to. If not specified, pushes to all devices in the target"
+      required: false
