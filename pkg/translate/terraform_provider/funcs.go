@@ -1693,7 +1693,7 @@ func createSchemaAttributeForParameter(schemaTyp properties.SchemaType, manager 
 		computed = param.FinalComputed()
 		required = param.FinalRequired()
 	case properties.SchemaCommon, properties.SchemaProvider, properties.SchemaAction:
-		panic("unreachable")
+		panic(fmt.Sprintf("unreachable for schemaTyp '%s'", schemaTyp))
 	}
 
 	return attributeCtx{
@@ -1927,7 +1927,7 @@ func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp pro
 	case properties.SchemaAction:
 		packageName = "schema"
 	case properties.SchemaCommon, properties.SchemaProvider:
-		panic("unreachable")
+		fallthrough
 	default:
 		panic(fmt.Sprintf("unsupported schemaTyp: '%s'", schemaTyp))
 	}
@@ -1947,7 +1947,7 @@ func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp pro
 	case properties.SchemaAction:
 		structName = names.ActionStructName()
 	case properties.SchemaCommon, properties.SchemaProvider:
-		panic("unreachable")
+		fallthrough
 	default:
 		panic(fmt.Sprintf("unsupported schemaTyp: '%s'", schemaTyp))
 	}
@@ -2277,6 +2277,14 @@ func RenderDataSourceSchema(resourceTyp properties.ResourceType, names *NameProv
 }
 
 func RenderSchema(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider, spec *properties.Normalization, manager *imports.Manager) (string, error) {
+	defer func() {
+		if e := recover(); e != nil {
+			log.Printf("** PANIC: %v", e)
+			debug.PrintStack()
+			panic(e)
+		}
+	}()
+
 	type context struct {
 		Schemas []schemaCtx
 	}
