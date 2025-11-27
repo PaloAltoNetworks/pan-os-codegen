@@ -392,6 +392,10 @@ func (o *GenerateTerraformProvider) GenerateTerraformAction(spec *properties.Nor
 	provider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/action/schema", "")
 	provider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/attr", "")
 
+	if len(spec.Spec.OneOf) > 0 || len(spec.Spec.Params) > 0 {
+		provider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types", "")
+	}
+
 	provider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "")
 
 	resourceTyp := properties.ResourceEntry

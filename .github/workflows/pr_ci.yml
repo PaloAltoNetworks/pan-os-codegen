@@ -1,7 +1,7 @@
 # This workflow will build and test a golang project
 
 name: PR CI
-run-name: 'CI pipeline for PR - (#${{ github.event.number }}) ${{ github.event.pull_request.title }}'
+run-name: "CI pipeline for PR - (#${{ github.event.number }}) ${{ github.event.pull_request.title }}"
 
 on:
   pull_request:
@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5
         with:
-          go-version: '1.23'
+          go-version: "1.23"
       - name: golangci-lint
         uses: golangci/golangci-lint-action@55c2c1448f86e01eaae002a5a3a9624417608d84 # v6
         with:
@@ -34,7 +34,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5
         with:
-          go-version: '1.23'
+          go-version: "1.23"
 
       - name: Download Go dependencies
         run: go get  ./... && go mod tidy
@@ -65,7 +65,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5
         with:
-          go-version: '1.23'
+          go-version: "1.23"
 
       - name: Download Go dependencies
         run: go get  ./... && go mod tidy
@@ -99,7 +99,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
-          terraform_version: '1.11.2'
+          terraform_version: "1.14.0"
 
       - name: Validate Terraform Examples
         working-directory: assets/terraform/examples
