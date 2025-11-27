@@ -1542,10 +1542,12 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 	case properties.SchemaDataSource:
 		computed = true
 		required = false
+	case properties.SchemaAction:
+		required = param.FinalRequired()
 	case properties.SchemaResource, properties.SchemaEphemeralResource:
 		computed = param.FinalComputed()
 		required = param.FinalRequired()
-	case properties.SchemaCommon, properties.SchemaProvider, properties.SchemaAction:
+	case properties.SchemaCommon, properties.SchemaProvider:
 		panic("unreachable")
 	}
 
@@ -1688,12 +1690,15 @@ func createSchemaAttributeForParameter(schemaTyp properties.SchemaType, manager 
 		optional = true
 		required = false
 		computed = true
+	case properties.SchemaAction:
+		required = param.FinalRequired()
+		optional = param.FinalOptional()
 	case properties.SchemaResource, properties.SchemaEphemeralResource:
 		optional = param.FinalOptional()
 		computed = param.FinalComputed()
 		required = param.FinalRequired()
-	case properties.SchemaCommon, properties.SchemaProvider, properties.SchemaAction:
-		panic("unreachable")
+	case properties.SchemaCommon, properties.SchemaProvider:
+		panic(fmt.Sprintf("unreachable for schemaTyp '%s'", schemaTyp))
 	}
 
 	return attributeCtx{
@@ -1927,7 +1932,7 @@ func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp pro
 	case properties.SchemaAction:
 		packageName = "schema"
 	case properties.SchemaCommon, properties.SchemaProvider:
-		panic("unreachable")
+		fallthrough
 	default:
 		panic(fmt.Sprintf("unsupported schemaTyp: '%s'", schemaTyp))
 	}
@@ -1947,7 +1952,7 @@ func createSchemaSpecForModel(resourceTyp properties.ResourceType, schemaTyp pro
 	case properties.SchemaAction:
 		structName = names.ActionStructName()
 	case properties.SchemaCommon, properties.SchemaProvider:
-		panic("unreachable")
+		fallthrough
 	default:
 		panic(fmt.Sprintf("unsupported schemaTyp: '%s'", schemaTyp))
 	}
@@ -2066,10 +2071,18 @@ const renderSchemaTemplate = `
 {{- define "renderSchemaListAttribute" }}
 	"{{ .Name.Underscore }}": {{ .Package }}.{{ .SchemaType }} {
 		Description: "{{ .Description }}",
+  {{- if .Required }}
 		Required: {{ .Required }},
+  {{- end }}
+  {{- if .Optional }}
 		Optional: {{ .Optional }},
+  {{- end }}
+  {{- if .Computed }}
 		Computed: {{ .Computed }},
+  {{- end }}
+  {{- if .Sensitive }}
 		Sensitive: {{ .Sensitive }},
+  {{- end }}
 		ElementType: {{ .ElementType }},
   {{- with .Validators }}
     {{ $package := .Package }}
@@ -2098,10 +2111,18 @@ const renderSchemaTemplate = `
 {{- define "renderSchemaMapAttribute" }}
 	"{{ .Name.Underscore }}": {{ .Package }}.{{ .SchemaType }} {
 		Description: "{{ .Description }}",
+  {{- if .Required }}
 		Required: {{ .Required }},
+  {{- end }}
+  {{- if .Optional }}
 		Optional: {{ .Optional }},
+  {{- end }}
+  {{- if .Computed }}
 		Computed: {{ .Computed }},
+  {{- end }}
+  {{- if .Sensitive }}
 		Sensitive: {{ .Sensitive }},
+  {{- end }}
 		ElementType: {{ .ElementType }},
 	},
 {{- end }}
@@ -2110,10 +2131,18 @@ const renderSchemaTemplate = `
   {{- with .Attribute }}
 	"{{ .Name.Underscore }}": {{ .Package }}.{{ .SchemaType }} {
 		Description: "{{ .Description }}",
+  {{- if .Required }}
 		Required: {{ .Required }},
+  {{- end }}
+  {{- if .Optional }}
 		Optional: {{ .Optional }},
+  {{- end }}
+  {{- if .Computed }}
 		Computed: {{ .Computed }},
+  {{- end }}
+  {{- if .Sensitive }}
 		Sensitive: {{ .Sensitive }},
+  {{- end }}
 		NestedObject: {{ $.StructName }}{{ .Name.CamelCase }}Schema(),
 	},
   {{- end }}
@@ -2139,10 +2168,18 @@ const renderSchemaTemplate = `
 {{- define "renderSchemaSimpleAttribute" }}
 	"{{ .Name.Underscore }}": {{ .Package }}.{{ .SchemaType }} {
 		Description: "{{ .Description }}",
-		Computed: {{ .Computed }},
+  {{- if .Required }}
 		Required: {{ .Required }},
+  {{- end }}
+  {{- if .Optional }}
 		Optional: {{ .Optional }},
+  {{- end }}
+  {{- if .Computed }}
+		Computed: {{ .Computed }},
+  {{- end }}
+  {{- if .Sensitive }}
 		Sensitive: {{ .Sensitive }},
+  {{- end }}
   {{- if .Default }}
 		Default: {{ .Default.Type }}({{ .Default.Value }}),
   {{- end }}
@@ -2204,10 +2241,18 @@ func {{ .StructName }}Schema() {{ .Package }}.{{ .ReturnType }} {
 	return {{ .Package }}.{{ .ReturnType }}{
 {{- if not (or (eq .ReturnType "Schema") (eq .ReturnType "NestedAttributeObject")) }}
 		Description: "{{ .Description }}",
+  {{- if .Required }}
 		Required: {{ .Required }},
-		Computed: {{ .Computed }},
+  {{- end }}
+  {{- if .Optional }}
 		Optional: {{ .Optional }},
+  {{- end }}
+  {{- if .Computed }}
+		Computed: {{ .Computed }},
+  {{- end }}
+  {{- if .Sensitive }}
 		Sensitive: {{ .Sensitive }},
+  {{- end }}
 {{- end }}
   {{- with .Validators }}
     {{ $package := .Package }}
@@ -2277,6 +2322,14 @@ func RenderDataSourceSchema(resourceTyp properties.ResourceType, names *NameProv
 }
 
 func RenderSchema(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider, spec *properties.Normalization, manager *imports.Manager) (string, error) {
+	defer func() {
+		if e := recover(); e != nil {
+			log.Printf("** PANIC: %v", e)
+			debug.PrintStack()
+			panic(e)
+		}
+	}()
+
 	type context struct {
 		Schemas []schemaCtx
 	}

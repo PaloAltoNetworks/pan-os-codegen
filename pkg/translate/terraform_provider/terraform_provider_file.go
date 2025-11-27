@@ -188,6 +188,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 		},
 		"resourceSDKName":         func() string { return names.PackageName },
 		"HasPosition":             func() bool { return hasPosition },
+		"HasCustomValidation":     func() bool { return spec.TerraformProviderConfig.CustomValidation },
 		"metaName":                func() string { return names.MetaName },
 		"structName":              func() string { return names.StructName },
 		"dataSourceStructName":    func() string { return names.DataSourceStructName },
@@ -397,8 +398,9 @@ func (o *GenerateTerraformProvider) GenerateTerraformAction(spec *properties.Nor
 	names := NewNameProvider(spec, resourceTyp)
 
 	funcMap := template.FuncMap{
-		"structName": func() string { return names.ActionStructName() },
-		"metaName":   func() string { return names.MetaName },
+		"structName":          func() string { return names.ActionStructName() },
+		"metaName":            func() string { return names.MetaName },
+		"HasCustomValidation": func() bool { return spec.TerraformProviderConfig.CustomValidation },
 
 		"RenderStructs": func() (string, error) { return RenderStructs(resourceTyp, properties.SchemaAction, names, spec) },
 		"RenderSchema": func() (string, error) {

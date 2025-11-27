@@ -216,6 +216,7 @@ if !movementRequired {
 const actionObj = `
 var (
 	_ action.ActionWithConfigure = &{{ structName }}{}
+        _ action.ActionWithValidateConfig = &{{ structName }}{}
 )
 
 func New{{ structName }}() action.Action {
@@ -250,6 +251,12 @@ func (o *{{ structName }}) Configure(ctx context.Context, req action.ConfigureRe
 
 	providerData := req.ProviderData.(*ProviderData)
 	o.client = providerData.Client
+}
+
+func (o *{{ structName }}) ValidateConfig(ctx context.Context, req action.ValidateConfigRequest, resp *action.ValidateConfigResponse) {
+{{- if HasCustomValidation }}
+	o.ValidateConfigCustom(ctx, req, resp)
+{{- end }}
 }
 `
 
@@ -313,6 +320,12 @@ func {{ resourceStructName }}LocationSchema() rsschema.Attribute {
 {{ RenderResourceStructs }}
 
 func (o *{{ resourceStructName }}) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+{{- if HasCustomValidation }}
+	o.ValidateConfigCustom(ctx, req, resp)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- end }}
 {{- if HasPosition }}
 	{
 
