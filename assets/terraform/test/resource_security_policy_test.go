@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	sdkerrors "github.com/PaloAltoNetworks/pango/errors"
 	"github.com/PaloAltoNetworks/pango/policies/rules/security"
 
 	"github.com/hashicorp/terraform-plugin-testing/config"
@@ -151,7 +152,7 @@ func (o *expectServerSecurityRulesCount) CheckState(ctx context.Context, req sta
 	service := security.NewService(sdkClient)
 
 	objects, err := service.List(ctx, o.Location, "get", "", "")
-	if err != nil {
+	if err != nil && !sdkerrors.IsObjectNotFound(err) {
 		resp.Error = fmt.Errorf("failed to query server for rules: %w", err)
 		return
 	}
@@ -749,4 +750,203 @@ func securityPolicyPreCheck(prefix string) {
 		}
 
 	}
+}
+
+const securityPolicy_DeletePartiallyMissing_Initial_Tmpl = `
+variable "prefix" { type = string }
+
+resource "panos_template" "template" {
+  location = { panorama = {} }
+
+  name = format("%s-tmpl", var.prefix)
+}
+
+resource "panos_device_group" "dg" {
+  location = { panorama = {} }
+
+  name = format("%s-dg", var.prefix)
+  templates = [ resource.panos_template.template.name ]
+}
+
+resource "panos_security_policy" "policy" {
+  location = { device_group = { name = resource.panos_device_group.dg.name }}
+
+  rules = [
+    {
+      name = format("%s-rule-1", var.prefix)
+      source_zones     = ["any"]
+      source_addresses = ["any"]
+      destination_zones     = ["any"]
+      destination_addresses = ["any"]
+      services = ["any"]
+      applications = ["any"]
+    },
+    {
+      name = format("%s-rule-2", var.prefix)
+      source_zones     = ["any"]
+      source_addresses = ["any"]
+      destination_zones     = ["any"]
+      destination_addresses = ["any"]
+      services = ["any"]
+      applications = ["any"]
+    },
+    {
+      name = format("%s-rule-3", var.prefix)
+      source_zones     = ["any"]
+      source_addresses = ["any"]
+      destination_zones     = ["any"]
+      destination_addresses = ["any"]
+      services = ["any"]
+      applications = ["any"]
+    },
+    {
+      name = format("%s-rule-4", var.prefix)
+      source_zones     = ["any"]
+      source_addresses = ["any"]
+      destination_zones     = ["any"]
+      destination_addresses = ["any"]
+      services = ["any"]
+      applications = ["any"]
+    }
+  ]
+}
+`
+
+const securityPolicy_DeletePartiallyMissing_EmptyRules_Tmpl = `
+variable "prefix" { type = string }
+
+resource "panos_template" "template" {
+  location = { panorama = {} }
+
+  name = format("%s-tmpl", var.prefix)
+}
+
+resource "panos_device_group" "dg" {
+  location = { panorama = {} }
+
+  name = format("%s-dg", var.prefix)
+  templates = [ resource.panos_template.template.name ]
+}
+
+resource "panos_security_policy" "policy" {
+  location = { device_group = { name = resource.panos_device_group.dg.name }}
+
+  rules = []
+}
+`
+
+const securityPolicy_DeletePartiallyMissing_Empty_Tmpl = `
+variable "prefix" { type = string }
+
+resource "panos_template" "template" {
+  location = { panorama = {} }
+
+  name = format("%s-tmpl", var.prefix)
+}
+
+resource "panos_device_group" "dg" {
+  location = { panorama = {} }
+
+  name = format("%s-dg", var.prefix)
+  templates = [ resource.panos_template.template.name ]
+}
+`
+
+func TestAccSecurityPolicy_DeletePartiallyMissing(t *testing.T) {
+	t.Parallel()
+
+	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
+	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
+
+	rules := []string{"rule-1", "rule-2", "rule-3", "rule-4"}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+		ProtoV6ProviderFactories: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: securityPolicy_DeletePartiallyMissing_Initial_Tmpl,
+				ConfigVariables: map[string]config.Variable{
+					"prefix": config.StringVariable(prefix),
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue(
+						"panos_security_policy.policy",
+						tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("name"),
+						knownvalue.StringExact(fmt.Sprintf("%s-rule-1", prefix)),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_security_policy.policy",
+						tfjsonpath.New("rules").AtSliceIndex(1).AtMapKey("name"),
+						knownvalue.StringExact(fmt.Sprintf("%s-rule-2", prefix)),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_security_policy.policy",
+						tfjsonpath.New("rules").AtSliceIndex(2).AtMapKey("name"),
+						knownvalue.StringExact(fmt.Sprintf("%s-rule-3", prefix)),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_security_policy.policy",
+						tfjsonpath.New("rules").AtSliceIndex(3).AtMapKey("name"),
+						knownvalue.StringExact(fmt.Sprintf("%s-rule-4", prefix)),
+					),
+					ExpectServerSecurityRulesCount(prefix, 4),
+					ExpectServerSecurityRulesOrder(prefix, rules),
+				},
+			},
+			{
+				Config: securityPolicy_DeletePartiallyMissing_EmptyRules_Tmpl,
+				ConfigVariables: map[string]config.Variable{
+					"prefix": config.StringVariable(prefix),
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					ExpectServerSecurityRulesCount(prefix, 0),
+				},
+			},
+			{
+				Config: securityPolicy_DeletePartiallyMissing_Initial_Tmpl,
+				ConfigVariables: map[string]config.Variable{
+					"prefix": config.StringVariable(prefix),
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue(
+						"panos_security_policy.policy",
+						tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("name"),
+						knownvalue.StringExact(fmt.Sprintf("%s-rule-1", prefix)),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_security_policy.policy",
+						tfjsonpath.New("rules").AtSliceIndex(1).AtMapKey("name"),
+						knownvalue.StringExact(fmt.Sprintf("%s-rule-2", prefix)),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_security_policy.policy",
+						tfjsonpath.New("rules").AtSliceIndex(2).AtMapKey("name"),
+						knownvalue.StringExact(fmt.Sprintf("%s-rule-3", prefix)),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_security_policy.policy",
+						tfjsonpath.New("rules").AtSliceIndex(3).AtMapKey("name"),
+						knownvalue.StringExact(fmt.Sprintf("%s-rule-4", prefix)),
+					),
+					ExpectServerSecurityRulesCount(prefix, 4),
+					ExpectServerSecurityRulesOrder(prefix, rules),
+				},
+			},
+			{
+				PreConfig: func() {
+					DeleteServerSecurityRules(prefix, []string{"rule-2", "rule-3"})
+				},
+				Config: securityPolicy_DeletePartiallyMissing_Empty_Tmpl,
+				ConfigVariables: map[string]config.Variable{
+					"prefix": config.StringVariable(prefix),
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					ExpectServerSecurityRulesCount(prefix, 0),
+				},
+			},
+		},
+	})
 }
