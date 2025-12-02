@@ -201,7 +201,6 @@ entries:
 - name: name
   description: ''
   validators: []
-imports: []
 spec:
   params:
   - name: block-expired-certificate

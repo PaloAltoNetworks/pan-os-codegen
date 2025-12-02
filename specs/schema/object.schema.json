@@ -100,8 +100,17 @@
       }
     },
     "imports": {
-      "type": "array",
-      "items": { "$ref": "import.schema.json" }
+      "type": "object",
+      "required": ["target", "variants"],
+      "additionalProperties": false,
+      "properties": {
+        "target": { "type": "string" },
+        "variants": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "default_value": { "type": "string" }
+      }
     },
     "version": { "type": "string" },
     "spec": { "$ref": "spec.schema.json" }

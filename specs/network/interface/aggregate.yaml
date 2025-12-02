@@ -129,7 +129,11 @@ entries:
 - name: name
   description: ''
   validators: []
-imports: []
+imports:
+  target: interface
+  variants:
+  - layer2
+  - layer3
 spec:
   params:
   - name: comment

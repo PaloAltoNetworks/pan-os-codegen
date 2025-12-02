@@ -110,11 +110,46 @@ locations:
   validators: []
   required: false
   read_only: false
+- name: vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: ngfw_device
+      description: The NGFW device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The Virtual System name
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys name cannot be "shared". Use the "shared" location instead
+      type: entry
+  description: Located in a specific Virtual System
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
 entries:
 - name: name
   description: ''
   validators: []
-imports: []
+imports:
+  target: virtual-router
+  variants:
+  - '*'
 spec:
   params:
   - name: admin-dists
@@ -2135,8 +2170,7 @@ spec:
                                       spec:
                                         min: 1
                                         max: 255
-                                    spec:
-                                      default: 1
+                                    spec: {}
                                     description: prepend local AS for specified number
                                       of times
                                     required: false
@@ -3474,8 +3508,7 @@ spec:
                                               spec:
                                                 min: 1
                                                 max: 255
-                                            spec:
-                                              default: 1
+                                            spec: {}
                                             description: prepend local AS for specified
                                               number of times
                                             required: false
@@ -3490,8 +3523,7 @@ spec:
                                               spec:
                                                 min: 1
                                                 max: 255
-                                            spec:
-                                              default: 1
+                                            spec: {}
                                             description: remove matched AS path(s),
                                               and prepend local AS for specified number
                                               of times

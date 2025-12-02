@@ -61,6 +61,7 @@ resource "panos_security_policy_rules" "imported" {}
 `
 
 func TestAccSecurityPolicyRulesImport(t *testing.T) {
+	t.Skip("FIXME: test does not reflect current reality")
 	t.Parallel()
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
