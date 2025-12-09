@@ -254,7 +254,7 @@ type {{ resourceStructName }} struct {
 {{- if IsCustom }}
 
 {{- else if and IsEntry HasImports }}
-	manager *sdkmanager.ImportableEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, {{ resourceSDKName }}.ImportLocation, *{{ resourceSDKName }}.Service]
+	manager *sdkmanager.ImportableEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service]
 {{- else if IsEntry }}
 	manager *sdkmanager.EntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service]
 {{- else if IsUuid }}
@@ -739,16 +739,16 @@ const resourceCreateFunction = `
 	}
 
 {{- if .HasImports }}
-	var importLocation {{ .resourceSDKName }}.ImportLocation
-	{{ RenderImportLocationAssignment "state.Location" "importLocation" }}
-	created, err := o.manager.Create(ctx, location, components, obj)
+ 	created, err := o.manager.Create(ctx, location, components, obj)
 	if err != nil {
 		resp.Diagnostics.AddError("Error in create", err.Error())
 		return
 	}
 
-	if importLocation != nil {
-		err = o.manager.ImportToLocations(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, obj.Name)
+	var importVsys string
+	{{ RenderImportLocationAssignment "state" "importVsys" }}
+	if importVsys != "" {
+		err = o.manager.ImportToLocation(ctx, location, importVsys, obj.Name)
 		if err != nil {
 			resp.Diagnostics.AddError("Failed to import resource into location", err.Error())
 			return
@@ -1561,20 +1561,20 @@ const resourceDeleteFunction = `
 		resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
 		return
 	}
+
   {{- if .HasImports }}
-	var importLocation {{ .resourceSDKName }}.ImportLocation
-	{{ RenderImportLocationAssignment "state.Location" "importLocation" }}
-	if importLocation != nil {
-		err = o.manager.UnimportFromLocations(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, state.Name.ValueString())
+	var importVsys string
+	{{ RenderImportLocationAssignment "state" "importVsys" }}
+	if importVsys != "" {
+		err = o.manager.UnimportFromLocation(ctx, location, importVsys, state.Name.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to unimport resource from location", err.Error())
+			return
+		}
 	}
-	if err != nil {
-		resp.Diagnostics.AddError("Error in delete", err.Error())
-		return
-	}
-	err = o.manager.Delete(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, components, []string{state.Name.ValueString()})
-  {{- else }}
-	err = o.manager.Delete(ctx, location, components, []string{state.Name.ValueString()})
   {{- end }}
+
+	err = o.manager.Delete(ctx, location, components, []string{state.Name.ValueString()})
 	if err != nil && !errors.Is(err, sdkmanager.ErrObjectNotFound) {
 		resp.Diagnostics.AddError("Error in delete", err.Error())
 		return
@@ -2018,7 +2018,7 @@ type {{ dataSourceStructName }} struct {
 {{- if IsCustom }}
 
 {{- else if and IsEntry HasImports }}
-	manager *sdkmanager.ImportableEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, {{ resourceSDKName }}.ImportLocation, *{{ resourceSDKName }}.Service]
+	manager *sdkmanager.ImportableEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service]
 {{- else if IsEntry }}
 	manager *sdkmanager.EntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service]
 {{- else if IsUuid }}

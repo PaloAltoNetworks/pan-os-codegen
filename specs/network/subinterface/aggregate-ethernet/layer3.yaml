@@ -37,19 +37,6 @@ panos_xpath:
       type: entry
       xpath: /params[@name="name"]
 locations:
-- name: shared
-  xpath:
-    path:
-    - config
-    - shared
-    vars: []
-  description: Panorama shared object
-  devices:
-  - panorama
-  - ngfw
-  validators: []
-  required: false
-  read_only: false
 - name: template
   xpath:
     path:
@@ -143,7 +130,10 @@ entries:
 - name: name
   description: ''
   validators: []
-imports: []
+imports:
+  target: interface
+  variants:
+  - '*'
 spec:
   params:
   - name: parent

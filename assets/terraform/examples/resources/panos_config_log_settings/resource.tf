@@ -9,7 +9,7 @@ resource "panos_syslog_profile" "example" {
       name = panos_template.example.name
     }
   }
-  
+
   name = "example-profile-1"
   servers = [{
     name   = "syslog-server1"

@@ -449,5 +449,3 @@ resource "panos_lldp_profile" "example" {
   mode = "receive-only"
 }
 `
-
-
