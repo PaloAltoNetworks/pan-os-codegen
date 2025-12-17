@@ -186,17 +186,20 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 				return "resource"
 			}
 		},
-		"resourceSDKName":         func() string { return names.PackageName },
-		"HasPosition":             func() bool { return hasPosition },
-		"HasCustomValidation":     func() bool { return spec.TerraformProviderConfig.CustomValidation },
-		"metaName":                func() string { return names.MetaName },
-		"structName":              func() string { return names.StructName },
-		"dataSourceStructName":    func() string { return names.DataSourceStructName },
-		"resourceStructName":      func() string { return names.ResourceStructName },
-		"serviceName":             func() string { return names.TfName },
-		"CreateTfIdStruct":        func() (string, error) { return CreateTfIdStruct(structType, spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
-		"CreateTfIdResourceModel": func() (string, error) { return CreateTfIdResourceModel(structType, names.StructName) },
-		"RenderResourceStructs":   func() (string, error) { return RenderResourceStructs(resourceTyp, names, spec) },
+		"resourceSDKName":     func() string { return names.PackageName },
+		"HasPosition":         func() bool { return hasPosition },
+		"HasCustomValidation": func() bool { return spec.TerraformProviderConfig.CustomValidation },
+		"metaName": func() string { return names.MetaName },
+		"structName":               func() string { return names.StructName },
+		"dataSourceStructName":     func() string { return names.DataSourceStructName },
+		"resourceStructName":       func() string { return names.ResourceStructName },
+		"serviceName":              func() string { return names.TfName },
+		"CreateTfIdStruct":         func() (string, error) { return CreateTfIdStruct(structType, spec.GoSdkPath[len(spec.GoSdkPath)-1]) },
+		"CreateTfIdResourceModel":  func() (string, error) { return CreateTfIdResourceModel(structType, names.StructName) },
+		"RenderResourceStructs": func() (string, error) { return RenderResourceStructs(resourceTyp, names, spec) },
+		"RenderResourceValidators": func() (string, error) {
+			return RenderResourceValidators(resourceTyp, names, spec, terraformProvider.ImportManager)
+		},
 		"RenderResourceSchema": func() (string, error) {
 			return RenderResourceSchema(resourceTyp, names, spec, terraformProvider.ImportManager)
 		},

@@ -319,6 +319,10 @@ func {{ resourceStructName }}LocationSchema() rsschema.Attribute {
 
 {{ RenderResourceStructs }}
 
+{{- if not IsCustom }}
+{{ RenderResourceValidators }}
+{{- end }}
+
 func (o *{{ resourceStructName }}) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
 {{- if HasCustomValidation }}
 	o.ValidateConfigCustom(ctx, req, resp)
@@ -326,8 +330,6 @@ func (o *{{ resourceStructName }}) ValidateConfig(ctx context.Context, req resou
 		return
 	}
 {{- end }}
-{{- if HasPosition }}
-	{
 
 	var resource {{ resourceStructName }}Model
 	resp.Diagnostics.Append(req.Config.Get(ctx, &resource)...)
@@ -335,6 +337,12 @@ func (o *{{ resourceStructName }}) ValidateConfig(ctx context.Context, req resou
 		return
 	}
 
+{{- if not IsCustom }}
+	resource.ValidateConfig(ctx, resp, path.Empty())
+{{- end }}
+
+{{- if HasPosition }}
+	{
         if !resource.Position.IsUnknown() {
 		var positionAttribute TerraformPositionObject
 		resp.Diagnostics.Append(resource.Position.As(ctx, &positionAttribute, basetypes.ObjectAsOptions{})...)
@@ -349,11 +357,6 @@ func (o *{{ resourceStructName }}) ValidateConfig(ctx context.Context, req resou
 
 {{- if IsUuid }}
 	{
-	var resource {{ resourceStructName }}Model
-	resp.Diagnostics.Append(req.Config.Get(ctx, &resource)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
   {{ $resourceTFStructName := printf "%s%sObject" resourceStructName ListAttribute.CamelCase }}
 	entries := make(map[string]struct{})
 	duplicated := make(map[string]struct{})

@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"log/slog"
 	"os"
 
@@ -32,13 +31,16 @@ func parseFlags() Config {
 func runCommand(ctx context.Context, cmdType properties.CommandType, cfg string) {
 	cmd, err := codegen.NewCommand(ctx, cmdType, cfg)
 	if err != nil {
-		log.Fatalf("Failed to create command: %s", err)
+		slog.Error("Failed to create command", "error", err)
+		os.Exit(1)
 	}
 	if err := cmd.Setup(); err != nil {
-		log.Fatalf("Setup failed: %s", err)
+		slog.Error("Setup failed", "error", err)
+		os.Exit(1)
 	}
 	if err := cmd.Execute(); err != nil {
-		log.Fatalf("Execution failed: %s", err)
+		slog.Error("Execution failed", "error", err)
+		os.Exit(1)
 	}
 }
 
@@ -62,7 +64,6 @@ func main() {
 	cfg := parseFlags()
 
 	ctx := context.Background()
-	log.SetFlags(log.Ldate | log.Lshortfile)
 
 	// Log the operation type and configuration file being used
 	opTypeMessage := "Operation type: "
@@ -90,5 +91,5 @@ func main() {
 		runCommand(ctx, properties.CommandTypeTerraform, cfg.ConfigFile)
 	}
 
-	log.Println("Generation complete.")
+	slog.Info("Generation complete")
 }
