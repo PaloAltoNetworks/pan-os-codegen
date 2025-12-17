@@ -5,11 +5,10 @@ import (
 	"log"
 	"log/slog"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-
 	"github.com/PaloAltoNetworks/pango/movement"
 	sdkmanager "github.com/PaloAltoNetworks/terraform-provider-panos/internal/manager"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 var _ = log.Printf

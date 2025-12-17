@@ -50,8 +50,8 @@ func TestAccFiltersAccessListRoutingProfile_Ipv6_Basic(t *testing.T) {
 						tfjsonpath.New("type").AtMapKey("ipv6").AtMapKey("ipv6_entries"),
 						knownvalue.ListExact([]knownvalue.Check{
 							knownvalue.ObjectExact(map[string]knownvalue.Check{
-								"name":   knownvalue.StringExact("10"),
-								"action": knownvalue.StringExact("deny"),
+								"name":           knownvalue.StringExact("10"),
+								"action":         knownvalue.StringExact("deny"),
 								"source_address": knownvalue.Null(),
 							}),
 						}),

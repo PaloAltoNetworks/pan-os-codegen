@@ -4,10 +4,9 @@ import (
 	"encoding/xml"
 	"strings"
 
+	"github.com/PaloAltoNetworks/pango/commit"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"github.com/PaloAltoNetworks/pango/commit"
 )
 
 var _ = Describe("PanoramaCommit", func() {

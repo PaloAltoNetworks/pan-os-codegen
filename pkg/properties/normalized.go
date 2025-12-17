@@ -503,11 +503,12 @@ func GetNormalizations() ([]string, error) {
 
 func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam, error) {
 	var specType string
-	if schemaSpec.Type == "object" {
+	switch schemaSpec.Type {
+	case "object":
 		specType = ""
-	} else if schemaSpec.Type == "enum" {
+	case "enum":
 		specType = "string"
-	} else {
+	default:
 		specType = schemaSpec.Type
 	}
 
@@ -554,16 +555,17 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 		}
 
 	case *parameter.ListSpec:
-		if spec.Items.Type == "object" {
+		switch spec.Items.Type {
+		case "object":
 			itemsSpec.Type = "entry"
 			var err error
 			innerSpec, err = generateInnerSpec(&spec.Items.Spec)
 			if err != nil {
 				return nil, err
 			}
-		} else if spec.Items.Type == "enum" {
+		case "enum":
 			itemsSpec.Type = "string"
-		} else {
+		default:
 			itemsSpec.Type = spec.Items.Type
 		}
 		for _, v := range schemaSpec.Validators {
@@ -755,9 +757,10 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 		for _, elt := range location.Xpath.Elements {
 			var eltEntry string
 			if xpathVar, ok := schemaXpathVars[elt[1:]]; ok {
-				if xpathVar.Type == "entry" {
+				switch xpathVar.Type {
+				case "entry":
 					eltEntry = fmt.Sprintf("{{ Entry %s }}", elt)
-				} else if xpathVar.Type == "object" {
+				case "object":
 					eltEntry = fmt.Sprintf("{{ Object %s }}", elt)
 				}
 			} else {
@@ -772,9 +775,10 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 		locationDevice := &LocationDevice{}
 
 		for _, device := range location.Devices {
-			if device == "panorama" {
+			switch device {
+			case "panorama":
 				locationDevice.Panorama = true
-			} else if device == "ngfw" {
+			case "ngfw":
 				locationDevice.Ngfw = true
 			}
 		}

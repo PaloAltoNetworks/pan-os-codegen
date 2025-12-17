@@ -3,12 +3,11 @@ package object
 import (
 	"fmt"
 
-	"gopkg.in/yaml.v3"
-
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/imports"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/location"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/parameter"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/validator"
+	"gopkg.in/yaml.v3"
 )
 
 type TerraformResourceType string

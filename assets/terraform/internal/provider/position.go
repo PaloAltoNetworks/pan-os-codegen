@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/PaloAltoNetworks/pango/movement"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	rsschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-
-	"github.com/PaloAltoNetworks/pango/movement"
 )
 
 type TerraformPositionObject struct {

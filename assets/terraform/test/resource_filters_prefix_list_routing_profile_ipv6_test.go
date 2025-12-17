@@ -58,7 +58,7 @@ func TestAccFiltersPrefixListRoutingProfile_Ipv6_Basic(t *testing.T) {
 										"prefix": knownvalue.ObjectExact(map[string]knownvalue.Check{
 											"network": knownvalue.Null(),
 											"entry": knownvalue.ObjectExact(map[string]knownvalue.Check{
-												"network":                knownvalue.StringExact("2001:db8::/32"),
+												"network":               knownvalue.StringExact("2001:db8::/32"),
 												"greater_than_or_equal": knownvalue.Null(),
 												"less_than_or_equal":    knownvalue.Null(),
 											}),
@@ -204,7 +204,7 @@ func TestAccFiltersPrefixListRoutingProfile_Ipv6_Prefix_Entry(t *testing.T) {
 						knownvalue.ObjectExact(map[string]knownvalue.Check{
 							"network": knownvalue.Null(),
 							"entry": knownvalue.ObjectExact(map[string]knownvalue.Check{
-								"network":                knownvalue.StringExact("fd00::/8"),
+								"network":               knownvalue.StringExact("fd00::/8"),
 								"greater_than_or_equal": knownvalue.Int64Exact(64),
 								"less_than_or_equal":    knownvalue.Int64Exact(96),
 							}),
@@ -356,7 +356,7 @@ func TestAccFiltersPrefixListRoutingProfile_Ipv6_MultipleEntries(t *testing.T) {
 								"prefix": knownvalue.ObjectExact(map[string]knownvalue.Check{
 									"network": knownvalue.Null(),
 									"entry": knownvalue.ObjectExact(map[string]knownvalue.Check{
-										"network":                knownvalue.StringExact("2001:db8::/32"),
+										"network":               knownvalue.StringExact("2001:db8::/32"),
 										"greater_than_or_equal": knownvalue.Int64Exact(48),
 										"less_than_or_equal":    knownvalue.Null(),
 									}),
@@ -368,7 +368,7 @@ func TestAccFiltersPrefixListRoutingProfile_Ipv6_MultipleEntries(t *testing.T) {
 								"prefix": knownvalue.ObjectExact(map[string]knownvalue.Check{
 									"network": knownvalue.Null(),
 									"entry": knownvalue.ObjectExact(map[string]knownvalue.Check{
-										"network":                knownvalue.StringExact("fc00::/7"),
+										"network":               knownvalue.StringExact("fc00::/7"),
 										"greater_than_or_equal": knownvalue.Null(),
 										"less_than_or_equal":    knownvalue.Int64Exact(64),
 									}),

@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/PaloAltoNetworks/pango/policies/rules/decryption"
-
 	"github.com/hashicorp/terraform-plugin-testing/config"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"

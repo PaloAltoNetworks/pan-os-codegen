@@ -1,9 +1,8 @@
 package xpathschema
 
 import (
-	"gopkg.in/yaml.v3"
-
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/validator"
+	"gopkg.in/yaml.v3"
 )
 
 type VariableType string

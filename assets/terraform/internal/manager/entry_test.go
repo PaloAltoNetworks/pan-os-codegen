@@ -3,10 +3,9 @@ package manager_test
 import (
 	"context"
 
+	"github.com/PaloAltoNetworks/terraform-provider-panos/internal/manager"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"github.com/PaloAltoNetworks/terraform-provider-panos/internal/manager"
 )
 
 var _ = Expect

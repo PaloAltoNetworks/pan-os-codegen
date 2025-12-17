@@ -8,10 +8,9 @@ import (
 
 	"github.com/PaloAltoNetworks/pango/version"
 	"github.com/PaloAltoNetworks/pango/xmlapi"
+	sdkmanager "github.com/PaloAltoNetworks/terraform-provider-panos/internal/manager"
 	"github.com/onsi/gomega/format"
 	"github.com/onsi/gomega/types"
-
-	sdkmanager "github.com/PaloAltoNetworks/terraform-provider-panos/internal/manager"
 )
 
 var _ = slog.Debug

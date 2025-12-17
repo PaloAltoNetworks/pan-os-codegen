@@ -319,12 +319,25 @@ func {{ resourceStructName }}LocationSchema() rsschema.Attribute {
 
 {{ RenderResourceStructs }}
 
+{{- if not IsCustom }}
+{{ RenderResourceValidators }}
+{{- end }}
+
 func (o *{{ resourceStructName }}) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
 {{- if HasCustomValidation }}
 	o.ValidateConfigCustom(ctx, req, resp)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+{{- end }}
+	var resource {{ resourceStructName }}Model
+	resp.Diagnostics.Append(req.Config.Get(ctx, &resource)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+{{- if not IsCustom }}
+	resource.ValidateConfig(ctx, resp, path.Empty())
 {{- end }}
 {{- if HasPosition }}
 	{

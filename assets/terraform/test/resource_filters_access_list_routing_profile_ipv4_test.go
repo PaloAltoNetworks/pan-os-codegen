@@ -50,9 +50,9 @@ func TestAccFiltersAccessListRoutingProfile_Ipv4_Basic(t *testing.T) {
 						tfjsonpath.New("type").AtMapKey("ipv4").AtMapKey("ipv4_entries"),
 						knownvalue.ListExact([]knownvalue.Check{
 							knownvalue.ObjectExact(map[string]knownvalue.Check{
-								"name":   knownvalue.StringExact("10"),
-								"action": knownvalue.StringExact("deny"),
-								"source_address": knownvalue.Null(),
+								"name":                knownvalue.StringExact("10"),
+								"action":              knownvalue.StringExact("deny"),
+								"source_address":      knownvalue.Null(),
 								"destination_address": knownvalue.Null(),
 							}),
 						}),
@@ -159,7 +159,6 @@ resource "panos_filters_access_list_routing_profile" "example" {
   }
 }
 `
-
 
 func TestAccFiltersAccessListRoutingProfile_Ipv4_SourceAddress_Entry(t *testing.T) {
 	t.Parallel()

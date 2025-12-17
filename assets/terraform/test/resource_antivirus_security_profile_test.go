@@ -202,10 +202,10 @@ func TestAccAntivirusSecurityProfile_Decoders(t *testing.T) {
 						tfjsonpath.New("decoders"),
 						knownvalue.ListExact([]knownvalue.Check{
 							knownvalue.ObjectExact(map[string]knownvalue.Check{
-								"name": knownvalue.StringExact("http"),
-								"action": knownvalue.StringExact("drop"),
+								"name":            knownvalue.StringExact("http"),
+								"action":          knownvalue.StringExact("drop"),
 								"wildfire_action": knownvalue.StringExact("alert"),
-								"ml_action": knownvalue.StringExact("reset-client"),
+								"ml_action":       knownvalue.StringExact("reset-client"),
 							}),
 						}),
 					),
@@ -345,8 +345,8 @@ func TestAccAntivirusSecurityProfile_MachineLearningExceptions(t *testing.T) {
 						tfjsonpath.New("machine_learning_exceptions"),
 						knownvalue.ListExact([]knownvalue.Check{
 							knownvalue.ObjectExact(map[string]knownvalue.Check{
-								"name": knownvalue.StringExact("ml_exception_1"),
-								"filename": knownvalue.StringExact("example.exe"),
+								"name":        knownvalue.StringExact("ml_exception_1"),
+								"filename":    knownvalue.StringExact("example.exe"),
 								"description": knownvalue.StringExact("Example ML exception"),
 							}),
 						}),

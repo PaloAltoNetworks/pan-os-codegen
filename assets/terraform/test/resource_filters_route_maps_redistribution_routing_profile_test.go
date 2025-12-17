@@ -135,21 +135,21 @@ func TestAccFiltersRouteMapsRedistributionRoutingProfile_Bgp_Ospf(t *testing.T) 
 							"ospf": knownvalue.ObjectExact(map[string]knownvalue.Check{
 								"route_map": knownvalue.ListExact([]knownvalue.Check{
 									knownvalue.ObjectExact(map[string]knownvalue.Check{
-										"name":   knownvalue.StringExact("10"),
-										"action": knownvalue.StringExact("permit"),
+										"name":        knownvalue.StringExact("10"),
+										"action":      knownvalue.StringExact("permit"),
 										"description": knownvalue.StringExact("Redistribute BGP to OSPF"),
 										"match": knownvalue.ObjectExact(map[string]knownvalue.Check{
-											"metric":              knownvalue.Int64Exact(100),
-											"tag":                 knownvalue.Int64Exact(200),
-											"origin":              knownvalue.StringExact("igp"),
-											"local_preference":    knownvalue.Int64Exact(150),
-											"as_path_access_list": knownvalue.Null(),
-											"regular_communities": knownvalue.Null(),
-											"large_communities":   knownvalue.Null(),
+											"metric":               knownvalue.Int64Exact(100),
+											"tag":                  knownvalue.Int64Exact(200),
+											"origin":               knownvalue.StringExact("igp"),
+											"local_preference":     knownvalue.Int64Exact(150),
+											"as_path_access_list":  knownvalue.Null(),
+											"regular_communities":  knownvalue.Null(),
+											"large_communities":    knownvalue.Null(),
 											"extended_communities": knownvalue.Null(),
-											"interface":           knownvalue.Null(),
-											"peer":                knownvalue.Null(),
-											"ipv4":                knownvalue.Null(),
+											"interface":            knownvalue.Null(),
+											"peer":                 knownvalue.Null(),
+											"ipv4":                 knownvalue.Null(),
 										}),
 										"set": knownvalue.ObjectExact(map[string]knownvalue.Check{
 											"metric": knownvalue.ObjectExact(map[string]knownvalue.Check{
@@ -255,17 +255,17 @@ func TestAccFiltersRouteMapsRedistributionRoutingProfile_Bgp_Ospfv3(t *testing.T
 										"action":      knownvalue.StringExact("deny"),
 										"description": knownvalue.StringExact("Redistribute BGP to OSPFv3"),
 										"match": knownvalue.ObjectExact(map[string]knownvalue.Check{
-											"metric":              knownvalue.Int64Exact(50),
-											"tag":                 knownvalue.Int64Exact(100),
-											"as_path_access_list": knownvalue.Null(),
-											"regular_communities": knownvalue.Null(),
-											"large_communities":   knownvalue.Null(),
+											"metric":               knownvalue.Int64Exact(50),
+											"tag":                  knownvalue.Int64Exact(100),
+											"as_path_access_list":  knownvalue.Null(),
+											"regular_communities":  knownvalue.Null(),
+											"large_communities":    knownvalue.Null(),
 											"extended_communities": knownvalue.Null(),
-											"interface":           knownvalue.Null(),
-											"origin":              knownvalue.Null(),
-											"local_preference":    knownvalue.Null(),
-											"peer":                knownvalue.Null(),
-											"ipv6":                knownvalue.Null(),
+											"interface":            knownvalue.Null(),
+											"origin":               knownvalue.Null(),
+											"local_preference":     knownvalue.Null(),
+											"peer":                 knownvalue.Null(),
+											"ipv6":                 knownvalue.Null(),
 										}),
 										"set": knownvalue.ObjectExact(map[string]knownvalue.Check{
 											"metric": knownvalue.ObjectExact(map[string]knownvalue.Check{
@@ -329,6 +329,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
   }
 }
 `
+
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_Bgp_Rib(t *testing.T) {
 	t.Parallel()
 
@@ -410,6 +411,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
   }
 }
 `
+
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_Bgp_Rip(t *testing.T) {
 	t.Parallel()
 
@@ -445,21 +447,21 @@ func TestAccFiltersRouteMapsRedistributionRoutingProfile_Bgp_Rip(t *testing.T) {
 							"rip": knownvalue.ObjectExact(map[string]knownvalue.Check{
 								"route_map": knownvalue.ListExact([]knownvalue.Check{
 									knownvalue.ObjectExact(map[string]knownvalue.Check{
-										"name":   knownvalue.StringExact("40"),
-										"action": knownvalue.StringExact("permit"),
+										"name":        knownvalue.StringExact("40"),
+										"action":      knownvalue.StringExact("permit"),
 										"description": knownvalue.StringExact("Redistribute BGP to RIP"),
 										"match": knownvalue.ObjectExact(map[string]knownvalue.Check{
-											"metric":              knownvalue.Int64Exact(5),
-											"tag":                 knownvalue.Int64Exact(50),
-											"as_path_access_list": knownvalue.Null(),
-											"regular_communities": knownvalue.Null(),
-											"large_communities":   knownvalue.Null(),
+											"metric":               knownvalue.Int64Exact(5),
+											"tag":                  knownvalue.Int64Exact(50),
+											"as_path_access_list":  knownvalue.Null(),
+											"regular_communities":  knownvalue.Null(),
+											"large_communities":    knownvalue.Null(),
 											"extended_communities": knownvalue.Null(),
-											"interface":           knownvalue.Null(),
-											"origin":              knownvalue.Null(),
-											"local_preference":    knownvalue.Null(),
-											"peer":                knownvalue.Null(),
-											"ipv4":                knownvalue.Null(),
+											"interface":            knownvalue.Null(),
+											"origin":               knownvalue.Null(),
+											"local_preference":     knownvalue.Null(),
+											"peer":                 knownvalue.Null(),
+											"ipv4":                 knownvalue.Null(),
 										}),
 										"set": knownvalue.ObjectExact(map[string]knownvalue.Check{
 											"metric": knownvalue.ObjectExact(map[string]knownvalue.Check{
@@ -523,6 +525,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
   }
 }
 `
+
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_ConnectedStatic_Bgp(t *testing.T) {
 	t.Parallel()
 
@@ -605,6 +608,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
   }
 }
 `
+
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_ConnectedStatic_Ospf(t *testing.T) {
 	t.Parallel()
 
@@ -852,6 +856,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
   }
 }
 `
+
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_Ospf_Bgp(t *testing.T) {
 	t.Parallel()
 

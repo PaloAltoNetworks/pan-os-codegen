@@ -4,12 +4,11 @@ import (
 	"encoding/xml"
 	"fmt"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-
 	"github.com/PaloAltoNetworks/pango/generic"
 	"github.com/PaloAltoNetworks/pango/objects/application"
 	"github.com/PaloAltoNetworks/pango/version"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("XML Marshalling and Unmarshalling tests", func() {
