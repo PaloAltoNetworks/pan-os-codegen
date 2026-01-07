@@ -3474,8 +3474,7 @@ spec:
                                               spec:
                                                 min: 1
                                                 max: 255
-                                            spec:
-                                              default: 1
+                                            spec: {}
                                             description: prepend local AS for specified
                                               number of times
                                             required: false
@@ -3490,8 +3489,7 @@ spec:
                                               spec:
                                                 min: 1
                                                 max: 255
-                                            spec:
-                                              default: 1
+                                            spec: {}
                                             description: remove matched AS path(s),
                                               and prepend local AS for specified number
                                               of times
