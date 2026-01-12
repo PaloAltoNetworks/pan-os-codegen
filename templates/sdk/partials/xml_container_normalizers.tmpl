@@ -1,0 +1,15 @@
+{{- range .Specs }}
+{{- if not .TopLevel }}{{ continue }}{{ end }}
+func (o *{{ .XmlContainerStructName }}) Normalize() ([]*{{ $.EntryOrConfig }}, error) {
+	entries := make([]*{{ $.EntryOrConfig }}, 0, len(o.Answer))
+	for _, elt := range o.Answer {
+		obj, err := elt.UnmarshalToObject()
+		if err != nil {
+			return nil, err
+		}
+		entries = append(entries, obj)
+	}
+
+	return entries, nil
+}
+{{- end }}

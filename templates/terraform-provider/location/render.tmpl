@@ -1,0 +1,8 @@
+
+{{- range .Locations }}
+type {{ .StructName }} struct {
+  {{- range .Fields }}
+	{{ .Name.CamelCase }} {{ .Type }} {{ range .Tags }}{{ . }} {{ end }}
+  {{- end }}
+}
+{{- end }}

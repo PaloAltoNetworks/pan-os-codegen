@@ -1,0 +1,18 @@
+{{- if or (eq .SchemaType "datasource") (eq .Method "create") (eq .Method "import") }}
+var encryptedValues []byte
+{{- else }}
+encryptedValues, diags := req.Private.GetKey(ctx, "encrypted_values")
+resp.Diagnostics.Append(diags...)
+if resp.Diagnostics.HasError() {
+	return
+}
+{{- end }}
+{{- if eq .Method "read" }}
+ev, err := NewEncryptedValuesManager(encryptedValues, true)
+{{- else }}
+ev, err := NewEncryptedValuesManager(encryptedValues, false)
+{{- end }}
+if err != nil {
+	resp.Diagnostics.AddError("Failed to read encrypted values from private state", err.Error())
+	return
+}

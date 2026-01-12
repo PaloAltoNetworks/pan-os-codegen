@@ -1,0 +1,2 @@
+{{- /* Generates a single provider model struct field */ -}}
+{{ "    " }}{{ CamelCaseName .paramName }} types.{{ CamelCaseType .Type }} `tfsdk:"{{ UnderscoreName .paramName }}"`

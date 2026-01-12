@@ -1,0 +1,95 @@
+{{- range .Specs }}
+  {{- if .IsXmlContainer }}{{ continue }}{{ end }}
+func (o *{{ .XmlStructName }}) MarshalFromObject(s {{ .StructName }}) {
+  {{- range .Fields }}
+    {{- if .IsInternal }}{{ continue }}{{- end }}
+    {{- if eq .FieldType "object" }}
+	if s.{{ .Name.CamelCase }} != nil {
+		var obj {{ .XmlType }}
+		obj.MarshalFromObject(*s.{{ .Name.CamelCase }})
+		o.{{ .Name.CamelCase }} = &obj
+	}
+    {{-  else if eq .FieldType "list-member" }}
+      {{- if eq .ItemsType "[]string" }}
+	if s.{{ .Name.CamelCase }} != nil {
+		o.{{ .Name.CamelCase }} = util.StrToMem(s.{{ .Name.CamelCase }})
+	}
+      {{- else if eq .ItemsType "[]int64" }}
+	if s.{{ .Name.CamelCase }} != nil {
+		o.{{ .Name.CamelCase }} = util.Int64ToMem(s.{{ .Name.CamelCase }})
+	}
+      {{- end }}
+    {{- else if eq .FieldType "list-entry" }}
+	if s.{{ .Name.CamelCase }} != nil {
+		var objs {{ .ItemsXmlType }}
+		for _, elt := range s.{{ .Name.CamelCase }} {
+			var obj {{ .XmlType }}
+			obj.MarshalFromObject(elt)
+			objs = append(objs, obj)
+		}
+		o.{{ .Name.CamelCase }} = &{{ .XmlContainerType }}{ Entries: objs }
+	}
+    {{- else if and (eq .FieldType "simple") (eq .Type "bool") }}
+	o.{{ .Name.CamelCase }} = util.YesNo(s.{{ .Name.CamelCase }}, nil)
+    {{- else }}
+	o.{{ .Name.CamelCase }} = s.{{ .Name.CamelCase }}
+    {{- end }}
+  {{- end }}
+}
+
+func (o {{ .XmlStructName }}) UnmarshalToObject() (*{{ .StructName }}, error) {
+  {{- range .Fields }}
+    {{- if .IsInternal }}{{ continue }}{{- end }}
+    {{- if eq .FieldType "object" }}
+	var {{ .Name.LowerCamelCase }}Val {{ .FinalType }}
+	if o.{{ .Name.CamelCase }} != nil {
+		obj, err := o.{{ .Name.CamelCase }}.UnmarshalToObject()
+		if err != nil {
+			return nil, err
+		}
+		{{ .Name.LowerCamelCase }}Val = obj
+	}
+    {{- else if eq .FieldType "list-member" }}
+	var {{ .Name.LowerCamelCase }}Val {{ .FinalType }}
+      {{- if eq .ItemsType "[]string" }}
+	if o.{{ .Name.CamelCase }} != nil {
+		{{ .Name.LowerCamelCase }}Val = util.MemToStr(o.{{ .Name.CamelCase }})
+	}
+      {{- else if eq .ItemsType "[]int64" }}
+	if o.{{ .Name.CamelCase }} != nil {
+		var err error
+		{{ .Name.LowerCamelCase }}Val, err = util.MemToInt64(o.{{ .Name.CamelCase }})
+		if err != nil && !errors.Is(err, util.ErrEmptyMemberList) {
+			return nil, err
+		}
+	}
+      {{- end }}
+    {{- else if eq .FieldType "list-entry" }}
+	var {{ .Name.LowerCamelCase }}Val {{ .FinalType }}
+	if o.{{ .Name.CamelCase }} != nil {
+		for _, elt := range o.{{ .Name.CamelCase }}.Entries {
+			obj, err := elt.UnmarshalToObject()
+			if err != nil {
+				return nil, err
+			}
+			{{ .Name.LowerCamelCase }}Val = append({{ .Name.LowerCamelCase }}Val, *obj)
+		}
+	}
+    {{- end }}
+  {{- end }}
+
+	result := &{{ .StructName }}{
+  {{- range .Fields }}
+    {{- if .IsInternal }}{{- continue }}{{- end }}
+    {{- if or (eq .FieldType "list-member") (eq .FieldType "list-entry") (eq .FieldType "object") }}
+		{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}Val,
+    {{- else if and (eq .FieldType "simple") (eq .Type "bool") }}
+		{{ .Name.CamelCase }}: util.AsBool(o.{{ .Name.CamelCase }}, nil),
+    {{- else }}
+		{{ .Name.CamelCase }}: o.{{ .Name.CamelCase }},
+    {{- end }}
+  {{- end }}
+	}
+	return result, nil
+}
+{{- end }}

@@ -1,0 +1,264 @@
+{{- /* Begin */ -}}
+
+{{- if IsEphemeral }}
+// Generate Terraform Ephemeral object
+var (
+	_ ephemeral.EphemeralResource              = &{{ resourceStructName }}{}
+        _ ephemeral.EphemeralResourceWithConfigure = &{{ resourceStructName }}{}
+)
+{{- else }}
+// Generate Terraform Resource object
+var (
+	_ resource.Resource                = &{{ resourceStructName }}{}
+	_ resource.ResourceWithConfigure   = &{{ resourceStructName }}{}
+	_ resource.ResourceWithImportState = &{{ resourceStructName }}{}
+)
+{{- end }}
+
+
+{{- if IsEphemeral }}
+func New{{ resourceStructName }}() ephemeral.EphemeralResource {
+	return &{{ resourceStructName }}{}
+}
+{{- else }}
+func New{{ resourceStructName }}() resource.Resource {
+  {{- if IsImportable }}
+	if _, found := resourceFuncMap["panos{{ metaName }}"]; !found {
+		resourceFuncMap["panos{{ metaName }}"] = resourceFuncs{
+			CreateImportId: {{ structName }}ImportStateCreator,
+		}
+	}
+  {{- end }}
+	return &{{ resourceStructName }}{}
+}
+{{- end }}
+
+type {{ resourceStructName }} struct {
+	client *pango.Client
+{{- if IsCustom }}
+	custom *{{ structName }}Custom
+{{- else if and IsEntry HasImports }}
+	manager *sdkmanager.ImportableEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, {{ resourceSDKName }}.ImportLocation, *{{ resourceSDKName }}.Service]
+{{- else if IsEntry }}
+	manager *sdkmanager.EntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service]
+{{- else if IsUuid }}
+	manager *sdkmanager.UuidObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service]
+{{- else if IsConfig }}
+	manager *sdkmanager.ConfigObjectManager[*{{ resourceSDKName }}.Config, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service]
+{{- end }}
+}
+
+{{- if HasLocations }}
+func {{ resourceStructName }}LocationSchema() rsschema.Attribute {
+	return {{ structName }}LocationSchema()
+}
+{{- end }}
+
+{{ RenderResourceStructs }}
+
+{{- if not IsCustom }}
+{{ RenderResourceValidators }}
+{{- end }}
+
+func (o *{{ resourceStructName }}) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+
+{{ if HasCustomValidation }}
+	o.ValidateConfigCustom(ctx, req, resp)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- end }}
+	var resource {{ resourceStructName }}Model
+	resp.Diagnostics.Append(req.Config.Get(ctx, &resource)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+{{- if not IsCustom }}
+	resource.ValidateConfig(ctx, resp, path.Empty())
+{{- end }}
+{{- if HasPosition }}
+	{
+        if !resource.Position.IsUnknown() {
+		var positionAttribute TerraformPositionObject
+		resp.Diagnostics.Append(resource.Position.As(ctx, &positionAttribute, basetypes.ObjectAsOptions{})...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		positionAttribute.ValidateConfig(resp)
+	}
+
+	}
+{{- end }}
+
+{{- if IsUuid }}
+	{
+  {{ $resourceTFStructName := printf "%s%sObject" resourceStructName ListAttribute.CamelCase }}
+	entries := make(map[string]struct{})
+	duplicated := make(map[string]struct{})
+
+	var elements []types.Object
+	resp.Diagnostics.Append(resource.{{ ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, true)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	for _, elt := range elements {
+		var typedElt {{ $resourceTFStructName }}
+		resp.Diagnostics.Append(elt.As(ctx, &typedElt, basetypes.ObjectAsOptions{})...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		if typedElt.Name.IsUnknown() {
+			continue
+		}
+
+		entry := typedElt.Name.ValueString()
+		if _, found := entries[entry]; found {
+			duplicated[entry] = struct{}{}
+		}
+		entries[entry] = struct{}{}
+	}
+
+	var _ = strings.Join([]string{"a", "b"}, ",")
+
+	if len(duplicated) > 0 {
+		var entries []string
+		for elt := range duplicated {
+			entries = append(entries, fmt.Sprintf("'%s'", elt))
+		}
+		resp.Diagnostics.AddError("Failed to validate resource", fmt.Sprintf("Non-unique entry names in the list: %s", strings.Join(entries, ",")))
+		return
+	}
+
+	}
+{{- end }}
+}
+
+// <ResourceSchema>
+{{ RenderResourceSchema }}
+
+func (o *{{ resourceStructName }}) Metadata(ctx context.Context, req {{ tfresourcepkg }}.MetadataRequest, resp *{{ tfresourcepkg }}.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "{{ metaName }}"
+}
+
+func (o *{{ resourceStructName }}) Schema(_ context.Context, _ {{ tfresourcepkg }}.SchemaRequest, resp *{{ tfresourcepkg }}.SchemaResponse) {
+	resp.Schema = {{ resourceStructName }}Schema()
+}
+
+// </ResourceSchema>
+
+func (o *{{ resourceStructName }}) Configure(ctx context.Context, req {{ tfresourcepkg }}.ConfigureRequest, resp *{{ tfresourcepkg }}.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
+	}
+
+	providerData := req.ProviderData.(*ProviderData)
+	o.client = providerData.Client
+
+{{- if IsCustom }}
+	custom, err := New{{ structName }}Custom(providerData)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
+		return
+	}
+	o.custom = custom
+{{- else if and IsEntry HasImports }}
+	specifier, _, err := {{ resourceSDKName }}.Versioning(o.client.Versioning())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
+		return
+	}
+
+	batchSize := providerData.MultiConfigBatchSize
+	o.manager =  sdkmanager.NewImportableEntryObjectManager(o.client, {{ resourceSDKName }}.NewService(o.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
+{{- else if IsEntry }}
+	specifier, _, err := {{ resourceSDKName }}.Versioning(o.client.Versioning())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
+		return
+	}
+	batchSize := providerData.MultiConfigBatchSize
+	o.manager =  sdkmanager.NewEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](o.client, {{ resourceSDKName }}.NewService(o.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
+{{- else if IsUuid }}
+	specifier, _, err := {{ resourceSDKName }}.Versioning(o.client.Versioning())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
+		return
+	}
+	batchSize := providerData.MultiConfigBatchSize
+	o.manager =  sdkmanager.NewUuidObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](o.client, {{ resourceSDKName }}.NewService(o.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
+{{- else if IsConfig }}
+	specifier, _, err := {{ resourceSDKName }}.Versioning(o.client.Versioning())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
+		return
+	}
+	o.manager =  sdkmanager.NewConfigObjectManager(o.client, {{ resourceSDKName }}.NewService(o.client), specifier)
+{{- end }}
+}
+
+{{ RenderModelAttributeTypesFunction }}
+
+{{ RenderCopyToPangoFunctions }}
+
+{{ RenderCopyFromPangoFunctions }}
+
+{{ RenderXpathComponentsGetter }}
+
+{{- if FunctionSupported "Create" }}
+func (o *{{ resourceStructName }}) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	{{ ResourceCreateFunction resourceStructName serviceName}}
+}
+{{- end }}
+
+{{- if FunctionSupported "Read" }}
+func (o *{{ resourceStructName }}) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	{{ ResourceReadFunction resourceStructName serviceName}}
+}
+{{- end }}
+
+
+{{- if FunctionSupported "Update" }}
+func (o *{{ resourceStructName }}) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	{{ ResourceUpdateFunction resourceStructName serviceName}}
+}
+{{- end }}
+
+{{- if FunctionSupported "Delete" }}
+func (o *{{ resourceStructName }}) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	{{ ResourceDeleteFunction resourceStructName serviceName}}
+}
+{{- end }}
+
+{{- if FunctionSupported "Open" }}
+func (o *{{ resourceStructName }}) Open(ctx context.Context, req ephemeral.OpenRequest, resp *ephemeral.OpenResponse) {
+	{{ ResourceOpenFunction resourceStructName serviceName}}
+}
+{{- end }}
+
+{{- if FunctionSupported "Renew" }}
+func (o *{{ resourceStructName }}) Renew(ctx context.Context, req ephemeral.RenewRequest, resp *ephemeral.RenewResponse) {
+	{{ ResourceRenewFunction resourceStructName serviceName}}
+}
+{{- end }}
+
+{{- if FunctionSupported "Close" }}
+func (o *{{ resourceStructName }}) Close(ctx context.Context, req ephemeral.CloseRequest, resp *ephemeral.CloseResponse) {
+	{{ ResourceCloseFunction resourceStructName serviceName}}
+}
+{{- end }}
+
+{{ RenderImportStateStructs }}
+
+{{ RenderImportStateMarshallers }}
+
+{{ RenderImportStateCreator }}
+
+func (o *{{ resourceStructName }}) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	{{ ResourceImportStateFunction }}
+}
+
+{{- /* Done */ -}}

@@ -3,6 +3,8 @@ package translate
 import (
 	"bytes"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"text/template"
 
@@ -10,6 +12,27 @@ import (
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/version"
 )
+
+// loadTemplate loads a template from the templates/sdk directory
+func loadTemplate(templatePath string) (string, error) {
+	fullPath := filepath.Join("templates", "sdk", templatePath)
+	content, err := os.ReadFile(fullPath)
+	if err != nil {
+		// Try from parent directories (for when running from subdirectories)
+		for i := 1; i <= 3; i++ {
+			prefix := strings.Repeat("../", i)
+			altPath := filepath.Join(prefix, "templates", "sdk", templatePath)
+			content, err = os.ReadFile(altPath)
+			if err == nil {
+				break
+			}
+		}
+		if err != nil {
+			return "", fmt.Errorf("failed to read template %s: %w", fullPath, err)
+		}
+	}
+	return string(content), nil
+}
 
 type structType string
 
@@ -33,164 +56,6 @@ func LocationType(location *properties.Location, pointer bool) string {
 	}
 	return fmt.Sprintf("%s%sLocation", prefix, location.Name.CamelCase)
 }
-
-const importLocationStructTmpl = `
-type ImportLocation interface {
-	XpathForLocation(version.Number, util.ILocation) ([]string, error)
-	MarshalPangoXML([]string) (string, error)
-	UnmarshalPangoXML([]byte) ([]string, error)
-}
-
-{{- range .Specs }}
-  {{- $spec := . }}
-  {{- $const := printf "%s%sType" $spec.Variant.CamelCase $spec.Type.CamelCase }}
-type {{ $const }} int
-
-const (
-  {{- range .Locations }}
-	{{ $spec.Variant.LowerCamelCase }}{{ $spec.Type.CamelCase }}{{ .Name.CamelCase }} {{ $const }} = iota
-  {{- end }}
-)
-
-
-  {{ $topType := printf "%s%sImportLocation" $spec.Variant.CamelCase $spec.Type.CamelCase }}
-type {{ $spec.Variant.CamelCase }}{{ $spec.Type.CamelCase }}ImportLocation struct {
-	typ {{ $const }}
-  {{- range .Locations }}
-
-    {{- $typeName := printf "%s%s%sImportLocation" $spec.Variant.CamelCase $spec.Type.CamelCase .Name.CamelCase }}
-	{{ .Name.LowerCamelCase }} *{{ $typeName }}
-  {{- end }}
-}
-
-  {{- range .Locations }}
-    {{ $location := . }}
-    {{- $typeName := printf "%s%s%sImportLocation" $spec.Variant.CamelCase $spec.Type.CamelCase .Name.CamelCase }}
-type {{ $typeName }} struct {
-	xpath []string
-    {{- range .XpathVariables }}
-	{{ .Name.LowerCamelCase }} string
-    {{- end }}
-}
-
-type {{ $typeName }}Spec struct {
-    {{- range .XpathVariables }}
-	{{ .Name.CamelCase }} string
-    {{- end }}
-}
-
-func New{{ $typeName }}(spec {{ $typeName }}Spec) *{{ $topType }} {
-	location := &{{ $typeName }}{
-    {{- range .XpathVariables }}
-	{{ .Name.LowerCamelCase }}: spec.{{ .Name.CamelCase }},
-    {{- end }}
-	}
-
-	return &{{ $topType }}{
-		typ: {{ $spec.Variant.LowerCamelCase }}{{ $spec.Type.CamelCase }}{{ .Name.CamelCase }},
-		{{ $location.Name.LowerCamelCase }}: location,
-	}
-}
-
-func (o *{{ $typeName }}) XpathForLocation(vn version.Number, loc util.ILocation) ([]string, error) {
-	ans, err := loc.XpathPrefix(vn)
-	if err != nil {
-		return nil, err
-	}
-
-	importAns := []string{
-    {{- range .XpathElements }}
-		{{ . }},
-    {{- end }}
-	}
-
-	return append(ans, importAns...), nil
-}
-
-func (o *{{ $typeName }}) MarshalPangoXML(interfaces []string) (string, error) {
-	type member struct {
-		Name string ` + "`" + `xml:",chardata"` + "`" + `
-	}
-
-	type request struct {
-		XMLName xml.Name ` + "`" + `xml:"{{ .XpathFinalElement }}"` + "`" + `
-		Members []member ` + "`" + `xml:"member"` + "`" + `
-	}
-
-	var members []member
-	for _, elt := range interfaces {
-		members = append(members, member{Name: elt})
-	}
-
-	expected := request {
-		Members: members,
-	}
-	bytes, err := xml.Marshal(expected)
-	if err != nil {
-		return "", err
-	}
-
-	return string(bytes), nil
-}
-
-func (o *{{ $typeName }}) UnmarshalPangoXML(bytes []byte) ([]string, error) {
-	type member struct {
-		Name string ` + "`" + `xml:",chardata"` + "`" + `
-	}
-
-	type response struct {
-		Members []member ` + "`" + `xml:"{{ .ResponseXpath }}"` + "`" + `
-	}
-
-	var existing response
-	err := xml.Unmarshal(bytes, &existing)
-	if err != nil {
-		return nil, err
-	}
-
-	var interfaces []string
-	for _, elt := range existing.Members {
-		interfaces = append(interfaces, elt.Name)
-	}
-
-	return interfaces, nil
-}
-  {{- end }}
-
-func (o *{{ $topType }}) MarshalPangoXML(interfaces []string) (string, error) {
-	switch o.typ {
-  {{- range .Locations }}
-	case {{ $spec.Variant.LowerCamelCase }}{{ $spec.Type.CamelCase }}{{ .Name.CamelCase }}:
-		return o.{{ .Name.LowerCamelCase }}.MarshalPangoXML(interfaces)
-  {{- end }}
-	default:
-		return "", fmt.Errorf("invalid import location")
-	}
-}
-
-func (o *{{ $topType }}) UnmarshalPangoXML(bytes []byte) ([]string, error) {
-	switch o.typ {
-  {{- range .Locations }}
-	case {{ $spec.Variant.LowerCamelCase }}{{ $spec.Type.CamelCase }}{{ .Name.CamelCase }}:
-		return o.{{ .Name.LowerCamelCase }}.UnmarshalPangoXML(bytes)
-  {{- end }}
-	default:
-		return nil, fmt.Errorf("invalid import location")
-	}
-}
-
-func (o *{{ $topType }}) XpathForLocation(vn version.Number, loc util.ILocation) ([]string, error) {
-	switch o.typ {
-  {{- range .Locations }}
-	case {{ $spec.Variant.LowerCamelCase }}{{ $spec.Type.CamelCase }}{{ .Name.CamelCase }}:
-		return o.{{ .Name.LowerCamelCase }}.XpathForLocation(vn, loc)
-  {{- end }}
-	default:
-		return nil, fmt.Errorf("invalid import location")
-	}
-}
-{{- end }}
-`
 
 type importXpathVariableSpec struct {
 	Name        *properties.NameVariant
@@ -278,7 +143,12 @@ func RenderEntryImportStructs(spec *properties.Normalization) (string, error) {
 		Specs []importSpec
 	}
 
-	tmpl, err := template.New("render-entry-import-structs").Parse(importLocationStructTmpl)
+	tmplContent, err := loadTemplate("partials/import_location_struct.tmpl")
+	if err != nil {
+		return "", err
+	}
+
+	tmpl, err := template.New("render-entry-import-structs").Parse(tmplContent)
 	if err != nil {
 		return "", err
 	}
@@ -295,26 +165,6 @@ func RenderEntryImportStructs(spec *properties.Normalization) (string, error) {
 
 	return buf.String(), nil
 }
-
-const locationFilterTmpl = `
-func (o Location) LocationFilter() *string {
-{{ range .Specs }}
-  {{ $spec := . }}
-  {{- if not .HasFilter }}{{ continue }}{{ end }}
-	if o.{{ $spec.Name.CamelCase }} != nil {
-  {{- range .Variables }}
-    {{- if not .LocationFilter }}{{ continue }}{{ end }}
-		if o.{{ $spec.Name.CamelCase }}.{{ .Name.CamelCase }} == "" {
-			return nil
-		} else {
-			return &o.{{ $spec.Name.CamelCase }}.{{ .Name.CamelCase }}
-		}
-  {{- end }}
-	}
-{{- end }}
-	return nil
-}
-`
 
 type locationVariableSpec struct {
 	Name           *properties.NameVariant
@@ -358,7 +208,12 @@ func RenderLocationFilter(spec *properties.Normalization) (string, error) {
 		Specs []locationSpec
 	}
 
-	tmpl, err := template.New("render-entry-import-structs").Parse(locationFilterTmpl)
+	tmplContent, err := loadTemplate("partials/location_filter.tmpl")
+	if err != nil {
+		return "", err
+	}
+
+	tmpl, err := template.New("render-entry-import-structs").Parse(tmplContent)
 	if err != nil {
 		return "", err
 	}
@@ -968,20 +823,16 @@ func createStructSpecs(structTyp structType, spec *properties.Normalization, ver
 	return creasteStructSpecsForNormalization(structTyp, properties.NewNameVariant(""), spec, version)
 }
 
-const apiStructsTmpl = `
-{{- range .Specs }}
-{{- $spec := . }}
-type {{ .StructName }} struct{
-  {{- range .Fields }}
-    {{- if .IsInternal }}{{ continue }}{{ end }}
-	{{ .Name.CamelCase }} {{ .FinalType }}
-  {{- end }}
-}
-{{- end }}
-`
-
 func RenderEntryApiStructs(spec *properties.Normalization) (string, error) {
-	tmpl := template.Must(template.New("render-entry-api-structs").Parse(apiStructsTmpl))
+	tmplContent, err := loadTemplate("partials/api_structs.tmpl")
+	if err != nil {
+		return "", err
+	}
+
+	tmpl, err := template.New("render-entry-api-structs").Parse(tmplContent)
+	if err != nil {
+		return "", err
+	}
 
 	specs := createStructSpecs(structApiType, spec, nil)
 	type context struct {
@@ -998,19 +849,16 @@ func RenderEntryApiStructs(spec *properties.Normalization) (string, error) {
 	return builder.String(), nil
 }
 
-const xmlStructsTmpl = `
-{{- range .Specs }}
-{{- $spec := . }}
-type {{ .XmlStructName }} struct{
-  {{- range .Fields }}
-	{{ .Name.CamelCase }} {{ .FinalXmlType }} {{ .Tags }}
-  {{- end }}
-}
-{{- end }}
-`
-
 func RenderEntryXmlStructs(spec *properties.Normalization) (string, error) {
-	tmpl := template.Must(template.New("render-entry-xml-structs").Parse(xmlStructsTmpl))
+	tmplContent, err := loadTemplate("partials/xml_structs.tmpl")
+	if err != nil {
+		return "", err
+	}
+
+	tmpl, err := template.New("render-entry-xml-structs").Parse(tmplContent)
+	if err != nil {
+		return "", err
+	}
 
 	specs := createStructSpecs(structXmlType, spec, nil)
 	for _, elt := range spec.SupportedVersionRanges() {
@@ -1031,106 +879,16 @@ func RenderEntryXmlStructs(spec *properties.Normalization) (string, error) {
 	return builder.String(), nil
 }
 
-const structToXmlMarshalersTmpl = `
-{{- range .Specs }}
-  {{- if .IsXmlContainer }}{{ continue }}{{ end }}
-func (o *{{ .XmlStructName }}) MarshalFromObject(s {{ .StructName }}) {
-  {{- range .Fields }}
-    {{- if .IsInternal }}{{ continue }}{{- end }}
-    {{- if eq .FieldType "object" }}
-	if s.{{ .Name.CamelCase }} != nil {
-		var obj {{ .XmlType }}
-		obj.MarshalFromObject(*s.{{ .Name.CamelCase }})
-		o.{{ .Name.CamelCase }} = &obj
-	}
-    {{-  else if eq .FieldType "list-member" }}
-      {{- if eq .ItemsType "[]string" }}
-	if s.{{ .Name.CamelCase }} != nil {
-		o.{{ .Name.CamelCase }} = util.StrToMem(s.{{ .Name.CamelCase }})
-	}
-      {{- else if eq .ItemsType "[]int64" }}
-	if s.{{ .Name.CamelCase }} != nil {
-		o.{{ .Name.CamelCase }} = util.Int64ToMem(s.{{ .Name.CamelCase }})
-	}
-      {{- end }}
-    {{- else if eq .FieldType "list-entry" }}
-	if s.{{ .Name.CamelCase }} != nil {
-		var objs {{ .ItemsXmlType }}
-		for _, elt := range s.{{ .Name.CamelCase }} {
-			var obj {{ .XmlType }}
-			obj.MarshalFromObject(elt)
-			objs = append(objs, obj)
-		}
-		o.{{ .Name.CamelCase }} = &{{ .XmlContainerType }}{ Entries: objs }
-	}
-    {{- else if and (eq .FieldType "simple") (eq .Type "bool") }}
-	o.{{ .Name.CamelCase }} = util.YesNo(s.{{ .Name.CamelCase }}, nil)
-    {{- else }}
-	o.{{ .Name.CamelCase }} = s.{{ .Name.CamelCase }}
-    {{- end }}
-  {{- end }}
-}
-
-func (o {{ .XmlStructName }}) UnmarshalToObject() (*{{ .StructName }}, error) {
-  {{- range .Fields }}
-    {{- if .IsInternal }}{{ continue }}{{- end }}
-    {{- if eq .FieldType "object" }}
-	var {{ .Name.LowerCamelCase }}Val {{ .FinalType }}
-	if o.{{ .Name.CamelCase }} != nil {
-		obj, err := o.{{ .Name.CamelCase }}.UnmarshalToObject()
-		if err != nil {
-			return nil, err
-		}
-		{{ .Name.LowerCamelCase }}Val = obj
-	}
-    {{- else if eq .FieldType "list-member" }}
-	var {{ .Name.LowerCamelCase }}Val {{ .FinalType }}
-      {{- if eq .ItemsType "[]string" }}
-	if o.{{ .Name.CamelCase }} != nil {
-		{{ .Name.LowerCamelCase }}Val = util.MemToStr(o.{{ .Name.CamelCase }})
-	}
-      {{- else if eq .ItemsType "[]int64" }}
-	if o.{{ .Name.CamelCase }} != nil {
-		var err error
-		{{ .Name.LowerCamelCase }}Val, err = util.MemToInt64(o.{{ .Name.CamelCase }})
-		if err != nil && !errors.Is(err, util.ErrEmptyMemberList) {
-			return nil, err
-		}
-	}
-      {{- end }}
-    {{- else if eq .FieldType "list-entry" }}
-	var {{ .Name.LowerCamelCase }}Val {{ .FinalType }}
-	if o.{{ .Name.CamelCase }} != nil {
-		for _, elt := range o.{{ .Name.CamelCase }}.Entries {
-			obj, err := elt.UnmarshalToObject()
-			if err != nil {
-				return nil, err
-			}
-			{{ .Name.LowerCamelCase }}Val = append({{ .Name.LowerCamelCase }}Val, *obj)
-		}
-	}
-    {{- end }}
-  {{- end }}
-
-	result := &{{ .StructName }}{
-  {{- range .Fields }}
-    {{- if .IsInternal }}{{- continue }}{{- end }}
-    {{- if or (eq .FieldType "list-member") (eq .FieldType "list-entry") (eq .FieldType "object") }}
-		{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}Val,
-    {{- else if and (eq .FieldType "simple") (eq .Type "bool") }}
-		{{ .Name.CamelCase }}: util.AsBool(o.{{ .Name.CamelCase }}, nil),
-    {{- else }}
-		{{ .Name.CamelCase }}: o.{{ .Name.CamelCase }},
-    {{- end }}
-  {{- end }}
-	}
-	return result, nil
-}
-{{- end }}
-`
-
 func RenderToXmlMarshalers(spec *properties.Normalization) (string, error) {
-	tmpl := template.Must(template.New("render-to-xml-marsrhallers").Parse(structToXmlMarshalersTmpl))
+	tmplContent, err := loadTemplate("partials/struct_to_xml_marshalers.tmpl")
+	if err != nil {
+		return "", err
+	}
+
+	tmpl, err := template.New("render-to-xml-marsrhallers").Parse(tmplContent)
+	if err != nil {
+		return "", err
+	}
 
 	specs := createStructSpecs(structXmlType, spec, nil)
 	for _, elt := range spec.SupportedVersionRanges() {
@@ -1158,27 +916,17 @@ func RenderToXmlMarshalers(spec *properties.Normalization) (string, error) {
 
 	return builder.String(), nil
 }
-
-const xmlContainerNormalizersTmpl = `
-{{- range .Specs }}
-{{- if not .TopLevel }}{{ continue }}{{ end }}
-func (o *{{ .XmlContainerStructName }}) Normalize() ([]*{{ $.EntryOrConfig }}, error) {
-	entries := make([]*{{ $.EntryOrConfig }}, 0, len(o.Answer))
-	for _, elt := range o.Answer {
-		obj, err := elt.UnmarshalToObject()
-		if err != nil {
-			return nil, err
-		}
-		entries = append(entries, obj)
-	}
-
-	return entries, nil
-}
-{{- end }}
-`
 
 func RenderXmlContainerNormalizers(spec *properties.Normalization) (string, error) {
-	tmpl := template.Must(template.New("render-xml-container-normalizers").Parse(xmlContainerNormalizersTmpl))
+	tmplContent, err := loadTemplate("partials/xml_container_normalizers.tmpl")
+	if err != nil {
+		return "", err
+	}
+
+	tmpl, err := template.New("render-xml-container-normalizers").Parse(tmplContent)
+	if err != nil {
+		return "", err
+	}
 
 	specs := createStructSpecs(structXmlType, spec, nil)
 	for _, elt := range spec.SupportedVersionRanges() {
@@ -1206,20 +954,17 @@ func RenderXmlContainerNormalizers(spec *properties.Normalization) (string, erro
 
 	return builder.String(), nil
 }
-
-const xmlContainerSpecifiersTmpl = `
-{{- range .Specs }}
-{{- if not .TopLevel }}{{ continue }}{{ end }}
-func {{ .SpecifierFuncName $.EntryOrConfig }}(source *{{ $.EntryOrConfig }}) (any, error) {
-	var obj {{ .XmlStructName }}
-	obj.MarshalFromObject(*source)
-	return obj, nil
-}
-{{- end }}
-`
 
 func RenderXmlContainerSpecifiers(spec *properties.Normalization) (string, error) {
-	tmpl := template.Must(template.New("render-xml-container-specifiers").Parse(xmlContainerSpecifiersTmpl))
+	tmplContent, err := loadTemplate("partials/xml_container_specifiers.tmpl")
+	if err != nil {
+		return "", err
+	}
+
+	tmpl, err := template.New("render-xml-container-specifiers").Parse(tmplContent)
+	if err != nil {
+		return "", err
+	}
 
 	specs := createStructSpecs(structXmlType, spec, nil)
 	for _, elt := range spec.SupportedVersionRanges() {
@@ -1248,87 +993,16 @@ func RenderXmlContainerSpecifiers(spec *properties.Normalization) (string, error
 	return builder.String(), nil
 }
 
-const specMatchersTmpl = `
-func SpecMatches(a, b *{{ .EntryOrConfig }}) bool {
-	if a == nil && b == nil {
-		return true
-	}
-
-	if (a == nil && b != nil) || (a != nil && b == nil) {
-		return false
-	}
-
-	return a.matches(b)
-}
-
-{{- range .Specs }}
-  {{ if .IsXmlContainer }}{{ continue }}{{ end }}
-  {{ $spec := . }}
-func (o *{{ .StructName }}) matches(other *{{ .StructName }}) bool {
-	if o == nil && other == nil {
-		return true
-	}
-
-	if (o == nil && other != nil) || (o != nil && other == nil) {
-		return false
-	}
-
-  {{- range .Fields }}
-    {{- if .IsInternal }}{{ continue }}{{ end }}
-    {{- if and $spec.TopLevel (eq .Name.CamelCase "Name") }}{{ continue }}{{ end }}
-    {{- if eq .Name.CamelCase "Misc" }}{{ continue }}{{ end }}
-    {{- if eq .Name.CamelCase "MiscAttributes" }}{{ continue }}{{ end }}
-    {{- if eq .FieldType "object" }}
-	if !o.{{ .Name.CamelCase }}.matches(other.{{ .Name.CamelCase }}) {
-		return false
-	}
-    {{- else if eq .FieldType "list-entry" }}
-	if len(o.{{ .Name.CamelCase }}) != len(other.{{ .Name.CamelCase }}) {
-		return false
-	}
-	for idx := range o.{{ .Name.CamelCase }} {
-		if !o.{{ .Name.CamelCase }}[idx].matches(&other.{{ .Name.CamelCase }}[idx]) {
-			return false
-		}
-	}
-    {{- else if eq .FieldType "list-member" }}
-	if !util.OrderedListsMatch[{{ .Type }}](o.{{ .Name.CamelCase}}, other.{{ .Name.CamelCase }}) {
-		return false
-	}
-    {{- else if and (eq .Type "string") (eq .Required false)}}
-	if !util.StringsMatch(o.{{ .Name.CamelCase }}, other.{{ .Name.CamelCase }}) {
-		return false
-	}
-    {{- else if and (eq .Type "int64") (eq .Required false)}}
-	if !util.Ints64Match(o.{{ .Name.CamelCase }}, other.{{ .Name.CamelCase }}) {
-		return false
-	}
-    {{- else if and (eq .Type "int64") (eq .Required false)}}
-	if !util.Ints64Match(o.{{ .Name.CamelCase }}, other.{{ .Name.CamelCase }}) {
-		return false
-	}
-    {{- else if and (eq .Type "bool") (eq .Required false)}}
-	if !util.BoolsMatch(o.{{ .Name.CamelCase }}, other.{{ .Name.CamelCase }}) {
-		return false
-	}
-    {{- else if and (eq .Type "float64") (eq .Required false)}}
-	if !util.FloatsMatch(o.{{ .Name.CamelCase }}, other.{{ .Name.CamelCase }}) {
-		return false
-	}
-    {{- else }}
-	if o.{{ .Name.CamelCase }} != other.{{ .Name.CamelCase }} {
-		return false
-	}
-    {{- end }}
-  {{- end }}
-
-	return true
-}
-{{- end }}
-`
-
 func RenderSpecMatchers(spec *properties.Normalization) (string, error) {
-	tmpl := template.Must(template.New("render-spec-matchers").Parse(specMatchersTmpl))
+	tmplContent, err := loadTemplate("partials/spec_matchers.tmpl")
+	if err != nil {
+		return "", err
+	}
+
+	tmpl, err := template.New("render-spec-matchers").Parse(tmplContent)
+	if err != nil {
+		return "", err
+	}
 
 	specs := createStructSpecs(structApiType, spec, nil)
 	type context struct {

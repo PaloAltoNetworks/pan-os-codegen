@@ -1,0 +1,205 @@
+{{- /* Begin */ -}}
+package provider
+
+{{ RenderImports }}
+
+// Ensure the provider implementation interface is sound.
+var (
+	_ provider.Provider = &PanosProvider{}
+	_ provider.ProviderWithFunctions = &PanosProvider{}
+	_ provider.ProviderWithActions = &PanosProvider{}
+)
+
+// PanosProvider is the provider implementation.
+type PanosProvider struct {
+	version string
+}
+
+// PanosProviderModel maps provider schema data to a Go type.
+type PanosProviderModel struct {
+{{- range $pName, $pParam := ProviderParams }}
+{{ ParamToModelBasic $pName $pParam }}
+{{- end }}
+}
+
+// Metadata returns the provider type name.
+func (p *PanosProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
+	resp.TypeName = "panos"
+	resp.Version = p.version
+}
+
+// Schema defines the provider-level schema for configuration data.
+func (p *PanosProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Terraform provider to interact with Palo Alto Networks PAN-OS.",
+		Attributes: map[string]schema.Attribute{
+{{- range $pName, $pParam := ProviderParams }}
+{{ ParamToSchemaProvider $pName $pParam }}
+{{- end }}
+		},
+	}
+}
+
+type ProviderData struct {
+	Client               *sdk.Client
+	MultiConfigBatchSize int
+}
+
+// Configure prepares the provider.
+func (p *PanosProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+	tflog.Info(ctx, "Configuring the provider client...")
+
+	var config PanosProviderModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var con *sdk.Client
+
+	if config.ConfigFile.ValueStringPointer() != nil {
+		tflog.Info(ctx, "Configuring client for local inspection mode")
+		con = &sdk.Client{}
+		if err := con.SetupLocalInspection(config.ConfigFile.ValueString(), config.PanosVersion.ValueString()); err != nil {
+			resp.Diagnostics.AddError("Error setting up local inspection mode", err.Error())
+			return
+		}
+	} else {
+		tflog.Info(ctx, "Configuring client for API mode")
+		var logCategories sdk.LogCategory
+		if !config.SdkLogCategories.IsNull() {
+			categories := strings.Split(config.SdkLogCategories.ValueString(), ",")
+			var err error
+			logCategories, err = sdk.LogCategoryFromStrings(categories)
+			if err != nil {
+				resp.Diagnostics.AddError("Failed to configure Terraform provider", err.Error())
+				return
+			}
+		}
+
+		var logLevel slog.Level
+		if !config.SdkLogLevel.IsNull() {
+			levelStr := config.SdkLogLevel.ValueString()
+			err := logLevel.UnmarshalText([]byte(levelStr))
+			if err != nil {
+				resp.Diagnostics.AddError("Failed to configure Terraform provider", fmt.Sprintf("Invalid Log Level: %s", levelStr))
+			}
+		} else {
+			logLevel = slog.LevelInfo
+		}
+
+		con = &sdk.Client{
+			Hostname:        config.Hostname.ValueString(),
+			Username:        config.Username.ValueString(),
+			Password:        config.Password.ValueString(),
+			ApiKey:          config.ApiKey.ValueString(),
+			Protocol:        config.Protocol.ValueString(),
+			Port:            int(config.Port.ValueInt64()),
+			Target:          config.Target.ValueString(),
+			ApiKeyInRequest: config.ApiKeyInRequest.ValueBool(),
+			// Headers from AdditionalHeaders
+			SkipVerifyCertificate: config.SkipVerifyCertificate.ValueBool(),
+			AuthFile:              config.AuthFile.ValueString(),
+			CheckEnvironment:      true,
+			Logging: sdk.LoggingInfo{
+				LogLevel: logLevel,
+				LogCategories: logCategories,
+			},
+			//Agent:            fmt.Sprintf("Terraform/%s Provider/scm Version/%s", req.TerraformVersion, p.version),
+		}
+
+		if err := con.Setup(); err != nil {
+			resp.Diagnostics.AddError("Provider parameter value error", err.Error())
+			return
+		}
+
+		//con.HttpClient.Transport = sdkapi.NewTransport(con.HttpClient.Transport, con)
+
+		if err := con.Initialize(ctx); err != nil {
+			resp.Diagnostics.AddError("Initialization error", err.Error())
+			return
+		}
+	}
+
+	batchSize := config.MultiConfigBatchSize.ValueInt64()
+	if batchSize == 0 {
+		batchSize = 500
+	} else if batchSize < 0 || batchSize > 10000 {
+		resp.Diagnostics.AddError("Failed to configure Terraform provider", fmt.Sprintf("multi_config_batch_size must be between 1 and 10000, value: %d", batchSize))
+		return
+	}
+
+	providerData := &ProviderData{
+		Client: con,
+		MultiConfigBatchSize: int(batchSize),
+	}
+
+	resp.DataSourceData = providerData
+	resp.ResourceData = providerData
+	resp.EphemeralResourceData = providerData
+	resp.ActionData = providerData
+
+	// Done.
+	tflog.Info(ctx, "Configured client", map[string]any{"success": true})
+}
+
+// DataSources defines the data sources for this provider.
+func (p *PanosProvider) DataSources(_ context.Context) []func() datasource.DataSource {
+	return []func() datasource.DataSource{
+{{- range $fnName := DataSources }}
+        New{{ $fnName }},
+{{- end }}
+	}
+}
+
+// Resources defines the data sources for this provider.
+func (p *PanosProvider) Resources(_ context.Context) []func() resource.Resource {
+	return []func() resource.Resource{
+{{- range $fnName := Resources }}
+        New{{ $fnName }},
+{{- end }}
+	}
+}
+
+func (p *PanosProvider) EphemeralResources(_ context.Context) []func() ephemeral.EphemeralResource {
+	return []func() ephemeral.EphemeralResource{
+{{- range $fnName := EphemeralResources }}
+	New{{ $fnName }},
+{{- end }}
+	}
+}
+
+func (p *PanosProvider) Actions(_ context.Context) []func() action.Action {
+	return []func() action.Action{
+{{- range $fnName := Actions }}
+	New{{ $fnName }},
+{{- end }}
+	}
+}
+
+func (p *PanosProvider) Functions(_ context.Context) []func() function.Function {
+	return []func() function.Function{
+		NewAddressValueFunction,
+		NewCreateImportIdFunction,
+	}
+}
+
+// New is a helper function to get the provider implementation.
+func New(version string) func() provider.Provider {
+	return func() provider.Provider {
+		return &PanosProvider{
+			version: version,
+		}
+	}
+}
+
+type CreateResourceIdFunc func(context.Context, types.Object) ([]byte, error)
+
+type resourceFuncs struct {
+	CreateImportId CreateResourceIdFunc
+}
+
+var resourceFuncMap = map[string]resourceFuncs{
+{{- RenderResourceFuncMap }}
+}
+

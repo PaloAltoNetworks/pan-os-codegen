@@ -1,0 +1,227 @@
+{{- define "renderSchemaListAttribute" }}
+	"{{ .Name.Underscore }}": {{ .Package }}.{{ .SchemaType }} {
+		Description: "{{ .Description }}",
+  {{- if .Required }}
+		Required: {{ .Required }},
+  {{- end }}
+  {{- if .Optional }}
+		Optional: {{ .Optional }},
+  {{- end }}
+  {{- if .Computed }}
+		Computed: {{ .Computed }},
+  {{- end }}
+  {{- if .Sensitive }}
+		Sensitive: {{ .Sensitive }},
+  {{- end }}
+		ElementType: {{ .ElementType }},
+  {{- with .Validators }}
+    {{ $package := .Package }}
+		Validators: []validator.{{ .ListType }}{
+    {{- range .Functions }}
+      {{- if eq .Type "Expressions" }}
+			{{ $package }}.{{ .Function }}(path.Expressions{
+        {{- range .Expressions }}
+				{{ . }},
+        {{- end }}
+			}...),
+
+      {{- else if eq .Type "Values" }}
+			{{ $package }}.{{ .Function }}([]string{
+          {{- range .Values }}
+				{{ . }},
+          {{- end }}
+			}...),
+      {{- end }}
+    {{- end }}
+		},
+  {{- end }}
+	},
+{{- end }}
+
+{{- define "renderSchemaMapAttribute" }}
+	"{{ .Name.Underscore }}": {{ .Package }}.{{ .SchemaType }} {
+		Description: "{{ .Description }}",
+  {{- if .Required }}
+		Required: {{ .Required }},
+  {{- end }}
+  {{- if .Optional }}
+		Optional: {{ .Optional }},
+  {{- end }}
+  {{- if .Computed }}
+		Computed: {{ .Computed }},
+  {{- end }}
+  {{- if .Sensitive }}
+		Sensitive: {{ .Sensitive }},
+  {{- end }}
+		ElementType: {{ .ElementType }},
+	},
+{{- end }}
+
+{{- define "renderSchemaListNestedAttribute" }}
+  {{- with .Attribute }}
+	"{{ .Name.Underscore }}": {{ .Package }}.{{ .SchemaType }} {
+		Description: "{{ .Description }}",
+  {{- if .Required }}
+		Required: {{ .Required }},
+  {{- end }}
+  {{- if .Optional }}
+		Optional: {{ .Optional }},
+  {{- end }}
+  {{- if .Computed }}
+		Computed: {{ .Computed }},
+  {{- end }}
+  {{- if .Sensitive }}
+		Sensitive: {{ .Sensitive }},
+  {{- end }}
+		NestedObject: {{ $.StructName }}{{ .Name.CamelCase }}Schema(),
+	},
+  {{- end }}
+{{- end }}
+
+{{- define "renderSchemaMapNestedAttribute" }}
+  {{- template "renderSchemaListNestedAttribute" . }}
+{{- end }}
+
+
+{{- define "renderSchemaSingleNestedAttribute" }}
+  {{- with .Attribute }}
+	"{{ .Name.Underscore }}": {{ $.StructName }}{{ .Name.CamelCase }}Schema(),
+  {{- end }}
+{{- end }}
+
+{{- define "renderSchemaExternalAttribute" }}
+  {{- with .Attribute }}
+	"{{ .Name.Underscore }}": {{ .ExternalType }}Schema(),
+  {{- end }}
+{{- end }}
+
+{{- define "renderSchemaSimpleAttribute" }}
+	"{{ .Name.Underscore }}": {{ .Package }}.{{ .SchemaType }} {
+		Description: "{{ .Description }}",
+  {{- if .Required }}
+		Required: {{ .Required }},
+  {{- end }}
+  {{- if .Optional }}
+		Optional: {{ .Optional }},
+  {{- end }}
+  {{- if .Computed }}
+		Computed: {{ .Computed }},
+  {{- end }}
+  {{- if .Sensitive }}
+		Sensitive: {{ .Sensitive }},
+  {{- end }}
+  {{- if .Default }}
+		Default: {{ .Default.Type }}({{ .Default.Value }}),
+  {{- end }}
+  {{- if .PlanModifiers }}
+		PlanModifiers: []{{ .PlanModifiers.SchemaType }}{
+    {{- range .PlanModifiers.Modifiers }}
+			{{ . }},
+    {{- end }}
+		},
+  {{- end }}
+
+  {{- with .Validators }}
+    {{ $package := .Package }}
+		Validators: []validator.{{ .ListType }}{
+    {{- range .Functions }}
+      {{- if eq .Type "Expressions" }}
+			{{ $package }}.{{ .Function }}(path.Expressions{
+        {{- range .Expressions }}
+				{{ . }},
+        {{- end }}
+			}...),
+      {{- else if eq .Type "Values" }}
+			{{ $package }}.{{ .Function }}([]string{
+        {{- range .Values }}
+				"{{ . }}",
+        {{- end }}
+			}...),
+      {{- end }}
+    {{- end }}
+		},
+  {{- end }}
+	},
+{{- end }}
+
+{{- define "renderSchemaAttribute" }}
+  {{- with .Attribute }}
+    {{ if or (eq .SchemaType "ListAttribute") (eq .SchemaType "SetAttribute") }}
+      {{- template "renderSchemaListAttribute" . }}
+    {{- else if eq .SchemaType "MapAttribute" }}
+      {{- template "renderSchemaMapAttribute" . }}
+    {{- else if eq .SchemaType "ListNestedAttribute" }}
+      {{- template "renderSchemaListNestedAttribute" Map "StructName" $.StructName "Attribute" . }}
+    {{ else if eq .SchemaType "MapNestedAttribute" }}
+      {{- template "renderSchemaMapNestedAttribute" Map "StructName" $.StructName "Attribute" . }}
+    {{- else if eq .SchemaType "SingleNestedAttribute" }}
+      {{- template "renderSchemaSingleNestedAttribute" Map "StructName" $.StructName "Attribute" . }}
+    {{- else if eq .SchemaType "ExternalAttribute" }}
+      {{- template "renderSchemaExternalAttribute" Map "Attribute" . }}
+    {{- else }}
+      {{- template "renderSchemaSimpleAttribute" . }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- range .Schemas }}
+{{ $schema := . }}
+
+func {{ .StructName }}Schema() {{ .Package }}.{{ .ReturnType }} {
+	return {{ .Package }}.{{ .ReturnType }}{
+{{- if not (or (eq .ReturnType "Schema") (eq .ReturnType "NestedAttributeObject")) }}
+		Description: "{{ .Description }}",
+  {{- if .Required }}
+		Required: {{ .Required }},
+  {{- end }}
+  {{- if .Optional }}
+		Optional: {{ .Optional }},
+  {{- end }}
+  {{- if .Computed }}
+		Computed: {{ .Computed }},
+  {{- end }}
+  {{- if .Sensitive }}
+		Sensitive: {{ .Sensitive }},
+  {{- end }}
+{{- end }}
+  {{- with .Validators }}
+    {{ $package := .Package }}
+		Validators: []validator.{{ .ListType }}{
+    {{- range .Functions }}
+			{{ $package }}.{{ .Function }}(path.Expressions{
+      {{- range .Expressions }}
+				{{ . }},
+      {{- end }}
+			}...),
+    {{- end }}
+		},
+  {{- end }}
+		Attributes: map[string]{{ .Package }}.Attribute{
+  {{- range .Attributes -}}
+	{{- template "renderSchemaAttribute" Map "StructName" $schema.StructName "Attribute" . }}
+  {{- end }}
+		},
+	}
+}
+
+func (o *{{ .StructName }}{{ .ObjectOrModel }}) getTypeFor(name string) attr.Type {
+	schema := {{ .StructName }}Schema()
+	if attr, ok := schema.Attributes[name]; !ok {
+		panic(fmt.Sprintf("could not resolve schema for attribute %s", name))
+	} else {
+		switch attr := attr.(type) {
+  {{- if not (eq .Package "schema") }}
+		case {{ .Package }}.ListNestedAttribute:
+			return attr.NestedObject.Type()
+		case {{ .Package }}.MapNestedAttribute:
+			return attr.NestedObject.Type()
+  {{- end }}
+		default:
+			return attr.GetType()
+		}
+	}
+
+	panic("unreachable")
+}
+
+{{- end }}

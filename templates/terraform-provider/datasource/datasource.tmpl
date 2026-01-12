@@ -1,0 +1,117 @@
+{{- /* Begin */ -}}
+
+// Generate Terraform Data Source object.
+var (
+    _ datasource.DataSource = &{{ dataSourceStructName }}{}
+    _ datasource.DataSourceWithConfigure = &{{ dataSourceStructName }}{}
+)
+
+func New{{ dataSourceStructName }}() datasource.DataSource {
+	return &{{ dataSourceStructName }}{}
+}
+
+type {{ dataSourceStructName }} struct {
+    client *pango.Client
+
+{{- if IsCustom }}
+	custom *{{ structName }}Custom
+{{- else if and IsEntry HasImports }}
+	manager *sdkmanager.ImportableEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, {{ resourceSDKName }}.ImportLocation, *{{ resourceSDKName }}.Service]
+{{- else if IsEntry }}
+	manager *sdkmanager.EntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service]
+{{- else if IsUuid }}
+	manager *sdkmanager.UuidObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service]
+{{- else if IsConfig }}
+	manager *sdkmanager.ConfigObjectManager[*{{ resourceSDKName }}.Config, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service]
+{{- end }}
+}
+
+type {{ dataSourceStructName }}Filter struct {
+//TODO: Generate Data Source filter via function
+}
+
+{{ RenderDataSourceStructs }}
+
+{{ RenderModelAttributeTypesFunction }}
+
+{{ RenderCopyToPangoFunctions }}
+
+{{ RenderCopyFromPangoFunctions }}
+
+{{ RenderXpathComponentsGetter }}
+
+{{ RenderDataSourceSchema }}
+
+{{- if HasLocations }}
+func {{ dataSourceStructName }}LocationSchema() rsschema.Attribute {
+	return {{ structName }}LocationSchema()
+}
+{{- end }}
+
+// Metadata returns the data source type name.
+func (d *{{ dataSourceStructName }}) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+    resp.TypeName = req.ProviderTypeName + "{{ metaName }}"
+}
+
+// Schema defines the schema for this data source.
+func (d *{{ dataSourceStructName }}) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = {{ dataSourceStructName }}Schema()
+}
+
+// Configure prepares the struct.
+func (d *{{ dataSourceStructName }}) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+
+	providerData := req.ProviderData.(*ProviderData)
+	d.client = providerData.Client
+
+{{- if IsCustom }}
+	custom, err := New{{ structName }}Custom(providerData)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
+		return
+	}
+	d.custom = custom
+{{- else if and IsEntry HasImports }}
+	specifier, _, err := {{ resourceSDKName }}.Versioning(d.client.Versioning())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
+		return
+	}
+	batchSize := providerData.MultiConfigBatchSize
+	d.manager =  sdkmanager.NewImportableEntryObjectManager(d.client, {{ resourceSDKName }}.NewService(d.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
+{{- else if IsEntry }}
+	specifier, _, err := {{ resourceSDKName }}.Versioning(d.client.Versioning())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
+		return
+	}
+	batchSize := providerData.MultiConfigBatchSize
+	d.manager =  sdkmanager.NewEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](d.client, {{ resourceSDKName }}.NewService(d.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
+{{- else if IsUuid }}
+	specifier, _, err := {{ resourceSDKName }}.Versioning(d.client.Versioning())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
+		return
+	}
+	batchSize := providerData.MultiConfigBatchSize
+	d.manager =  sdkmanager.NewUuidObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](d.client, {{ resourceSDKName }}.NewService(d.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
+{{- else if IsConfig }}
+	specifier, _, err := {{ resourceSDKName }}.Versioning(d.client.Versioning())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
+		return
+	}
+	d.manager =  sdkmanager.NewConfigObjectManager(d.client, {{ resourceSDKName }}.NewService(d.client), specifier)
+{{- end }}
+}
+
+{{- if FunctionSupported "Read" }}
+func (o *{{ dataSourceStructName }}) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	{{ DataSourceReadFunction dataSourceStructName serviceName }}
+}
+{{- end }}
+
+{{- /* Done */ -}}

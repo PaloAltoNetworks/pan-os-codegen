@@ -1,0 +1,155 @@
+type ImportLocation interface {
+	XpathForLocation(version.Number, util.ILocation) ([]string, error)
+	MarshalPangoXML([]string) (string, error)
+	UnmarshalPangoXML([]byte) ([]string, error)
+}
+
+{{- range .Specs }}
+  {{- $spec := . }}
+  {{- $const := printf "%s%sType" $spec.Variant.CamelCase $spec.Type.CamelCase }}
+type {{ $const }} int
+
+const (
+  {{- range .Locations }}
+	{{ $spec.Variant.LowerCamelCase }}{{ $spec.Type.CamelCase }}{{ .Name.CamelCase }} {{ $const }} = iota
+  {{- end }}
+)
+
+
+  {{ $topType := printf "%s%sImportLocation" $spec.Variant.CamelCase $spec.Type.CamelCase }}
+type {{ $spec.Variant.CamelCase }}{{ $spec.Type.CamelCase }}ImportLocation struct {
+	typ {{ $const }}
+  {{- range .Locations }}
+
+    {{- $typeName := printf "%s%s%sImportLocation" $spec.Variant.CamelCase $spec.Type.CamelCase .Name.CamelCase }}
+	{{ .Name.LowerCamelCase }} *{{ $typeName }}
+  {{- end }}
+}
+
+  {{- range .Locations }}
+    {{ $location := . }}
+    {{- $typeName := printf "%s%s%sImportLocation" $spec.Variant.CamelCase $spec.Type.CamelCase .Name.CamelCase }}
+type {{ $typeName }} struct {
+	xpath []string
+    {{- range .XpathVariables }}
+	{{ .Name.LowerCamelCase }} string
+    {{- end }}
+}
+
+type {{ $typeName }}Spec struct {
+    {{- range .XpathVariables }}
+	{{ .Name.CamelCase }} string
+    {{- end }}
+}
+
+func New{{ $typeName }}(spec {{ $typeName }}Spec) *{{ $topType }} {
+	location := &{{ $typeName }}{
+    {{- range .XpathVariables }}
+	{{ .Name.LowerCamelCase }}: spec.{{ .Name.CamelCase }},
+    {{- end }}
+	}
+
+	return &{{ $topType }}{
+		typ: {{ $spec.Variant.LowerCamelCase }}{{ $spec.Type.CamelCase }}{{ .Name.CamelCase }},
+		{{ $location.Name.LowerCamelCase }}: location,
+	}
+}
+
+func (o *{{ $typeName }}) XpathForLocation(vn version.Number, loc util.ILocation) ([]string, error) {
+	ans, err := loc.XpathPrefix(vn)
+	if err != nil {
+		return nil, err
+	}
+
+	importAns := []string{
+    {{- range .XpathElements }}
+		{{ . }},
+    {{- end }}
+	}
+
+	return append(ans, importAns...), nil
+}
+
+func (o *{{ $typeName }}) MarshalPangoXML(interfaces []string) (string, error) {
+	type member struct {
+		Name string {{ "`" }}xml:",chardata"{{ "`" }}
+	}
+
+	type request struct {
+		XMLName xml.Name {{ "`" }}xml:"{{ .XpathFinalElement }}"{{ "`" }}
+		Members []member {{ "`" }}xml:"member"{{ "`" }}
+	}
+
+	var members []member
+	for _, elt := range interfaces {
+		members = append(members, member{Name: elt})
+	}
+
+	expected := request {
+		Members: members,
+	}
+	bytes, err := xml.Marshal(expected)
+	if err != nil {
+		return "", err
+	}
+
+	return string(bytes), nil
+}
+
+func (o *{{ $typeName }}) UnmarshalPangoXML(bytes []byte) ([]string, error) {
+	type member struct {
+		Name string {{ "`" }}xml:",chardata"{{ "`" }}
+	}
+
+	type response struct {
+		Members []member {{ "`" }}xml:"{{ .ResponseXpath }}"{{ "`" }}
+	}
+
+	var existing response
+	err := xml.Unmarshal(bytes, &existing)
+	if err != nil {
+		return nil, err
+	}
+
+	var interfaces []string
+	for _, elt := range existing.Members {
+		interfaces = append(interfaces, elt.Name)
+	}
+
+	return interfaces, nil
+}
+  {{- end }}
+
+func (o *{{ $topType }}) MarshalPangoXML(interfaces []string) (string, error) {
+	switch o.typ {
+  {{- range .Locations }}
+	case {{ $spec.Variant.LowerCamelCase }}{{ $spec.Type.CamelCase }}{{ .Name.CamelCase }}:
+		return o.{{ .Name.LowerCamelCase }}.MarshalPangoXML(interfaces)
+  {{- end }}
+	default:
+		return "", fmt.Errorf("invalid import location")
+	}
+}
+
+func (o *{{ $topType }}) UnmarshalPangoXML(bytes []byte) ([]string, error) {
+	switch o.typ {
+  {{- range .Locations }}
+	case {{ $spec.Variant.LowerCamelCase }}{{ $spec.Type.CamelCase }}{{ .Name.CamelCase }}:
+		return o.{{ .Name.LowerCamelCase }}.UnmarshalPangoXML(bytes)
+  {{- end }}
+	default:
+		return nil, fmt.Errorf("invalid import location")
+	}
+}
+
+func (o *{{ $topType }}) XpathForLocation(vn version.Number, loc util.ILocation) ([]string, error) {
+	switch o.typ {
+  {{- range .Locations }}
+	case {{ $spec.Variant.LowerCamelCase }}{{ $spec.Type.CamelCase }}{{ .Name.CamelCase }}:
+		return o.{{ .Name.LowerCamelCase }}.XpathForLocation(vn, loc)
+  {{- end }}
+	default:
+		return nil, fmt.Errorf("invalid import location")
+	}
+}
+{{- end }}

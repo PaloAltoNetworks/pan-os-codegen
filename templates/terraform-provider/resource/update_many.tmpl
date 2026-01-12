@@ -1,0 +1,108 @@
+
+{{ $resourceSDKStructName := printf "%s.%s" .resourceSDKName .EntryOrConfig }}
+{{ $resourceTFStructName := printf "%s%sObject" .structName .ListAttribute.CamelCase }}
+
+var state, plan {{ .structName }}Model
+resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+// Basic logging.
+tflog.Info(ctx, "performing resource create", map[string]any{
+	"resource_name": "panos_{{ UnderscoreName .structName }}",
+	"function":      "Create",
+})
+
+{{ RenderEncryptedValuesInitialization }}
+
+var location {{ .resourceSDKName }}.Location
+{{ RenderLocationsStateToPango "plan.Location" "location" }}
+
+var elements []{{ $resourceTFStructName }}
+resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+stateEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
+for idx, elt := range elements {
+	var entry *{{ $resourceSDKStructName }}
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, o.client, nil, &entry, ev)...)
+	if resp.Diagnostics.HasError() {
+		 return
+	}
+	stateEntries[idx] = entry
+}
+
+{{ $exhaustive := "sdkmanager.NonExhaustive" }}
+{{- if .Exhaustive }}
+  {{ $exhaustive = "sdkmanager.Exhaustive" }}
+position := movement.PositionFirst{}
+{{- else }}
+var positionAttribute TerraformPositionObject
+resp.Diagnostics.Append(plan.Position.As(ctx, &positionAttribute, basetypes.ObjectAsOptions{})...)
+if resp.Diagnostics.HasError() {
+	return
+}
+position := positionAttribute.CopyToPango()
+{{- end }}
+
+existing, _, err := o.manager.ReadMany(ctx, location, stateEntries, {{ $exhaustive }}, position)
+if err != nil && !errors.Is(err, sdkmanager.ErrObjectNotFound) {
+	resp.Diagnostics.AddError("Error while reading entries from the server", err.Error())
+	return
+}
+
+existingEntriesByName := make(map[string]*{{ $resourceSDKStructName }}, len(existing))
+for _, elt := range existing {
+	existingEntriesByName[elt.Name] = elt
+}
+
+resp.Diagnostics.Append(plan.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+planEntries := make([]*{{ $resourceSDKStructName }}, len(elements))
+for idx, elt := range elements {
+	entry, _ := existingEntriesByName[elt.Name.ValueString()]
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, o.client, nil, &entry, ev)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	planEntries[idx] = entry
+}
+
+components, err := state.resourceXpathParentComponents()
+if err != nil {
+	resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
+	return
+}
+
+processed, err := o.manager.UpdateMany(ctx, location, components, stateEntries, planEntries, {{ $exhaustive }}, position)
+if err != nil {
+	resp.Diagnostics.AddError("Failed to udpate entries", err.Error())
+}
+
+objects := make([]*{{ $resourceTFStructName }}, len(processed))
+for idx, elt := range processed {
+	var object {{ $resourceTFStructName }}
+	copy_diags := object.CopyFromPango(ctx, o.client, nil, elt, ev)
+	resp.Diagnostics.Append(copy_diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	objects[idx] = &object
+}
+
+var list_diags diag.Diagnostics
+plan.{{ .ListAttribute.CamelCase }}, list_diags = types.ListValueFrom(ctx, state.getTypeFor("{{ .ListAttribute.Underscore }}"), objects)
+resp.Diagnostics.Append(list_diags...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+{{ RenderEncryptedValuesFinalizer }}
+
+resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)

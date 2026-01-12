@@ -1,0 +1,175 @@
+
+func {{ .FuncName }}(ctx context.Context, resource types.Object) ([]byte, error) {
+	attrs := resource.Attributes()
+	if attrs == nil {
+		return nil, fmt.Errorf("Object has no attributes")
+	}
+
+	locationAttr, ok := attrs["location"]
+	if !ok {
+		return nil, fmt.Errorf("location attribute missing")
+	}
+
+	var location types.Object
+	switch value := locationAttr.(type) {
+	case types.Object:
+		location = value
+	default:
+		return nil, fmt.Errorf("location attribute expected to be an object")
+	}
+
+{{- if eq .ResourceType "entry" }}
+	nameAttr, ok := attrs["name"]
+	if !ok {
+		return nil, fmt.Errorf("name attribute missing")
+	}
+
+	var name types.String
+	switch value := nameAttr.(type) {
+	case types.String:
+		name = value
+	default:
+		return nil, fmt.Errorf("name attribute expected to be a string")
+	}
+
+	importStruct := {{ .StructNamePrefix }}ImportState{
+		Location: location,
+		Name: name,
+	}
+{{- else if eq .ResourceType "entry-plural" }}
+  {{- if .HasParent }}
+	parentAttr, ok := attrs["{{ .ParentAttribute.Underscore }}"]
+	if !ok {
+		return nil, fmt.Errorf("{{ .ParentAttribute.Underscore }} attribute missing")
+	}
+
+	var parent types.String
+	switch value := parentAttr.(type) {
+	case types.String:
+		parent = value
+	default:
+		return nil, fmt.Errorf("{{ .ParentAttribute.Underscore }} expected to be a map")
+	}
+
+	importStruct := {{ .StructNamePrefix }}ImportState{
+		Location: location,
+		{{ .ParentAttribute.CamelCase }}: parent,
+	}
+  {{- else }}
+	itemsAttr, ok := attrs["{{ .ListAttribute.Underscore }}"]
+	if !ok {
+		return nil, fmt.Errorf("{{ .ListAttribute.Underscore }} attribute missing")
+	}
+
+	items := make(map[string]{{ .ListStructName }})
+	switch value := itemsAttr.(type) {
+	case types.Map:
+		diags := value.ElementsAs(ctx, &items, false)
+		if diags.HasError() {
+			return nil, fmt.Errorf("Failed to convert {{ .ListAttribute.Underscore }} into a valid map: %s", diags.Errors())
+		}
+	default:
+		return nil, fmt.Errorf("{{ .ListAttribute.Underscore }} expected to be a map")
+	}
+
+	var names []string
+	for key := range items {
+		names = append(names, key)
+	}
+
+	var namesObj types.List
+	{
+		var diags_err diag.Diagnostics
+		namesObj, diags_err = types.ListValueFrom(ctx, types.StringType, names)
+		if diags_err.HasError() {
+			return nil, NewDiagnosticsError("Failed to generate a list of names for the import ID", diags_err.Errors())
+		}
+	}
+
+	importStruct := {{ .StructNamePrefix }}ImportState{
+		Location: location,
+		Names: namesObj,
+	}
+  {{- end }}
+{{- else if or (eq .ResourceType "uuid") }}
+	itemsAttr, ok := attrs["{{ .ListAttribute.Underscore }}"]
+	if !ok {
+		return nil, fmt.Errorf("{{ .ListAttribute.Underscore }} attribute missing")
+	}
+
+	var items []*{{ .ListStructName }}
+	switch value := itemsAttr.(type) {
+	case types.List:
+		diags := value.ElementsAs(ctx, &items, false)
+		if diags.HasError() {
+			return nil, fmt.Errorf("Invalid {{ .ListAttribute.Underscore }} attribute element type, expected list of valid objects")
+		}
+	default:
+		return nil, fmt.Errorf("Invalid names attribute type, expected list of strings")
+	}
+
+	var names []string
+	for _, elt := range items {
+		names = append(names, elt.Name.ValueString())
+	}
+
+	var namesObject types.List
+	namesObject, diags_tmp := types.ListValueFrom(ctx, types.StringType, names)
+	if diags_tmp.HasError() {
+		return nil, NewDiagnosticsError("Failed to generate import ID", diags_tmp.Errors())
+	}
+
+	importStruct := {{ .StructNamePrefix }}ImportState{
+		Location: location,
+		Names: namesObject,
+	}
+{{- else if (eq .ResourceType "uuid-plural") }}
+	positionAttr, ok := attrs["position"]
+	if !ok {
+		return nil, fmt.Errorf("position attribute missing")
+	}
+
+	var position types.Object
+	switch value := positionAttr.(type) {
+	case types.Object:
+		position = value
+	default:
+		return nil, fmt.Errorf("position attribute expected to be an object")
+	}
+
+	itemsAttr, ok := attrs["{{ .ListAttribute.Underscore }}"]
+	if !ok {
+		return nil, fmt.Errorf("{{ .ListAttribute.Underscore }} attribute missing")
+	}
+
+	var items []*{{ .ListStructName }}
+	switch value := itemsAttr.(type) {
+	case types.List:
+		diags := value.ElementsAs(ctx, &items, false)
+		if diags.HasError() {
+			return nil, fmt.Errorf("Invalid {{ .ListAttribute.Underscore }} attribute element type, expected list of valid objects")
+		}
+	default:
+		return nil, fmt.Errorf("Invalid names attribute type, expected list of strings")
+	}
+
+	var names []string
+	for _, elt := range items {
+		names = append(names, elt.Name.ValueString())
+	}
+
+	var namesObject types.List
+	namesObject, diags_tmp := types.ListValueFrom(ctx, types.StringType, names)
+	if diags_tmp.HasError() {
+		return nil, NewDiagnosticsError("Failed to generate import ID", diags_tmp.Errors())
+	}
+
+	importStruct := {{ .StructNamePrefix }}ImportState{
+		Location: location,
+		Position: position,
+		Names: namesObject,
+	}
+{{- end }}
+
+	return json.Marshal(importStruct)
+}

@@ -1,6 +1,9 @@
 package terraform_provider
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"text/template"
@@ -53,15 +56,16 @@ func structToMap(item interface{}) map[string]interface{} {
 	return out
 }
 
-// processTemplate handles the creation and execution of templates
-func processTemplate(templateText, templateName string, data interface{}, funcMap template.FuncMap) (string, error) {
+// processInlineTemplate processes an inline template string and executes it with the given data.
+// This is the core template execution function that handles parsing and rendering.
+func processInlineTemplate(tmplContent, templateName string, data interface{}, funcMap template.FuncMap) (string, error) {
 	if len(funcMap) == 0 {
 		funcMap = commonFuncMap
 	} else {
 		funcMap = mergeFuncMaps(funcMap, commonFuncMap)
 	}
 
-	tmpl, err := template.New(templateName).Funcs(funcMap).Parse(templateText)
+	tmpl, err := template.New(templateName).Funcs(funcMap).Parse(tmplContent)
 	if err != nil {
 		return "", err
 	}
@@ -70,4 +74,41 @@ func processTemplate(templateText, templateName string, data interface{}, funcMa
 		return "", err
 	}
 	return builder.String(), nil
+}
+
+// processTemplate handles the creation and execution of templates.
+// It loads template content from .tmpl files in the templates/terraform-provider/ directory.
+// The templateText parameter can be:
+// - A relative file path ending in .tmpl (e.g., "schema/schema.tmpl") - loads from file and calls processInlineTemplate
+// - An inline template string - passes directly to processInlineTemplate (for spec-provided custom templates)
+func processTemplate(templateText, templateName string, data interface{}, funcMap template.FuncMap) (string, error) {
+	var tmplContent string
+
+	// If it looks like a file path, try to load from file
+	if strings.HasSuffix(templateText, ".tmpl") {
+		// Try current directory first, then parent directories (for tests)
+		templatePath := filepath.Join("templates", "terraform-provider", templateText)
+		content, err := os.ReadFile(templatePath)
+		if err != nil {
+			// Try from parent directories (for when running tests)
+			for i := 1; i <= 3; i++ {
+				prefix := strings.Repeat("../", i)
+				altPath := filepath.Join(prefix, "templates", "terraform-provider", templateText)
+				content, err = os.ReadFile(altPath)
+				if err == nil {
+					templatePath = altPath
+					break
+				}
+			}
+			if err != nil {
+				return "", fmt.Errorf("failed to read template %s: %w", templatePath, err)
+			}
+		}
+		tmplContent = string(content)
+	} else {
+		// Use as inline template (for custom templates from specs)
+		tmplContent = templateText
+	}
+
+	return processInlineTemplate(tmplContent, templateName, data, funcMap)
 }
