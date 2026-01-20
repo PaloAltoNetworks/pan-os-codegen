@@ -678,8 +678,8 @@ var {{ .TerraformName.LowerCamelCase }}_list types.Set
 		} else if value, found := ev.GetPlaintextValue(valueKey); found {
 			{{ .TerraformName.LowerCamelCase }}_value = types.StringValue(value)
 		} else {
-			diags.AddError("Failed to read encrypted values state", fmt.Sprintf("Missing plaintext value for %s", valueKey))
-			return diags
+			diags.AddWarning("Failed to read plaintext value from encrypted state, fallback value used", fmt.Sprintf("Missing plaintext value for %s", valueKey))
+			{{ .TerraformName.LowerCamelCase }}_value = types.StringValue("[PLAINTEXT-VALUE-MISSING]")
 		}
 
 		if !ev.PreferServerState() {
@@ -3023,6 +3023,444 @@ func RenderResourceStructs(resourceTyp properties.ResourceType, names *NameProvi
 	}
 
 	return processTemplate(dataSourceStructs, "render-structs", data, commonFuncMap)
+}
+
+type modelFieldValidationType string
+
+const (
+	modelFieldValidationPlaintextPlaceholder = "plaintext-placeholder"
+)
+
+type nestedObjectField struct {
+	FieldName    *properties.NameVariant
+	FieldType    string // "object", "list", "set"
+	NestedStruct string // Name of nested struct (e.g., "ResourceNameSettings")
+}
+
+type modelFieldValidatorSpec struct {
+	FieldName      *properties.NameVariant
+	ValidationType modelFieldValidationType
+}
+
+type modelValidatorSpec struct {
+	StructName    string
+	ModelOrObject string
+	Fields        []modelFieldValidatorSpec
+	NestedObjects []nestedObjectField
+}
+
+// createValidatorSpecForParameter creates validator specs for a nested parameter
+func createValidatorSpecForParameter(resourceTyp properties.ResourceType, structPrefix string, param *properties.SpecParam, manager *imports.Manager) []modelValidatorSpec {
+	if param.Spec == nil {
+		return nil
+	}
+
+	var specs []modelValidatorSpec
+	structName := fmt.Sprintf("%s%s", structPrefix, param.TerraformNameVariant().CamelCase)
+
+	// Get validators for this parameter's spec
+	fields, nestedSpecs, nestedObjects := createValidatorSpecForParameterSpec(resourceTyp, structName, param, manager)
+
+	// Always add the spec to ensure ALL object structs have ValidateConfig methods
+	// This is important because parent objects may call ValidateConfig on nested objects
+	specs = append(specs, modelValidatorSpec{
+		StructName:    structName,
+		ModelOrObject: "Object", // Nested structures are always "Object"
+		Fields:        fields,
+		NestedObjects: nestedObjects,
+	})
+
+	// Add any nested specs
+	specs = append(specs, nestedSpecs...)
+
+	return specs
+}
+
+// createValidatorSpecForParameterSpec processes the Spec of a parameter
+func createValidatorSpecForParameterSpec(resourceTyp properties.ResourceType, structName string, param *properties.SpecParam, manager *imports.Manager) ([]modelFieldValidatorSpec, []modelValidatorSpec, []nestedObjectField) {
+	var fields []modelFieldValidatorSpec
+	var nestedSpecs []modelValidatorSpec
+	var nestedObjects []nestedObjectField
+
+	if param.Spec == nil {
+		return fields, nestedSpecs, nestedObjects
+	}
+
+	// Process regular parameters
+	for _, elt := range param.Spec.SortedParams() {
+		if elt.IsPrivateParameter() {
+			continue
+		}
+
+		if elt.Hashing != nil {
+			fields = append(fields, modelFieldValidatorSpec{
+				FieldName:      elt.TerraformNameVariant(),
+				ValidationType: modelFieldValidationPlaintextPlaceholder,
+			})
+			manager.AddStandardImport("strings", "")
+		}
+
+		if elt.Type == "" {
+			nestedObjects = append(nestedObjects, nestedObjectField{
+				FieldName:    elt.TerraformNameVariant(),
+				FieldType:    "object",
+				NestedStruct: fmt.Sprintf("%s%s", structName, elt.TerraformNameVariant().CamelCase),
+			})
+			nestedSpecs = append(nestedSpecs, createValidatorSpecForParameter(resourceTyp, structName, elt, manager)...)
+		} else if (elt.FinalType() == "list" || elt.FinalType() == "set") && elt.Items != nil && elt.Items.Type == "entry" {
+			nestedObjects = append(nestedObjects, nestedObjectField{
+				FieldName:    elt.TerraformNameVariant(),
+				FieldType:    elt.FinalType(),
+				NestedStruct: fmt.Sprintf("%s%s", structName, elt.TerraformNameVariant().CamelCase),
+			})
+			nestedSpecs = append(nestedSpecs, createValidatorSpecForParameter(resourceTyp, structName, elt, manager)...)
+		}
+	}
+
+	// Process variant parameters
+	for _, elt := range param.Spec.SortedOneOf() {
+		if elt.IsPrivateParameter() {
+			continue
+		}
+
+		if elt.Hashing != nil {
+			fields = append(fields, modelFieldValidatorSpec{
+				FieldName:      elt.TerraformNameVariant(),
+				ValidationType: modelFieldValidationPlaintextPlaceholder,
+			})
+			manager.AddStandardImport("strings", "")
+		}
+
+		if elt.Type == "" {
+			nestedObjects = append(nestedObjects, nestedObjectField{
+				FieldName:    elt.TerraformNameVariant(),
+				FieldType:    "object",
+				NestedStruct: fmt.Sprintf("%s%s", structName, elt.TerraformNameVariant().CamelCase),
+			})
+			nestedSpecs = append(nestedSpecs, createValidatorSpecForParameter(resourceTyp, structName, elt, manager)...)
+		} else if (elt.FinalType() == "list" || elt.FinalType() == "set") && elt.Items != nil && elt.Items.Type == "entry" {
+			nestedObjects = append(nestedObjects, nestedObjectField{
+				FieldName:    elt.TerraformNameVariant(),
+				FieldType:    elt.FinalType(),
+				NestedStruct: fmt.Sprintf("%s%s", structName, elt.TerraformNameVariant().CamelCase),
+			})
+			nestedSpecs = append(nestedSpecs, createValidatorSpecForParameter(resourceTyp, structName, elt, manager)...)
+		}
+	}
+
+	return fields, nestedSpecs, nestedObjects
+}
+
+// createValidatorSpecForNormalization creates validator specs for a normalization's parameters
+func createValidatorSpecForNormalization(resourceTyp properties.ResourceType, structName string, spec *properties.Normalization, manager *imports.Manager) ([]modelFieldValidatorSpec, []modelValidatorSpec, []nestedObjectField) {
+	var fields []modelFieldValidatorSpec
+	var nestedSpecs []modelValidatorSpec
+	var nestedObjects []nestedObjectField
+
+	// Process regular parameters
+	for _, elt := range spec.Spec.SortedParams() {
+		if elt.IsPrivateParameter() {
+			continue
+		}
+
+		// Skip XPath variables for entry plural resources (they're handled separately)
+		if resourceTyp == properties.ResourceEntryPlural && elt.TerraformProviderConfig != nil && elt.TerraformProviderConfig.XpathVariable != nil {
+			continue
+		}
+
+		if elt.Hashing != nil {
+			fields = append(fields, modelFieldValidatorSpec{
+				FieldName:      elt.TerraformNameVariant(),
+				ValidationType: modelFieldValidationPlaintextPlaceholder,
+			})
+			manager.AddStandardImport("strings", "")
+		}
+
+		if elt.Type == "" {
+			nestedObjects = append(nestedObjects, nestedObjectField{
+				FieldName:    elt.TerraformNameVariant(),
+				FieldType:    "object",
+				NestedStruct: fmt.Sprintf("%s%s", structName, elt.TerraformNameVariant().CamelCase),
+			})
+			nestedSpecs = append(nestedSpecs, createValidatorSpecForParameter(resourceTyp, structName, elt, manager)...)
+		} else if (elt.FinalType() == "list" || elt.FinalType() == "set") && elt.Items != nil && elt.Items.Type == "entry" {
+			nestedObjects = append(nestedObjects, nestedObjectField{
+				FieldName:    elt.TerraformNameVariant(),
+				FieldType:    elt.FinalType(),
+				NestedStruct: fmt.Sprintf("%s%s", structName, elt.TerraformNameVariant().CamelCase),
+			})
+			nestedSpecs = append(nestedSpecs, createValidatorSpecForParameter(resourceTyp, structName, elt, manager)...)
+		}
+	}
+
+	// Process variant parameters
+	for _, elt := range spec.Spec.SortedOneOf() {
+		if elt.IsPrivateParameter() {
+			continue
+		}
+
+		// Skip XPath variables for entry plural resources
+		if resourceTyp == properties.ResourceEntryPlural && elt.TerraformProviderConfig != nil && elt.TerraformProviderConfig.XpathVariable != nil {
+			continue
+		}
+
+		if elt.Hashing != nil {
+			fields = append(fields, modelFieldValidatorSpec{
+				FieldName:      elt.TerraformNameVariant(),
+				ValidationType: modelFieldValidationPlaintextPlaceholder,
+			})
+			manager.AddStandardImport("strings", "")
+		}
+
+		if elt.Type == "" {
+			nestedObjects = append(nestedObjects, nestedObjectField{
+				FieldName:    elt.TerraformNameVariant(),
+				FieldType:    "object",
+				NestedStruct: fmt.Sprintf("%s%s", structName, elt.TerraformNameVariant().CamelCase),
+			})
+			nestedSpecs = append(nestedSpecs, createValidatorSpecForParameter(resourceTyp, structName, elt, manager)...)
+		} else if (elt.FinalType() == "list" || elt.FinalType() == "set") && elt.Items != nil && elt.Items.Type == "entry" {
+			nestedObjects = append(nestedObjects, nestedObjectField{
+				FieldName:    elt.TerraformNameVariant(),
+				FieldType:    elt.FinalType(),
+				NestedStruct: fmt.Sprintf("%s%s", structName, elt.TerraformNameVariant().CamelCase),
+			})
+			nestedSpecs = append(nestedSpecs, createValidatorSpecForParameter(resourceTyp, structName, elt, manager)...)
+		}
+	}
+
+	return fields, nestedSpecs, nestedObjects
+}
+
+func createValidatorSpecForEntryModel(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization, manager *imports.Manager) []modelValidatorSpec {
+	if spec.Spec == nil {
+		return nil
+	}
+
+	var specs []modelValidatorSpec
+	structName := names.ResourceStructName
+
+	fields, nestedSpecs, nestedObjects := createValidatorSpecForNormalization(resourceTyp, structName, spec, manager)
+
+	// Always add the spec to ensure ALL structs have ValidateConfig methods
+	specs = append(specs, modelValidatorSpec{
+		StructName:    structName,
+		ModelOrObject: "Model", // Top-level is always Model
+		Fields:        fields,
+		NestedObjects: nestedObjects,
+	})
+
+	specs = append(specs, nestedSpecs...)
+
+	return specs
+}
+
+func createValidatorSpecForEntryListModel(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization, manager *imports.Manager) []modelValidatorSpec {
+	if spec.Spec == nil {
+		return nil
+	}
+
+	var specs []modelValidatorSpec
+
+	// For entry list models, validators apply to the nested object representing each entry
+	listNameStr := spec.TerraformProviderConfig.PluralName
+	listName := properties.NewNameVariant(listNameStr)
+	structName := fmt.Sprintf("%s%s", names.ResourceStructName, listName.CamelCase)
+
+	// Determine the field type for the list/map/set
+	var fieldType string
+	switch spec.TerraformProviderConfig.PluralType {
+	case object.TerraformPluralMapType:
+		fieldType = "map"
+	case object.TerraformPluralListType:
+		fieldType = "list"
+	case object.TerraformPluralSetType:
+		fieldType = "set"
+	}
+
+	// Create NestedObjects entry for the Model to enable validation recursion into list/map/set
+	nestedObjsForModel := []nestedObjectField{
+		{
+			FieldName:    listName,
+			FieldType:    fieldType,
+			NestedStruct: structName,
+		},
+	}
+
+	// Add validator for top-level Model
+	// The Model contains the list/map/set field, and we need to recurse into it
+	specs = append(specs, modelValidatorSpec{
+		StructName:    names.ResourceStructName,
+		ModelOrObject: "Model",
+		Fields:        nil, // No direct fields to validate on the Model itself
+		NestedObjects: nestedObjsForModel, // Recurse into list/map/set to validate entry objects
+	})
+
+	fields, nestedSpecs, nestedObjects := createValidatorSpecForNormalization(resourceTyp, structName, spec, manager)
+
+	// Always add the spec to ensure ALL structs have ValidateConfig methods
+	specs = append(specs, modelValidatorSpec{
+		StructName:    structName,
+		ModelOrObject: "Object", // List elements are Objects
+		Fields:        fields,
+		NestedObjects: nestedObjects,
+	})
+
+	specs = append(specs, nestedSpecs...)
+
+	return specs
+}
+
+func createValidatorSpecForUuidModel(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization, manager *imports.Manager) []modelValidatorSpec {
+	if spec.Spec == nil {
+		return nil
+	}
+
+	var specs []modelValidatorSpec
+
+	// For UUID models, validators apply to the nested object representing each entry
+	listNameStr := spec.TerraformProviderConfig.PluralName
+	listName := properties.NewNameVariant(listNameStr)
+	structName := fmt.Sprintf("%s%s", names.ResourceStructName, listName.CamelCase)
+
+	// UUID models always use a list type
+	fieldType := "list"
+
+	// Create NestedObjects entry for the Model to enable validation recursion into list
+	nestedObjsForModel := []nestedObjectField{
+		{
+			FieldName:    listName,
+			FieldType:    fieldType,
+			NestedStruct: structName,
+		},
+	}
+
+	// Add validator for top-level Model
+	// The Model contains the list field, and we need to recurse into it
+	specs = append(specs, modelValidatorSpec{
+		StructName:    names.ResourceStructName,
+		ModelOrObject: "Model",
+		Fields:        nil, // No direct fields to validate on the Model itself
+		NestedObjects: nestedObjsForModel, // Recurse into list to validate entry objects
+	})
+
+	fields, nestedSpecs, nestedObjects := createValidatorSpecForNormalization(resourceTyp, structName, spec, manager)
+
+	// Always add the spec to ensure ALL structs have ValidateConfig methods
+	specs = append(specs, modelValidatorSpec{
+		StructName:    structName,
+		ModelOrObject: "Object", // UUID list elements are Objects
+		Fields:        fields,
+		NestedObjects: nestedObjects,
+	})
+
+	specs = append(specs, nestedSpecs...)
+
+	return specs
+}
+
+func createValidatorSpecForModel(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization, manager *imports.Manager) []modelValidatorSpec {
+	if spec.Spec == nil {
+		return nil
+	}
+
+	switch resourceTyp {
+	case properties.ResourceEntry, properties.ResourceCustom, properties.ResourceConfig:
+		return createValidatorSpecForEntryModel(resourceTyp, names, spec, manager)
+	case properties.ResourceEntryPlural:
+		return createValidatorSpecForEntryListModel(resourceTyp, names, spec, manager)
+	case properties.ResourceUuid, properties.ResourceUuidPlural:
+		return createValidatorSpecForUuidModel(resourceTyp, names, spec, manager)
+	default:
+		panic("unreachable")
+	}
+}
+
+const modelValidatorsTmpl = `
+{{- range .Validators }}
+
+func (o *{{ .StructName }}{{ .ModelOrObject }}) ValidateConfig(ctx context.Context, resp *resource.ValidateConfigResponse, path path.Path) {
+	{{- range .Fields }}
+	{{- if eq .ValidationType "plaintext-placeholder" }}
+	if !o.{{ .FieldName.CamelCase }}.IsUnknown() && !o.{{ .FieldName.CamelCase }}.IsNull() {
+		value := o.{{ .FieldName.CamelCase }}.ValueString()
+		if strings.Contains(value, "[PLAINTEXT-VALUE-MISSING]") {
+			resp.Diagnostics.AddAttributeError(
+				path.AtName("{{ .FieldName.Underscore }}"),
+				"Invalid Encrypted/Hashed Field Value",
+				fmt.Sprintf("The attribute at path %s contains the placeholder value '[PLAINTEXT-VALUE-MISSING]'. This value is likely from an import operation. The provider cannot decrypt encrypted/hashed values from the device during import. Please provide a valid plaintext value.", path.AtName("{{ .FieldName.Underscore }}").String()),
+			)
+		}
+	}
+	{{- end }}
+	{{- end }}
+
+	{{- range .NestedObjects }}
+	{{- if eq .FieldType "object" }}
+	if !o.{{ .FieldName.CamelCase }}.IsUnknown() && !o.{{ .FieldName.CamelCase }}.IsNull() {
+		var nestedObj {{ .NestedStruct }}Object
+		diags := o.{{ .FieldName.CamelCase }}.As(ctx, &nestedObj, basetypes.ObjectAsOptions{})
+		if diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+		} else {
+			nestedObj.ValidateConfig(ctx, resp, path.AtName("{{ .FieldName.Underscore }}"))
+		}
+	}
+	{{- else if eq .FieldType "list" }}
+	if !o.{{ .FieldName.CamelCase }}.IsUnknown() && !o.{{ .FieldName.CamelCase }}.IsNull() {
+		var elements []{{ .NestedStruct }}Object
+		diags := o.{{ .FieldName.CamelCase }}.ElementsAs(ctx, &elements, false)
+		if diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+		} else {
+			for i, element := range elements {
+				element.ValidateConfig(ctx, resp, path.AtName("{{ .FieldName.Underscore }}").AtListIndex(i))
+			}
+		}
+	}
+	{{- else if eq .FieldType "set" }}
+	if !o.{{ .FieldName.CamelCase }}.IsUnknown() && !o.{{ .FieldName.CamelCase }}.IsNull() {
+		var elements []{{ .NestedStruct }}Object
+		diags := o.{{ .FieldName.CamelCase }}.ElementsAs(ctx, &elements, false)
+		if diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+		} else {
+			for _, element := range elements {
+				element.ValidateConfig(ctx, resp, path.AtName("{{ .FieldName.Underscore }}").AtSetValue(element))
+			}
+		}
+	}
+	{{- else if eq .FieldType "map" }}
+	if !o.{{ .FieldName.CamelCase }}.IsUnknown() && !o.{{ .FieldName.CamelCase }}.IsNull() {
+		var elements map[string]{{ .NestedStruct }}Object
+		diags := o.{{ .FieldName.CamelCase }}.ElementsAs(ctx, &elements, false)
+		if diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+		} else {
+			for key, element := range elements {
+				element.ValidateConfig(ctx, resp, path.AtName("{{ .FieldName.Underscore }}").AtMapKey(key))
+			}
+		}
+	}
+	{{- end }}
+	{{- end }}
+}
+{{- end }}
+`
+
+func RenderResourceValidators(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization, manager *imports.Manager) (string, error) {
+	type context struct {
+		Validators []modelValidatorSpec
+	}
+
+	// Pass imports manager so validators can register required Go packages (e.g. "strings" for plaintext validation)
+	validators := createValidatorSpecForModel(resourceTyp, names, spec, manager)
+
+	data := context{
+		Validators: validators,
+	}
+
+	return processTemplate(modelValidatorsTmpl, "render-structs", data, commonFuncMap)
 }
 
 func RenderDataSourceStructs(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
