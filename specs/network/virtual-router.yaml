@@ -10,6 +10,7 @@ terraform_provider_config:
   plural_suffix: ''
   plural_name: ''
   plural_description: ''
+  custom_validation: false
 go_sdk_config:
   skip: false
   package:
@@ -107,6 +108,136 @@ locations:
   description: Located in a specific template stack
   devices:
   - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: ngfw_device
+      description: The NGFW device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The Virtual System name
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys name cannot be "shared". Use the "shared" location instead
+      type: entry
+  description: Located in a specific Virtual System
+  devices:
+  - ngfw
   validators: []
   required: false
   read_only: false
@@ -1180,6 +1311,8 @@ spec:
                     spec: {}
                     description: shared secret for the TCP MD5 authentication
                     required: false
+                    hashing:
+                      type: solo
                   variants: []
             description: ''
             required: false
@@ -2135,8 +2268,7 @@ spec:
                                       spec:
                                         min: 1
                                         max: 255
-                                    spec:
-                                      default: 1
+                                    spec: {}
                                     description: prepend local AS for specified number
                                       of times
                                     required: false
@@ -3474,8 +3606,7 @@ spec:
                                               spec:
                                                 min: 1
                                                 max: 255
-                                            spec:
-                                              default: 1
+                                            spec: {}
                                             description: prepend local AS for specified
                                               number of times
                                             required: false
@@ -3490,8 +3621,7 @@ spec:
                                               spec:
                                                 min: 1
                                                 max: 255
-                                            spec:
-                                              default: 1
+                                            spec: {}
                                             description: remove matched AS path(s),
                                               and prepend local AS for specified number
                                               of times
@@ -5256,6 +5386,11 @@ spec:
                     spec: {}
                     description: Simple password authentication
                     required: false
+                    codegen_overrides:
+                      terraform:
+                        variant_check: Disabled
+                    hashing:
+                      type: solo
                     variant_group_id: 0
                   - name: md5
                     type: list
@@ -5283,6 +5418,8 @@ spec:
                             spec: {}
                             description: key for the authentication
                             required: false
+                            hashing:
+                              type: solo
                           - name: preferred
                             type: bool
                             profiles:
@@ -5295,6 +5432,9 @@ spec:
                           variants: []
                     description: ''
                     required: false
+                    codegen_overrides:
+                      terraform:
+                        variant_check: Disabled
                     variant_group_id: 0
             description: ''
             required: false
@@ -7315,6 +7455,11 @@ spec:
                     spec: {}
                     description: Simple password authentication
                     required: false
+                    codegen_overrides:
+                      terraform:
+                        variant_check: Disabled
+                    hashing:
+                      type: solo
                     variant_group_id: 0
                   - name: md5
                     type: list
@@ -7342,6 +7487,8 @@ spec:
                             spec: {}
                             description: key for the authentication
                             required: false
+                            hashing:
+                              type: solo
                           - name: preferred
                             type: bool
                             profiles:
@@ -7354,6 +7501,9 @@ spec:
                           variants: []
                     description: ''
                     required: false
+                    codegen_overrides:
+                      terraform:
+                        variant_check: Disabled
                     variant_group_id: 0
             description: ''
             required: false
