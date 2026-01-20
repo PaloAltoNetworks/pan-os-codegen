@@ -3,9 +3,8 @@ package translate
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGenerateEntryXpath(t *testing.T) {

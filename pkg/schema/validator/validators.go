@@ -3,9 +3,8 @@ package validator
 import (
 	"fmt"
 
-	"gopkg.in/yaml.v3"
-
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/errors"
+	"gopkg.in/yaml.v3"
 )
 
 // Validator describes any validator that can be defined across

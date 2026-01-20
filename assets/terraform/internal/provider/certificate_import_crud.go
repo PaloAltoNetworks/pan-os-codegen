@@ -8,19 +8,17 @@ import (
 	"net/url"
 	"strings"
 
-	"software.sslmate.com/src/go-pkcs12"
-
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-
 	"github.com/PaloAltoNetworks/pango/device/certificate"
 	sdkerrors "github.com/PaloAltoNetworks/pango/errors"
 	"github.com/PaloAltoNetworks/pango/locking"
 	"github.com/PaloAltoNetworks/pango/util"
 	"github.com/PaloAltoNetworks/pango/xmlapi"
 	sdkmanager "github.com/PaloAltoNetworks/terraform-provider-panos/internal/manager"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"software.sslmate.com/src/go-pkcs12"
 )
 
 type CertificateImportCustom struct{}

@@ -6,7 +6,6 @@ import (
 	"log"
 
 	"github.com/PaloAltoNetworks/terraform-provider-panos/internal/provider"
-
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 )
 

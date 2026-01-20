@@ -5,11 +5,10 @@ import (
 	"log/slog"
 	"strings"
 
-	"gopkg.in/yaml.v3"
-
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/errors"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/profile"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/validator"
+	"gopkg.in/yaml.v3"
 )
 
 // Parameter describes a single parameter for the given object spec.

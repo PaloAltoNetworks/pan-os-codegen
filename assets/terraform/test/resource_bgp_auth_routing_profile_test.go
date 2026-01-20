@@ -147,8 +147,8 @@ func TestAccBgpAuthRoutingProfile_MaxLengthSecret(t *testing.T) {
 			{
 				Config: bgpAuthRoutingProfile_MaxLengthSecret_Tmpl,
 				ConfigVariables: map[string]config.Variable{
-					"prefix":           config.StringVariable(prefix),
-					"location":         location,
+					"prefix":            config.StringVariable(prefix),
+					"location":          location,
 					"max_length_secret": config.StringVariable(maxLengthSecret),
 				},
 				ConfigStateChecks: []statecheck.StateCheck{

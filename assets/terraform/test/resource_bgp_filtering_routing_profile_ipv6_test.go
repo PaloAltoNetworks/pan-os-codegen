@@ -50,12 +50,12 @@ func TestAccBgpFilteringRoutingProfile_Ipv6_Unicast_Basic(t *testing.T) {
 						tfjsonpath.New("ipv6"),
 						knownvalue.ObjectExact(map[string]knownvalue.Check{
 							"unicast": knownvalue.ObjectExact(map[string]knownvalue.Check{
-								"conditional_advertisement":   knownvalue.Null(),
-								"filter_list":                 knownvalue.Null(),
-								"inbound_network_filters":     knownvalue.Null(),
-								"outbound_network_filters":    knownvalue.Null(),
-								"route_maps":                  knownvalue.Null(),
-								"unsuppress_map":              knownvalue.Null(),
+								"conditional_advertisement": knownvalue.Null(),
+								"filter_list":               knownvalue.Null(),
+								"inbound_network_filters":   knownvalue.Null(),
+								"outbound_network_filters":  knownvalue.Null(),
+								"route_maps":                knownvalue.Null(),
+								"unsuppress_map":            knownvalue.Null(),
 							}),
 						}),
 					),
@@ -134,7 +134,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv6_Unicast_ConditionalAdvertisement_Non
 						knownvalue.ObjectExact(map[string]knownvalue.Check{
 							"exist": knownvalue.Null(),
 							"non_exist": knownvalue.ObjectExact(map[string]knownvalue.Check{
-								"advertise_map":  knownvalue.StringExact(prefix + "-advertise-map"),
+								"advertise_map": knownvalue.StringExact(prefix + "-advertise-map"),
 								"non_exist_map": knownvalue.StringExact(prefix + "-non-exist-map"),
 							}),
 						}),
@@ -393,7 +393,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv6_Unicast_UnsuppressMap(t *testing.T) 
 					statecheck.ExpectKnownValue(
 						"panos_bgp_filtering_routing_profile.example",
 						tfjsonpath.New("ipv6").AtMapKey("unicast").AtMapKey("unsuppress_map"),
-						knownvalue.StringExact(prefix + "-unsuppress"),
+						knownvalue.StringExact(prefix+"-unsuppress"),
 					),
 				},
 			},

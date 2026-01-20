@@ -86,18 +86,19 @@ func defineSpecMatchesFunction(parent []string, params []*properties.SpecParam, 
 
 func renderSpecMatchesFunctionSignature(parent []string, builder *strings.Builder, param *properties.SpecParam) {
 	prefix := determinePrefix(param, false)
-	builder.WriteString(fmt.Sprintf("func match%s%s(a %s%s, b %s%s) bool {",
+	fmt.Fprintf(builder, "func match%s%s(a %s%s, b %s%s) bool {",
 		strings.Join(parent, ""), param.Name.CamelCase,
 		prefix, argumentTypeForSpecMatchesFunction(parent, param),
-		prefix, argumentTypeForSpecMatchesFunction(parent, param)))
+		prefix, argumentTypeForSpecMatchesFunction(parent, param))
 }
 
 func argumentTypeForSpecMatchesFunction(parent []string, param *properties.SpecParam) string {
-	if param.Type == "bool" {
+	switch param.Type {
+	case "bool":
 		return "bool"
-	} else if param.Type == "int" {
+	case "int":
 		return "int"
-	} else {
+	default:
 		return fmt.Sprintf("%s%s",
 			strings.Join(parent, ""), param.Name.CamelCase)
 	}
@@ -112,8 +113,8 @@ func checkIfVariablesAreNil(builder *strings.Builder) {
 }
 
 func renderInSpecMatchesFunctionIfToCheckIfVariablesMatches(parent []string, builder *strings.Builder, param *properties.SpecParam, subparam *properties.SpecParam) {
-	builder.WriteString(fmt.Sprintf("if !%s(a.%s, b.%s) {\n",
-		specMatchFunctionName(append(parent, param.Name.CamelCase), subparam), subparam.Name.CamelCase, subparam.Name.CamelCase))
+	fmt.Fprintf(builder, "if !%s(a.%s, b.%s) {\n",
+		specMatchFunctionName(append(parent, param.Name.CamelCase), subparam), subparam.Name.CamelCase, subparam.Name.CamelCase)
 	builder.WriteString("	return false\n")
 	builder.WriteString("}\n")
 }

@@ -52,8 +52,8 @@ func TestAccFiltersCommunityListRoutingProfile_Extended_Basic(t *testing.T) {
 							"extended": knownvalue.ObjectExact(map[string]knownvalue.Check{
 								"extended_entries": knownvalue.ListExact([]knownvalue.Check{
 									knownvalue.ObjectExact(map[string]knownvalue.Check{
-										"name":                        knownvalue.StringExact("1"),
-										"action":                      knownvalue.StringExact("deny"),
+										"name":   knownvalue.StringExact("1"),
+										"action": knownvalue.StringExact("deny"),
 										"extended_community_regexes": knownvalue.ListExact([]knownvalue.Check{
 											knownvalue.StringExact("^100:.*"),
 										}),
@@ -246,4 +246,3 @@ resource "panos_filters_community_list_routing_profile" "example" {
   }
 }
 `
-

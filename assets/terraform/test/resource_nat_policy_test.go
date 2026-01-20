@@ -10,7 +10,6 @@ import (
 	"text/template"
 
 	"github.com/PaloAltoNetworks/pango/policies/rules/nat"
-
 	"github.com/hashicorp/terraform-plugin-testing/config"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"

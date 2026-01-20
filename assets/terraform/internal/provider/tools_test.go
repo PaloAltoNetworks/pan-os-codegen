@@ -1,10 +1,9 @@
 package provider_test
 
 import (
+	"github.com/PaloAltoNetworks/terraform-provider-panos/internal/provider"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"github.com/PaloAltoNetworks/terraform-provider-panos/internal/provider"
 )
 
 type AncestorMock struct {

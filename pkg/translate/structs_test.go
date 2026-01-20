@@ -6,10 +6,9 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/stretchr/testify/assert"
-
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/version"
+	"github.com/stretchr/testify/assert"
 )
 
 const addressSpecPath = "../../specs/objects/address.yaml"

@@ -12,7 +12,6 @@ import (
 	sdkerrors "github.com/PaloAltoNetworks/pango/errors"
 	"github.com/PaloAltoNetworks/pango/version"
 	"github.com/PaloAltoNetworks/pango/xmlapi"
-
 	"github.com/PaloAltoNetworks/terraform-provider-panos/internal/manager"
 )
 

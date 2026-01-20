@@ -121,7 +121,7 @@ func TestAccSslTlsServiceProfile_ProtocolSettings_EncryptionAlgorithms(t *testin
 						"panos_ssl_tls_service_profile.example",
 						tfjsonpath.New("protocol_settings"),
 						knownvalue.ObjectExact(map[string]knownvalue.Check{
-							"allow_algorithm_3des":       knownvalue.Null(),
+							"allow_algorithm_3des":        knownvalue.Null(),
 							"allow_algorithm_aes_128_cbc": knownvalue.Bool(true),
 							"allow_algorithm_aes_128_gcm": knownvalue.Bool(true),
 							"allow_algorithm_aes_256_cbc": knownvalue.Bool(true),
@@ -214,7 +214,7 @@ func TestAccSslTlsServiceProfile_ProtocolSettings_KeyExchangeAlgorithms(t *testi
 						"panos_ssl_tls_service_profile.example",
 						tfjsonpath.New("protocol_settings"),
 						knownvalue.ObjectExact(map[string]knownvalue.Check{
-							"allow_algorithm_3des":       knownvalue.Null(),
+							"allow_algorithm_3des":        knownvalue.Null(),
 							"allow_algorithm_aes_128_cbc": knownvalue.Null(),
 							"allow_algorithm_aes_128_gcm": knownvalue.Null(),
 							"allow_algorithm_aes_256_cbc": knownvalue.Null(),
@@ -306,7 +306,7 @@ func TestAccSslTlsServiceProfile_ProtocolSettings_AuthenticationAlgorithms(t *te
 						"panos_ssl_tls_service_profile.example",
 						tfjsonpath.New("protocol_settings"),
 						knownvalue.ObjectExact(map[string]knownvalue.Check{
-							"allow_algorithm_3des":       knownvalue.Null(),
+							"allow_algorithm_3des":        knownvalue.Null(),
 							"allow_algorithm_aes_128_cbc": knownvalue.Null(),
 							"allow_algorithm_aes_128_gcm": knownvalue.Null(),
 							"allow_algorithm_aes_256_cbc": knownvalue.Null(),
@@ -398,7 +398,7 @@ func TestAccSslTlsServiceProfile_ProtocolSettings_TlsVersions(t *testing.T) {
 						"panos_ssl_tls_service_profile.example",
 						tfjsonpath.New("protocol_settings"),
 						knownvalue.ObjectExact(map[string]knownvalue.Check{
-							"allow_algorithm_3des":       knownvalue.Null(),
+							"allow_algorithm_3des":        knownvalue.Null(),
 							"allow_algorithm_aes_128_cbc": knownvalue.Null(),
 							"allow_algorithm_aes_128_gcm": knownvalue.Null(),
 							"allow_algorithm_aes_256_cbc": knownvalue.Null(),
@@ -488,7 +488,7 @@ func TestAccSslTlsServiceProfile_ProtocolSettings_Complete(t *testing.T) {
 						"panos_ssl_tls_service_profile.example",
 						tfjsonpath.New("protocol_settings"),
 						knownvalue.ObjectExact(map[string]knownvalue.Check{
-							"allow_algorithm_3des":       knownvalue.Null(),
+							"allow_algorithm_3des":        knownvalue.Null(),
 							"allow_algorithm_aes_128_cbc": knownvalue.Bool(true),
 							"allow_algorithm_aes_128_gcm": knownvalue.Bool(true),
 							"allow_algorithm_aes_256_cbc": knownvalue.Bool(true),

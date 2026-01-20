@@ -57,7 +57,7 @@ func TestAccFiltersPrefixListRoutingProfile_Ipv4_Basic(t *testing.T) {
 										"prefix": knownvalue.ObjectExact(map[string]knownvalue.Check{
 											"network": knownvalue.Null(),
 											"entry": knownvalue.ObjectExact(map[string]knownvalue.Check{
-												"network":                knownvalue.StringExact("10.0.0.0/8"),
+												"network":               knownvalue.StringExact("10.0.0.0/8"),
 												"greater_than_or_equal": knownvalue.Null(),
 												"less_than_or_equal":    knownvalue.Null(),
 											}),
@@ -204,7 +204,7 @@ func TestAccFiltersPrefixListRoutingProfile_Ipv4_Prefix_Entry(t *testing.T) {
 						knownvalue.ObjectExact(map[string]knownvalue.Check{
 							"network": knownvalue.Null(),
 							"entry": knownvalue.ObjectExact(map[string]knownvalue.Check{
-								"network":                knownvalue.StringExact("192.168.0.0/16"),
+								"network":               knownvalue.StringExact("192.168.0.0/16"),
 								"greater_than_or_equal": knownvalue.Int64Exact(24),
 								"less_than_or_equal":    knownvalue.Int64Exact(28),
 							}),
@@ -356,7 +356,7 @@ func TestAccFiltersPrefixListRoutingProfile_Ipv4_MultipleEntries(t *testing.T) {
 								"prefix": knownvalue.ObjectExact(map[string]knownvalue.Check{
 									"network": knownvalue.Null(),
 									"entry": knownvalue.ObjectExact(map[string]knownvalue.Check{
-										"network":                knownvalue.StringExact("10.0.0.0/8"),
+										"network":               knownvalue.StringExact("10.0.0.0/8"),
 										"greater_than_or_equal": knownvalue.Int64Exact(16),
 										"less_than_or_equal":    knownvalue.Null(),
 									}),
@@ -368,7 +368,7 @@ func TestAccFiltersPrefixListRoutingProfile_Ipv4_MultipleEntries(t *testing.T) {
 								"prefix": knownvalue.ObjectExact(map[string]knownvalue.Check{
 									"network": knownvalue.Null(),
 									"entry": knownvalue.ObjectExact(map[string]knownvalue.Check{
-										"network":                knownvalue.StringExact("172.16.0.0/12"),
+										"network":               knownvalue.StringExact("172.16.0.0/12"),
 										"greater_than_or_equal": knownvalue.Null(),
 										"less_than_or_equal":    knownvalue.Int64Exact(24),
 									}),
@@ -432,4 +432,3 @@ resource "panos_filters_prefix_list_routing_profile" "example" {
   }
 }
 `
-

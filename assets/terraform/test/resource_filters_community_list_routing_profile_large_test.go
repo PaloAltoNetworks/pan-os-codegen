@@ -52,8 +52,8 @@ func TestAccFiltersCommunityListRoutingProfile_Large_Basic(t *testing.T) {
 							"large": knownvalue.ObjectExact(map[string]knownvalue.Check{
 								"large_entries": knownvalue.ListExact([]knownvalue.Check{
 									knownvalue.ObjectExact(map[string]knownvalue.Check{
-										"name":                      knownvalue.StringExact("1"),
-										"action":                    knownvalue.StringExact("deny"),
+										"name":   knownvalue.StringExact("1"),
+										"action": knownvalue.StringExact("deny"),
 										"large_community_regexes": knownvalue.ListExact([]knownvalue.Check{
 											knownvalue.StringExact("^1000:.*:.*"),
 										}),

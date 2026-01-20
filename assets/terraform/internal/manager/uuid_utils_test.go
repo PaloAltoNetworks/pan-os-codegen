@@ -13,7 +13,6 @@ import (
 	"github.com/PaloAltoNetworks/pango/util"
 	"github.com/PaloAltoNetworks/pango/version"
 	"github.com/PaloAltoNetworks/pango/xmlapi"
-
 	"github.com/PaloAltoNetworks/terraform-provider-panos/internal/manager"
 )
 
