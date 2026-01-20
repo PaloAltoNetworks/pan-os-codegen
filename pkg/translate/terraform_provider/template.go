@@ -1710,7 +1710,11 @@ const locationMarshallersTmpl = `
 
 {{- define "renderShadowStructField" }}
   {{- if eq .Type "types.Object" }}
+    {{- if eq .Name.Underscore "location" }}
+    {{ .Name.CamelCase }} interface{} {{ .Tags }}
+    {{- else }}
     {{ .Name.CamelCase }} *{{ .StructName }} {{ .Tags }}
+    {{- end }}
   {{- else if eq .Type "types.List" }}
     {{ .Name.CamelCase }} {{ .StructName }} {{ .Tags }}
   {{- else }}
@@ -1730,6 +1734,20 @@ const locationMarshallersTmpl = `
 
 {{- define "renderPangoObjectConversion" -}}
   {{- if eq .Type "types.Object" }}
+    {{- if eq .Name.Underscore "location" }}
+	var {{ .Name.LowerCamelCase }}_object types.Object
+	{
+		{{ .Name.LowerCamelCase }}_map, ok := shadow.{{ .Name.CamelCase }}.(map[string]interface{})
+		if !ok {
+			return NewDiagnosticsError("Failed to unmarshal JSON document into {{ .Name.Underscore }}: expected map[string]interface{}", nil)
+		}
+		var err error
+		{{ .Name.LowerCamelCase }}_object, err = MapToTypesObject({{ .Name.LowerCamelCase }}_map, {{ .StructName }}Schema())
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal {{ .Name.Underscore }} from JSON: %w", err)
+		}
+	}
+    {{- else }}
 	var {{ .Name.LowerCamelCase }}_object types.Object
 	{
 		var diags_tmp diag.Diagnostics
@@ -1738,6 +1756,7 @@ const locationMarshallersTmpl = `
 			return NewDiagnosticsError("Failed to unmarshal JSON document into {{ .Name.Underscore }}", diags_tmp.Errors())
 		}
 	}
+    {{- end }}
   {{- else if eq .Type "types.List" }}
 	var {{ .Name.LowerCamelCase }}_list types.List
 	{
@@ -1752,6 +1771,16 @@ const locationMarshallersTmpl = `
 
 {{- define "renderTfObjectConversion" -}}
   {{- if eq .Type "types.Object" }}
+    {{- if eq .Name.Underscore "location" }}
+	var {{ .Name.LowerCamelCase }}_object interface{}
+        {
+		var err error
+		{{ .Name.LowerCamelCase }}_object, err = TypesObjectToMap(o.{{ .Name.CamelCase }}, {{ .StructName }}Schema())
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal {{ .Name.Underscore }} into JSON document: %w", err)
+		}
+        }
+    {{- else }}
 	var {{ .Name.LowerCamelCase }}_object *{{ .StructName }}
         {
 		diags := o.{{ .Name.CamelCase }}.As(context.TODO(), &{{ .Name.LowerCamelCase }}_object, basetypes.ObjectAsOptions{})
@@ -1759,6 +1788,7 @@ const locationMarshallersTmpl = `
 			return nil, NewDiagnosticsError("Failed to marshal {{ .Name.Underscore }} into JSON document", diags.Errors())
 		}
         }
+    {{- end }}
   {{- else if eq .Type "types.List" }}
 	var {{ .Name.LowerCamelCase }}_list {{ .StructName }}
 	{
