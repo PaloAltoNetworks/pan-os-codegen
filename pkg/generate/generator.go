@@ -60,6 +60,7 @@ func (c *Creator) RenderTemplate() error {
 
 type TerraformProviderFileData struct {
 	EphemeralResources []string
+	ListResources      []string
 	Resources          []string
 	DataSources        []string
 	Actions            []string
@@ -88,6 +89,12 @@ func (c *Creator) RenderTerraformProviderFile(spec *properties.Normalization, ty
 
 	if err := tfp.GenerateTerraformResource(typ, spec, terraformProvider); err != nil {
 		return nil, err
+	}
+
+	if !*spec.TerraformProviderConfig.SkipListResource && (typ == properties.ResourceEntry || typ == properties.ResourceUuid) {
+		if err := tfp.GenerateTerraformListResource(typ, spec, terraformProvider); err != nil {
+			return nil, err
+		}
 	}
 
 	if spec.TerraformProviderConfig.Action {
@@ -126,6 +133,7 @@ func (c *Creator) RenderTerraformProviderFile(spec *properties.Normalization, ty
 		EphemeralResources: terraformProvider.EphemeralResources,
 		Actions:            terraformProvider.Actions,
 		SpecMetadata:       terraformProvider.SpecMetadata,
+		ListResources:      terraformProvider.ListResources,
 	}
 	return data, nil
 }

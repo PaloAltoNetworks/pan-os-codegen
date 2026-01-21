@@ -22,7 +22,9 @@
       "properties": {
         "custom_validation": { "type": "boolean" },
         "skip_datasource": { "type": "boolean" },
+        "skip_datasource_listing": { "type": "boolean" },
         "skip_resource": { "type": "boolean" },
+        "skip_list_resource": { "type": "boolean", "default": true },
         "description": { "type": "string" },
         "resource_type": {
           "type": "string",

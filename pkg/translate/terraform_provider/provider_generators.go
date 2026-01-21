@@ -35,6 +35,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformProvider(terraformProvider 
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/function", "")
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/provider", "")
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/action", "")
+	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/list", "")
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/provider/schema", "")
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource", "")
 	terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/ephemeral", "")
@@ -45,6 +46,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformProvider(terraformProvider 
 		"RenderImports":         func() (string, error) { return terraformProvider.ImportManager.RenderImports() },
 		"DataSources":           func() []string { return terraformProvider.DataSources },
 		"EphemeralResources":    func() []string { return terraformProvider.EphemeralResources },
+		"ListResources":         func() []string { return terraformProvider.ListResources },
 		"Resources":             func() []string { return terraformProvider.Resources },
 		"Actions":               func() []string { return terraformProvider.Actions },
 		"RenderResourceFuncMap": func() (string, error) { return RenderResourceFuncMap(terraformProvider.SpecMetadata) },

@@ -1,0 +1,29 @@
+var (
+	_ list.ListResourceWithConfigure = &{{ structName }}ListResource{}
+)
+
+func New{{ structName }}ListResource() list.ListResource {
+	return &{{ structName }}ListResource{}
+}
+
+func (o *{{ structName }}ListResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "{{ metaName }}"
+}
+
+{{ RenderMainStruct }}
+
+{{ RenderConfigureFunc }}
+
+{{ RenderModelStructs }}
+
+{{ RenderSchema }}
+
+func {{ structName }}ListResourceLocationSchema() listschema.Attribute {
+	return {{ structName }}LocationSchema()
+}
+
+func (o *{{ structName }}ListResource) ListResourceConfigSchema(_ context.Context, _ list.ListResourceSchemaRequest, resp *list.ListResourceSchemaResponse) {
+	resp.Schema = {{ structName }}ListResourceSchema()
+}
+
+{{ RenderListFunc }}

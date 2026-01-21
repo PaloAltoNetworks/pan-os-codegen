@@ -363,6 +363,8 @@ func createStructSpecForEntryModel(resourceTyp properties.ResourceType, schemaTy
 		structName = names.DataSourceStructName
 	case properties.SchemaResource, properties.SchemaEphemeralResource:
 		structName = names.ResourceStructName
+	case properties.SchemaListResource:
+		structName = names.ListResourceStructName()
 	case properties.SchemaAction:
 		structName = names.ActionStructName()
 	case properties.SchemaCommon, properties.SchemaProvider:
@@ -389,6 +391,10 @@ func createStructSpecForEntryModel(resourceTyp properties.ResourceType, schemaTy
 func createStructSpecForModel(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, spec *properties.Normalization, names *NameProvider, hackStructsAsTypeObjects bool) []datasourceStructSpec {
 	if spec.Spec == nil {
 		return nil
+	}
+
+	if schemaTyp == properties.SchemaListResource {
+		return createStructSpecForListResourceModel(resourceTyp, schemaTyp, spec, names)
 	}
 
 	switch resourceTyp {
@@ -645,6 +651,30 @@ func createValidatorSpecForNormalization(resourceTyp properties.ResourceType, st
 	return fields, nestedSpecs, nestedObjects
 }
 
+func createStructSpecForListResourceModel(_ properties.ResourceType, _ properties.SchemaType, spec *properties.Normalization, names *NameProvider) []datasourceStructSpec {
+	var structs []datasourceStructSpec
+
+	var fields []datasourceStructFieldSpec
+
+	if len(spec.Locations) > 0 {
+		fields = append(fields, datasourceStructFieldSpec{
+			Name:                properties.NewNameVariant("location"),
+			TerraformType:       fmt.Sprintf("%sLocation", names.StructName),
+			TerraformStructType: fmt.Sprintf("%sLocation", names.StructName),
+			Type:                "types.Object",
+			Tags:                []string{"`tfsdk:\"location\"`"},
+		})
+	}
+
+	structs = append(structs, datasourceStructSpec{
+		StructName:    names.ListResourceStructName(),
+		ModelOrObject: "Model",
+		Fields:        fields,
+	})
+
+	return structs
+}
+
 // createValidatorSpecForEntryModel creates validator specs for entry-type singular resources.
 func createValidatorSpecForEntryModel(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization, manager *imports.Manager) []modelValidatorSpec {
 	if spec.Spec == nil {
@@ -859,4 +889,17 @@ func RenderModelAttributeTypesFunction(resourceTyp properties.ResourceType, sche
 	}
 
 	return processTemplate("common/attribute_types.tmpl", "attribute-types", data, nil)
+}
+
+// RenderModelStructs generates model struct definitions.
+func RenderModelStructs(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider, spec *properties.Normalization) (string, error) {
+	type context struct {
+		Structs []datasourceStructSpec
+	}
+
+	data := context{
+		Structs: createStructSpecForModel(resourceTyp, schemaTyp, spec, names, true),
+	}
+
+	return processTemplate("datasource/datasource_structs.tmpl", "render-model-structs", data, commonFuncMap)
 }

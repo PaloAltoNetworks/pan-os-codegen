@@ -18,6 +18,9 @@ tflog.Info(ctx, "performing resource create", map[string]any{
 
 var location {{ .resourceSDKName }}.Location
 {{ RenderLocationsStateToPango "state.Location" "location" }}
+if resp.Diagnostics.HasError() {
+	return;
+}
 
 type entryWithState struct {
 	Entry    *{{ $resourceSDKStructName }}

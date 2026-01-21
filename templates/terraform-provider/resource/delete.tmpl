@@ -24,6 +24,9 @@
 
 	var location {{ .resourceSDKName }}.Location
 	{{ RenderLocationsStateToPango "state.Location" "location" }}
+	if resp.Diagnostics.HasError() {
+		return;
+	}
 
 {{- if .HasEntryName }}
 	components, err := state.resourceXpathParentComponents()
