@@ -1,0 +1,275 @@
+name: schedule
+terraform_provider_config:
+  description: Schedule Object
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: schedule
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - objects
+  - schedules
+panos_xpath:
+  path:
+  - schedule
+  vars: []
+locations:
+- name: shared
+  xpath:
+    path:
+    - config
+    - shared
+    vars: []
+  description: Panorama shared object
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: ngfw_device
+      description: The NGFW device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The Virtual System name
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys name cannot be "shared". Use the "shared" location instead
+      type: entry
+  description: Located in a specific Virtual System
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: device-group
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - device-group
+    - $device_group
+    vars:
+    - name: panorama_device
+      description: Panorama device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: device_group
+      description: Device Group name
+      required: true
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The device group name cannot be "shared". Use the "shared" location
+              instead
+      type: entry
+      location_filter: true
+  description: Located in a specific Device Group
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+spec:
+  params:
+  - name: disable-override
+    type: enum
+    profiles:
+    - xpath:
+      - disable-override
+    validators:
+    - type: values
+      spec:
+        values:
+        - 'yes'
+        - 'no'
+    spec:
+      default: 'no'
+      values:
+      - value: 'yes'
+      - value: 'no'
+    description: disable object override in child device groups
+    required: false
+  - name: schedule-type
+    type: object
+    profiles:
+    - xpath:
+      - schedule-type
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: non-recurring
+        type: list
+        profiles:
+        - xpath:
+          - non-recurring
+          type: member
+        validators: []
+        spec:
+          type: string
+          items:
+            type: string
+        description: ''
+        required: false
+      - name: recurring
+        type: object
+        profiles:
+        - xpath:
+          - recurring
+        validators: []
+        spec:
+          params: []
+          variants:
+          - name: daily
+            type: list
+            profiles:
+            - xpath:
+              - daily
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: ''
+            required: false
+          - name: weekly
+            type: object
+            profiles:
+            - xpath:
+              - weekly
+            validators: []
+            spec:
+              params:
+              - name: friday
+                type: list
+                profiles:
+                - xpath:
+                  - friday
+                  type: member
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ''
+                required: false
+              - name: monday
+                type: list
+                profiles:
+                - xpath:
+                  - monday
+                  type: member
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ''
+                required: false
+              - name: saturday
+                type: list
+                profiles:
+                - xpath:
+                  - saturday
+                  type: member
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ''
+                required: false
+              - name: sunday
+                type: list
+                profiles:
+                - xpath:
+                  - sunday
+                  type: member
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ''
+                required: false
+              - name: thursday
+                type: list
+                profiles:
+                - xpath:
+                  - thursday
+                  type: member
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ''
+                required: false
+              - name: tuesday
+                type: list
+                profiles:
+                - xpath:
+                  - tuesday
+                  type: member
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ''
+                required: false
+              - name: wednesday
+                type: list
+                profiles:
+                - xpath:
+                  - wednesday
+                  type: member
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ''
+                required: false
+              variants: []
+            description: ''
+            required: false
+        description: ''
+        required: false
+    description: ''
+    required: false
+  variants: []
