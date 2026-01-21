@@ -88,4 +88,20 @@
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 
+{{- if .HasEntryName }}
+	identityLocation, diags := terraformLocation.Identity(ctx)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	identity := {{ .structName }}IdentityModel{
+{{- if .HasEntryName }}
+		Name: state.Name,
+{{- end }}
+		Location: identityLocation,
+	}
+
+	resp.Diagnostics.Append(resp.Identity.Set(ctx, identity)...)
+{{- end }}
 {{- /* Done */ -}}
