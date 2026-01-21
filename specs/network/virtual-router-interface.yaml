@@ -1,0 +1,116 @@
+name: virtual-router-interface
+terraform_provider_config:
+  description: Virtual Router Interface
+  resource_type: custom
+  skip_datasource: true
+  suffix: virtual_router_interface
+go_sdk_config:
+  skip: true
+  package: [""] # required by the parser
+panos_xpath:
+  path: []
+locations:
+  - name: ngfw
+    xpath:
+      path:
+        - config
+        - devices
+        - $ngfw_device
+      vars:
+        - name: ngfw_device
+          description: The NGFW device
+          required: false
+          default: localhost.localdomain
+          validators: []
+          type: entry
+    description: Located in a specific NGFW device
+    devices:
+      - ngfw
+    validators: []
+    required: false
+    read_only: false
+  - name: template
+    xpath:
+      path:
+        - config
+        - devices
+        - $panorama_device
+        - template
+        - $template
+        - config
+        - devices
+        - $ngfw_device
+      vars:
+        - name: panorama_device
+          description: Specific Panorama device
+          required: false
+          default: localhost.localdomain
+          validators: []
+          type: entry
+        - name: template
+          description: Specific Panorama template
+          required: true
+          validators: []
+          type: entry
+        - name: ngfw_device
+          description: The NGFW device
+          required: false
+          default: localhost.localdomain
+          validators: []
+          type: entry
+    description: Located in a specific template
+    devices:
+      - panorama
+    validators: []
+    required: false
+    read_only: false
+  - name: template-stack
+    xpath:
+      path:
+        - config
+        - devices
+        - $panorama_device
+        - template-stack
+        - $template_stack
+        - config
+        - devices
+        - $ngfw_device
+      vars:
+        - name: panorama_device
+          description: Specific Panorama device
+          required: false
+          default: localhost.localdomain
+          validators: []
+          type: entry
+        - name: template_stack
+          description: Specific Panorama template stack
+          required: true
+          validators: []
+          type: entry
+        - name: ngfw_device
+          description: The NGFW device
+          required: false
+          default: localhost.localdomain
+          validators: []
+          type: entry
+    description: Located in a specific template stack
+    devices:
+      - panorama
+    validators: []
+    required: false
+    read_only: false
+entries: []
+imports: []
+version: 11.0.2
+spec:
+  params:
+    - name: virtual-router
+      type: string
+      required: true
+      profiles:
+        - xpath: [virtual-router]
+    - name: interface
+      type: string
+      required: true
+      profiles:
+        - xpath: [interface]
