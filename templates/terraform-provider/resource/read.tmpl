@@ -1,0 +1,67 @@
+
+{{- if eq .ResourceOrDS "DataSource" }}
+	var state {{ .dataSourceStructName }}Model
+	resp.Diagnostics.Append(req.Config.Get(ctx, &state)...)
+{{- else }}
+	var state {{ .resourceStructName }}Model
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+{{- end }}
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	{{ RenderEncryptedValuesInitialization }}
+
+	var location {{ .resourceSDKName }}.Location
+	{{ RenderLocationsStateToPango "state.Location" "location" }}
+
+	// Basic logging.
+	tflog.Info(ctx, "performing resource read", map[string]any{
+		"resource_name": "panos_{{ UnderscoreName .resourceStructName }}",
+		"function":      "Read",
+{{- if .HasEntryName }}
+		"name":          state.Name.ValueString(),
+{{- end }}
+	})
+
+	components, err := state.resourceXpathParentComponents()
+	if err != nil {
+		resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
+		return
+	}
+
+{{- if .HasEntryName }}
+	object, err := o.manager.Read(ctx, location, components, state.Name.ValueString())
+{{- else }}
+	object, err := o.manager.Read(ctx, location, components)
+{{- end }}
+	if err != nil {
+		if errors.Is(err, sdkmanager.ErrObjectNotFound) {
+{{- if eq .ResourceOrDS "DataSource" }}
+			resp.Diagnostics.AddError("Error reading data", err.Error())
+{{- else }}
+			resp.State.RemoveResource(ctx)
+{{- end }}
+		} else {
+			resp.Diagnostics.AddError("Error reading entry", err.Error())
+		}
+		return
+	}
+
+	copy_diags := state.CopyFromPango(ctx, o.client, nil, object, ev)
+	resp.Diagnostics.Append(copy_diags...)
+
+	/*
+			// Keep the timeouts.
+		    // TODO: This won't work for state import.
+			state.Timeouts = state.Timeouts
+	*/
+
+	state.Location = state.Location
+
+{{ AttributesFromXpathComponents "state" }}
+
+{{ RenderEncryptedValuesFinalizer }}
+
+	// Done.
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

@@ -1,0 +1,69 @@
+{{- range .Validators }}
+
+func (o *{{ .StructName }}{{ .ModelOrObject }}) ValidateConfig(ctx context.Context, resp *resource.ValidateConfigResponse, path path.Path) {
+	{{- range .Fields }}
+	{{- if eq .ValidationType "plaintext-placeholder" }}
+	if !o.{{ .FieldName.CamelCase }}.IsUnknown() && !o.{{ .FieldName.CamelCase }}.IsNull() {
+		value := o.{{ .FieldName.CamelCase }}.ValueString()
+		if strings.Contains(value, "[PLAINTEXT-VALUE-MISSING]") {
+			resp.Diagnostics.AddAttributeError(
+				path.AtName("{{ .FieldName.Underscore }}"),
+				"Invalid Encrypted/Hashed Field Value",
+				fmt.Sprintf("The attribute at path %s contains the placeholder value '[PLAINTEXT-VALUE-MISSING]'. This value is likely from an import operation. The provider cannot decrypt encrypted/hashed values from the device during import. Please provide a valid plaintext value.", path.AtName("{{ .FieldName.Underscore }}").String()),
+			)
+		}
+	}
+	{{- end }}
+	{{- end }}
+
+	{{- range .NestedObjects }}
+	{{- if eq .FieldType "object" }}
+	if !o.{{ .FieldName.CamelCase }}.IsUnknown() && !o.{{ .FieldName.CamelCase }}.IsNull() {
+		var nestedObj {{ .NestedStruct }}Object
+		diags := o.{{ .FieldName.CamelCase }}.As(ctx, &nestedObj, basetypes.ObjectAsOptions{})
+		if diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+		} else {
+			nestedObj.ValidateConfig(ctx, resp, path.AtName("{{ .FieldName.Underscore }}"))
+		}
+	}
+	{{- else if eq .FieldType "list" }}
+	if !o.{{ .FieldName.CamelCase }}.IsUnknown() && !o.{{ .FieldName.CamelCase }}.IsNull() {
+		var elements []{{ .NestedStruct }}Object
+		diags := o.{{ .FieldName.CamelCase }}.ElementsAs(ctx, &elements, false)
+		if diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+		} else {
+			for i, element := range elements {
+				element.ValidateConfig(ctx, resp, path.AtName("{{ .FieldName.Underscore }}").AtListIndex(i))
+			}
+		}
+	}
+	{{- else if eq .FieldType "set" }}
+	if !o.{{ .FieldName.CamelCase }}.IsUnknown() && !o.{{ .FieldName.CamelCase }}.IsNull() {
+		var elements []{{ .NestedStruct }}Object
+		diags := o.{{ .FieldName.CamelCase }}.ElementsAs(ctx, &elements, false)
+		if diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+		} else {
+			for _, element := range elements {
+				element.ValidateConfig(ctx, resp, path.AtName("{{ .FieldName.Underscore }}").AtSetValue(element))
+			}
+		}
+	}
+	{{- else if eq .FieldType "map" }}
+	if !o.{{ .FieldName.CamelCase }}.IsUnknown() && !o.{{ .FieldName.CamelCase }}.IsNull() {
+		var elements map[string]{{ .NestedStruct }}Object
+		diags := o.{{ .FieldName.CamelCase }}.ElementsAs(ctx, &elements, false)
+		if diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+		} else {
+			for key, element := range elements {
+				element.ValidateConfig(ctx, resp, path.AtName("{{ .FieldName.Underscore }}").AtMapKey(key))
+			}
+		}
+	}
+	{{- end }}
+	{{- end }}
+}
+{{- end }}

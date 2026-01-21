@@ -1,0 +1,8 @@
+
+{{- range .Specs }}
+type {{ .StructName }} struct {
+  {{- range .Fields }}
+	{{ .Name }} {{ .Type }} {{ .Tags }}
+  {{- end }}
+}
+{{- end }}

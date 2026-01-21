@@ -1,0 +1,330 @@
+{{- define "renderFromPangoToTfParameter" }}
+  {{- if eq .Type "" }}
+	// TODO: Missing implementation
+  {{- else if or (eq .Type "list") (eq .Type "set") }}
+	{{ .TerraformName.CamelCase }}: {{ .TerraformName.LowerCamelCase }}_list,
+  {{- end }}
+{{- end }}
+
+{{- define "renderListValueSimple" }}
+var {{ .TerraformName.LowerCamelCase }}_list types.{{ .Type | PascalCase }}
+{
+	schema := rsschema.{{ .Type | PascalCase }}Attribute{}
+	{{ .TerraformName.LowerCamelCase }}_list, {{ .TerraformName.LowerCamelCase }}_diags := types.ListValueFrom(ctx, obj.{{ .PangoName.CamelCase }}, schema.GetType())
+	diags.Append({{ .TerraformName.LowerCamelCase }}_diags...)
+}
+{{- end }}
+
+{{- define "renderSetValueSimple" }}
+var {{ .TerraformName.LowerCamelCase }}_list types.Set
+{
+	schema := rsschema.{{ .Type | PascalCase }}Attribute{}
+	{{ .TerraformName.LowerCamelCase }}_list, {{ .TerraformName.LowerCamelCase }}_diags := types.ValueFrom(ctx, obj.{{ .PangoName.CamelCase }}, schema.GetType())
+	diags.Append({{ .TerraformName.LowerCamelCase }}_diags...)
+}
+{{- end }}
+
+{{- define "renderNestedValues" }}
+  {{- range .Spec.SortedParams }}
+    {{- $terraformType := printf "%s%s" $.TerraformType (.TerraformName.CamelCase) }}
+    {{- if eq .Type "" }}
+	// TODO {{ .TerraformName.CamelCase }} {{ .Type }}
+    {{- else if (and (or (eq .Type "list") (eq .Type "set")) (eq .ItemsType "entry")) }}
+	{{- template "renderListValueEntry" Map "Name" .TerraformName "Type" $terraformType }}
+    {{- else if (and (or (eq .Type "list") (eq .Type "set")) (eq .ItemsType "member")) }}
+	// TODO: {{ .TerraformName.CamelCase }} {{ .ItemsType }}
+    {{- else if (eq .Type "list") }}
+	{{- template "renderListValueSimple" Map "Name" .TerraformName "Type" .ItemsType }}
+    {{- else if (eq .Type "set") }}
+	{{- template "renderSetValueSimple" Map "Name" .TerraformName "Type" .ItemsType }}
+    {{- else }}
+	// TODO: {{ .TerraformName.CamelCase }} {{ .Type }}
+    {{- end }}
+  {{- end }}
+
+  {{- range .Spec.SortedOneOf }}
+	// TODO: .Spec.SortedOneOf {{ .TerraformName.CamelCase }}
+  {{- end }}
+{{- end }}
+
+{{- define "renderObjectListElement" }}
+	entry := &{{ .TerraformType }} {
+  {{- range .Element.Spec.SortedParams }}
+	{{- template "renderFromPangoToTfParameter" . }}
+  {{- end }}
+  {{- range .Element.Spec.SortedOneOf }}
+	{{- template "renderFromPangoToTfParameter" . }}
+  {{- end }}
+	}
+	{{ .TfEntries }} = append({{ .TfEntries }}, *entry)
+{{- end }}
+
+{{- define "terraformListElementsAsParam" }}
+  {{- with .Parameter }}
+    {{- $pangoType := printf "%s%s" $.Spec.PangoType .TerraformName.CamelCase }}
+    {{- $terraformType := printf "%s%sObject" $.Spec.TerraformType .TerraformName.CamelCase }}
+    {{- $terraformList := printf "%s_list" .TerraformName.LowerCamelCase }}
+    {{- $pangoEntries := printf "%s_pango_entries" .TerraformName.LowerCamelCase }}
+    {{- $tfEntries := printf "%s_tf_entries" .TerraformName.LowerCamelCase }}
+    {{- if eq .ItemsType "entry" }}
+	var {{ $terraformList }} types.{{ $.ListOrSet }}
+	{
+		var {{ $tfEntries }} []{{ $terraformType }}
+		if !o.{{ .TerraformName.CamelCase }}.IsNull() {
+			diags.Append(o.{{ .TerraformName.CamelCase }}.ElementsAs(ctx, &{{ $tfEntries }}, false)...)
+			if diags.HasError() {
+				return diags
+			}
+		}
+
+		for idx, elt := range obj.{{ .PangoName.CamelCase }} {
+			entry := {{ $terraformType }}{
+				Name: types.StringValue(elt.Name),
+			}
+			if idx < len({{ $tfEntries }}) {
+				entry = {{ $tfEntries }}[idx]
+			}
+
+			diags.Append(entry.CopyFromPango(ctx, client, append(ancestors, entry), &elt, ev)...)
+			if diags.HasError() {
+				return diags
+			}
+
+			if idx < len({{ $tfEntries }}) {
+				{{ $tfEntries }}[idx] = entry
+			} else {
+				{{ $tfEntries }} = append({{ $tfEntries }}, entry)
+			}
+		}
+		var list_diags diag.Diagnostics
+		schemaType := o.getTypeFor("{{ .TerraformName.Underscore }}")
+		{{ $terraformList }}, list_diags = types.{{ $.ListOrSet }}ValueFrom(ctx, schemaType, {{ $tfEntries }})
+		diags.Append(list_diags...)
+	}
+    {{- else }}
+		var {{ .TerraformName.LowerCamelCase }}_list types.{{ $.ListOrSet }}
+		{
+			var list_diags diag.Diagnostics
+
+			entries := make([]{{ .ItemsType }}, 0)
+			if o.{{ .TerraformName.CamelCase }}.IsNull() || len(obj.{{ .PangoName.CamelCase }}) > 0 {
+				entries = obj.{{ .PangoName.CamelCase }}
+			}
+
+			{{ .TerraformName.LowerCamelCase }}_list, list_diags = types.{{ $.ListOrSet }}ValueFrom(ctx, types.{{ .ItemsType | PascalCase }}Type, entries)
+			diags.Append(list_diags...)
+			if diags.HasError() {
+				return diags
+			}
+		}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- define "terraformSetElementsAs" }}
+  {{- range .Params }}
+    {{- if eq .Type "set" }}
+      {{- template "terraformListElementsAsParam" Map "Spec" $ "Parameter" . "ListOrSet" "Set" }}
+    {{- end }}
+  {{- end }}
+
+  {{- range .OneOf }}
+    {{- if eq .Type "set" }}
+      {{- template "terraformListElementsAsParam" Map "Spec" $ "Parameter" . "ListOrSet" "Set" }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- define "terraformListElementsAs" }}
+  {{- range .Params }}
+    {{- if eq .Type "list" }}
+      {{- template "terraformListElementsAsParam" Map "Spec" $ "Parameter" . "ListOrSet" "List" }}
+    {{- end }}
+  {{- end }}
+
+  {{- range .OneOf }}
+    {{- if eq .Type "list" }}
+      {{- template "terraformListElementsAsParam" Map "Spec" $ "Parameter" . "ListOrSet" "List" }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- define "terraformCreateEntryAssignmentForParam" }}
+  {{- with .Parameter }}
+  {{- $result := .TerraformName.LowerCamelCase }}
+  {{- $diag := .TerraformName.LowerCamelCase | printf "%s_diags" }}
+
+  var {{ $result }}_obj *{{ $.Spec.TerraformType }}{{ .TerraformName.CamelCase }}Object
+  if o.{{ .TerraformName.CamelCase }}.IsNull() {
+	{{ $result }}_obj = new({{ $.Spec.TerraformType }}{{ .TerraformName.CamelCase }}Object)
+  } else {
+	diags.Append(o.{{ .TerraformName.CamelCase }}.As(ctx, &{{ $result }}_obj, basetypes.ObjectAsOptions{})...)
+	if diags.HasError() {
+		return diags
+	}
+  }
+  {{ $result }}_object := types.ObjectNull({{ $result }}_obj.AttributeTypes())
+  if obj.{{ .PangoName.CamelCase }} != nil {
+    {{- if eq $.Spec.ModelOrObject "Model" }}
+	diags.Append({{ $result }}_obj.CopyFromPango(ctx, client, ancestors, obj.{{ .PangoName.CamelCase }}, ev)...)
+    {{- else }}
+	diags.Append({{ $result }}_obj.CopyFromPango(ctx, client, append(ancestors, o), obj.{{ .PangoName.CamelCase }}, ev)...)
+    {{- end }}
+	if diags.HasError() {
+		return diags
+	}
+	var diags_tmp diag.Diagnostics
+	{{ $result }}_object, diags_tmp = types.ObjectValueFrom(ctx, {{ $result }}_obj.AttributeTypes(), {{ $result }}_obj)
+	diags.Append(diags_tmp...)
+	if diags.HasError() {
+		return diags
+	}
+  }
+  {{- end }}
+{{- end }}
+
+{{- define "terraformCreateEntryAssignment" }}
+  {{- range .Params }}
+    {{- if eq .Type "" }}
+      {{- template "terraformCreateEntryAssignmentForParam" Map "Spec" $ "Parameter" . }}
+    {{- end }}
+  {{- end }}
+
+  {{- range .OneOf }}
+    {{- if eq .Type "" }}
+      {{- template "terraformCreateEntryAssignmentForParam" Map "Spec" $ "Parameter" . }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- define "terraformCreateStringAsMemberValues" }}
+  {{- range .Params }}
+    {{ if not (eq .ComplexType "string-as-member") }}
+      {{- continue }}
+    {{- end }}
+    {{ .TerraformName.LowerCamelCase }}_value := types.StringValue(obj.{{ .PangoName.CamelCase }}[0])
+  {{- end }}
+
+  {{- range .OneOf }}
+    {{ if not (eq .ComplexType "string-as-member") }}
+      {{- continue }}
+    {{- end }}
+    {{ .TerraformName.LowerCamelCase }}_value := types.StringValue(*obj.{{ .PangoName.CamelCase }}[0])
+  {{- end }}
+{{- end }}
+
+{{- define "terraformCreateSimpleValues" }}
+  {{- range .Params }}
+    {{- $terraformType := printf "types.%s" (.Type | PascalCase) }}
+    {{- if (not (or (eq .Type "") (eq .Type "list") (eq .Type "set") (eq .ComplexType "string-as-member"))) }}
+	var {{ .TerraformName.LowerCamelCase }}_value {{ $terraformType }}
+	if obj.{{ .PangoName.CamelCase }} != nil {
+{{- if .Encryption }}
+		valueKey, err := CreateXpathForAttributeWithAncestors(ancestors, "{{ .TerraformName.Original }}")
+		if err != nil {
+			diags.AddError("Failed to create encrypted values state key", err.Error())
+			return diags
+		}
+
+		if evFromState, found := ev.GetEncryptedValue(valueKey); found && ev.PreferServerState() && *obj.{{  .PangoName.CamelCase }} != evFromState {
+			{{ .TerraformName.LowerCamelCase }}_value = types.StringPointerValue(obj.{{ .PangoName.CamelCase }})
+		} else if value, found := ev.GetPlaintextValue(valueKey); found {
+			{{ .TerraformName.LowerCamelCase }}_value = types.StringValue(value)
+		} else {
+			diags.AddWarning("Failed to read plaintext value from encrypted state, fallback value used", fmt.Sprintf("Missing plaintext value for %s", valueKey))
+			{{ .TerraformName.LowerCamelCase }}_value = types.StringValue("[PLAINTEXT-VALUE-MISSING]")
+		}
+
+		if !ev.PreferServerState() {
+			err = ev.StoreEncryptedValue(valueKey, "{{ .Encryption.HashingType }}", *obj.{{ .PangoName.CamelCase }})
+			if err != nil {
+				diags.AddError("Failed to store encrypted values state", err.Error())
+				return diags
+			}
+		}
+
+
+{{- else }}
+		{{ .TerraformName.LowerCamelCase }}_value = types.{{ .Type | PascalCase }}Value(*obj.{{ .PangoName.CamelCase }})
+{{- end }}
+	}
+    {{- end }}
+  {{- end }}
+
+  {{- range .OneOf }}
+    {{- $terraformType := printf "types.%s" (.Type | PascalCase) }}
+    {{- if (not (or (eq .Type "") (eq .Type "list") (eq .Type "set") (eq .ComplexType "string-as-member"))) }}
+	var {{ .TerraformName.LowerCamelCase }}_value {{ $terraformType }}
+	if obj.{{ .PangoName.CamelCase }} != nil {
+{{- if .Encryption }}
+		valueKey, err := CreateXpathForAttributeWithAncestors(ancestors, "{{ .TerraformName.Original }}")
+		if err != nil {
+			diags.AddError("Failed to create encrypted values state key", err.Error())
+			return diags
+		}
+
+		if evFromState, found := ev.GetEncryptedValue(valueKey); found && ev.PreferServerState() && *obj.{{  .PangoName.CamelCase }} != evFromState {
+			{{ .TerraformName.LowerCamelCase }}_value = types.StringPointerValue(obj.{{ .PangoName.CamelCase }})
+		} else if value, found := ev.GetPlaintextValue(valueKey); found {
+			{{ .TerraformName.LowerCamelCase }}_value = types.StringValue(value)
+		} else {
+			diags.AddWarning("Failed to read plaintext value from encrypted state, fallback value used", fmt.Sprintf("Missing plaintext value for %s", valueKey))
+			{{ .TerraformName.LowerCamelCase }}_value = types.StringValue("[PLAINTEXT-VALUE-MISSING]")
+		}
+
+		if !ev.PreferServerState() {
+			err = ev.StoreEncryptedValue(valueKey, "{{ .Encryption.HashingType }}", *obj.{{ .PangoName.CamelCase }})
+			if err != nil {
+				diags.AddError("Failed to store encrypted values state", err.Error())
+				return diags
+			}
+		}
+
+
+{{- else }}
+		{{ .TerraformName.LowerCamelCase }}_value = types.{{ .Type | PascalCase }}Value(*obj.{{ .PangoName.CamelCase }})
+{{- end }}
+	}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- define "assignFromPangoToTerraform" }}
+  {{- with .Parameter }}
+  {{- if eq .ComplexType "string-as-member" }}
+	o.{{ .TerraformName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_value
+  {{- else if eq .Type "" }}
+	o.{{ .TerraformName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_object
+  {{- else if or (eq .Type "list") (eq .Type "set") }}
+	o.{{ .TerraformName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_list
+  {{- else }}
+	o.{{ .TerraformName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_value
+  {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- range .Specs }}
+{{- $spec := . }}
+{{ $terraformType := printf "%s%s" .TerraformType .ModelOrObject }}
+func (o *{{ $terraformType }}) CopyFromPango(ctx context.Context, client pangoutil.PangoClient, ancestors []Ancestor, obj *{{ .PangoReturnType }}, ev *EncryptedValuesManager) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+  {{- template "terraformSetElementsAs" $spec }}
+  {{- template "terraformListElementsAs" $spec }}
+  {{- template "terraformCreateEntryAssignment" $spec }}
+  {{- template "terraformCreateStringAsMemberValues" $spec }}
+  {{- template "terraformCreateSimpleValues" $spec }}
+
+  {{- if .HasEntryName }}
+	o.Name = types.StringValue(obj.Name)
+  {{- end }}
+  {{- range .Params }}
+    {{- template "assignFromPangoToTerraform" Map "Spec" $spec "Parameter" . }}
+  {{- end }}
+  {{- range .OneOf }}
+    {{- template "assignFromPangoToTerraform" Map "Spec" $spec "Parameter" . }}
+  {{- end }}
+
+	return diags
+}
+{{- end }}

@@ -1,0 +1,8 @@
+{{- if eq .SchemaType "resource" }}
+	payload, err := json.Marshal(ev)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to marshal encrypted values state", err.Error())
+		return
+	}
+	resp.Private.SetKey(ctx, "encrypted_values", payload)
+{{- end }}

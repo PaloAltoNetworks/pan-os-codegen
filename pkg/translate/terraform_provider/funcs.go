@@ -247,508 +247,6 @@ func generateFromTerraformToPangoParameter(names *NameProvider, resourceTyp prop
 	return specs
 }
 
-const copyToPangoTmpl = `
-{{- define "terraformNestedElementsAssign" }}
-  {{- with .Parameter }}
-
-  {{- $result := .TerraformName.LowerCamelCase }}
-  {{- $diag := .TerraformName.LowerCamelCase | printf "%s_diags" }}
-	var {{ $result }}_entry *{{ $.Spec.PangoType }}{{ .PangoName.CamelCase }}
-	if !o.{{ .TerraformName.CamelCase }}.IsUnknown() && !o.{{ .TerraformName.CamelCase }}.IsNull() {
-		if *obj != nil && (*obj).{{ .PangoName.CamelCase }} != nil {
-			{{ $result }}_entry = (*obj).{{ .PangoName.CamelCase }}
-		} else {
-			{{ $result }}_entry = new({{ $.Spec.PangoType }}{{ .PangoName.CamelCase }})
-		}
-		var object {{ .TerraformType }}
-		diags.Append(o.{{ .TerraformName.CamelCase }}.As(ctx, &object, basetypes.ObjectAsOptions{})...)
-		if diags.HasError() {
-			return diags
-		}
-    {{- if eq $.Spec.ModelOrObject "Model" }}
-		diags.Append(object.CopyToPango(ctx, client, ancestors, &{{ $result }}_entry, ev)...)
-    {{- else }}
-		diags.Append(object.CopyToPango(ctx, client, append(ancestors, o), &{{ $result }}_entry, ev)...)
-    {{- end }}
-		if diags.HasError() {
-			return diags
-		}
-	}
-
-  {{- end }}
-{{- end }}
-
-{{- define "terraformListElementsAs" }}
-  {{- with .Parameter }}
-    {{- $pangoType := printf "%s%s" $.Spec.PangoType .PangoName.CamelCase }}
-    {{- $terraformType := printf "%s%sObject" $.Spec.TerraformType .TerraformName.CamelCase }}
-    {{- $pangoEntries := printf "%s_pango_entries" .TerraformName.LowerCamelCase }}
-    {{- $tfEntries := printf "%s_tf_entries" .TerraformName.LowerCamelCase }}
-    {{- if eq .ItemsType "entry" }}
-		var {{ $tfEntries }} []{{ $terraformType }}
-		var {{ $pangoEntries }} []{{ $pangoType }}
-	{
-		d := o.{{ .TerraformName.CamelCase }}.ElementsAs(ctx, &{{ $tfEntries }}, false)
-		diags.Append(d...)
-		if diags.HasError() {
-			return diags
-		}
-		for _, elt := range {{ $tfEntries }} {
-			var entry *{{ $pangoType }}
-			diags.Append(elt.CopyToPango(ctx, client, append(ancestors, elt), &entry, ev)...)
-			if diags.HasError() {
-				return diags
-			}
-			{{ $pangoEntries }} = append({{ $pangoEntries }}, *entry)
-		}
-	}
-    {{- else }}
-	var {{ $pangoEntries }} []{{ .ItemsType }}
-	if !o.{{ .TerraformName.CamelCase }}.IsUnknown() && !o.{{ .TerraformName.CamelCase }}.IsNull() {
-		object_entries := make([]types.{{ .ItemsType | PascalCase }}, 0, len(o.{{ .TerraformName.CamelCase }}.Elements()))
-		diags.Append(o.{{ .TerraformName.CamelCase }}.ElementsAs(ctx, &object_entries, false)...)
-		if diags.HasError() {
-			diags.AddError("Explicit Error", "Failed something")
-			return diags
-		}
-
-		for _, elt := range object_entries {
-			{{ $pangoEntries }} = append({{ $pangoEntries }}, elt.Value{{ .ItemsType | PascalCase }}())
-		}
-	}
-    {{- end }}
-  {{- end }}
-{{- end }}
-
-{{- define "renderStringAsMemberAssignment" }}
-  {{- with .Parameter }}
-    {{- $pangoType := printf "%s%s" $.Spec.PangoType .PangoName.CamelCase }}
-    {{- $pangoEntries := printf "%s_pango_entries" .TerraformName.LowerCamelCase }}
-    {{ $pangoEntries }} := []string{o.{{ .TerraformName.CamelCase }}.ValueString()}
-  {{- end }}
-{{- end }}
-
-{{- define "renderSimpleAssignment" }}
-  {{- if .Encryption }}
-
-	var {{ .TerraformName.LowerCamelCase }}_value *string
-	{
-	valueKey, err := CreateXpathForAttributeWithAncestors(ancestors, "{{ .TerraformName.Original }}")
-	if err != nil {
-		diags.AddError("Failed to create encrypted values state key", err.Error())
-		return diags
-	}
-
-    {{- if eq .Encryption.HashingType "client" }}
-	stateValue, found := ev.GetPlaintextValue(valueKey)
-	if !found || stateValue != o.{{ .TerraformName.CamelCase }}.Value{{ CamelCaseType .Type }}() {
-		hashed, err := {{ .Encryption.HashingFunc }}(ctx, client, o.{{ .TerraformName.CamelCase }}.Value{{ CamelCaseType .Type }}())
-		if err != nil {
-			diags.AddError("Failed to hash sensitive value", err.Error())
-			return diags
-		}
-
-		err = ev.StoreEncryptedValue(valueKey, "{{ .Encryption.HashingType }}", hashed)
-		if err != nil {
-			diags.AddError("Failed to manage encrypted values state", err.Error())
-			return diags
-		}
-
-		err = ev.StorePlaintextValue(valueKey, "{{ .Encryption.HashingType }}", o.{{ .TerraformName.CamelCase }}.ValueString())
-		if err != nil {
-			diags.AddError("Failed to manage encrypted values state", err.Error())
-			return diags
-		}
-
-		{{ .TerraformName.LowerCamelCase }}_value = &hashed
-	} else {
-		{{ .TerraformName.LowerCamelCase }}_value = &stateValue
-	}
-    {{- else }}
-	err = ev.StorePlaintextValue(valueKey, "{{ .Encryption.HashingType }}", o.{{ .TerraformName.CamelCase }}.ValueString())
-	if err != nil {
-		diags.AddError("Failed to manage encrypted values state", err.Error())
-		return diags
-	}
-	{{ .TerraformName.LowerCamelCase }}_value = o.{{ .TerraformName.CamelCase }}.Value{{ CamelCaseType .Type }}Pointer()
-    {{- end }}
-	}
-  {{- else }}
-	{{ .TerraformName.LowerCamelCase }}_value := o.{{ .TerraformName.CamelCase }}.Value{{ CamelCaseType .Type }}Pointer()
-  {{- end }}
-{{- end }}
-
-{{- range .Specs }}
-{{- $spec := . }}
-func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Context, client pangoutil.PangoClient, ancestors []Ancestor, obj **{{ .PangoReturnType }}, ev *EncryptedValuesManager) diag.Diagnostics {
-	var diags diag.Diagnostics
-  {{- range .Params }}
-    {{- $terraformType := printf "%s%s" $spec.TerraformType .TerraformName.CamelCase }}
-    {{- if eq .ComplexType "string-as-member" }}
-      {{- template "renderStringAsMemberAssignment" Map "Parameter" . "Spec" $spec }}
-    {{- else if eq .Type "" }}
-      {{- $pangoType := printf "%sObject" $spec.PangoType }}
-	{{- template "terraformNestedElementsAssign" Map "Parameter" . "Spec" $spec }}
-    {{- else if or (eq .Type "list") (eq .Type "set") }}
-      {{- $pangoType := printf "%s%s" $spec.PangoType .TerraformName.CamelCase }}
-	{{- template "terraformListElementsAs" Map "Parameter" . "Spec" $spec }}
-    {{- else }}
-        {{- template "renderSimpleAssignment" . }}
-    {{- end }}
-  {{- end }}
-
-  {{- range .OneOf }}
-    {{- if eq .ComplexType "string-as-member" }}
-      {{- template "renderStringAsMemberAssignment" Map "Parameter" . "Spec" $spec }}
-    {{- else if eq .Type "" }}
-      {{- $pangoType := printf "%sObject" $spec.PangoType }}
-	{{- template "terraformNestedElementsAssign" Map "Parameter" . "Spec" $spec }}
-    {{- else if or (eq .Type "list") (eq .Type "set") }}
-	{{- template "terraformListElementsAs" Map "Parameter" . "Spec" $spec }}
-    {{- else }}
-        {{- template "renderSimpleAssignment" . }}
-    {{- end }}
-  {{- end }}
-
-  if (*obj) == nil {
-	*obj = new({{ .PangoReturnType }})
-  }
-  {{- if .HasEntryName }}
-	(*obj).Name = o.Name.ValueString()
-  {{- end }}
-  {{- range .Params }}
-    {{- if eq .ComplexType "string-as-member" }}
-	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_pango_entries
-    {{- else if eq .Type "" }}
-	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_entry
-    {{- else if or (eq .Type "list") (eq .Type "set") }}
-	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_pango_entries
-    {{- else }}
-	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_value
-    {{- end }}
-  {{- end }}
-
-  {{- range .OneOf }}
-    {{- if eq .ComplexType "string-as-member" }}
-	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_pango_entries
-    {{- else if eq .Type "" }}
-	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_entry
-    {{- else if or (eq .Type "list") (eq .Type "set") }}
-	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_pango_entries
-    {{- else }}
-	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_value
-    {{- end }}
-  {{- end }}
-
-	return diags
-}
-{{- end }}
-`
-
-const copyFromPangoTmpl = `
-{{- define "renderFromPangoToTfParameter" }}
-  {{- if eq .Type "" }}
-	// TODO: Missing implementation
-  {{- else if or (eq .Type "list") (eq .Type "set") }}
-	{{ .TerraformName.CamelCase }}: {{ .TerraformName.LowerCamelCase }}_list,
-  {{- end }}
-{{- end }}
-
-{{- define "renderListValueSimple" }}
-var {{ .TerraformName.LowerCamelCase }}_list types.{{ .Type | PascalCase }}
-{
-	schema := rsschema.{{ .Type | PascalCase }}Attribute{}
-	{{ .TerraformName.LowerCamelCase }}_list, {{ .TerraformName.LowerCamelCase }}_diags := types.ListValueFrom(ctx, obj.{{ .PangoName.CamelCase }}, schema.GetType())
-	diags.Append({{ .TerraformName.LowerCamelCase }}_diags...)
-}
-{{- end }}
-
-{{- define "renderSetValueSimple" }}
-var {{ .TerraformName.LowerCamelCase }}_list types.Set
-{
-	schema := rsschema.{{ .Type | PascalCase }}Attribute{}
-	{{ .TerraformName.LowerCamelCase }}_list, {{ .TerraformName.LowerCamelCase }}_diags := types.ValueFrom(ctx, obj.{{ .PangoName.CamelCase }}, schema.GetType())
-	diags.Append({{ .TerraformName.LowerCamelCase }}_diags...)
-}
-{{- end }}
-
-{{- define "renderNestedValues" }}
-  {{- range .Spec.SortedParams }}
-    {{- $terraformType := printf "%s%s" $.TerraformType (.TerraformName.CamelCase) }}
-    {{- if eq .Type "" }}
-	// TODO {{ .TerraformName.CamelCase }} {{ .Type }}
-    {{- else if (and (or (eq .Type "list") (eq .Type "set")) (eq .ItemsType "entry")) }}
-	{{- template "renderListValueEntry" Map "Name" .TerraformName "Type" $terraformType }}
-    {{- else if (and (or (eq .Type "list") (eq .Type "set")) (eq .ItemsType "member")) }}
-	// TODO: {{ .TerraformName.CamelCase }} {{ .ItemsType }}
-    {{- else if (eq .Type "list") }}
-	{{- template "renderListValueSimple" Map "Name" .TerraformName "Type" .ItemsType }}
-    {{- else if (eq .Type "set") }}
-	{{- template "renderSetValueSimple" Map "Name" .TerraformName "Type" .ItemsType }}
-    {{- else }}
-	// TODO: {{ .TerraformName.CamelCase }} {{ .Type }}
-    {{- end }}
-  {{- end }}
-
-  {{- range .Spec.SortedOneOf }}
-	// TODO: .Spec.SortedOneOf {{ .TerraformName.CamelCase }}
-  {{- end }}
-{{- end }}
-
-{{- define "renderObjectListElement" }}
-	entry := &{{ .TerraformType }} {
-  {{- range .Element.Spec.SortedParams }}
-	{{- template "renderFromPangoToTfParameter" . }}
-  {{- end }}
-  {{- range .Element.Spec.SortedOneOf }}
-	{{- template "renderFromPangoToTfParameter" . }}
-  {{- end }}
-	}
-	{{ .TfEntries }} = append({{ .TfEntries }}, *entry)
-{{- end }}
-
-{{- define "terraformListElementsAsParam" }}
-  {{- with .Parameter }}
-    {{- $pangoType := printf "%s%s" $.Spec.PangoType .TerraformName.CamelCase }}
-    {{- $terraformType := printf "%s%sObject" $.Spec.TerraformType .TerraformName.CamelCase }}
-    {{- $terraformList := printf "%s_list" .TerraformName.LowerCamelCase }}
-    {{- $pangoEntries := printf "%s_pango_entries" .TerraformName.LowerCamelCase }}
-    {{- $tfEntries := printf "%s_tf_entries" .TerraformName.LowerCamelCase }}
-    {{- if eq .ItemsType "entry" }}
-	var {{ $terraformList }} types.{{ $.ListOrSet }}
-	{
-		var {{ $tfEntries }} []{{ $terraformType }}
-		if !o.{{ .TerraformName.CamelCase }}.IsNull() {
-			diags.Append(o.{{ .TerraformName.CamelCase }}.ElementsAs(ctx, &{{ $tfEntries }}, false)...)
-			if diags.HasError() {
-				return diags
-			}
-		}
-
-		for idx, elt := range obj.{{ .PangoName.CamelCase }} {
-			entry := {{ $terraformType }}{
-				Name: types.StringValue(elt.Name),
-			}
-			if idx < len({{ $tfEntries }}) {
-				entry = {{ $tfEntries }}[idx]
-			}
-
-			diags.Append(entry.CopyFromPango(ctx, client, append(ancestors, entry), &elt, ev)...)
-			if diags.HasError() {
-				return diags
-			}
-
-			if idx < len({{ $tfEntries }}) {
-				{{ $tfEntries }}[idx] = entry
-			} else {
-				{{ $tfEntries }} = append({{ $tfEntries }}, entry)
-			}
-		}
-		var list_diags diag.Diagnostics
-		schemaType := o.getTypeFor("{{ .TerraformName.Underscore }}")
-		{{ $terraformList }}, list_diags = types.{{ $.ListOrSet }}ValueFrom(ctx, schemaType, {{ $tfEntries }})
-		diags.Append(list_diags...)
-	}
-    {{- else }}
-		var {{ .TerraformName.LowerCamelCase }}_list types.{{ $.ListOrSet }}
-		{
-			var list_diags diag.Diagnostics
-
-			entries := make([]{{ .ItemsType }}, 0)
-			if o.{{ .TerraformName.CamelCase }}.IsNull() || len(obj.{{ .PangoName.CamelCase }}) > 0 {
-				entries = obj.{{ .PangoName.CamelCase }}
-			}
-
-			{{ .TerraformName.LowerCamelCase }}_list, list_diags = types.{{ $.ListOrSet }}ValueFrom(ctx, types.{{ .ItemsType | PascalCase }}Type, entries)
-			diags.Append(list_diags...)
-			if diags.HasError() {
-				return diags
-			}
-		}
-    {{- end }}
-  {{- end }}
-{{- end }}
-
-{{- define "terraformSetElementsAs" }}
-  {{- range .Params }}
-    {{- if eq .Type "set" }}
-      {{- template "terraformListElementsAsParam" Map "Spec" $ "Parameter" . "ListOrSet" "Set" }}
-    {{- end }}
-  {{- end }}
-
-  {{- range .OneOf }}
-    {{- if eq .Type "set" }}
-      {{- template "terraformListElementsAsParam" Map "Spec" $ "Parameter" . "ListOrSet" "Set" }}
-    {{- end }}
-  {{- end }}
-{{- end }}
-
-{{- define "terraformListElementsAs" }}
-  {{- range .Params }}
-    {{- if eq .Type "list" }}
-      {{- template "terraformListElementsAsParam" Map "Spec" $ "Parameter" . "ListOrSet" "List" }}
-    {{- end }}
-  {{- end }}
-
-  {{- range .OneOf }}
-    {{- if eq .Type "list" }}
-      {{- template "terraformListElementsAsParam" Map "Spec" $ "Parameter" . "ListOrSet" "List" }}
-    {{- end }}
-  {{- end }}
-{{- end }}
-
-{{- define "terraformCreateEntryAssignmentForParam" }}
-  {{- with .Parameter }}
-  {{- $result := .TerraformName.LowerCamelCase }}
-  {{- $diag := .TerraformName.LowerCamelCase | printf "%s_diags" }}
-
-  var {{ $result }}_obj *{{ $.Spec.TerraformType }}{{ .TerraformName.CamelCase }}Object
-  if o.{{ .TerraformName.CamelCase }}.IsNull() {
-	{{ $result }}_obj = new({{ $.Spec.TerraformType }}{{ .TerraformName.CamelCase }}Object)
-  } else {
-	diags.Append(o.{{ .TerraformName.CamelCase }}.As(ctx, &{{ $result }}_obj, basetypes.ObjectAsOptions{})...)
-	if diags.HasError() {
-		return diags
-	}
-  }
-  {{ $result }}_object := types.ObjectNull({{ $result }}_obj.AttributeTypes())
-  if obj.{{ .PangoName.CamelCase }} != nil {
-    {{- if eq $.Spec.ModelOrObject "Model" }}
-	diags.Append({{ $result }}_obj.CopyFromPango(ctx, client, ancestors, obj.{{ .PangoName.CamelCase }}, ev)...)
-    {{- else }}
-	diags.Append({{ $result }}_obj.CopyFromPango(ctx, client, append(ancestors, o), obj.{{ .PangoName.CamelCase }}, ev)...)
-    {{- end }}
-	if diags.HasError() {
-		return diags
-	}
-	var diags_tmp diag.Diagnostics
-	{{ $result }}_object, diags_tmp = types.ObjectValueFrom(ctx, {{ $result }}_obj.AttributeTypes(), {{ $result }}_obj)
-	diags.Append(diags_tmp...)
-	if diags.HasError() {
-		return diags
-	}
-  }
-  {{- end }}
-{{- end }}
-
-{{- define "terraformCreateEntryAssignment" }}
-  {{- range .Params }}
-    {{- if eq .Type "" }}
-      {{- template "terraformCreateEntryAssignmentForParam" Map "Spec" $ "Parameter" . }}
-    {{- end }}
-  {{- end }}
-
-  {{- range .OneOf }}
-    {{- if eq .Type "" }}
-      {{- template "terraformCreateEntryAssignmentForParam" Map "Spec" $ "Parameter" . }}
-    {{- end }}
-  {{- end }}
-{{- end }}
-
-{{- define "terraformCreateStringAsMemberValues" }}
-  {{- range .Params }}
-    {{ if not (eq .ComplexType "string-as-member") }}
-      {{- continue }}
-    {{- end }}
-    {{ .TerraformName.LowerCamelCase }}_value := types.StringValue(obj.{{ .PangoName.CamelCase }}[0])
-  {{- end }}
-
-  {{- range .OneOf }}
-    {{ if not (eq .ComplexType "string-as-member") }}
-      {{- continue }}
-    {{- end }}
-    {{ .TerraformName.LowerCamelCase }}_value := types.StringValue(*obj.{{ .PangoName.CamelCase }}[0])
-  {{- end }}
-{{- end }}
-
-{{- define "terraformCreateSimpleValue" }}
-  {{- $terraformType := printf "types.%s" (.Type | PascalCase) }}
-  {{- if (not (or (eq .Type "") (eq .Type "list") (eq .Type "set") (eq .ComplexType "string-as-member"))) }}
-	var {{ .TerraformName.LowerCamelCase }}_value {{ $terraformType }}
-	if obj.{{ .PangoName.CamelCase }} != nil {
-{{- if .Encryption }}
-		valueKey, err := CreateXpathForAttributeWithAncestors(ancestors, "{{ .TerraformName.Original }}")
-		if err != nil {
-			diags.AddError("Failed to create encrypted values state key", err.Error())
-			return diags
-		}
-
-		if evFromState, found := ev.GetEncryptedValue(valueKey); found && ev.PreferServerState() && *obj.{{  .PangoName.CamelCase }} != evFromState {
-			{{ .TerraformName.LowerCamelCase }}_value = types.StringPointerValue(obj.{{ .PangoName.CamelCase }})
-		} else if value, found := ev.GetPlaintextValue(valueKey); found {
-			{{ .TerraformName.LowerCamelCase }}_value = types.StringValue(value)
-		} else {
-			diags.AddWarning("Failed to read plaintext value from encrypted state, fallback value used", fmt.Sprintf("Missing plaintext value for %s", valueKey))
-			{{ .TerraformName.LowerCamelCase }}_value = types.StringValue("[PLAINTEXT-VALUE-MISSING]")
-		}
-
-		if !ev.PreferServerState() {
-			err = ev.StoreEncryptedValue(valueKey, "{{ .Encryption.HashingType }}", *obj.{{ .PangoName.CamelCase }})
-			if err != nil {
-				diags.AddError("Failed to store encrypted values state", err.Error())
-				return diags
-			}
-		}
-
-
-{{- else }}
-		{{ .TerraformName.LowerCamelCase }}_value = types.{{ .Type | PascalCase }}Value(*obj.{{ .PangoName.CamelCase }})
-{{- end }}
-	}
-    {{- end }}
-{{- end }}
-
-{{- define "terraformCreateSimpleValues" }}
-  {{- range .Params }}
-    {{- template "terraformCreateSimpleValue" . }}
-  {{- end }}
-
-  {{- range .OneOf }}
-    {{- template "terraformCreateSimpleValue" . }}
-  {{- end }}
-{{- end }}
-
-{{- define "assignFromPangoToTerraform" }}
-  {{- with .Parameter }}
-  {{- if eq .ComplexType "string-as-member" }}
-	o.{{ .TerraformName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_value
-  {{- else if eq .Type "" }}
-	o.{{ .TerraformName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_object
-  {{- else if or (eq .Type "list") (eq .Type "set") }}
-	o.{{ .TerraformName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_list
-  {{- else }}
-	o.{{ .TerraformName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_value
-  {{- end }}
-  {{- end }}
-{{- end }}
-
-{{- range .Specs }}
-{{- $spec := . }}
-{{ $terraformType := printf "%s%s" .TerraformType .ModelOrObject }}
-func (o *{{ $terraformType }}) CopyFromPango(ctx context.Context, client pangoutil.PangoClient, ancestors []Ancestor, obj *{{ .PangoReturnType }}, ev *EncryptedValuesManager) diag.Diagnostics {
-	var diags diag.Diagnostics
-
-  {{- template "terraformSetElementsAs" $spec }}
-  {{- template "terraformListElementsAs" $spec }}
-  {{- template "terraformCreateEntryAssignment" $spec }}
-  {{- template "terraformCreateStringAsMemberValues" $spec }}
-  {{- template "terraformCreateSimpleValues" $spec }}
-
-  {{- if .HasEntryName }}
-	o.Name = types.StringValue(obj.Name)
-  {{- end }}
-  {{- range .Params }}
-    {{- template "assignFromPangoToTerraform" Map "Spec" $spec "Parameter" . }}
-  {{- end }}
-  {{- range .OneOf }}
-    {{- template "assignFromPangoToTerraform" Map "Spec" $spec "Parameter" . }}
-  {{- end }}
-
-	return diags
-}
-{{- end }}
-`
-
 func pascalCase(value string) string {
 	var parts []string
 	if strings.Contains(value, "-") {
@@ -769,27 +267,6 @@ func pascalCase(value string) string {
 	return strings.Join(result, "")
 }
 
-const encryptedValuesManagerInitializationTmpl = `
-{{- if or (eq .SchemaType "datasource") (eq .Method "create") (eq .Method "import") }}
-var encryptedValues []byte
-{{- else }}
-encryptedValues, diags := req.Private.GetKey(ctx, "encrypted_values")
-resp.Diagnostics.Append(diags...)
-if resp.Diagnostics.HasError() {
-	return
-}
-{{- end }}
-{{- if eq .Method "read" }}
-ev, err := NewEncryptedValuesManager(encryptedValues, true)
-{{- else }}
-ev, err := NewEncryptedValuesManager(encryptedValues, false)
-{{- end }}
-if err != nil {
-	resp.Diagnostics.AddError("Failed to read encrypted values from private state", err.Error())
-	return
-}
-`
-
 type encryptedValuesContext struct {
 	SchemaType properties.SchemaType
 	Method     string
@@ -809,19 +286,8 @@ func RenderEncryptedValuesInitialization(schemaTyp properties.SchemaType, spec *
 		Method:     method,
 	}
 
-	return processTemplate(encryptedValuesManagerInitializationTmpl, "encrypted-values-manager-initialization", data, nil)
+	return processTemplate("encrypted/initialization.tmpl", "encrypted-values-manager-initialization", data, nil)
 }
-
-const encryptedValuesManagerFinalizerTmpl = `
-{{- if eq .SchemaType "resource" }}
-	payload, err := json.Marshal(ev)
-	if err != nil {
-		resp.Diagnostics.AddError("Failed to marshal encrypted values state", err.Error())
-		return
-	}
-	resp.Private.SetKey(ctx, "encrypted_values", payload)
-{{- end }}
-`
 
 func RenderEncryptedValuesFinalizer(schemaTyp properties.SchemaType, spec *properties.Normalization) (string, error) {
 	defer func() {
@@ -836,7 +302,7 @@ func RenderEncryptedValuesFinalizer(schemaTyp properties.SchemaType, spec *prope
 		SchemaType: schemaTyp,
 	}
 
-	return processTemplate(encryptedValuesManagerFinalizerTmpl, "encrypted-values-manager-finalizer", data, nil)
+	return processTemplate("encrypted/finalizer.tmpl", "encrypted-values-manager-finalizer", data, nil)
 }
 
 func RenderCopyToPangoFunctions(names *NameProvider, resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, pkgName string, terraformTypePrefix string, property *properties.Normalization) (string, error) {
@@ -856,7 +322,7 @@ func RenderCopyToPangoFunctions(names *NameProvider, resourceTyp properties.Reso
 	funcMap := mergeFuncMaps(commonFuncMap, template.FuncMap{
 		"PascalCase": pascalCase,
 	})
-	return processTemplate(copyToPangoTmpl, "copy-to-pango", data, funcMap)
+	return processTemplate("conversion/copy_to_pango.tmpl", "copy-to-pango", data, funcMap)
 }
 
 func RenderCopyFromPangoFunctions(names *NameProvider, resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, pkgName string, terraformTypePrefix string, property *properties.Normalization) (string, error) {
@@ -877,22 +343,8 @@ func RenderCopyFromPangoFunctions(names *NameProvider, resourceTyp properties.Re
 	funcMap := mergeFuncMaps(commonFuncMap, template.FuncMap{
 		"PascalCase": pascalCase,
 	})
-	return processTemplate(copyFromPangoTmpl, "copy-from-pango", data, funcMap)
+	return processTemplate("conversion/copy_from_pango.tmpl", "copy-from-pango", data, funcMap)
 }
-
-const xpathComponentsGetterTmpl = `
-func (o *{{ .StructName }}Model) resourceXpathParentComponents() ([]string, error) {
-	var components []string
-{{- range .Components }}
-  {{- if eq .Type "value" }}
-	components = append(components, (o.{{ .Name.CamelCase }}.ValueString()))
-  {{- else if eq .Type "entry" }}
-	components = append(components, pangoutil.AsEntryXpath(o.{{ .Name.CamelCase }}.ValueString()))
-  {{- end }}
-{{- end }}
-	return components, nil
-}
-`
 
 func RenderXpathComponentsGetter(structName string, property *properties.Normalization) (string, error) {
 	defer func() {
@@ -945,18 +397,8 @@ func RenderXpathComponentsGetter(structName string, property *properties.Normali
 		Components: components,
 	}
 
-	return processTemplate(xpathComponentsGetterTmpl, "xpath-components", data, commonFuncMap)
+	return processTemplate("conversion/xpath_components.tmpl", "xpath-components", data, commonFuncMap)
 }
-
-const renderLocationTmpl = `
-{{- range .Locations }}
-type {{ .StructName }} struct {
-  {{- range .Fields }}
-	{{ .Name.CamelCase }} {{ .Type }} {{ range .Tags }}{{ . }} {{ end }}
-  {{- end }}
-}
-{{- end }}
-`
 
 type locationStructFieldCtx struct {
 	Name          *properties.NameVariant
@@ -1048,64 +490,8 @@ func RenderLocationStructs(resourceTyp properties.ResourceType, names *NameProvi
 	data := context{
 		Locations: locations,
 	}
-	return processTemplate(renderLocationTmpl, "render-location-structs", data, commonFuncMap)
+	return processTemplate("location/render.tmpl", "render-location-structs", data, commonFuncMap)
 }
-
-const locationSchemaGetterTmpl = `
-{{- define "renderLocationAttribute" }}
-"{{ .Name.Underscore }}": {{ .SchemaType }}{
-	Description: "{{ .Description }}",
-  {{- if .Required }}
-	Required: true,
-  {{- end }}
-  {{- if .Optional }}
-	Optional: true,
-  {{- end }}
-  {{- if .Computed }}
-	Computed: true,
-  {{- end }}
-  {{- if .Default }}
-	Default: {{ .Default.Type }}({{ .Default.Value }}),
-  {{- end }}
-  {{- if .Attributes }}
-	Attributes: map[string]rsschema.Attribute{
-    {{- range .Attributes }}
-		{{- template "renderLocationAttribute" . }}
-    {{- end }}
-	},
-  {{- end }}
-	PlanModifiers: []planmodifier.{{ .ModifierType }}{
-		{{ .ModifierType | LowerCase }}planmodifier.RequiresReplace(),
-	},
-  {{- with .Validators }}
-    {{ $package := .Package }}
-		Validators: []validator.{{ .ListType }}{
-    {{- range .Functions }}
-			{{ $package }}.{{ .Function }}(path.Expressions{
-      {{- range .Expressions }}
-				{{ . }},
-      {{- end }}
-			}...),
-    {{- end }}
-		},
-  {{- end }}
-},
-{{- end }}
-
-func {{ .StructName }}LocationSchema() rsschema.Attribute {
-  {{- with .Schema }}
-	return rsschema.SingleNestedAttribute{
-		Description: "{{ .Description }}",
-		Required: true,
-		Attributes: map[string]rsschema.Attribute{
-{{- range .Attributes }}
-{{- template "renderLocationAttribute" . }}
-{{- end }}
-		},
-	}
-}
-  {{- end }}
-`
 
 type defaultCtx struct {
 	Type  string
@@ -1292,7 +678,7 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 		Schema:     topAttribute,
 	}
 
-	return processTemplate(locationSchemaGetterTmpl, "render-location-schema-getter", data, commonFuncMap)
+	return processTemplate("schema/location_schema_getter.tmpl", "render-location-schema-getter", data, commonFuncMap)
 }
 
 type marshallerFieldSpec struct {
@@ -1372,7 +758,7 @@ func RenderLocationMarshallers(names *NameProvider, spec *properties.Normalizati
 	}
 	context.Specs = createLocationMarshallerSpecs(names, spec)
 
-	return processTemplate(locationMarshallersTmpl, "render-location-marshallers", context, commonFuncMap)
+	return processTemplate("location/marshallers.tmpl", "render-location-marshallers", context, commonFuncMap)
 }
 
 func RenderImportStateMarshallers(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
@@ -1386,7 +772,7 @@ func RenderImportStateMarshallers(resourceTyp properties.ResourceType, names *Na
 	}
 	context.Specs = createImportStateMarshallerSpecs(resourceTyp, names, spec)
 
-	return processTemplate(locationMarshallersTmpl, "render-import-state-marshallers", context, commonFuncMap)
+	return processTemplate("location/marshallers.tmpl", "render-import-state-marshallers", context, commonFuncMap)
 }
 
 func generateValidatorFnsMapForVariants(variants []*properties.SpecParam) map[int]*validatorFunctionCtx {
@@ -2065,236 +1451,6 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 	return attributes, schemas
 }
 
-const renderSchemaTemplate = `
-{{- define "renderSchemaListAttribute" }}
-	"{{ .Name.Underscore }}": {{ .Package }}.{{ .SchemaType }} {
-		Description: "{{ .Description }}",
-  {{- if .Required }}
-		Required: {{ .Required }},
-  {{- end }}
-  {{- if .Optional }}
-		Optional: {{ .Optional }},
-  {{- end }}
-  {{- if .Computed }}
-		Computed: {{ .Computed }},
-  {{- end }}
-  {{- if .Sensitive }}
-		Sensitive: {{ .Sensitive }},
-  {{- end }}
-		ElementType: {{ .ElementType }},
-  {{- with .Validators }}
-    {{ $package := .Package }}
-		Validators: []validator.{{ .ListType }}{
-    {{- range .Functions }}
-      {{- if eq .Type "Expressions" }}
-			{{ $package }}.{{ .Function }}(path.Expressions{
-        {{- range .Expressions }}
-				{{ . }},
-        {{- end }}
-			}...),
-
-      {{- else if eq .Type "Values" }}
-			{{ $package }}.{{ .Function }}([]string{
-          {{- range .Values }}
-				{{ . }},
-          {{- end }}
-			}...),
-      {{- end }}
-    {{- end }}
-		},
-  {{- end }}
-	},
-{{- end }}
-
-{{- define "renderSchemaMapAttribute" }}
-	"{{ .Name.Underscore }}": {{ .Package }}.{{ .SchemaType }} {
-		Description: "{{ .Description }}",
-  {{- if .Required }}
-		Required: {{ .Required }},
-  {{- end }}
-  {{- if .Optional }}
-		Optional: {{ .Optional }},
-  {{- end }}
-  {{- if .Computed }}
-		Computed: {{ .Computed }},
-  {{- end }}
-  {{- if .Sensitive }}
-		Sensitive: {{ .Sensitive }},
-  {{- end }}
-		ElementType: {{ .ElementType }},
-	},
-{{- end }}
-
-{{- define "renderSchemaListNestedAttribute" }}
-  {{- with .Attribute }}
-	"{{ .Name.Underscore }}": {{ .Package }}.{{ .SchemaType }} {
-		Description: "{{ .Description }}",
-  {{- if .Required }}
-		Required: {{ .Required }},
-  {{- end }}
-  {{- if .Optional }}
-		Optional: {{ .Optional }},
-  {{- end }}
-  {{- if .Computed }}
-		Computed: {{ .Computed }},
-  {{- end }}
-  {{- if .Sensitive }}
-		Sensitive: {{ .Sensitive }},
-  {{- end }}
-		NestedObject: {{ $.StructName }}{{ .Name.CamelCase }}Schema(),
-	},
-  {{- end }}
-{{- end }}
-
-{{- define "renderSchemaMapNestedAttribute" }}
-  {{- template "renderSchemaListNestedAttribute" . }}
-{{- end }}
-
-
-{{- define "renderSchemaSingleNestedAttribute" }}
-  {{- with .Attribute }}
-	"{{ .Name.Underscore }}": {{ $.StructName }}{{ .Name.CamelCase }}Schema(),
-  {{- end }}
-{{- end }}
-
-{{- define "renderSchemaExternalAttribute" }}
-  {{- with .Attribute }}
-	"{{ .Name.Underscore }}": {{ .ExternalType }}Schema(),
-  {{- end }}
-{{- end }}
-
-{{- define "renderSchemaSimpleAttribute" }}
-	"{{ .Name.Underscore }}": {{ .Package }}.{{ .SchemaType }} {
-		Description: "{{ .Description }}",
-  {{- if .Required }}
-		Required: {{ .Required }},
-  {{- end }}
-  {{- if .Optional }}
-		Optional: {{ .Optional }},
-  {{- end }}
-  {{- if .Computed }}
-		Computed: {{ .Computed }},
-  {{- end }}
-  {{- if .Sensitive }}
-		Sensitive: {{ .Sensitive }},
-  {{- end }}
-  {{- if .Default }}
-		Default: {{ .Default.Type }}({{ .Default.Value }}),
-  {{- end }}
-  {{- if .PlanModifiers }}
-		PlanModifiers: []{{ .PlanModifiers.SchemaType }}{
-    {{- range .PlanModifiers.Modifiers }}
-			{{ . }},
-    {{- end }}
-		},
-  {{- end }}
-
-  {{- with .Validators }}
-    {{ $package := .Package }}
-		Validators: []validator.{{ .ListType }}{
-    {{- range .Functions }}
-      {{- if eq .Type "Expressions" }}
-			{{ $package }}.{{ .Function }}(path.Expressions{
-        {{- range .Expressions }}
-				{{ . }},
-        {{- end }}
-			}...),
-      {{- else if eq .Type "Values" }}
-			{{ $package }}.{{ .Function }}([]string{
-        {{- range .Values }}
-				"{{ . }}",
-        {{- end }}
-			}...),
-      {{- end }}
-    {{- end }}
-		},
-  {{- end }}
-	},
-{{- end }}
-
-{{- define "renderSchemaAttribute" }}
-  {{- with .Attribute }}
-    {{ if or (eq .SchemaType "ListAttribute") (eq .SchemaType "SetAttribute") }}
-      {{- template "renderSchemaListAttribute" . }}
-    {{- else if eq .SchemaType "MapAttribute" }}
-      {{- template "renderSchemaMapAttribute" . }}
-    {{- else if eq .SchemaType "ListNestedAttribute" }}
-      {{- template "renderSchemaListNestedAttribute" Map "StructName" $.StructName "Attribute" . }}
-    {{ else if eq .SchemaType "MapNestedAttribute" }}
-      {{- template "renderSchemaMapNestedAttribute" Map "StructName" $.StructName "Attribute" . }}
-    {{- else if eq .SchemaType "SingleNestedAttribute" }}
-      {{- template "renderSchemaSingleNestedAttribute" Map "StructName" $.StructName "Attribute" . }}
-    {{- else if eq .SchemaType "ExternalAttribute" }}
-      {{- template "renderSchemaExternalAttribute" Map "Attribute" . }}
-    {{- else }}
-      {{- template "renderSchemaSimpleAttribute" . }}
-    {{- end }}
-  {{- end }}
-{{- end }}
-
-{{- range .Schemas }}
-{{ $schema := . }}
-
-func {{ .StructName }}Schema() {{ .Package }}.{{ .ReturnType }} {
-	return {{ .Package }}.{{ .ReturnType }}{
-{{- if not (or (eq .ReturnType "Schema") (eq .ReturnType "NestedAttributeObject")) }}
-		Description: "{{ .Description }}",
-  {{- if .Required }}
-		Required: {{ .Required }},
-  {{- end }}
-  {{- if .Optional }}
-		Optional: {{ .Optional }},
-  {{- end }}
-  {{- if .Computed }}
-		Computed: {{ .Computed }},
-  {{- end }}
-  {{- if .Sensitive }}
-		Sensitive: {{ .Sensitive }},
-  {{- end }}
-{{- end }}
-  {{- with .Validators }}
-    {{ $package := .Package }}
-		Validators: []validator.{{ .ListType }}{
-    {{- range .Functions }}
-			{{ $package }}.{{ .Function }}(path.Expressions{
-      {{- range .Expressions }}
-				{{ . }},
-      {{- end }}
-			}...),
-    {{- end }}
-		},
-  {{- end }}
-		Attributes: map[string]{{ .Package }}.Attribute{
-  {{- range .Attributes -}}
-	{{- template "renderSchemaAttribute" Map "StructName" $schema.StructName "Attribute" . }}
-  {{- end }}
-		},
-	}
-}
-
-func (o *{{ .StructName }}{{ .ObjectOrModel }}) getTypeFor(name string) attr.Type {
-	schema := {{ .StructName }}Schema()
-	if attr, ok := schema.Attributes[name]; !ok {
-		panic(fmt.Sprintf("could not resolve schema for attribute %s", name))
-	} else {
-		switch attr := attr.(type) {
-  {{- if not (eq .Package "schema") }}
-		case {{ .Package }}.ListNestedAttribute:
-			return attr.NestedObject.Type()
-		case {{ .Package }}.MapNestedAttribute:
-			return attr.NestedObject.Type()
-  {{- end }}
-		default:
-			return attr.GetType()
-		}
-	}
-
-	panic("unreachable")
-}
-
-{{- end }}
-`
-
 func RenderResourceSchema(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization, manager *imports.Manager) (string, error) {
 	type context struct {
 		Schemas []schemaCtx
@@ -2304,7 +1460,7 @@ func RenderResourceSchema(resourceTyp properties.ResourceType, names *NameProvid
 		Schemas: createSchemaSpecForModel(resourceTyp, properties.SchemaResource, spec, manager),
 	}
 
-	return processTemplate(renderSchemaTemplate, "render-resource-schema", data, commonFuncMap)
+	return processTemplate("schema/schema.tmpl", "render-resource-schema", data, commonFuncMap)
 }
 
 func RenderDataSourceSchema(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization, manager *imports.Manager) (string, error) {
@@ -2316,7 +1472,7 @@ func RenderDataSourceSchema(resourceTyp properties.ResourceType, names *NameProv
 		Schemas: createSchemaSpecForModel(resourceTyp, properties.SchemaDataSource, spec, manager),
 	}
 
-	return processTemplate(renderSchemaTemplate, "render-resource-schema", data, commonFuncMap)
+	return processTemplate("schema/schema.tmpl", "render-resource-schema", data, commonFuncMap)
 }
 
 func RenderSchema(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider, spec *properties.Normalization, manager *imports.Manager) (string, error) {
@@ -2336,39 +1492,8 @@ func RenderSchema(resourceTyp properties.ResourceType, schemaTyp properties.Sche
 		Schemas: createSchemaSpecForModel(resourceTyp, schemaTyp, spec, manager),
 	}
 
-	return processTemplate(renderSchemaTemplate, "render-schema", data, commonFuncMap)
+	return processTemplate("schema/schema.tmpl", "render-schema", data, commonFuncMap)
 }
-
-const importLocationAssignmentTmpl = `
-{
-var terraformLocation {{ .TerraformStructName }}
-resp.Diagnostics.Append({{ $.Source }}.As(ctx, &terraformLocation, basetypes.ObjectAsOptions{})...)
-if resp.Diagnostics.HasError() {
-	return
-}
-{{- range .Specs }}
-{{ $type := . }}
-{{ $locationName := .Name }}
-if location.{{ .Name.CamelCase }} != nil {
-  {{- range .Locations }}
-	{
-	var terraformInnerLocation {{ .TerraformStructName }}
-	resp.Diagnostics.Append(terraformLocation.{{ $locationName.CamelCase }}.As(ctx, &terraformInnerLocation, basetypes.ObjectAsOptions{})...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-    {{- $pangoStruct := GetPangoStructForLocation $.Variants $type.Name .Name }}
-	{{ $.Dest }} = {{ $.PackageName }}.New{{ $pangoStruct }}({{ $.PackageName }}.{{ $pangoStruct }}Spec{
-    {{- range .Fields }}
-		{{ . }}: terraformInnerLocation.{{ . }}.ValueString(),
-    {{- end }}
-	})
-	}
-  {{- end }}
-}
-}
-{{- end }}
-`
 
 func RenderImportLocationAssignment(names *NameProvider, spec *properties.Normalization, source string, dest string) (string, error) {
 	if len(spec.Imports) == 0 {
@@ -2464,7 +1589,7 @@ func RenderImportLocationAssignment(names *NameProvider, spec *properties.Normal
 		},
 	}
 
-	return processTemplate(importLocationAssignmentTmpl, "render-locations-pango-to-state", data, funcMap)
+	return processTemplate("location/assignment.tmpl", "render-locations-pango-to-state", data, funcMap)
 }
 
 type locationFieldCtx struct {
@@ -2510,19 +1635,6 @@ func renderLocationsGetContext(names *NameProvider, spec *properties.Normalizati
 	return locations
 }
 
-const locationsPangoToState = `
-{{- range .Locations }}
-if {{ $.Source }}.{{ .Name }} != nil {
-	{{ $.Dest }}.{{ .Name }} = &{{ .TerraformStructName }}{
-    {{ $locationName := .Name }}
-  {{- range .Fields }}
-		{{ .TerraformName }}: types.{{ .Type }}Value({{ $.Source }}.{{ $locationName }}.{{ .PangoName }}),
-  {{- end }}
-	}
-}
-{{- end }}
-`
-
 func RenderLocationsPangoToState(names *NameProvider, spec *properties.Normalization, source string, dest string) (string, error) {
 	type context struct {
 		Source    string
@@ -2530,33 +1642,8 @@ func RenderLocationsPangoToState(names *NameProvider, spec *properties.Normaliza
 		Locations []locationCtx
 	}
 	data := context{Source: source, Dest: dest, Locations: renderLocationsGetContext(names, spec)}
-	return processTemplate(locationsPangoToState, "render-locations-pango-to-state", data, commonFuncMap)
+	return processTemplate("location/pango_to_state.tmpl", "render-locations-pango-to-state", data, commonFuncMap)
 }
-
-const locationsStateToPango = `
-{
-var terraformLocation {{ .TerraformStructName }}
-resp.Diagnostics.Append({{ $.Source }}.As(ctx, &terraformLocation, basetypes.ObjectAsOptions{})...)
-if resp.Diagnostics.HasError() {
-	return
-}
-
-{{- range .Locations }}
-{{ $locationType := .Name }}
-if !terraformLocation.{{ $locationType }}.IsNull() {
-	{{ $.Dest }}.{{ $locationType }} = &{{ .PangoStructName }}{}
-	var innerLocation {{ .TerraformStructName }}
-	resp.Diagnostics.Append(terraformLocation.{{ .Name }}.As(ctx, &innerLocation, basetypes.ObjectAsOptions{})...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-  {{- range .Fields }}
-	{{ $.Dest }}.{{ $locationType }}.{{ .PangoName }} = innerLocation.{{ .TerraformName }}.ValueString()
-  {{- end }}
-}
-{{- end }}
-}
-`
 
 func RenderLocationsStateToPango(names *NameProvider, spec *properties.Normalization, source string, dest string) (string, error) {
 	type context struct {
@@ -2571,7 +1658,7 @@ func RenderLocationsStateToPango(names *NameProvider, spec *properties.Normaliza
 		Source:              source,
 		Dest:                dest,
 	}
-	return processTemplate(locationsStateToPango, "render-locations-state-to-pango", data, commonFuncMap)
+	return processTemplate("location/state_to_pango.tmpl", "render-locations-state-to-pango", data, commonFuncMap)
 }
 
 func RendeCreateUpdateMovementRequired(state string, entries string) (string, error) {
@@ -2580,22 +1667,8 @@ func RendeCreateUpdateMovementRequired(state string, entries string) (string, er
 		Entries string
 	}
 	data := context{State: state, Entries: entries}
-	return processTemplate(resourceCreateUpdateMovementRequiredTmpl, "render-create-update-movement-required", data, nil)
+	return processTemplate("resource/movement_required.tmpl", "render-create-update-movement-required", data, nil)
 }
-
-const dataSourceStructs = `
-{{- range .Structs }}
-type {{ .StructName }}{{ .ModelOrObject }} struct {
-  {{- range .Fields }}
-    {{- if .Private }}
-	{{ .Name.LowerCamelCase }} {{ .Type }} {{ range .Tags }}{{ . }}{{ end }}
-    {{- else }}
-	{{ .Name.CamelCase }} {{ .Type }} {{ range .Tags }}{{ . }} {{ end }}
-    {{- end }}
-  {{- end }}
-}
-{{- end }}
-`
 
 type datasourceStructFieldSpec struct {
 	Name                *properties.NameVariant
@@ -3013,18 +2086,7 @@ func createStructSpecForNormalization(resourceTyp properties.ResourceType, struc
 	return fields, structs
 }
 
-func RenderResourceStructs(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
-	type context struct {
-		Structs []datasourceStructSpec
-	}
-
-	data := context{
-		Structs: createStructSpecForModel(resourceTyp, properties.SchemaResource, spec, names, true),
-	}
-
-	return processTemplate(dataSourceStructs, "render-structs", data, commonFuncMap)
-}
-
+// Validator types and constants
 type modelFieldValidationType string
 
 const (
@@ -3292,7 +2354,7 @@ func createValidatorSpecForEntryListModel(resourceTyp properties.ResourceType, n
 	specs = append(specs, modelValidatorSpec{
 		StructName:    names.ResourceStructName,
 		ModelOrObject: "Model",
-		Fields:        nil, // No direct fields to validate on the Model itself
+		Fields:        nil,                // No direct fields to validate on the Model itself
 		NestedObjects: nestedObjsForModel, // Recurse into list/map/set to validate entry objects
 	})
 
@@ -3340,7 +2402,7 @@ func createValidatorSpecForUuidModel(resourceTyp properties.ResourceType, names 
 	specs = append(specs, modelValidatorSpec{
 		StructName:    names.ResourceStructName,
 		ModelOrObject: "Model",
-		Fields:        nil, // No direct fields to validate on the Model itself
+		Fields:        nil,                // No direct fields to validate on the Model itself
 		NestedObjects: nestedObjsForModel, // Recurse into list to validate entry objects
 	})
 
@@ -3376,77 +2438,17 @@ func createValidatorSpecForModel(resourceTyp properties.ResourceType, names *Nam
 	}
 }
 
-const modelValidatorsTmpl = `
-{{- range .Validators }}
+func RenderResourceStructs(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
+	type context struct {
+		Structs []datasourceStructSpec
+	}
 
-func (o *{{ .StructName }}{{ .ModelOrObject }}) ValidateConfig(ctx context.Context, resp *resource.ValidateConfigResponse, path path.Path) {
-	{{- range .Fields }}
-	{{- if eq .ValidationType "plaintext-placeholder" }}
-	if !o.{{ .FieldName.CamelCase }}.IsUnknown() && !o.{{ .FieldName.CamelCase }}.IsNull() {
-		value := o.{{ .FieldName.CamelCase }}.ValueString()
-		if strings.Contains(value, "[PLAINTEXT-VALUE-MISSING]") {
-			resp.Diagnostics.AddAttributeError(
-				path.AtName("{{ .FieldName.Underscore }}"),
-				"Invalid Encrypted/Hashed Field Value",
-				fmt.Sprintf("The attribute at path %s contains the placeholder value '[PLAINTEXT-VALUE-MISSING]'. This value is likely from an import operation. The provider cannot decrypt encrypted/hashed values from the device during import. Please provide a valid plaintext value.", path.AtName("{{ .FieldName.Underscore }}").String()),
-			)
-		}
+	data := context{
+		Structs: createStructSpecForModel(resourceTyp, properties.SchemaResource, spec, names, true),
 	}
-	{{- end }}
-	{{- end }}
 
-	{{- range .NestedObjects }}
-	{{- if eq .FieldType "object" }}
-	if !o.{{ .FieldName.CamelCase }}.IsUnknown() && !o.{{ .FieldName.CamelCase }}.IsNull() {
-		var nestedObj {{ .NestedStruct }}Object
-		diags := o.{{ .FieldName.CamelCase }}.As(ctx, &nestedObj, basetypes.ObjectAsOptions{})
-		if diags.HasError() {
-			resp.Diagnostics.Append(diags...)
-		} else {
-			nestedObj.ValidateConfig(ctx, resp, path.AtName("{{ .FieldName.Underscore }}"))
-		}
-	}
-	{{- else if eq .FieldType "list" }}
-	if !o.{{ .FieldName.CamelCase }}.IsUnknown() && !o.{{ .FieldName.CamelCase }}.IsNull() {
-		var elements []{{ .NestedStruct }}Object
-		diags := o.{{ .FieldName.CamelCase }}.ElementsAs(ctx, &elements, false)
-		if diags.HasError() {
-			resp.Diagnostics.Append(diags...)
-		} else {
-			for i, element := range elements {
-				element.ValidateConfig(ctx, resp, path.AtName("{{ .FieldName.Underscore }}").AtListIndex(i))
-			}
-		}
-	}
-	{{- else if eq .FieldType "set" }}
-	if !o.{{ .FieldName.CamelCase }}.IsUnknown() && !o.{{ .FieldName.CamelCase }}.IsNull() {
-		var elements []{{ .NestedStruct }}Object
-		diags := o.{{ .FieldName.CamelCase }}.ElementsAs(ctx, &elements, false)
-		if diags.HasError() {
-			resp.Diagnostics.Append(diags...)
-		} else {
-			for _, element := range elements {
-				element.ValidateConfig(ctx, resp, path.AtName("{{ .FieldName.Underscore }}").AtSetValue(element))
-			}
-		}
-	}
-	{{- else if eq .FieldType "map" }}
-	if !o.{{ .FieldName.CamelCase }}.IsUnknown() && !o.{{ .FieldName.CamelCase }}.IsNull() {
-		var elements map[string]{{ .NestedStruct }}Object
-		diags := o.{{ .FieldName.CamelCase }}.ElementsAs(ctx, &elements, false)
-		if diags.HasError() {
-			resp.Diagnostics.Append(diags...)
-		} else {
-			for key, element := range elements {
-				element.ValidateConfig(ctx, resp, path.AtName("{{ .FieldName.Underscore }}").AtMapKey(key))
-			}
-		}
-	}
-	{{- end }}
-	{{- end }}
+	return processTemplate("datasource/datasource_structs.tmpl", "render-structs", data, commonFuncMap)
 }
-{{- end }}
-`
 
 func RenderResourceValidators(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization, manager *imports.Manager) (string, error) {
 	type context struct {
@@ -3460,7 +2462,7 @@ func RenderResourceValidators(resourceTyp properties.ResourceType, names *NamePr
 		Validators: validators,
 	}
 
-	return processTemplate(modelValidatorsTmpl, "render-structs", data, commonFuncMap)
+	return processTemplate("conversion/model_validators.tmpl", "render-structs", data, commonFuncMap)
 }
 
 func RenderDataSourceStructs(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
@@ -3472,7 +2474,7 @@ func RenderDataSourceStructs(resourceTyp properties.ResourceType, names *NamePro
 		Structs: createStructSpecForModel(resourceTyp, properties.SchemaDataSource, spec, names, true),
 	}
 
-	return processTemplate(dataSourceStructs, "render-structs", data, commonFuncMap)
+	return processTemplate("datasource/datasource_structs.tmpl", "render-structs", data, commonFuncMap)
 }
 
 func RenderStructs(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider, spec *properties.Normalization) (string, error) {
@@ -3484,63 +2486,8 @@ func RenderStructs(resourceTyp properties.ResourceType, schemaTyp properties.Sch
 		Structs: createStructSpecForModel(resourceTyp, schemaTyp, spec, names, true),
 	}
 
-	return processTemplate(dataSourceStructs, "render-structs", data, commonFuncMap)
+	return processTemplate("datasource/datasource_structs.tmpl", "render-structs", data, commonFuncMap)
 }
-
-const attributeTypesTmpl = `
-{{- range .Structs }}
-func (o *{{ .StructName }}{{ .ModelOrObject }}) AttributeTypes() map[string]attr.Type {
-  {{- range .Fields }}
-    {{- if .Private }}{{ continue }}{{- end }}
-    {{ if (eq .Type "types.Object") }}
-	var {{ .Name.LowerCamelCase }}Obj {{ .TerraformStructType }}
-    {{- else if or (eq .Type "types.List") (eq .Type "types.Set") (eq .Type "types.Map") }}
-      {{- if eq .ItemsType "types.Object" }}
-	var {{ .Name.LowerCamelCase }}Obj {{ .TerraformStructType }}
-      {{- end }}
-    {{- end }}
-  {{- end }}
-	return map[string]attr.Type{
-  {{- range .Fields }}
-    {{- if .Private }}{{ continue }}{{- end }}
-    {{- if eq .Type "types.Object" }}
-	"{{ .Name.Underscore }}": {{ .Type }}Type{
-		AttrTypes: {{ .Name.LowerCamelCase }}Obj.AttributeTypes(),
-	},
-    {{- else if or (eq .Type "types.List") (eq .Type "types.Set") (eq .Type "types.Map") }}
-      {{- if (eq .ItemsType "types.Object") }}
-		"{{ .Name.Underscore }}": {{ .Type }}Type{
-			ElemType: types.ObjectType{
-				AttrTypes: {{ .Name.LowerCamelCase }}Obj.AttributeTypes(),
-			},
-		},
-      {{- else }}
-		"{{ .Name.Underscore }}": {{ .Type }}Type{
-			ElemType: {{ .ItemsType }},
-		},
-      {{- end }}
-    {{- else }}
-		"{{ .Name.Underscore }}": {{ .Type }}Type,
-    {{- end }}
-  {{- end }}
-	}
-}
-
-func (o {{ .StructName }}{{ .ModelOrObject }}) AncestorName() string {
-	return "{{ .AncestorName }}"
-}
-
-func (o {{ .StructName }}{{ .ModelOrObject }}) EntryName() *string {
-    {{- if and .HasEntryName (eq .TerraformPluralType "map") }}
-	return &o.name
-    {{- else if .HasEntryName }}
-	return o.Name.ValueStringPointer()
-    {{- else }}
-	return nil
-    {{- end }}
-}
-{{- end }}
-`
 
 func RenderModelAttributeTypesFunction(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider, spec *properties.Normalization) (string, error) {
 	type context struct {
@@ -3551,31 +2498,8 @@ func RenderModelAttributeTypesFunction(resourceTyp properties.ResourceType, sche
 		Structs: createStructSpecForModel(resourceTyp, schemaTyp, spec, names, true),
 	}
 
-	return processTemplate(attributeTypesTmpl, "attribute-types", data, nil)
+	return processTemplate("common/attribute_types.tmpl", "attribute-types", data, nil)
 }
-
-const locationAttributeTypesTmpl = `
-{{- range .Specs }}
-func (o *{{ .StructName }}) AttributeTypes() map[string]attr.Type{
-  {{- range .Fields }}
-    {{- if eq .Type "types.Object" }}
-	var {{ .Name.LowerCamelCase }}Obj {{ .TerraformType }}
-    {{- end }}
-  {{- end }}
-	return map[string]attr.Type{
-  {{- range .Fields }}
-    {{- if eq .Type "types.Object" }}
-		"{{ .Name.Underscore }}": {{ .Type }}Type{
-			AttrTypes: {{ .Name.LowerCamelCase }}Obj.AttributeTypes(),
-		},
-    {{- else }}
-		"{{ .Name.Underscore }}": {{ .Type }}Type,
-    {{- end }}
-  {{- end }}
-	}
-}
-{{- end }}
-`
 
 func RenderLocationAttributeTypes(names *NameProvider, spec *properties.Normalization) (string, error) {
 	type context struct {
@@ -3587,12 +2511,8 @@ func RenderLocationAttributeTypes(names *NameProvider, spec *properties.Normaliz
 	data := context{
 		Specs: locations,
 	}
-	return processTemplate(locationAttributeTypesTmpl, "render-location-structs", data, commonFuncMap)
+	return processTemplate("location/attribute_types.tmpl", "render-location-structs", data, commonFuncMap)
 }
-
-const customTemplateForFunction = `
-o.{{ .Function }}Custom(ctx, req, resp)
-`
 
 func getCustomTemplateForFunction(spec *properties.Normalization, function string) (string, error) {
 	data := struct {
@@ -3600,7 +2520,7 @@ func getCustomTemplateForFunction(spec *properties.Normalization, function strin
 	}{
 		Function: function,
 	}
-	return processTemplate(customTemplateForFunction, "custom-template-for-function", data, nil)
+	return processTemplate("common/custom_function.tmpl", "custom-template-for-function", data, nil)
 }
 
 func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProvider, serviceName string, paramSpec *properties.Normalization, terraformProvider *properties.TerraformProviderFile, resourceSDKName string) (string, error) {
@@ -3621,9 +2541,6 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
 			return RenderLocationsStateToPango(names, paramSpec, source, dest)
 		},
-		"ResourceParamToSchema": func(paramName string, paramParameters properties.SpecParam) (string, error) {
-			return ParamToSchemaResource(paramName, paramParameters, terraformProvider)
-		},
 	}
 
 	if strings.Contains(serviceName, "group") && serviceName != "Device group" {
@@ -3636,18 +2553,18 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 	switch resourceTyp {
 	case properties.ResourceEntry, properties.ResourceConfig:
 		exhaustive = true
-		tmpl = resourceCreateFunction
+		tmpl = "resource/create.tmpl"
 	case properties.ResourceEntryPlural:
 		exhaustive = false
-		tmpl = resourceCreateEntryListFunction
+		tmpl = "resource/create_entry_list.tmpl"
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 	case properties.ResourceUuid:
 		exhaustive = true
-		tmpl = resourceCreateManyFunction
+		tmpl = "resource/create_many.tmpl"
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 	case properties.ResourceUuidPlural:
 		exhaustive = false
-		tmpl = resourceCreateManyFunction
+		tmpl = "resource/create_many.tmpl"
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 	case properties.ResourceCustom:
 		var err error
@@ -3687,16 +2604,16 @@ func DataSourceReadFunction(resourceTyp properties.ResourceType, names *NameProv
 	var exhaustive bool
 	switch resourceTyp {
 	case properties.ResourceEntry, properties.ResourceConfig:
-		tmpl = resourceReadFunction
+		tmpl = "resource/read.tmpl"
 	case properties.ResourceEntryPlural:
-		tmpl = resourceReadEntryListFunction
+		tmpl = "resource/read_entry_list.tmpl"
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 	case properties.ResourceUuid:
-		tmpl = resourceReadManyFunction
+		tmpl = "resource/read_many.tmpl"
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 		exhaustive = true
 	case properties.ResourceUuidPlural:
-		tmpl = resourceReadManyFunction
+		tmpl = "resource/read_many.tmpl"
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 	case properties.ResourceCustom:
 		var err error
@@ -3754,16 +2671,16 @@ func ResourceReadFunction(resourceTyp properties.ResourceType, names *NameProvid
 	var exhaustive bool
 	switch resourceTyp {
 	case properties.ResourceEntry, properties.ResourceConfig:
-		tmpl = resourceReadFunction
+		tmpl = "resource/read.tmpl"
 	case properties.ResourceEntryPlural:
-		tmpl = resourceReadEntryListFunction
+		tmpl = "resource/read_entry_list.tmpl"
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 	case properties.ResourceUuid:
-		tmpl = resourceReadManyFunction
+		tmpl = "resource/read_many.tmpl"
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 		exhaustive = true
 	case properties.ResourceUuidPlural:
-		tmpl = resourceReadManyFunction
+		tmpl = "resource/read_many.tmpl"
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 	case properties.ResourceCustom:
 		var err error
@@ -3821,16 +2738,16 @@ func ResourceUpdateFunction(resourceTyp properties.ResourceType, names *NameProv
 	var exhaustive bool
 	switch resourceTyp {
 	case properties.ResourceEntry, properties.ResourceConfig:
-		tmpl = resourceUpdateFunction
+		tmpl = "resource/update.tmpl"
 	case properties.ResourceEntryPlural:
-		tmpl = resourceUpdateEntryListFunction
+		tmpl = "resource/update_entry_list.tmpl"
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 	case properties.ResourceUuid:
-		tmpl = resourceUpdateManyFunction
+		tmpl = "resource/update_many.tmpl"
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 		exhaustive = true
 	case properties.ResourceUuidPlural:
-		tmpl = resourceUpdateManyFunction
+		tmpl = "resource/update_many.tmpl"
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 	case properties.ResourceCustom:
 		var err error
@@ -3885,16 +2802,16 @@ func ResourceDeleteFunction(resourceTyp properties.ResourceType, names *NameProv
 	var exhaustive string
 	switch resourceTyp {
 	case properties.ResourceEntry, properties.ResourceConfig:
-		tmpl = resourceDeleteFunction
+		tmpl = "resource/delete.tmpl"
 	case properties.ResourceEntryPlural:
-		tmpl = resourceDeleteManyFunction
+		tmpl = "resource/delete_many.tmpl"
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 	case properties.ResourceUuid:
-		tmpl = resourceDeleteManyFunction
+		tmpl = "resource/delete_many.tmpl"
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 		exhaustive = "exhaustive"
 	case properties.ResourceUuidPlural:
-		tmpl = resourceDeleteManyFunction
+		tmpl = "resource/delete_many.tmpl"
 		listAttribute = pascalCase(paramSpec.TerraformProviderConfig.PluralName)
 		exhaustive = "non-exhaustive"
 	case properties.ResourceCustom:
@@ -4254,7 +3171,7 @@ func RenderImportStateStructs(resourceTyp properties.ResourceType, names *NamePr
 		Specs: createImportStateStructSpecs(resourceTyp, names, spec),
 	}
 
-	return processTemplate(renderImportStateStructsTmpl, "render-import-state-structs", data, nil)
+	return processTemplate("import/import_structs.tmpl", "render-import-state-structs", data, nil)
 }
 
 func ResourceImportStateFunction(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
@@ -4357,7 +3274,7 @@ func ResourceImportStateFunction(resourceTyp properties.ResourceType, names *Nam
 		},
 	}
 
-	return processTemplate(resourceImportStateFunctionTmpl, "resource-import-state-function", data, funcMap)
+	return processTemplate("import/import_state.tmpl", "resource-import-state-function", data, funcMap)
 }
 
 func RenderImportStateCreator(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
@@ -4443,7 +3360,7 @@ func RenderImportStateCreator(resourceTyp properties.ResourceType, names *NamePr
 		panic("unreachable")
 	}
 
-	return processTemplate(resourceImportStateCreatorTmpl, "render-import-state-creator", data, commonFuncMap)
+	return processTemplate("import/import_creator.tmpl", "render-import-state-creator", data, commonFuncMap)
 }
 
 func ConfigEntry(entryName string, param *properties.SpecParam) (string, error) {
@@ -4465,7 +3382,7 @@ func ConfigEntry(entryName string, param *properties.SpecParam) (string, error) 
 		Entries:   entries,
 	}
 
-	return processTemplate(resourceConfigEntry, "config-entry", entryData, nil)
+	return processTemplate("resource/config_entry.tmpl", "config-entry", entryData, nil)
 }
 
 func RenderResourceFuncMap(names map[string]properties.TerraformProviderSpecMetadata) (string, error) {
@@ -4507,5 +3424,5 @@ func RenderResourceFuncMap(names map[string]properties.TerraformProviderSpecMeta
 		Entries: entries,
 	}
 
-	return processTemplate(resourceFuncMapTmpl, "resource-func-map", data, nil)
+	return processTemplate("provider/resource_func_map.tmpl", "resource-func-map", data, nil)
 }

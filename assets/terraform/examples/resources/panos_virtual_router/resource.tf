@@ -232,7 +232,7 @@ resource "panos_virtual_router" "bgp" {
                   prepend = 1
                 }
                 community = {
-                  argument = ["65100:3000", "65100:4000"]
+                  overwrite = ["65100:3000", "65100:4000"]
                 }
               }
             }

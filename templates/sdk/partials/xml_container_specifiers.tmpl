@@ -1,0 +1,8 @@
+{{- range .Specs }}
+{{- if not .TopLevel }}{{ continue }}{{ end }}
+func {{ .SpecifierFuncName $.EntryOrConfig }}(source *{{ $.EntryOrConfig }}) (any, error) {
+	var obj {{ .XmlStructName }}
+	obj.MarshalFromObject(*source)
+	return obj, nil
+}
+{{- end }}

@@ -1,0 +1,16 @@
+{{- /* Generates a single provider schema attribute */ -}}
+    "{{ .paramName }}": schema.{{ CamelCaseType .Type }}Attribute{
+        Description: ProviderParamDescription(
+            "{{ .Description }}",
+            "{{ .DefaultValue }}",
+            "{{ .EnvName }}",
+            "{{ .paramName }}",
+        ),
+        Optional: {{ .Optional }},
+{{- if .Sensitive }}
+        Sensitive: true,
+{{- end }}
+{{- if .Items }}
+		ElementType: types.{{CamelCaseType .Items.Type}}Type,
+{{- end }}
+    },

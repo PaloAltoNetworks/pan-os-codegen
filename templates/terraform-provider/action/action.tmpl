@@ -1,0 +1,44 @@
+var (
+	_ action.ActionWithConfigure = &{{ structName }}{}
+        _ action.ActionWithValidateConfig = &{{ structName }}{}
+)
+
+func New{{ structName }}() action.Action {
+	return &{{ structName }}{}
+}
+
+type {{ structName }} struct {
+	client *pango.Client
+}
+
+{{ RenderStructs }}
+
+{{ RenderSchema }}
+
+func (o *{{ structName }}) Metadata(ctx context.Context, req action.MetadataRequest, resp *action.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "{{ metaName }}"
+}
+
+func (o *{{ structName }}) Schema(_ context.Context, _ action.SchemaRequest, resp *action.SchemaResponse) {
+	resp.Schema = {{ structName }}Schema()
+}
+
+func (o *{{ structName }}) Invoke(ctx context.Context, req action.InvokeRequest, resp *action.InvokeResponse) {
+	o.InvokeCustom(ctx, req, resp)
+}
+
+func (o *{{ structName }}) Configure(ctx context.Context, req action.ConfigureRequest, resp *action.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
+	}
+
+	providerData := req.ProviderData.(*ProviderData)
+	o.client = providerData.Client
+}
+
+func (o *{{ structName }}) ValidateConfig(ctx context.Context, req action.ValidateConfigRequest, resp *action.ValidateConfigResponse) {
+{{- if HasCustomValidation }}
+	o.ValidateConfigCustom(ctx, req, resp)
+{{- end }}
+}

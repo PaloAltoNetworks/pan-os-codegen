@@ -224,6 +224,8 @@ func (c *Creator) createFullFilePath(templateName string) string {
 }
 
 // listOfTemplates returns a list of templates defined in TemplatesDir.
+// Excludes templates in the "partials" subdirectory as those are meant to be
+// called from within other templates, not processed independently.
 func (c *Creator) listOfTemplates() ([]string, error) {
 	var files []string
 	err := filepath.WalkDir(c.TemplatesDir, func(path string, entry os.DirEntry, err error) error {
@@ -231,6 +233,10 @@ func (c *Creator) listOfTemplates() ([]string, error) {
 			return err
 		}
 		if entry.IsDir() {
+			// Skip the partials directory
+			if entry.Name() == "partials" {
+				return filepath.SkipDir
+			}
 			return nil
 		}
 		if strings.HasSuffix(entry.Name(), ".tmpl") {

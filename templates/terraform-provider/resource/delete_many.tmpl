@@ -1,0 +1,61 @@
+
+{{ $resourceSDKStructName := printf "%s.%s" .resourceSDKName .EntryOrConfig }}
+{{ $resourceTFStructName := printf "%s%sObject" .structName .ListAttribute.CamelCase }}
+
+var state {{ .structName }}Model
+resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+// Basic logging.
+tflog.Info(ctx, "performing resource delete", map[string]any{
+	"resource_name": "panos_{{ UnderscoreName .structName }}",
+	"function":      "Delete",
+})
+
+{{- if eq .PluralType "map" }}
+elements := make(map[string]{{ $resourceTFStructName }}, len(state.{{ .ListAttribute.CamelCase }}.Elements()))
+resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+{{- else if or (eq .PluralType "list") (eq .PluralType "set") }}
+var elements []{{ $resourceTFStructName }}
+resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+{{- end }}
+
+var location {{ .resourceSDKName }}.Location
+{{ RenderLocationsStateToPango "state.Location" "location" }}
+
+var names []string
+{{- if eq .PluralType "map" }}
+for name, _ := range elements {
+	names = append(names, name)
+}
+{{- else if or (eq .PluralType "list") (eq .PluralType "set") }}
+for _, elt := range elements {
+	names = append(names, elt.Name.ValueString())
+}
+{{- end }}
+
+components, err := state.resourceXpathParentComponents()
+if err != nil {
+	resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
+	return
+}
+
+{{- if eq .Exhaustive "exhaustive" }}
+err = o.manager.Delete(ctx, location, components, names, sdkmanager.Exhaustive)
+{{- else if eq .Exhaustive "non-exhaustive" }}
+err = o.manager.Delete(ctx, location, components, names, sdkmanager.NonExhaustive)
+{{- else }}
+err = o.manager.Delete(ctx, location, components, names)
+{{- end }}
+if err != nil {
+	resp.Diagnostics.AddError("error while deleting entries", err.Error())
+	return
+}

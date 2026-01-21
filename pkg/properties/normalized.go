@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"maps"
+	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -1125,20 +1126,26 @@ func (spec *Normalization) ResourceXpathVariablesCount() int {
 	return len(spec.PanosXpath.Variables)
 }
 
-const attributesFromXpathComponentsTmpl = `
-{{- range .Components }}
-  {{ if eq .Type "value" }}
-	{{ $.Target }}.{{ .Name }} = types.StringValue(components[{{ .Idx }}])
-  {{- else if eq .Type "entry" }}
-{
-	component := components[{{ .Idx }}]
-	component = strings.TrimPrefix(component, "entry[@name='")
-	component = strings.TrimSuffix(component, "']")
-	{{ $.Target }}.{{ .Name.CamelCase }} = types.StringValue(component)
+// loadTemplate loads a template from either sdk or terraform-provider templates directory
+func loadTemplate(templateType string, templatePath string) (string, error) {
+	fullPath := filepath.Join("templates", templateType, templatePath)
+	content, err := os.ReadFile(fullPath)
+	if err != nil {
+		// Try from parent directories (for when running from subdirectories)
+		for i := 1; i <= 3; i++ {
+			prefix := strings.Repeat("../", i)
+			altPath := filepath.Join(prefix, "templates", templateType, templatePath)
+			content, err = os.ReadFile(altPath)
+			if err == nil {
+				break
+			}
+		}
+		if err != nil {
+			return "", fmt.Errorf("failed to read template %s: %w", fullPath, err)
+		}
+	}
+	return string(content), nil
 }
-  {{- end }}
-{{- end }}
-`
 
 func (spec *Normalization) AttributesFromXpathComponents(target string) (string, error) {
 	type componentCtx struct {
@@ -1175,65 +1182,42 @@ func (spec *Normalization) AttributesFromXpathComponents(target string) (string,
 		Components: components,
 	}
 
-	tmpl := template.Must(template.New("attributes-from-xpath-components").Parse(attributesFromXpathComponentsTmpl))
+	tmplContent, err := loadTemplate("terraform-provider", "partials/attributes_from_xpath_components.tmpl")
+	if err != nil {
+		return "", err
+	}
+
+	tmpl := template.Must(template.New("attributes-from-xpath-components").Parse(tmplContent))
 
 	var buf bytes.Buffer
-	err := tmpl.Execute(&buf, data)
+	err = tmpl.Execute(&buf, data)
 	if err != nil {
 		panic(err)
 	}
 
 	return buf.String(), nil
 }
-
-const resourceXpathAssignmentsTmpl = `
-{{- range .Variables }}
-  {{- if or (eq .Type "entry") (eq .Type "value") }}
-	ans = append(ans, components[{{ .Idx }}])
-  {{- else if eq .Type "static" }}
-	ans = append(ans, "{{ .Name.Original }}")
-  {{- end }}
-{{- end }}
-`
 
 func (spec *Normalization) ResourceXpathAssignments() (string, error) {
 	data := xpathVariablesCtx{
 		Variables: createXpathVariablesContext(spec),
 	}
 
-	tmpl := template.Must(template.New("resource-xpath-assignments").Parse(resourceXpathAssignmentsTmpl))
+	tmplContent, err := loadTemplate("sdk", "partials/resource_xpath_assignments.tmpl")
+	if err != nil {
+		return "", err
+	}
+
+	tmpl := template.Must(template.New("resource-xpath-assignments").Parse(tmplContent))
 
 	var buf bytes.Buffer
-	err := tmpl.Execute(&buf, data)
+	err = tmpl.Execute(&buf, data)
 	if err != nil {
 		panic(err)
 	}
 
 	return buf.String(), nil
 }
-
-const xpathVariableChecksTmpl = `
-{{- range .Variables }}
-  {{- if eq .Type "entry" }}
-{
-	component := components[{{ .Idx }}]
-  {{- if .AllowEmpty }}
-	if component != "entry" {
-  {{- end }}
-	if !strings.HasPrefix(component, "entry[@name=\"]") && !strings.HasPrefix(component, "entry[@name='") {
-		return nil, errors.NewInvalidXpathComponentError(fmt.Sprintf("{{ .Name.CamelCase }} must be formatted as entry: %s", component))
-	}
-
-	if !strings.HasSuffix(component, "\"]") && !strings.HasSuffix(component, "']") {
-		return nil, errors.NewInvalidXpathComponentError(fmt.Sprintf("{{ .Name.CamelCase }} must be formatted as entry: %s", component))
-	}
-  {{- if .AllowEmpty }}
-	}
-  {{- end }}
-}
-  {{- end }}
-{{- end }}
-`
 
 type xpathVariableCtx struct {
 	Type       object.PanosXpathVariableType
@@ -1299,10 +1283,15 @@ func (spec *Normalization) ResourceXpathVariableChecks() (string, error) {
 		Variables: createXpathVariablesContext(spec),
 	}
 
-	var buf bytes.Buffer
-	tmpl := template.Must(template.New("xpath-variable-checks").Parse(xpathVariableChecksTmpl))
+	tmplContent, err := loadTemplate("sdk", "partials/xpath_variable_checks.tmpl")
+	if err != nil {
+		return "", err
+	}
 
-	err := tmpl.Execute(&buf, data)
+	var buf bytes.Buffer
+	tmpl := template.Must(template.New("xpath-variable-checks").Parse(tmplContent))
+
+	err = tmpl.Execute(&buf, data)
 	if err != nil {
 		panic(err)
 	}

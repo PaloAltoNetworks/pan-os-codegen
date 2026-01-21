@@ -1,0 +1,92 @@
+
+{{ $resourceSDKStructName := printf "%s.%s" .resourceSDKName .EntryOrConfig }}
+
+	var plan, state {{ .structName }}Model
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	{{ RenderEncryptedValuesInitialization }}
+
+	var location {{ .resourceSDKName }}.Location
+	{{ RenderLocationsStateToPango "state.Location" "location" }}
+
+	// Basic logging.
+	tflog.Info(ctx, "performing resource update", map[string]any{
+		"resource_name": "panos_{{ UnderscoreName .structName }}",
+		"function":      "Update",
+	})
+
+	// Verify mode.
+	if o.client.Hostname == "" {
+		resp.Diagnostics.AddError("Invalid mode error", InspectionModeError)
+		return
+	}
+
+	components, err := state.resourceXpathParentComponents()
+	if err != nil {
+		resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
+		return
+	}
+
+{{- if .HasEntryName }}
+	var obj *{{ .resourceSDKName }}.Entry
+	if state.Name.ValueString() != plan.Name.ValueString() {
+		obj, err = o.manager.Read(ctx, location, components, state.Name.ValueString())
+	} else {
+		obj, err = o.manager.Read(ctx, location, components, plan.Name.ValueString())
+	}
+{{- else }}
+	obj, err := o.manager.Read(ctx, location, components)
+{{- end }}
+	if err != nil {
+		resp.Diagnostics.AddError("Error in update", err.Error())
+		return
+	}
+
+	resp.Diagnostics.Append(plan.CopyToPango(ctx, o.client, nil, &obj, ev)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	components, err = plan.resourceXpathParentComponents()
+	if err != nil {
+		resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
+		return
+	}
+
+{{ if .HasEntryName }}
+	// If name differs between plan and state, we need to set old name for the object
+	// before calling SDK Update() function to properly handle rename + edit cycle.
+	var newName string
+	if state.Name.ValueString() != plan.Name.ValueString() {
+		newName = plan.Name.ValueString()
+		obj.Name = state.Name.ValueString()
+	}
+
+	updated, err := o.manager.Update(ctx, location, components, obj, newName)
+{{ else }}
+	updated, err := o.manager.Update(ctx, location, components, obj)
+{{ end }}
+	if err != nil {
+		resp.Diagnostics.AddError("Error in update", err.Error())
+		return
+	}
+
+	/*
+		// Keep the timeouts.
+		state.Timeouts = plan.Timeouts
+	*/
+
+	copy_diags := plan.CopyFromPango(ctx, o.client, nil, updated, ev)
+	resp.Diagnostics.Append(copy_diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	{{ RenderEncryptedValuesFinalizer }}
+
+	// Done.
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
