@@ -39,6 +39,7 @@ type UuidLocation interface {
 type SDKUuidService[E UuidObject, L UuidLocation] interface {
 	Create(context.Context, L, E) (E, error)
 	List(context.Context, L, string, string, string) ([]E, error)
+	ListWithXpath(context.Context, string, string, string, string) ([]E, error)
 	Delete(context.Context, L, ...string) error
 	MoveGroup(context.Context, L, movement.Position, []E, int) error
 }
@@ -58,21 +59,24 @@ type TFUuidObject[E any] interface {
 }
 
 type UuidObjectManager[E UuidObject, L UuidLocation, S SDKUuidService[E, L]] struct {
-	batchSize int
-	service   S
-	client    SDKClient
-	specifier func(E) (any, error)
-	matcher   func(E, E) bool
+	batchingConfig BatchingConfig
+	service        S
+	client         SDKClient
+	specifier      func(E) (any, error)
+	matcher        func(E, E) bool
+	batchReader    *BatchReader[E, S]
 }
 
-func NewUuidObjectManager[E UuidObject, L UuidLocation, S SDKUuidService[E, L]](client SDKClient, service S, batchSize int, specifier func(E) (any, error), matcher func(E, E) bool) *UuidObjectManager[E, L, S] {
-	return &UuidObjectManager[E, L, S]{
-		batchSize: batchSize,
-		service:   service,
-		client:    client,
-		specifier: specifier,
-		matcher:   matcher,
+func NewUuidObjectManager[E UuidObject, L UuidLocation, S SDKUuidService[E, L]](client SDKClient, service S, batchingConfig BatchingConfig, specifier func(E) (any, error), matcher func(E, E) bool) *UuidObjectManager[E, L, S] {
+	mgr := &UuidObjectManager[E, L, S]{
+		batchingConfig: batchingConfig,
+		service:        service,
+		client:         client,
+		specifier:      specifier,
+		matcher:        matcher,
 	}
+	mgr.batchReader = NewBatchReader[E, S](service, batchingConfig)
+	return mgr
 }
 
 func (o *UuidObjectManager[E, L, S]) entriesByName(entries []E, initialState entryState) map[string]uuidObjectWithState[E] {
@@ -163,29 +167,7 @@ func (o *UuidObjectManager[E, L, S]) entriesProperlySorted(existing []E, planEnt
 }
 
 func (o *UuidObjectManager[E, L, S]) filterEntriesByLocation(location L, entries []E) []E {
-	filter := location.LocationFilter()
-	if filter == nil {
-		return entries
-	}
-
-	getLocAttribute := func(entry E) *string {
-		for _, elt := range entry.GetMiscAttributes() {
-			if elt.Name.Local == "loc" {
-				return &elt.Value
-			}
-		}
-		return nil
-	}
-
-	var filtered []E
-	for _, elt := range entries {
-		location := getLocAttribute(elt)
-		if location == nil || *location == *filter {
-			filtered = append(filtered, elt)
-		}
-	}
-
-	return filtered
+	return FilterEntriesByLocation(location, entries)
 }
 
 func (o *UuidObjectManager[E, L, S]) moveExhaustive(ctx context.Context, location L, entriesByName map[string]uuidObjectWithState[E], position movement.Position) error {
@@ -207,7 +189,7 @@ func (o *UuidObjectManager[E, L, S]) moveExhaustive(ctx context.Context, locatio
 			entries[elt.StateIdx] = elt.Entry
 		}
 
-		err = o.service.MoveGroup(ctx, location, position, entries, o.batchSize)
+		err = o.service.MoveGroup(ctx, location, position, entries, o.batchingConfig.MultiConfigBatchSize)
 		if err != nil {
 			return &Error{err: err, message: "Failed to move group of entries"}
 		}
@@ -242,7 +224,7 @@ func (o *UuidObjectManager[E, L, S]) moveNonExhaustive(ctx context.Context, loca
 		entries[elt.StateIdx] = elt.Entry
 	}
 
-	err := o.service.MoveGroup(ctx, location, sdkPosition, entries, o.batchSize)
+	err := o.service.MoveGroup(ctx, location, sdkPosition, entries, o.batchingConfig.MultiConfigBatchSize)
 	if err != nil {
 		return &Error{err: err, message: "Failed to move group of entries"}
 	}
@@ -265,7 +247,7 @@ func (o *UuidObjectManager[E, L, S]) CreateMany(ctx context.Context, location L,
 
 	existing = o.filterEntriesByLocation(location, existing)
 
-	updates := xmlapi.NewChunkedMultiConfig(len(planEntries), o.batchSize)
+	updates := xmlapi.NewChunkedMultiConfig(len(planEntries), o.batchingConfig.MultiConfigBatchSize)
 
 	switch exhaustive {
 	case Exhaustive:
@@ -446,7 +428,7 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 
 	existing = o.filterEntriesByLocation(location, existing)
 
-	updates := xmlapi.NewChunkedMultiConfig(len(existing), o.batchSize)
+	updates := xmlapi.NewChunkedMultiConfig(len(existing), o.batchingConfig.MultiConfigBatchSize)
 
 	// Next, we compare existing entries from the server against entries processed in the previous
 	// state to find any required updates.
@@ -702,7 +684,7 @@ func (o *UuidObjectManager[E, L, S]) ReadMany(ctx context.Context, location L, s
 }
 
 func (o *UuidObjectManager[E, L, S]) Delete(ctx context.Context, location L, parentComponents []string, names []string, exhaustive ExhaustiveType) error {
-	deletes := xmlapi.NewChunkedMultiConfig(o.batchSize, len(names))
+	deletes := xmlapi.NewChunkedMultiConfig(o.batchingConfig.MultiConfigBatchSize, len(names))
 
 	for _, elt := range names {
 		components := append(parentComponents, util.AsEntryXpath(elt))

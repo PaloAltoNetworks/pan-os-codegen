@@ -48,50 +48,42 @@ type SDKEntryService[E EntryObject, L EntryLocation] interface {
 }
 
 type EntryObjectManager[E EntryObject, L EntryLocation, S SDKEntryService[E, L]] struct {
-	batchSize int
-	service   S
-	client    SDKClient
-	specifier func(E) (any, error)
-	matcher   func(E, E) bool
+	batchingConfig BatchingConfig
+	service        S
+	client         SDKClient
+	specifier      func(E) (any, error)
+	matcher        func(E, E) bool
+	batchReader    *BatchReader[E, S]
 }
 
-func NewEntryObjectManager[E EntryObject, L EntryLocation, S SDKEntryService[E, L]](client SDKClient, service S, batchSize int, specifier func(E) (any, error), matcher func(E, E) bool) *EntryObjectManager[E, L, S] {
-	return &EntryObjectManager[E, L, S]{
-		batchSize: batchSize,
-		service:   service,
-		client:    client,
-		specifier: specifier,
-		matcher:   matcher,
+func NewEntryObjectManager[E EntryObject, L EntryLocation, S SDKEntryService[E, L]](client SDKClient, service S, batchingConfig BatchingConfig, specifier func(E) (any, error), matcher func(E, E) bool) *EntryObjectManager[E, L, S] {
+	mgr := &EntryObjectManager[E, L, S]{
+		batchingConfig: batchingConfig,
+		service:        service,
+		client:         client,
+		specifier:      specifier,
+		matcher:        matcher,
 	}
+	mgr.batchReader = NewBatchReader[E, S](service, batchingConfig)
+	return mgr
 }
 
 func (o *EntryObjectManager[E, L, S]) filterEntriesByLocation(location L, entries []E) []E {
-	filter := location.LocationFilter()
-	if filter == nil {
-		return entries
-	}
-
-	getLocAttribute := func(entry E) *string {
-		for _, elt := range entry.GetMiscAttributes() {
-			if elt.Name.Local == "loc" {
-				return &elt.Value
-			}
-		}
-		return nil
-	}
-
-	var filtered []E
-	for _, elt := range entries {
-		location := getLocAttribute(elt)
-		if location == nil || *location == *filter {
-			filtered = append(filtered, elt)
-		}
-	}
-
-	return filtered
+	return FilterEntriesByLocation(location, entries)
 }
 
 func (o *EntryObjectManager[E, L, S]) ReadMany(ctx context.Context, location L, components []string) ([]E, error) {
+	switch o.batchingConfig.ListStrategy {
+	case StrategyEager:
+		return o.readManyEager(ctx, location, components)
+	case StrategyLazy:
+		return o.readManyLazy(ctx, location, components)
+	default:
+		return o.readManyEager(ctx, location, components) // fallback to eager
+	}
+}
+
+func (o *EntryObjectManager[E, L, S]) readManyEager(ctx context.Context, location L, components []string) ([]E, error) {
 	xpath, err := location.XpathWithComponents(o.client.Versioning(), append(components, util.AsEntryXpath(""))...)
 	if err != nil {
 		return nil, err
@@ -107,6 +99,23 @@ func (o *EntryObjectManager[E, L, S]) ReadMany(ctx context.Context, location L, 
 	}
 
 	return o.filterEntriesByLocation(location, existing), nil
+}
+
+func (o *EntryObjectManager[E, L, S]) readManyLazy(ctx context.Context, location L, components []string) ([]E, error) {
+	xpath, err := location.XpathWithComponents(o.client.Versioning(), append(components, util.AsEntryXpath(""))...)
+	if err != nil {
+		return nil, err
+	}
+
+	baseXpath := util.AsXpath(xpath)
+
+	// Delegate to BatchReader
+	entries, err := o.batchReader.ReadManyLazy(ctx, baseXpath)
+	if err != nil {
+		return nil, err
+	}
+
+	return o.filterEntriesByLocation(location, entries), nil
 }
 
 func (o *EntryObjectManager[E, L, S]) Read(ctx context.Context, location L, parentComponents []string, name string) (E, error) {
@@ -179,7 +188,7 @@ func (o *EntryObjectManager[E, L, S]) CreateMany(ctx context.Context, location L
 		return nil, err
 	}
 
-	updates := xmlapi.NewChunkedMultiConfig(len(existing), o.batchSize)
+	updates := xmlapi.NewChunkedMultiConfig(len(existing), o.batchingConfig.MultiConfigBatchSize)
 
 	for _, elt := range entries {
 		components := append(parentComponents, util.AsEntryXpath(elt.EntryName()))
@@ -229,7 +238,7 @@ func (o *EntryObjectManager[E, L, S]) CreateMany(ctx context.Context, location L
 }
 
 func (o *EntryObjectManager[E, T, S]) Delete(ctx context.Context, location T, parentComponents []string, names []string) error {
-	deletes := xmlapi.NewChunkedMultiConfig(o.batchSize, len(names))
+	deletes := xmlapi.NewChunkedMultiConfig(o.batchingConfig.MultiConfigBatchSize, len(names))
 
 	for _, elt := range names {
 		components := append(parentComponents, util.AsEntryXpath(elt))
@@ -393,7 +402,7 @@ func (o *EntryObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L
 		return nil, err
 	}
 
-	updates := xmlapi.NewChunkedMultiConfig(len(planEntries), o.batchSize)
+	updates := xmlapi.NewChunkedMultiConfig(len(planEntries), o.batchingConfig.MultiConfigBatchSize)
 
 	for _, existingEntry := range existing {
 		existingEntryName := existingEntry.EntryName()

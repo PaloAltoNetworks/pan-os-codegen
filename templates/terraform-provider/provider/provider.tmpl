@@ -41,8 +41,8 @@ func (p *PanosProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp
 }
 
 type ProviderData struct {
-	Client               *sdk.Client
-	MultiConfigBatchSize int
+	Client         *sdk.Client
+	BatchingConfig sdkmanager.BatchingConfig
 }
 
 // Configure prepares the provider.
@@ -129,9 +129,47 @@ func (p *PanosProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		return
 	}
 
-	providerData := &ProviderData{
-		Client: con,
+	// Parse experimental batching configuration
+	readBatchSize := config.ExperimentalReadBatchSize.ValueInt64()
+	if readBatchSize == 0 {
+		readBatchSize = 50
+	} else if readBatchSize < 1 || readBatchSize > 1000 {
+		resp.Diagnostics.AddError("Failed to configure Terraform provider", fmt.Sprintf("experimental_read_batch_size must be between 1 and 1000, value: %d", readBatchSize))
+		return
+	}
+
+	listStrategy := sdkmanager.StrategyEager
+	if !config.ExperimentalListStrategy.IsNull() {
+		strategyStr := config.ExperimentalListStrategy.ValueString()
+		if strategyStr == "lazy" {
+			listStrategy = sdkmanager.StrategyLazy
+		} else if strategyStr != "eager" {
+			resp.Diagnostics.AddError("Failed to configure Terraform provider", fmt.Sprintf("experimental_list_strategy must be 'eager' or 'lazy', value: %s", strategyStr))
+			return
+		}
+	}
+
+	shardingStrategy := sdkmanager.ShardingDisabled
+	if !config.ExperimentalShardingStrategy.IsNull() {
+		shardingStr := config.ExperimentalShardingStrategy.ValueString()
+		if shardingStr == "enabled" {
+			shardingStrategy = sdkmanager.ShardingEnabled
+		} else if shardingStr != "disabled" {
+			resp.Diagnostics.AddError("Failed to configure Terraform provider", fmt.Sprintf("experimental_sharding_strategy must be 'disabled' or 'enabled', value: %s", shardingStr))
+			return
+		}
+	}
+
+	batchingConfig := sdkmanager.BatchingConfig{
 		MultiConfigBatchSize: int(batchSize),
+		ReadBatchSize:        int(readBatchSize),
+		ListStrategy:         listStrategy,
+		ShardingStrategy:     shardingStrategy,
+	}
+
+	providerData := &ProviderData{
+		Client:         con,
+		BatchingConfig: batchingConfig,
 	}
 
 	resp.DataSourceData = providerData
