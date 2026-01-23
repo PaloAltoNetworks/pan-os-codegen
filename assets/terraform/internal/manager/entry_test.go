@@ -16,17 +16,22 @@ var _ = Describe("Entry", func() {
 	var client *MockEntryClient[*MockEntryObject]
 	var service *MockEntryService[*MockEntryObject, MockLocation]
 	var sdk *manager.EntryObjectManager[*MockEntryObject, MockLocation, *MockEntryService[*MockEntryObject, MockLocation]]
-	var batchSize int
+	var batchingConfig manager.BatchingConfig
 
 	var location MockLocation
 
 	ctx := context.Background()
 
 	JustBeforeEach(func() {
-		batchSize = 500
+		batchingConfig = manager.BatchingConfig{
+			MultiConfigBatchSize: 500,
+			ReadBatchSize:        50,
+			ListStrategy:         manager.StrategyEager,
+			ShardingStrategy:     manager.ShardingDisabled,
+		}
 		client = NewMockEntryClient(existing)
 		service = NewMockEntryService[*MockEntryObject, MockLocation](client)
-		sdk = manager.NewEntryObjectManager[*MockEntryObject, MockLocation, *MockEntryService[*MockEntryObject, MockLocation]](client, service, batchSize, MockEntrySpecifier, MockEntryMatcher)
+		sdk = manager.NewEntryObjectManager[*MockEntryObject, MockLocation, *MockEntryService[*MockEntryObject, MockLocation]](client, service, batchingConfig, MockEntrySpecifier, MockEntryMatcher)
 	})
 
 	BeforeEach(func() {

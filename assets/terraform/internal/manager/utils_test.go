@@ -389,3 +389,122 @@ func (o *equalEntries) FailureMessage(actual any) string {
 func (o *equalEntries) NegatedFailureMessage(actual any) string {
 	return format.Message(actual, "not to equal", o.expected)
 }
+
+// parseXpathPredicate extracts filtering logic from XPath expressions and returns filtered entries.
+// It supports the following XPath patterns used by BatchReader:
+//
+// 1. Name-only query: /path/@name or /path/entry/@name
+//    Returns all entries (just extracts names)
+//
+// 2. Batch read with OR predicates: /path/entry[@name='x' or @name='y']
+//    Returns only entries matching the specified names
+//
+// 3. Sharded read with starts-with: /path/entry[starts-with(@name, 'a') or starts-with(@name, 'b')]/@name
+//    Returns only entries with names starting with the specified prefixes
+//
+// 4. No predicate: /path/entry or /path
+//    Returns all entries
+func parseXpathPredicate[E sdkmanager.EntryObject](xpath string, entries []E) []E {
+	// Normalize whitespace
+	xpath = strings.TrimSpace(xpath)
+
+	// If no predicate, return all entries
+	if !strings.Contains(xpath, "[") || !strings.Contains(xpath, "]") {
+		return entries
+	}
+
+	// Extract predicate content
+	startIdx := strings.Index(xpath, "[")
+	endIdx := strings.LastIndex(xpath, "]")
+	if endIdx <= startIdx {
+		// Malformed predicate, return all entries
+		return entries
+	}
+
+	predicate := xpath[startIdx+1 : endIdx]
+
+	// Handle name-based predicates: @name='x' or @name='x' or @name='y' (supports both single and OR)
+	if strings.Contains(predicate, "@name='") {
+		names := extractNamesFromPredicate(predicate)
+		return filterByNames(entries, names)
+	}
+
+	// Handle starts-with predicates: starts-with(@name, 'a') or starts-with(@name, 'b')
+	if strings.Contains(predicate, "starts-with(@name,") {
+		prefixes := extractPrefixesFromPredicate(predicate)
+		return filterByPrefixes(entries, prefixes)
+	}
+
+	// Unknown predicate format, return all entries
+	return entries
+}
+
+// extractNamesFromPredicate parses "@name='x' or @name='y'" into ["x", "y"]
+func extractNamesFromPredicate(predicate string) []string {
+	var names []string
+	parts := strings.Split(predicate, " or ")
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if strings.HasPrefix(part, "@name='") && strings.HasSuffix(part, "'") {
+			name := strings.TrimPrefix(part, "@name='")
+			name = strings.TrimSuffix(name, "'")
+			names = append(names, name)
+		}
+	}
+	return names
+}
+
+// extractPrefixesFromPredicate parses "starts-with(@name, 'a') or starts-with(@name, 'b')" into ["a", "b"]
+func extractPrefixesFromPredicate(predicate string) []string {
+	var prefixes []string
+	parts := strings.Split(predicate, " or ")
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		// Handle both with and without space after comma
+		if strings.Contains(part, "starts-with(@name,") {
+			// Extract content between quotes
+			startQuote := strings.Index(part, "'")
+			if startQuote == -1 {
+				continue
+			}
+			endQuote := strings.Index(part[startQuote+1:], "'")
+			if endQuote == -1 {
+				continue
+			}
+			prefix := part[startQuote+1 : startQuote+1+endQuote]
+			prefixes = append(prefixes, prefix)
+		}
+	}
+	return prefixes
+}
+
+// filterByNames returns only entries with names in the given list
+func filterByNames[E sdkmanager.EntryObject](entries []E, names []string) []E {
+	nameMap := make(map[string]bool)
+	for _, name := range names {
+		nameMap[name] = true
+	}
+
+	var filtered []E
+	for _, entry := range entries {
+		if nameMap[entry.EntryName()] {
+			filtered = append(filtered, entry)
+		}
+	}
+	return filtered
+}
+
+// filterByPrefixes returns only entries with names starting with given prefixes
+func filterByPrefixes[E sdkmanager.EntryObject](entries []E, prefixes []string) []E {
+	var filtered []E
+	for _, entry := range entries {
+		name := entry.EntryName()
+		for _, prefix := range prefixes {
+			if strings.HasPrefix(name, prefix) {
+				filtered = append(filtered, entry)
+				break
+			}
+		}
+	}
+	return filtered
+}

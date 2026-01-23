@@ -36,7 +36,7 @@ var _ = Describe("Server", func() {
 	var mockService *MockUuidService[*MockUuidObject, MockLocation]
 	var location MockLocation
 	var ctx context.Context
-	var batchSize int
+	var batchingConfig sdkmanager.BatchingConfig
 
 	BeforeEach(func() {
 		initial = []*MockUuidObject{{Name: "1", Value: "A"}, {Name: "2", Value: "B"}, {Name: "3", Value: "C"}}
@@ -44,7 +44,12 @@ var _ = Describe("Server", func() {
 	})
 
 	JustBeforeEach(func() {
-		batchSize = 500
+		batchingConfig = sdkmanager.BatchingConfig{
+			MultiConfigBatchSize: 500,
+			ReadBatchSize:        50,
+			ListStrategy:         sdkmanager.StrategyEager,
+			ShardingStrategy:     sdkmanager.ShardingDisabled,
+		}
 		ctx = context.Background()
 
 		client = NewMockUuidClient(initial)
@@ -53,7 +58,7 @@ var _ = Describe("Server", func() {
 		if mockService, ok = service.(*MockUuidService[*MockUuidObject, MockLocation]); !ok {
 			panic("failed to cast service to mockService")
 		}
-		manager = sdkmanager.NewUuidObjectManager(client, service, batchSize, MockUuidSpecifier, MockUuidMatcher)
+		manager = sdkmanager.NewUuidObjectManager(client, service, batchingConfig, MockUuidSpecifier, MockUuidMatcher)
 	})
 
 	Describe("Reading entries from the server", func() {
@@ -424,7 +429,7 @@ var _ = Describe("Server", func() {
 				if mockService, ok = service.(*MockUuidService[*MockUuidObject, MockLocation]); !ok {
 					panic("failed to cast service to mockService")
 				}
-				manager = sdkmanager.NewUuidObjectManager(client, service, batchSize, MockUuidSpecifier, MockUuidMatcher)
+				manager = sdkmanager.NewUuidObjectManager(client, service, batchingConfig, MockUuidSpecifier, MockUuidMatcher)
 
 			})
 

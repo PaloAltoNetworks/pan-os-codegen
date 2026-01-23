@@ -172,24 +172,21 @@ func (o *{{ resourceStructName }}) Configure(ctx context.Context, req {{ tfresou
 		return
 	}
 
-	batchSize := providerData.MultiConfigBatchSize
-	o.manager =  sdkmanager.NewImportableEntryObjectManager(o.client, {{ resourceSDKName }}.NewService(o.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
+	o.manager =  sdkmanager.NewImportableEntryObjectManager(o.client, {{ resourceSDKName }}.NewService(o.client), providerData.BatchingConfig, specifier, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsEntry }}
 	specifier, _, err := {{ resourceSDKName }}.Versioning(o.client.Versioning())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
 		return
 	}
-	batchSize := providerData.MultiConfigBatchSize
-	o.manager =  sdkmanager.NewEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](o.client, {{ resourceSDKName }}.NewService(o.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
+	o.manager =  sdkmanager.NewEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](o.client, {{ resourceSDKName }}.NewService(o.client), providerData.BatchingConfig, specifier, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsUuid }}
 	specifier, _, err := {{ resourceSDKName }}.Versioning(o.client.Versioning())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
 		return
 	}
-	batchSize := providerData.MultiConfigBatchSize
-	o.manager =  sdkmanager.NewUuidObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](o.client, {{ resourceSDKName }}.NewService(o.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
+	o.manager =  sdkmanager.NewUuidObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](o.client, {{ resourceSDKName }}.NewService(o.client), providerData.BatchingConfig, specifier, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsConfig }}
 	specifier, _, err := {{ resourceSDKName }}.Versioning(o.client.Versioning())
 	if err != nil {
