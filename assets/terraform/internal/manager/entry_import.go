@@ -21,20 +21,20 @@ type SDKImportableEntryService[E EntryObject, L EntryLocation] interface {
 }
 
 type ImportableEntryObjectManager[E EntryObject, L EntryLocation, IS SDKImportableEntryService[E, L]] struct {
-	batchSize int
-	service   IS
-	client    SDKClient
-	specifier func(E) (any, error)
-	matcher   func(E, E) bool
+	batchingConfig BatchingConfig
+	service        IS
+	client         SDKClient
+	specifier      func(E) (any, error)
+	matcher        func(E, E) bool
 }
 
-func NewImportableEntryObjectManager[E EntryObject, L EntryLocation, IS SDKImportableEntryService[E, L]](client SDKClient, service IS, batchSize int, specifier func(E) (any, error), matcher func(E, E) bool) *ImportableEntryObjectManager[E, L, IS] {
+func NewImportableEntryObjectManager[E EntryObject, L EntryLocation, IS SDKImportableEntryService[E, L]](client SDKClient, service IS, batchingConfig BatchingConfig, specifier func(E) (any, error), matcher func(E, E) bool) *ImportableEntryObjectManager[E, L, IS] {
 	return &ImportableEntryObjectManager[E, L, IS]{
-		batchSize: batchSize,
-		service:   service,
-		client:    client,
-		specifier: specifier,
-		matcher:   matcher,
+		batchingConfig: batchingConfig,
+		service:        service,
+		client:         client,
+		specifier:      specifier,
+		matcher:        matcher,
 	}
 }
 
@@ -99,7 +99,7 @@ func (o *ImportableEntryObjectManager[E, L, IS]) Update(ctx context.Context, loc
 }
 
 func (o *ImportableEntryObjectManager[E, L, IS]) Delete(ctx context.Context, location L, components []string, names []string) error {
-	deletes := xmlapi.NewChunkedMultiConfig(o.batchSize, len(names))
+	deletes := xmlapi.NewChunkedMultiConfig(o.batchingConfig.MultiConfigBatchSize, len(names))
 
 	for _, elt := range names {
 		components := append(components, util.AsEntryXpath(elt))

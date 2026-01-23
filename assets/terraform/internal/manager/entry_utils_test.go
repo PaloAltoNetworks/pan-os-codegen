@@ -156,7 +156,8 @@ func (o *MockEntryService[E, L]) UpdateWithXpath(ctx context.Context, xpath stri
 }
 
 func (o *MockEntryService[E, L]) ListWithXpath(ctx context.Context, xpath string, action string, filter string, quote string) ([]E, error) {
-	return o.client.list(), nil
+	allEntries := o.client.list()
+	return parseXpathPredicate(xpath, allEntries), nil
 }
 
 func (o *MockEntryService[E, L]) ReadWithXpath(ctx context.Context, xpath string, action string) (E, error) {

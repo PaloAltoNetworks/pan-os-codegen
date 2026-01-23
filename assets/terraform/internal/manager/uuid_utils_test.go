@@ -159,6 +159,11 @@ func (o *MockUuidService[E, T]) List(ctx context.Context, location MockLocation,
 	return o.client.list(), nil
 }
 
+func (o *MockUuidService[E, T]) ListWithXpath(ctx context.Context, xpath string, action string, vsysName string, deviceName string) ([]E, error) {
+	allEntries := o.client.list()
+	return parseXpathPredicate(xpath, allEntries), nil
+}
+
 func (o *MockUuidService[E, T]) Create(ctx context.Context, location MockLocation, entry *MockUuidObject) (*MockUuidObject, error) {
 	panic("unreachable")
 }

@@ -80,24 +80,21 @@ func (d *{{ dataSourceStructName }}) Configure(_ context.Context, req datasource
 		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
 		return
 	}
-	batchSize := providerData.MultiConfigBatchSize
-	d.manager =  sdkmanager.NewImportableEntryObjectManager(d.client, {{ resourceSDKName }}.NewService(d.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
+	d.manager =  sdkmanager.NewImportableEntryObjectManager(d.client, {{ resourceSDKName }}.NewService(d.client), providerData.BatchingConfig, specifier, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsEntry }}
 	specifier, _, err := {{ resourceSDKName }}.Versioning(d.client.Versioning())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
 		return
 	}
-	batchSize := providerData.MultiConfigBatchSize
-	d.manager =  sdkmanager.NewEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](d.client, {{ resourceSDKName }}.NewService(d.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
+	d.manager =  sdkmanager.NewEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](d.client, {{ resourceSDKName }}.NewService(d.client), providerData.BatchingConfig, specifier, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsUuid }}
 	specifier, _, err := {{ resourceSDKName }}.Versioning(d.client.Versioning())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
 		return
 	}
-	batchSize := providerData.MultiConfigBatchSize
-	d.manager =  sdkmanager.NewUuidObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](d.client, {{ resourceSDKName }}.NewService(d.client), batchSize, specifier, {{ resourceSDKName }}.SpecMatches)
+	d.manager =  sdkmanager.NewUuidObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](d.client, {{ resourceSDKName }}.NewService(d.client), providerData.BatchingConfig, specifier, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsConfig }}
 	specifier, _, err := {{ resourceSDKName }}.Versioning(d.client.Versioning())
 	if err != nil {

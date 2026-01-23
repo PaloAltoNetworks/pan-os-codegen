@@ -56,3 +56,27 @@ type SDKClient interface {
 	ChunkedMultiConfig(context.Context, *xmlapi.MultiConfig, bool, url.Values) ([]xmlapi.ChunkedMultiConfigResponse, error)
 	MultiConfig(context.Context, *xmlapi.MultiConfig, bool, url.Values) ([]byte, *http.Response, *xmlapi.MultiConfigResponse, error)
 }
+
+// BatchingConfig configures batching behavior for SDK operations.
+type BatchingConfig struct {
+	MultiConfigBatchSize int              // Batch size for write operations
+	ReadBatchSize        int              // Batch size for lazy read operations
+	ListStrategy         ListStrategy     // Eager or Lazy listing
+	ShardingStrategy     ShardingStrategy // Disabled or Enabled
+}
+
+// ListStrategy controls how resources are listed.
+type ListStrategy string
+
+const (
+	StrategyEager ListStrategy = "eager" // Single query, fetch all entries with full details
+	StrategyLazy  ListStrategy = "lazy"  // List names first, then batch read entries
+)
+
+// ShardingStrategy controls whether name listing is sharded.
+type ShardingStrategy string
+
+const (
+	ShardingDisabled ShardingStrategy = "disabled" // Single query for all names
+	ShardingEnabled  ShardingStrategy = "enabled"  // Multiple queries sharded by name prefix
+)
