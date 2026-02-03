@@ -138,7 +138,7 @@ func (s *Service) ImportToLocations(ctx context.Context, loc Location, importLoc
 			return err
 		}
 
-		mutex := locking.GetMutex(locking.XpathLockCategory, util.AsXpath(xpath))
+		mutex := locking.GetRWMutex(locking.XpathLockCategory, util.AsXpath(xpath))
                 mutex.Lock()
                 defer mutex.Unlock()
 
@@ -207,7 +207,7 @@ func (s *Service) UnimportFromLocations(ctx context.Context, loc Location, impor
 			return err
 		}
 
-		mutex := locking.GetMutex(locking.XpathLockCategory, util.AsXpath(xpath))
+		mutex := locking.GetRWMutex(locking.XpathLockCategory, util.AsXpath(xpath))
                 mutex.Lock()
                 defer mutex.Unlock()
 

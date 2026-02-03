@@ -111,3 +111,23 @@ terraform_provider_config:
       type: int64
       env_name: "PANOS_MULTI_CONFIG_BATCH_SIZE"
       default_value: "500"
+    experimental_read_batch_size:
+      description: "EXPERIMENTAL: Batch size for lazy read operations (default: 50, range: 1-1000). This feature is experimental and may change in future releases."
+      optional: true
+      type: int64
+      default_value: "50"
+    experimental_list_strategy:
+      description: "EXPERIMENTAL: List strategy for reading resources: 'eager' (default, single query) or 'lazy' (name list + batched reads). This feature is experimental and may change in future releases."
+      optional: true
+      type: string
+      default_value: "eager"
+    experimental_sharding_strategy:
+      description: "EXPERIMENTAL: Sharding strategy when using lazy list: 'disabled' (default, single query) or 'enabled' (7 sharded queries). This feature is experimental and may change in future releases."
+      optional: true
+      type: string
+      default_value: "disabled"
+    experimental_cache_strategy:
+      description: "EXPERIMENTAL: Enable resource caching to reduce API calls: 'disabled' (default) or 'enabled'. When enabled, only resources with cache support in their spec will be cached. This feature is experimental and may change in future releases."
+      optional: true
+      type: string
+      default_value: "disabled"

@@ -2,37 +2,25 @@ package manager
 
 import (
 	"context"
-	"encoding/xml"
 	"errors"
 	"fmt"
 	"log/slog"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	sdkerrors "github.com/PaloAltoNetworks/pango/errors"
+	"github.com/PaloAltoNetworks/pango/locking"
 	"github.com/PaloAltoNetworks/pango/util"
 	"github.com/PaloAltoNetworks/pango/version"
 	"github.com/PaloAltoNetworks/pango/xmlapi"
 )
 
-type entryObjectWithState[E EntryObject] struct {
-	Entry    E
-	State    entryState
-	StateIdx int
-	NewName  string
-}
-
 type TFEntryObject[E any] interface {
 	EntryName() string
 	CopyToPango(context.Context, *map[string]types.String) (E, diag.Diagnostics)
 	CopyFromPango(context.Context, E, *map[string]types.String) diag.Diagnostics
-}
-
-type EntryObject interface {
-	GetMiscAttributes() []xml.Attr
-	EntryName() string
-	SetEntryName(name string)
 }
 
 type EntryLocation interface {
@@ -54,33 +42,140 @@ type EntryObjectManager[E EntryObject, L EntryLocation, S SDKEntryService[E, L]]
 	specifier      func(E) (any, error)
 	matcher        func(E, E) bool
 	batchReader    *BatchReader[E, S]
+	cache          CacheManager[E]
 }
 
-func NewEntryObjectManager[E EntryObject, L EntryLocation, S SDKEntryService[E, L]](client SDKClient, service S, batchingConfig BatchingConfig, specifier func(E) (any, error), matcher func(E, E) bool) *EntryObjectManager[E, L, S] {
+func NewEntryObjectManager[E EntryObject, L EntryLocation, S SDKEntryService[E, L]](
+	client SDKClient,
+	service S,
+	batchingConfig BatchingConfig,
+	cache CacheManager[E],
+	specifier func(E) (any, error),
+	matcher func(E, E) bool,
+) *EntryObjectManager[E, L, S] {
 	mgr := &EntryObjectManager[E, L, S]{
 		batchingConfig: batchingConfig,
 		service:        service,
 		client:         client,
 		specifier:      specifier,
 		matcher:        matcher,
+		cache:          cache,
 	}
 	mgr.batchReader = NewBatchReader[E, S](service, batchingConfig)
+
 	return mgr
 }
 
-func (o *EntryObjectManager[E, L, S]) filterEntriesByLocation(location L, entries []E) []E {
-	return FilterEntriesByLocation(location, entries)
+func (o *EntryObjectManager[E, L, S]) filterEntriesByLocation(ctx context.Context, location L, entries []E) []E {
+	return FilterEntriesByLocation(ctx, location, entries)
+}
+
+// fetchEntries retrieves all entries for a location from the API.
+func (o *EntryObjectManager[E, L, S]) fetchEntries(ctx context.Context, location L, components []string) ([]E, error) {
+	var entries []E
+	var err error
+
+	switch o.batchingConfig.ListStrategy {
+	case StrategyEager:
+		entries, err = o.readManyEager(ctx, location, components)
+	case StrategyLazy:
+		entries, err = o.readManyLazy(ctx, location, components)
+	default:
+		entries, err = o.readManyEager(ctx, location, components)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return entries, nil
+}
+
+// buildLocationXpath constructs the location xpath used as cache key.
+func (o *EntryObjectManager[E, L, S]) buildLocationXpath(
+	location L,
+	parentComponents []string,
+) (string, error) {
+	xpath, err := location.XpathWithComponents(
+		o.client.Versioning(),
+		append(parentComponents, util.AsEntryXpath(""))...,
+	)
+	if err != nil {
+		return "", err
+	}
+	return util.AsXpath(xpath), nil
+}
+
+// initializeCacheWithFetch fetches all entries from the API and initializes the cache.
+// IMPORTANT: Caller MUST hold write lock on locationXpath before calling.
+// After calling this, use cache.Get() or cache.GetAll() to retrieve entries
+// with proper deep copying for thread safety.
+func (o *EntryObjectManager[E, L, S]) initializeCacheWithFetch(
+	ctx context.Context,
+	locationXpath string,
+	location L,
+	parentComponents []string,
+) error {
+	entries, err := o.fetchEntries(ctx, location, parentComponents)
+	if err != nil {
+		return &Error{err: err, message: "failed to fetch entries from API"}
+	}
+
+	return o.cache.SetInitialized(ctx, locationXpath, entries)
 }
 
 func (o *EntryObjectManager[E, L, S]) ReadMany(ctx context.Context, location L, components []string) ([]E, error) {
-	switch o.batchingConfig.ListStrategy {
-	case StrategyEager:
-		return o.readManyEager(ctx, location, components)
-	case StrategyLazy:
-		return o.readManyLazy(ctx, location, components)
-	default:
-		return o.readManyEager(ctx, location, components) // fallback to eager
+	// Early return if caching disabled - do direct fetch
+	if !o.cache.IsCachingEnabled() {
+		entries, err := o.fetchEntries(ctx, location, components)
+		if err != nil {
+			return nil, err
+		}
+		return o.filterEntriesByLocation(ctx, location, entries), nil
 	}
+
+	locationXpath, err := o.buildLocationXpath(location, components)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fast path: check if initialized (read lock)
+	mu := locking.GetRWMutex(locking.XpathLockCategory, locationXpath)
+	mu.RLock()
+	if o.cache.IsInitialized(locationXpath) {
+		entries, err := o.cache.GetAll(ctx, locationXpath)
+		mu.RUnlock()
+		if err != nil {
+			return nil, &Error{err: err, message: "failed to get entries from cache"}
+		}
+		return o.filterEntriesByLocation(ctx, location, entries), nil
+	}
+	mu.RUnlock()
+
+	// Slow path: initialize cache (write lock)
+	mu.Lock()
+	defer mu.Unlock()
+
+	// Double-check after acquiring write lock
+	if o.cache.IsInitialized(locationXpath) {
+		entries, err := o.cache.GetAll(ctx, locationXpath)
+		if err != nil {
+			return nil, &Error{err: err, message: "failed to get entries from cache"}
+		}
+		return o.filterEntriesByLocation(ctx, location, entries), nil
+	}
+
+	err = o.initializeCacheWithFetch(ctx, locationXpath, location, components)
+	if err != nil {
+		return nil, err
+	}
+
+	entries, err := o.cache.GetAll(ctx, locationXpath)
+	if err != nil {
+		return nil, &Error{err: err, message: "failed to get entries from cache"}
+	}
+
+	return o.filterEntriesByLocation(ctx, location, entries), nil
 }
 
 func (o *EntryObjectManager[E, L, S]) readManyEager(ctx context.Context, location L, components []string) ([]E, error) {
@@ -89,16 +184,44 @@ func (o *EntryObjectManager[E, L, S]) readManyEager(ctx context.Context, locatio
 		return nil, err
 	}
 
-	existing, err := o.service.ListWithXpath(ctx, util.AsXpath(xpath), "get", "", "")
+	xpathStr := util.AsXpath(xpath)
+
+	tflog.Debug(ctx, "EntryManager: eager read started", map[string]any{
+		"xpath": xpathStr,
+	})
+
+	existing, err := o.service.ListWithXpath(ctx, xpathStr, "get", "", "")
 	if err != nil {
 		if sdkerrors.IsObjectNotFound(err) {
+			tflog.Debug(ctx, "EntryManager: eager read returned ObjectNotFound", map[string]any{
+				"xpath": xpathStr,
+			})
 			return nil, ErrObjectNotFound
 		} else {
+			tflog.Debug(ctx, "EntryManager: eager read failed", map[string]any{
+				"xpath": xpathStr,
+				"error": err.Error(),
+			})
 			return nil, &Error{err: err, message: "Failed to read entries from the server"}
 		}
 	}
 
-	return o.filterEntriesByLocation(location, existing), nil
+	tflog.Debug(ctx, "EntryManager: eager read succeeded, applying location filter", map[string]any{
+		"xpath":                 xpathStr,
+		"entries_before_filter": len(existing),
+		"entry_order":           extractEntryNames(existing),
+	})
+
+	filtered := o.filterEntriesByLocation(ctx, location, existing)
+
+	tflog.Debug(ctx, "EntryManager: eager read completed", map[string]any{
+		"xpath":             xpathStr,
+		"entries_returned":  len(filtered),
+		"entries_filtered":  len(existing) - len(filtered),
+		"final_entry_order": extractEntryNames(filtered),
+	})
+
+	return filtered, nil
 }
 
 func (o *EntryObjectManager[E, L, S]) readManyLazy(ctx context.Context, location L, components []string) ([]E, error) {
@@ -109,35 +232,135 @@ func (o *EntryObjectManager[E, L, S]) readManyLazy(ctx context.Context, location
 
 	baseXpath := util.AsXpath(xpath)
 
+	tflog.Debug(ctx, "EntryManager: lazy read started", map[string]any{
+		"base_xpath": baseXpath,
+	})
+
 	// Delegate to BatchReader
 	entries, err := o.batchReader.ReadManyLazy(ctx, baseXpath)
 	if err != nil {
+		tflog.Debug(ctx, "EntryManager: lazy read failed", map[string]any{
+			"base_xpath": baseXpath,
+			"error":      err.Error(),
+		})
 		return nil, err
 	}
 
-	return o.filterEntriesByLocation(location, entries), nil
+	tflog.Debug(ctx, "EntryManager: lazy read succeeded, applying location filter", map[string]any{
+		"base_xpath":            baseXpath,
+		"entries_before_filter": len(entries),
+		"entry_order":           extractEntryNames(entries),
+	})
+
+	filtered := o.filterEntriesByLocation(ctx, location, entries)
+
+	tflog.Debug(ctx, "EntryManager: lazy read completed", map[string]any{
+		"base_xpath":        baseXpath,
+		"entries_returned":  len(filtered),
+		"entries_filtered":  len(entries) - len(filtered),
+		"final_entry_order": extractEntryNames(filtered),
+	})
+
+	return filtered, nil
 }
 
 func (o *EntryObjectManager[E, L, S]) Read(ctx context.Context, location L, parentComponents []string, name string) (E, error) {
-	xpath, err := location.XpathWithComponents(o.client.Versioning(), append(parentComponents, util.AsEntryXpath(name))...)
-	if err != nil {
-		return *new(E), &Error{err: err, message: "failed to read entry from the server"}
-	}
+	var zero E
 
-	object, err := o.service.ReadWithXpath(ctx, util.AsXpath(xpath), "get")
-	if err != nil {
-		if sdkerrors.IsObjectNotFound(err) {
-			return *new(E), ErrObjectNotFound
+	// Early return if caching disabled - do direct read
+	if !o.cache.IsCachingEnabled() {
+		xpath, err := location.XpathWithComponents(
+			o.client.Versioning(),
+			append(parentComponents, util.AsEntryXpath(name))...,
+		)
+		if err != nil {
+			return zero, err
 		}
-		return *new(E), &Error{err: err}
-	}
 
-	filtered := o.filterEntriesByLocation(location, []E{object})
-	if len(filtered) > 0 {
+		entry, err := o.service.ReadWithXpath(ctx, util.AsXpath(xpath), "get")
+		if err != nil {
+			if sdkerrors.IsObjectNotFound(err) {
+				return zero, ErrObjectNotFound
+			}
+			return zero, &Error{err: err, message: "failed to read entry from the server"}
+		}
+
+		// Apply location filter
+		filtered := o.filterEntriesByLocation(ctx, location, []E{entry})
+		if len(filtered) == 0 {
+			return zero, ErrObjectNotFound
+		}
 		return filtered[0], nil
 	}
 
-	return *new(E), ErrObjectNotFound
+	locationXpath, err := o.buildLocationXpath(location, parentComponents)
+	if err != nil {
+		return zero, err
+	}
+
+	// Fast path: check if initialized (read lock)
+	mu := locking.GetRWMutex(locking.XpathLockCategory, locationXpath)
+	mu.RLock()
+	if o.cache.IsInitialized(locationXpath) {
+		entry, found, err := o.cache.Get(ctx, locationXpath, name)
+		mu.RUnlock()
+		if err != nil {
+			return zero, &Error{err: err, message: "failed to get entry from cache"}
+		}
+		if !found {
+			return zero, ErrObjectNotFound
+		}
+		// Apply location filter
+		filtered := o.filterEntriesByLocation(ctx, location, []E{entry})
+		if len(filtered) == 0 {
+			return zero, ErrObjectNotFound
+		}
+		return filtered[0], nil
+	}
+	mu.RUnlock()
+
+	// Slow path: initialize cache (write lock)
+	mu.Lock()
+	defer mu.Unlock()
+
+	// Double-check after acquiring write lock
+	if o.cache.IsInitialized(locationXpath) {
+		entry, found, err := o.cache.Get(ctx, locationXpath, name)
+		if err != nil {
+			return zero, &Error{err: err, message: "failed to get entry from cache"}
+		}
+		if !found {
+			return zero, ErrObjectNotFound
+		}
+		// Apply location filter
+		filtered := o.filterEntriesByLocation(ctx, location, []E{entry})
+		if len(filtered) == 0 {
+			return zero, ErrObjectNotFound
+		}
+		return filtered[0], nil
+	}
+
+	// Cache initialization must fetch all entries at this location, even though
+	// we only need one entry. This is required for cache coherence.
+	err = o.initializeCacheWithFetch(ctx, locationXpath, location, parentComponents)
+	if err != nil {
+		return zero, err
+	}
+
+	entry, found, err := o.cache.Get(ctx, locationXpath, name)
+	if err != nil {
+		return zero, &Error{err: err, message: "failed to get entry from cache"}
+	}
+	if !found {
+		return zero, ErrObjectNotFound
+	}
+
+	// Apply location filter
+	filtered := o.filterEntriesByLocation(ctx, location, []E{entry})
+	if len(filtered) == 0 {
+		return zero, ErrObjectNotFound
+	}
+	return filtered[0], nil
 }
 
 func (o *EntryObjectManager[E, L, S]) Create(ctx context.Context, location L, parentComponents []string, entry E) (E, error) {
@@ -163,6 +386,19 @@ func (o *EntryObjectManager[E, L, S]) Create(ctx context.Context, location L, pa
 	obj, err := o.service.ReadWithXpath(ctx, util.AsXpath(xpath), "get")
 	if err != nil {
 		return *new(E), &Error{err: err, message: "failed to read created entry from the server"}
+	}
+
+	if o.cache.IsCachingEnabled() {
+		xpathForCache, _ := location.XpathWithComponents(
+			o.client.Versioning(),
+			append(parentComponents, util.AsEntryXpath(""))...,
+		)
+		locationXpath := util.AsXpath(xpathForCache)
+
+		mu := locking.GetRWMutex(locking.XpathLockCategory, locationXpath)
+		mu.Lock()
+		o.cache.Put(ctx, locationXpath, obj.EntryName(), obj)
+		mu.Unlock()
 	}
 
 	return obj, nil
@@ -234,6 +470,23 @@ func (o *EntryObjectManager[E, L, S]) CreateMany(ctx context.Context, location L
 		filtered = append(filtered, elt)
 	}
 
+	if o.cache.IsCachingEnabled() {
+		locationXpath, err := o.buildLocationXpath(location, parentComponents)
+		if err != nil {
+			return nil, &Error{err: err, message: "failed to build xpath for cache update"}
+		}
+
+		mu := locking.GetRWMutex(locking.XpathLockCategory, locationXpath)
+		mu.Lock()
+		defer mu.Unlock()
+
+		for _, entry := range filtered {
+			if err := o.cache.Put(ctx, locationXpath, entry.EntryName(), entry); err != nil {
+				return nil, &Error{err: err, message: "failed to update cache after create"}
+			}
+		}
+	}
+
 	return filtered, nil
 }
 
@@ -257,6 +510,21 @@ func (o *EntryObjectManager[E, T, S]) Delete(ctx context.Context, location T, pa
 	_, _, _, err := o.client.MultiConfig(ctx, deletes, false, nil)
 	if err != nil {
 		return &Error{err: err, message: "sdk error while deleting"}
+	}
+
+	if o.cache.IsCachingEnabled() {
+		xpathForCache, _ := location.XpathWithComponents(
+			o.client.Versioning(),
+			append(parentComponents, util.AsEntryXpath(""))...,
+		)
+		locationXpath := util.AsXpath(xpathForCache)
+
+		mu := locking.GetRWMutex(locking.XpathLockCategory, locationXpath)
+		mu.Lock()
+		for _, name := range names {
+			o.cache.Delete(ctx, locationXpath, name)
+		}
+		mu.Unlock()
 	}
 
 	return nil
@@ -301,21 +569,50 @@ func (o *EntryObjectManager[E, L, S]) Update(ctx context.Context, location L, co
 		return *new(E), err
 	}
 
+	var updated E
 	if renamedXpath != nil {
-		return o.service.ReadWithXpath(ctx, util.AsXpath(renamedXpath), "get")
+		updated, err = o.service.ReadWithXpath(ctx, util.AsXpath(renamedXpath), "get")
 	} else {
-		return o.service.ReadWithXpath(ctx, util.AsXpath(xpath), "get")
+		updated, err = o.service.ReadWithXpath(ctx, util.AsXpath(xpath), "get")
 	}
+	if err != nil {
+		return *new(E), err
+	}
+
+	if o.cache.IsCachingEnabled() {
+		xpathForCache, _ := location.XpathWithComponents(
+			o.client.Versioning(),
+			append(components, util.AsEntryXpath(""))...,
+		)
+		locationXpath := util.AsXpath(xpathForCache)
+
+		renamed := newName != "" && newName != entry.EntryName()
+
+		mu := locking.GetRWMutex(locking.XpathLockCategory, locationXpath)
+		mu.Lock()
+
+		// If renamed, remove old entry
+		if renamed {
+			o.cache.Delete(ctx, locationXpath, entry.EntryName())
+		}
+
+		// Add/update with fresh data
+		o.cache.Put(ctx, locationXpath, updated.EntryName(), updated)
+
+		mu.Unlock()
+	}
+
+	return updated, nil
 }
 
 func (o *EntryObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L, components []string, stateEntries []E, planEntries []E) ([]E, error) {
 	stateEntriesByName := o.entriesByName(stateEntries, entryUnknown)
 	planEntriesByName := o.entriesByName(planEntries, entryUnknown)
 	renamedEntries := make(map[string]struct{})
-	processedStateEntriesByName := make(map[string]entryObjectWithState[E])
+	processedStateEntriesByName := make(map[string]entryWithState[E])
 
-	findMatchingStateEntry := func(entry E) (*entryObjectWithState[E], bool) {
-		var found *entryObjectWithState[E]
+	findMatchingStateEntry := func(entry E) (*entryWithState[E], bool) {
+		var found *entryWithState[E]
 		for _, elt := range stateEntriesByName {
 			if o.matcher(entry, elt.Entry) {
 				found = &elt
@@ -337,7 +634,7 @@ func (o *EntryObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L
 
 	for idx, elt := range planEntries {
 		eltEntryName := elt.EntryName()
-		var processedEntry *entryObjectWithState[E]
+		var processedEntry *entryWithState[E]
 
 		if stateElt, found := stateEntriesByName[eltEntryName]; !found {
 			// If given plan entry is not found in the state, check if there
@@ -345,14 +642,14 @@ func (o *EntryObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L
 			// entry is a rename: keep the renamedEntry index, adn set its state
 			// to entryRename.
 			if stateEntry, found := findMatchingStateEntry(elt); found {
-				processedEntry = &entryObjectWithState[E]{
+				processedEntry = &entryWithState[E]{
 					Entry:   stateEntry.Entry,
 					State:   entryRenamed,
 					NewName: eltEntryName,
 				}
 				renamedEntries[eltEntryName] = struct{}{}
 			} else {
-				processedEntry = &entryObjectWithState[E]{
+				processedEntry = &entryWithState[E]{
 					Entry: elt,
 					State: entryMissing,
 				}
@@ -371,7 +668,7 @@ func (o *EntryObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L
 			}
 			processedStateEntriesByName[processedEntry.Entry.EntryName()] = *processedEntry
 		} else {
-			processedEntry = &entryObjectWithState[E]{
+			processedEntry = &entryWithState[E]{
 				Entry:    elt,
 				StateIdx: idx,
 			}
@@ -520,13 +817,40 @@ func (o *EntryObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L
 		}
 	}
 
+	if o.cache.IsCachingEnabled() {
+		locationXpath, err := o.buildLocationXpath(location, components)
+		if err != nil {
+			return nil, &Error{err: err, message: "failed to build xpath for cache update"}
+		}
+
+		mu := locking.GetRWMutex(locking.XpathLockCategory, locationXpath)
+		mu.Lock()
+		defer mu.Unlock()
+
+		// Process deletions first to avoid conflicts with renames
+		for _, elt := range processedStateEntriesByName {
+			if elt.State == entryDeleted {
+				if err := o.cache.Delete(ctx, locationXpath, elt.Entry.EntryName()); err != nil {
+					return nil, &Error{err: err, message: "failed to delete entry from cache"}
+				}
+			}
+		}
+
+		// Put all current entries (handles creates, updates, and renamed entries)
+		for _, updatedEntry := range entries {
+			if err := o.cache.Put(ctx, locationXpath, updatedEntry.EntryName(), updatedEntry); err != nil {
+				return nil, &Error{err: err, message: "failed to update entry in cache"}
+			}
+		}
+	}
+
 	return entries, nil
 }
 
-func (o *EntryObjectManager[E, L, S]) entriesByName(entries []E, initialState entryState) map[string]entryObjectWithState[E] {
-	entriesByName := make(map[string]entryObjectWithState[E], len(entries))
+func (o *EntryObjectManager[E, L, S]) entriesByName(entries []E, initialState entryState) map[string]entryWithState[E] {
+	entriesByName := make(map[string]entryWithState[E], len(entries))
 	for idx, elt := range entries {
-		entriesByName[elt.EntryName()] = entryObjectWithState[E]{
+		entriesByName[elt.EntryName()] = entryWithState[E]{
 			Entry:    elt,
 			StateIdx: idx,
 			State:    initialState,

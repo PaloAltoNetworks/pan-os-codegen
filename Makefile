@@ -40,7 +40,10 @@ examples: install
 	TF_CLI_CONFIG_FILE= ./scripts/validate-terraform-examples.sh
 
 .PHONY: test
-test: test/codegen test/pango test/terraform
+test: test/codegen test/pango test/terraform-manager
+
+.PHONY: test/all
+test/all: test/codegen test/pango test/terraform
 
 .PHONY: test/codegen
 test/codegen:
@@ -67,12 +70,15 @@ test/pango-example:
 	go build example/main.go
 
 .PHONY: test/terraform
-test/terraform: test/terraform-acc test/terraform-manager
+test/terraform: test/terraform-manager
+
+.PHONY: test/terraform-all
+test/terraform-all: test/terraform-manager test/terraform-acc
 
 .PHONY: test/terraform-manager
 test/terraform-manager: codegen assets
 	cd $(GENERATED_OUT_PATH)/terraform/ && \
-	go test -coverprofile cover.profile -v ./internal/manager/
+	go test -race -coverprofile cover.profile -v ./internal/manager/
 
 .PHONY: test/terraform-acc
 test/terraform-acc: codegen assets

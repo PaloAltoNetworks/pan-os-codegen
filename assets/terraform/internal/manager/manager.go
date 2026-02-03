@@ -2,6 +2,7 @@ package manager
 
 import (
 	"context"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"net/http"
@@ -30,15 +31,40 @@ func (o *Error) Unwrap() error {
 }
 
 var (
-	ErrPlanConflict      = errors.New("multiple plan entries with shared name")
-	ErrConflict          = errors.New("entry from the plan already exists on the server")
-	ErrMissingUuid       = errors.New("entry is missing required uuid")
-	ErrMarshaling        = errors.New("failed to marshal entry to XML document")
-	ErrInvalidPosition   = errors.New("position is not valid")
-	ErrMissingPivotPoint = errors.New("provided pivot entry does not exist")
-	ErrInternal          = errors.New("internal provider error")
-	ErrObjectNotFound    = errors.New("Object not found")
+	ErrPlanConflict                = errors.New("multiple plan entries with shared name")
+	ErrConflict                    = errors.New("entry from the plan already exists on the server")
+	ErrMissingUuid                 = errors.New("entry is missing required uuid")
+	ErrMarshaling                  = errors.New("failed to marshal entry to XML document")
+	ErrInvalidPosition             = errors.New("position is not valid")
+	ErrMissingPivotPoint           = errors.New("provided pivot entry does not exist")
+	ErrInternal                    = errors.New("internal provider error")
+	ErrObjectNotFound              = errors.New("Object not found")
+	ErrLocationCacheNotInitialized = errors.New("cache location not initialized, call SetInitialized first")
 )
+
+// Entry represents the minimal interface for cache entries - read-only name access.
+type Entry interface {
+	EntryName() string
+}
+
+// EntryWithAttributes extends Entry with XML attribute access for location filtering.
+type EntryWithAttributes interface {
+	Entry
+	GetMiscAttributes() []xml.Attr
+}
+
+// EntryObject extends EntryWithAttributes with mutable name for CRUD operations.
+type EntryObject interface {
+	EntryWithAttributes
+	SetEntryName(name string)
+}
+
+// UuidObject extends EntryObject with UUID fields for UUID-based resources.
+type UuidObject interface {
+	EntryObject
+	EntryUuid() *string
+	SetEntryUuid(value *string)
+}
 
 type entryState string
 
@@ -50,6 +76,14 @@ const (
 	entryDeleted  entryState = "deleted"
 	entryOk       entryState = "ok"
 )
+
+// entryWithState tracks an entry's CRUD lifecycle state and ordering for UpdateMany operations.
+type entryWithState[E Entry] struct {
+	Entry    E
+	State    entryState
+	StateIdx int
+	NewName  string
+}
 
 type SDKClient interface {
 	Versioning() version.Number
@@ -70,6 +104,7 @@ type BatchingConfig struct {
 	ReadBatchSize        int              // Batch size for lazy read operations
 	ListStrategy         ListStrategy     // Eager or Lazy listing
 	ShardingStrategy     ShardingStrategy // Disabled or Enabled
+	CacheStrategy        CacheStrategy    // Caching strategy
 }
 
 // ListStrategy controls how resources are listed.
@@ -86,4 +121,12 @@ type ShardingStrategy string
 const (
 	ShardingDisabled ShardingStrategy = "disabled" // Single query for all names
 	ShardingEnabled  ShardingStrategy = "enabled"  // Multiple queries sharded by name prefix
+)
+
+// CacheStrategy controls resource caching.
+type CacheStrategy string
+
+const (
+	CacheStrategyDisabled CacheStrategy = "disabled" // Caching disabled
+	CacheStrategyEnabled  CacheStrategy = "enabled"  // Caching enabled
 )

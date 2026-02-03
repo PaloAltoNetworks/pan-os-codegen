@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 
 	sdkerrors "github.com/PaloAltoNetworks/pango/errors"
 	"github.com/PaloAltoNetworks/pango/version"
@@ -17,9 +18,10 @@ import (
 )
 
 type MockEntryObject struct {
-	Location string
-	Name     string
-	Value    string
+	XMLName  xml.Name `xml:"entry"`
+	Location string   `xml:"loc,attr,omitempty"`
+	Name     string   `xml:"name,attr"`
+	Value    string   `xml:"value"`
 }
 
 func (o *MockEntryObject) EntryUuid() *string {
@@ -56,6 +58,7 @@ func (o *MockEntryObject) GetMiscAttributes() []xml.Attr {
 
 func (o *MockEntryObject) DeepCopy() any {
 	return &MockEntryObject{
+		XMLName:  o.XMLName,
 		Location: o.Location,
 		Name:     o.Name,
 		Value:    o.Value,
@@ -66,6 +69,7 @@ type MockEntryClient[E manager.UuidObject] struct {
 	Initial          *list.List
 	Current          *list.List
 	MultiConfigOpers [][]MultiConfigOper
+	mu               sync.RWMutex
 }
 
 func NewMockEntryClient[E manager.UuidObject](initial []E) *MockEntryClient[E] {
@@ -111,6 +115,9 @@ func (o *MockEntryClient[E]) ChunkedMultiConfig(ctx context.Context, updates *xm
 }
 
 func (o *MockEntryClient[E]) MultiConfig(ctx context.Context, updates *xmlapi.MultiConfig, arg1 bool, arg2 url.Values) ([]byte, *http.Response, *xmlapi.MultiConfigResponse, error) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+
 	opers, _ := MultiConfig[E](updates, &o.Current, multiConfigEntry, 0)
 	o.MultiConfigOpers = append(o.MultiConfigOpers, opers)
 
@@ -118,6 +125,9 @@ func (o *MockEntryClient[E]) MultiConfig(ctx context.Context, updates *xmlapi.Mu
 }
 
 func (o *MockEntryClient[E]) list() []E {
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+
 	var entries []E
 	slog.Debug("MockEntryClient list()", "o.Current", o.Current, "o.Current.Front()", o.Current.Front())
 	for e := o.Current.Front(); e != nil; e = e.Next() {
@@ -129,7 +139,8 @@ func (o *MockEntryClient[E]) list() []E {
 }
 
 type MockEntryService[E manager.UuidObject, L manager.EntryLocation] struct {
-	client *MockEntryClient[E]
+	client            *MockEntryClient[E]
+	ListWithXpathFunc func(ctx context.Context, xpath string, action string, filter string, quote string) ([]E, error)
 }
 
 func (o *MockEntryService[E, L]) CreateWithXpath(ctx context.Context, xpath string, entry E) error {
@@ -138,6 +149,9 @@ func (o *MockEntryService[E, L]) CreateWithXpath(ctx context.Context, xpath stri
 }
 
 func (o *MockEntryService[E, L]) Create(ctx context.Context, location L, entry E) (E, error) {
+	o.client.mu.Lock()
+	defer o.client.mu.Unlock()
+
 	o.client.Current.PushBack(entry)
 
 	return entry, nil
@@ -156,6 +170,11 @@ func (o *MockEntryService[E, L]) UpdateWithXpath(ctx context.Context, xpath stri
 }
 
 func (o *MockEntryService[E, L]) ListWithXpath(ctx context.Context, xpath string, action string, filter string, quote string) ([]E, error) {
+	// Use custom function if set (for concurrency tests with API call tracking)
+	if o.ListWithXpathFunc != nil {
+		return o.ListWithXpathFunc(ctx, xpath, action, filter, quote)
+	}
+
 	allEntries := o.client.list()
 	return parseXpathPredicate(xpath, allEntries), nil
 }
@@ -169,6 +188,9 @@ func (o *MockEntryService[E, L]) ReadWithXpath(ctx context.Context, xpath string
 }
 
 func (o *MockEntryService[E, L]) Read(ctx context.Context, location L, name string, action string) (E, error) {
+	o.client.mu.RLock()
+	defer o.client.mu.RUnlock()
+
 	for e := o.client.Current.Front(); e != nil; e = e.Next() {
 		entry := e.Value.(E)
 		if entry.EntryName() == name {
@@ -191,4 +213,12 @@ func MockEntrySpecifier(entry *MockEntryObject) (any, error) {
 
 func MockEntryMatcher(entry *MockEntryObject, other *MockEntryObject) bool {
 	return entry.Value == other.Value
+}
+
+type MockEntryNormalizer struct {
+	Entries []*MockEntryObject `xml:"entry"`
+}
+
+func (n *MockEntryNormalizer) Normalize() ([]*MockEntryObject, error) {
+	return n.Entries, nil
 }
