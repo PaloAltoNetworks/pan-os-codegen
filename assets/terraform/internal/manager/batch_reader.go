@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+
 	sdkerrors "github.com/PaloAltoNetworks/pango/errors"
 )
 
@@ -79,7 +81,7 @@ func BuildBatchXpath(baseXpath string, names []string) string {
 	}
 
 	predicate := strings.Join(predicates, " or ")
-	return fmt.Sprintf("%s/entry[%s]", baseXpath, predicate)
+	return fmt.Sprintf("%s[%s]", baseXpath, predicate)
 }
 
 // FilterEntriesByLocation filters entries to only those matching the location filter
@@ -88,6 +90,14 @@ func FilterEntriesByLocation[E EntryWithAttributes, L LocationLike](location L, 
 	if filter == nil {
 		return entries
 	}
+
+	// Use context.Background() since this is a utility function
+	ctx := context.Background()
+
+	tflog.Debug(ctx, "FilterEntriesByLocation: applying location filter", map[string]any{
+		"filter":      *filter,
+		"entry_count": len(entries),
+	})
 
 	getLocAttribute := func(entry E) *string {
 		for _, elt := range entry.GetMiscAttributes() {
@@ -99,12 +109,28 @@ func FilterEntriesByLocation[E EntryWithAttributes, L LocationLike](location L, 
 	}
 
 	var filtered []E
+	var filteredOut int
 	for _, elt := range entries {
 		entryLoc := getLocAttribute(elt)
 		if entryLoc == nil || *entryLoc == *filter {
 			filtered = append(filtered, elt)
+		} else {
+			filteredOut++
+			tflog.Debug(ctx, "FilterEntriesByLocation: filtering out entry", map[string]any{
+				"entry_name": elt.EntryName(),
+				"entry_loc":  *entryLoc,
+				"filter":     *filter,
+			})
 		}
 	}
+
+	tflog.Debug(ctx, "FilterEntriesByLocation: filtering complete", map[string]any{
+		"filter":       *filter,
+		"entries_in":   len(entries),
+		"entries_out":  len(filtered),
+		"filtered_out": filteredOut,
+		"final_order":  extractEntryNames(filtered),
+	})
 
 	return filtered
 }
@@ -133,15 +159,34 @@ func (br *BatchReader[E, S]) ListNamesUnsharded(
 ) ([]string, error) {
 	nameXpath := baseXpath + "/@name"
 
+	tflog.Debug(ctx, "BatchReader: unsharded name listing", map[string]any{
+		"xpath": nameXpath,
+	})
+
 	entries, err := br.service.ListWithXpath(ctx, nameXpath, "get", "", "")
 	if err != nil {
 		if sdkerrors.IsObjectNotFound(err) {
+			tflog.Debug(ctx, "BatchReader: unsharded listing returned ObjectNotFound", map[string]any{
+				"xpath": nameXpath,
+			})
 			return []string{}, nil
 		}
+		tflog.Debug(ctx, "BatchReader: unsharded listing failed", map[string]any{
+			"xpath": nameXpath,
+			"error": err.Error(),
+		})
 		return nil, &Error{err: err, message: "Failed to list entry names"}
 	}
 
-	return ExtractNames(entries), nil
+	names := ExtractNames(entries)
+
+	tflog.Debug(ctx, "BatchReader: unsharded listing succeeded", map[string]any{
+		"xpath":      nameXpath,
+		"name_count": len(names),
+		"name_order": firstN(names, 10),
+	})
+
+	return names, nil
 }
 
 // ListNamesSharded fetches entry names using multiple sharded queries
@@ -149,24 +194,60 @@ func (br *BatchReader[E, S]) ListNamesSharded(
 	ctx context.Context,
 	baseXpath string,
 ) ([]string, error) {
+	tflog.Debug(ctx, "BatchReader: starting sharded name listing", map[string]any{
+		"base_xpath": baseXpath,
+	})
+
 	var allNames []string
+	shardNum := 0
 
 	for _, shard := range NameShards {
+		shardNum++
 		shardXpath := BuildShardedXpath(baseXpath, shard.Prefixes)
+
+		tflog.Debug(ctx, "BatchReader: querying shard", map[string]any{
+			"shard_num":  shardNum,
+			"shard_name": shard.Name,
+			"xpath":      shardXpath,
+		})
 
 		entries, err := br.service.ListWithXpath(ctx, shardXpath, "get", "", "")
 		if err != nil {
 			if sdkerrors.IsObjectNotFound(err) {
+				tflog.Debug(ctx, "BatchReader: shard returned no results", map[string]any{
+					"shard_num":  shardNum,
+					"shard_name": shard.Name,
+				})
 				continue // Empty shard
 			}
+			tflog.Debug(ctx, "BatchReader: shard query failed", map[string]any{
+				"shard_num":  shardNum,
+				"shard_name": shard.Name,
+				"error":      err.Error(),
+			})
 			return nil, &Error{
 				err:     err,
 				message: fmt.Sprintf("Failed to list shard %s", shard.Name),
 			}
 		}
 
-		allNames = append(allNames, ExtractNames(entries)...)
+		names := ExtractNames(entries)
+
+		tflog.Debug(ctx, "BatchReader: shard query succeeded", map[string]any{
+			"shard_num":  shardNum,
+			"shard_name": shard.Name,
+			"name_count": len(names),
+			"names":      names,
+		})
+
+		allNames = append(allNames, names...)
 	}
+
+	tflog.Debug(ctx, "BatchReader: sharded listing completed", map[string]any{
+		"total_shards": len(NameShards),
+		"total_names":  len(allNames),
+		"final_order":  firstN(allNames, 10),
+	})
 
 	return allNames, nil
 }
@@ -176,14 +257,40 @@ func (br *BatchReader[E, S]) ListNames(
 	ctx context.Context,
 	baseXpath string,
 ) ([]string, error) {
+	tflog.Debug(ctx, "BatchReader: listing names", map[string]any{
+		"base_xpath": baseXpath,
+		"sharding":   br.batchingConfig.ShardingStrategy,
+	})
+
+	var names []string
+	var err error
+
 	switch br.batchingConfig.ShardingStrategy {
-	case ShardingDisabled:
-		return br.ListNamesUnsharded(ctx, baseXpath)
 	case ShardingEnabled:
-		return br.ListNamesSharded(ctx, baseXpath)
+		names, err = br.ListNamesSharded(ctx, baseXpath)
+	case ShardingDisabled:
+		names, err = br.ListNamesUnsharded(ctx, baseXpath)
 	default:
-		return br.ListNamesUnsharded(ctx, baseXpath)
+		names, err = br.ListNamesUnsharded(ctx, baseXpath)
 	}
+
+	if err != nil {
+		tflog.Debug(ctx, "BatchReader: ListNames failed", map[string]any{
+			"base_xpath": baseXpath,
+			"sharding":   br.batchingConfig.ShardingStrategy,
+			"error":      err.Error(),
+		})
+		return nil, err
+	}
+
+	tflog.Debug(ctx, "BatchReader: ListNames succeeded", map[string]any{
+		"base_xpath": baseXpath,
+		"sharding":   br.batchingConfig.ShardingStrategy,
+		"name_count": len(names),
+		"name_order": firstN(names, 10),
+	})
+
+	return names, nil
 }
 
 // ReadEntriesByNames fetches a batch of entries by their names
@@ -194,13 +301,35 @@ func (br *BatchReader[E, S]) ReadEntriesByNames(
 ) ([]E, error) {
 	batchXpath := BuildBatchXpath(baseXpath, names)
 
+	tflog.Debug(ctx, "BatchReader: executing batch XPath query", map[string]any{
+		"xpath":      batchXpath,
+		"name_count": len(names),
+		"names":      names,
+	})
+
 	entries, err := br.service.ListWithXpath(ctx, batchXpath, "get", "", "")
 	if err != nil {
 		if sdkerrors.IsObjectNotFound(err) {
-			return []E{}, nil
+			tflog.Debug(ctx, "BatchReader: batch query returned ObjectNotFound, returning empty slice", map[string]any{
+				"xpath":      batchXpath,
+				"name_count": len(names),
+				"names":      names,
+			})
+			return []E{}, nil // POTENTIAL BUG: Silent failure
 		}
+		tflog.Debug(ctx, "BatchReader: batch query failed", map[string]any{
+			"xpath": batchXpath,
+			"error": err.Error(),
+		})
 		return nil, &Error{err: err, message: "Failed to read entry batch"}
 	}
+
+	tflog.Debug(ctx, "BatchReader: batch query succeeded", map[string]any{
+		"xpath":            batchXpath,
+		"names_queried":    len(names),
+		"entries_returned": len(entries),
+		"entry_order":      extractEntryNames(entries),
+	})
 
 	return entries, nil
 }
@@ -216,7 +345,15 @@ func (br *BatchReader[E, S]) BatchReadEntries(
 		batchSize = 50 // default
 	}
 
+	tflog.Debug(ctx, "BatchReader: starting batched entry reads", map[string]any{
+		"base_xpath":  baseXpath,
+		"total_names": len(names),
+		"batch_size":  batchSize,
+		"batch_count": (len(names) + batchSize - 1) / batchSize,
+	})
+
 	var allEntries []E
+	batchNum := 0
 
 	// Process names in batches
 	for i := 0; i < len(names); i += batchSize {
@@ -224,15 +361,43 @@ func (br *BatchReader[E, S]) BatchReadEntries(
 		if end > len(names) {
 			end = len(names)
 		}
+		batchNum++
 
 		batch := names[i:end]
+
+		tflog.Debug(ctx, "BatchReader: reading batch", map[string]any{
+			"batch_num":   batchNum,
+			"batch_start": i,
+			"batch_end":   end,
+			"batch_size":  len(batch),
+			"first_names": firstN(batch, 3),
+		})
+
 		entries, err := br.ReadEntriesByNames(ctx, baseXpath, batch)
 		if err != nil {
+			tflog.Debug(ctx, "BatchReader: batch read failed", map[string]any{
+				"batch_num":  batchNum,
+				"batch_size": len(batch),
+				"error":      err.Error(),
+			})
 			return nil, err
 		}
 
+		tflog.Debug(ctx, "BatchReader: batch read succeeded", map[string]any{
+			"batch_num":      batchNum,
+			"names_in_batch": len(batch),
+			"entries_read":   len(entries),
+			"entry_names":    extractEntryNames(entries),
+		})
+
 		allEntries = append(allEntries, entries...)
 	}
+
+	tflog.Debug(ctx, "BatchReader: all batches completed", map[string]any{
+		"total_batches": batchNum,
+		"total_entries": len(allEntries),
+		"entry_order":   extractEntryNames(allEntries),
+	})
 
 	return allEntries, nil
 }
@@ -242,16 +407,74 @@ func (br *BatchReader[E, S]) ReadManyLazy(
 	ctx context.Context,
 	baseXpath string,
 ) ([]E, error) {
+	tflog.Debug(ctx, "BatchReader: starting lazy read", map[string]any{
+		"base_xpath": baseXpath,
+		"batch_size": br.batchingConfig.ReadBatchSize,
+		"sharding":   br.batchingConfig.ShardingStrategy,
+	})
+
 	// Phase 1: Get list of names
 	names, err := br.ListNames(ctx, baseXpath)
 	if err != nil {
+		tflog.Debug(ctx, "BatchReader: ListNames failed", map[string]any{
+			"base_xpath": baseXpath,
+			"error":      err.Error(),
+		})
 		return nil, err
 	}
 
+	tflog.Debug(ctx, "BatchReader: ListNames succeeded", map[string]any{
+		"base_xpath":  baseXpath,
+		"name_count":  len(names),
+		"first_names": firstN(names, 5),
+	})
+
 	if len(names) == 0 {
+		tflog.Debug(ctx, "BatchReader: no names found, returning ObjectNotFound", map[string]any{
+			"base_xpath": baseXpath,
+		})
 		return nil, ErrObjectNotFound
 	}
 
 	// Phase 2: Fetch entries in batches
-	return br.BatchReadEntries(ctx, baseXpath, names)
+	entries, err := br.BatchReadEntries(ctx, baseXpath, names)
+	if err != nil {
+		tflog.Debug(ctx, "BatchReader: BatchReadEntries failed", map[string]any{
+			"base_xpath": baseXpath,
+			"name_count": len(names),
+			"error":      err.Error(),
+		})
+		return nil, err
+	}
+
+	tflog.Debug(ctx, "BatchReader: lazy read completed", map[string]any{
+		"base_xpath":    baseXpath,
+		"names_listed":  len(names),
+		"entries_read":  len(entries),
+		"first_entries": firstNEntryNames(entries, 5),
+	})
+
+	return entries, nil
+}
+
+// Helper functions for logging
+
+func firstN(items []string, n int) []string {
+	if len(items) <= n {
+		return items
+	}
+	return items[:n]
+}
+
+func extractEntryNames[E interface{ EntryName() string }](entries []E) []string {
+	names := make([]string, len(entries))
+	for i, entry := range entries {
+		names[i] = entry.EntryName()
+	}
+	return names
+}
+
+func firstNEntryNames[E interface{ EntryName() string }](entries []E, n int) []string {
+	names := extractEntryNames(entries)
+	return firstN(names, n)
 }

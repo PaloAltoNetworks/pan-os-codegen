@@ -70,6 +70,7 @@ type BatchingConfig struct {
 	ReadBatchSize        int              // Batch size for lazy read operations
 	ListStrategy         ListStrategy     // Eager or Lazy listing
 	ShardingStrategy     ShardingStrategy // Disabled or Enabled
+	CacheStrategy        CacheStrategy    // Caching strategy
 }
 
 // ListStrategy controls how resources are listed.
@@ -86,4 +87,12 @@ type ShardingStrategy string
 const (
 	ShardingDisabled ShardingStrategy = "disabled" // Single query for all names
 	ShardingEnabled  ShardingStrategy = "enabled"  // Multiple queries sharded by name prefix
+)
+
+// CacheStrategy controls resource caching.
+type CacheStrategy string
+
+const (
+	CacheStrategyDisabled CacheStrategy = "disabled" // Caching disabled
+	CacheStrategyEnabled  CacheStrategy = "enabled"  // Caching enabled
 )

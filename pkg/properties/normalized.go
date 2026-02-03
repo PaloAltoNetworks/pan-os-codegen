@@ -80,22 +80,23 @@ const (
 )
 
 type TerraformProviderConfig struct {
-	Description           string                     `json:"description" yaml:"description"`
-	Ephemeral             bool                       `json:"ephemeral" yaml:"ephemeral"`
-	Action                bool                       `json:"action" yaml:"action"`
-	CustomValidation      bool                       `json:"custom_validation" yaml:"custom_validation"`
-	SkipResource          bool                       `json:"skip_resource" yaml:"skip_resource"`
-	SkipDatasource        bool                       `json:"skip_datasource" yaml:"skip_datasource"`
-	SkipDatasourceListing bool                       `json:"skip_datasource_listing" yaml:"skip_datasource_listing"`
-	ResourceType          TerraformResourceType      `json:"resource_type" yaml:"resource_type"`
-	XmlNode               *string                    `json:"xml_node" yaml:"xml_node"`
-	CustomFuncs           map[string]bool            `json:"custom_functions" yaml:"custom_functions"`
-	ResourceVariants      []TerraformResourceVariant `json:"resource_variants" yaml:"resource_variants"`
-	Suffix                string                     `json:"suffix" yaml:"suffix"`
-	PluralSuffix          string                     `json:"plural_suffix" yaml:"plural_suffix"`
-	PluralName            string                     `json:"plural_name" yaml:"plural_name"`
-	PluralType            object.TerraformPluralType `json:"plural_type" yaml:"plural_type"`
-	PluralDescription     string                     `json:"plural_description" yaml:"plural_description"`
+	Description              string                     `json:"description" yaml:"description"`
+	Ephemeral                bool                       `json:"ephemeral" yaml:"ephemeral"`
+	Action                   bool                       `json:"action" yaml:"action"`
+	CustomValidation         bool                       `json:"custom_validation" yaml:"custom_validation"`
+	SkipResource             bool                       `json:"skip_resource" yaml:"skip_resource"`
+	SkipDatasource           bool                       `json:"skip_datasource" yaml:"skip_datasource"`
+	SkipDatasourceListing    bool                       `json:"skip_datasource_listing" yaml:"skip_datasource_listing"`
+	ResourceType             TerraformResourceType      `json:"resource_type" yaml:"resource_type"`
+	XmlNode                  *string                    `json:"xml_node" yaml:"xml_node"`
+	CustomFuncs              map[string]bool            `json:"custom_functions" yaml:"custom_functions"`
+	ResourceVariants         []TerraformResourceVariant `json:"resource_variants" yaml:"resource_variants"`
+	Suffix                   string                     `json:"suffix" yaml:"suffix"`
+	PluralSuffix             string                     `json:"plural_suffix" yaml:"plural_suffix"`
+	PluralName               string                     `json:"plural_name" yaml:"plural_name"`
+	PluralType               object.TerraformPluralType `json:"plural_type" yaml:"plural_type"`
+	PluralDescription        string                     `json:"plural_description" yaml:"plural_description"`
+	ExperimentalCacheEnabled bool                       `json:"experimental_cache_enabled" yaml:"experimental_cache_enabled"`
 }
 
 type Location struct {
@@ -717,22 +718,23 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 	spec := &Normalization{
 		Name: object.DisplayName,
 		TerraformProviderConfig: TerraformProviderConfig{
-			Description:           object.TerraformConfig.Description,
-			Ephemeral:             object.TerraformConfig.Epheneral,
-			Action:                object.TerraformConfig.Action,
-			CustomValidation:      object.TerraformConfig.CustomValidation,
-			SkipResource:          object.TerraformConfig.SkipResource,
-			SkipDatasource:        object.TerraformConfig.SkipDatasource,
-			SkipDatasourceListing: object.TerraformConfig.SkipdatasourceListing,
-			ResourceType:          TerraformResourceType(object.TerraformConfig.ResourceType),
-			XmlNode:               object.TerraformConfig.XmlNode,
-			CustomFuncs:           object.TerraformConfig.CustomFunctions,
-			ResourceVariants:      resourceVariants,
-			Suffix:                object.TerraformConfig.Suffix,
-			PluralSuffix:          object.TerraformConfig.PluralSuffix,
-			PluralName:            object.TerraformConfig.PluralName,
-			PluralType:            object.TerraformConfig.PluralType,
-			PluralDescription:     object.TerraformConfig.PluralDescription,
+			Description:              object.TerraformConfig.Description,
+			Ephemeral:                object.TerraformConfig.Epheneral,
+			Action:                   object.TerraformConfig.Action,
+			CustomValidation:         object.TerraformConfig.CustomValidation,
+			SkipResource:             object.TerraformConfig.SkipResource,
+			SkipDatasource:           object.TerraformConfig.SkipDatasource,
+			SkipDatasourceListing:    object.TerraformConfig.SkipdatasourceListing,
+			ResourceType:             TerraformResourceType(object.TerraformConfig.ResourceType),
+			XmlNode:                  object.TerraformConfig.XmlNode,
+			CustomFuncs:              object.TerraformConfig.CustomFunctions,
+			ResourceVariants:         resourceVariants,
+			Suffix:                   object.TerraformConfig.Suffix,
+			PluralSuffix:             object.TerraformConfig.PluralSuffix,
+			PluralName:               object.TerraformConfig.PluralName,
+			PluralType:               object.TerraformConfig.PluralType,
+			PluralDescription:        object.TerraformConfig.PluralDescription,
+			ExperimentalCacheEnabled: object.TerraformConfig.ExperimentalCacheEnabled,
 		},
 		Locations:             make(map[string]*Location),
 		GoSdkSkip:             object.GoSdkConfig.Skip,

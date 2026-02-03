@@ -58,7 +58,8 @@ var _ = Describe("Server", func() {
 		if mockService, ok = service.(*MockUuidService[*MockUuidObject, MockLocation]); !ok {
 			panic("failed to cast service to mockService")
 		}
-		manager = sdkmanager.NewUuidObjectManager(client, service, batchingConfig, MockUuidSpecifier, MockUuidMatcher)
+		cache := sdkmanager.NewNoOpCacheManager[*MockUuidObject]()
+		manager = sdkmanager.NewUuidObjectManager(client, service, batchingConfig, cache, MockUuidSpecifier, MockUuidMatcher)
 	})
 
 	Describe("Reading entries from the server", func() {
@@ -429,7 +430,8 @@ var _ = Describe("Server", func() {
 				if mockService, ok = service.(*MockUuidService[*MockUuidObject, MockLocation]); !ok {
 					panic("failed to cast service to mockService")
 				}
-				manager = sdkmanager.NewUuidObjectManager(client, service, batchingConfig, MockUuidSpecifier, MockUuidMatcher)
+				cache := sdkmanager.NewNoOpCacheManager[*MockUuidObject]()
+		manager = sdkmanager.NewUuidObjectManager(client, service, batchingConfig, cache, MockUuidSpecifier, MockUuidMatcher)
 
 			})
 

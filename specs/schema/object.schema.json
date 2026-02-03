@@ -54,7 +54,11 @@
         },
         "plural_suffix": { "type": "string" },
         "plural_name": { "type": "string" },
-        "plural_description": { "type": "string" }
+        "plural_description": { "type": "string" },
+        "experimental_cache_enabled": {
+          "type": "boolean",
+          "description": "Enable caching for this resource type when provider cache_strategy is enabled"
+        }
       }
     },
     "go_sdk_config": {

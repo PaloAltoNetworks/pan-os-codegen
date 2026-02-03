@@ -47,17 +47,17 @@ var _ = Describe("BatchReader Helper Functions", func() {
 
 	Describe("BuildBatchXpath", func() {
 		It("should build xpath with single name", func() {
-			xpath := manager.BuildBatchXpath("/test/path", []string{"name1"})
+			xpath := manager.BuildBatchXpath("/test/path/entry", []string{"name1"})
 			Expect(xpath).To(Equal("/test/path/entry[@name='name1']"))
 		})
 
 		It("should build xpath with multiple names", func() {
-			xpath := manager.BuildBatchXpath("/test/path", []string{"name1", "name2", "name3"})
+			xpath := manager.BuildBatchXpath("/test/path/entry", []string{"name1", "name2", "name3"})
 			Expect(xpath).To(Equal("/test/path/entry[@name='name1' or @name='name2' or @name='name3']"))
 		})
 
 		It("should handle empty names list", func() {
-			xpath := manager.BuildBatchXpath("/test/path", []string{})
+			xpath := manager.BuildBatchXpath("/test/path/entry", []string{})
 			Expect(xpath).To(Equal("/test/path/entry[]"))
 		})
 	})

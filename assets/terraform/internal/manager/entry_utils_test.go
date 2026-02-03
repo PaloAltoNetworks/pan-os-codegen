@@ -192,3 +192,20 @@ func MockEntrySpecifier(entry *MockEntryObject) (any, error) {
 func MockEntryMatcher(entry *MockEntryObject, other *MockEntryObject) bool {
 	return entry.Value == other.Value
 }
+
+type MockEntryNormalizer struct {
+	entries []*MockEntryObject
+}
+
+func (n *MockEntryNormalizer) Normalize() ([]*MockEntryObject, error) {
+	return n.entries, nil
+}
+
+func (n *MockEntryNormalizer) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	var entries []*MockEntryObject
+	if err := d.DecodeElement(&entries, &start); err != nil {
+		return err
+	}
+	n.entries = entries
+	return nil
+}

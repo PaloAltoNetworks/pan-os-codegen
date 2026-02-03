@@ -166,27 +166,53 @@ func (o *{{ resourceStructName }}) Configure(ctx context.Context, req {{ tfresou
 	}
 	o.custom = custom
 {{- else if and IsEntry HasImports }}
-	specifier, _, err := {{ resourceSDKName }}.Versioning(o.client.Versioning())
+	specifier, normalizer, err := {{ resourceSDKName }}.Versioning(o.client.Versioning())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
 		return
 	}
 
-	o.manager =  sdkmanager.NewImportableEntryObjectManager(o.client, {{ resourceSDKName }}.NewService(o.client), providerData.BatchingConfig, specifier, {{ resourceSDKName }}.SpecMatches)
+	cache := GetOrCreateCache[*{{ resourceSDKName }}.Entry](
+		providerData,
+		"{{ metaName }}",
+		normalizer,
+		specifier,
+		{{ .TerraformProviderConfig.ExperimentalCacheEnabled }},
+	)
+
+	o.manager =  sdkmanager.NewImportableEntryObjectManager(o.client, {{ resourceSDKName }}.NewService(o.client), providerData.BatchingConfig, cache, specifier, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsEntry }}
-	specifier, _, err := {{ resourceSDKName }}.Versioning(o.client.Versioning())
+	specifier, normalizer, err := {{ resourceSDKName }}.Versioning(o.client.Versioning())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
 		return
 	}
-	o.manager =  sdkmanager.NewEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](o.client, {{ resourceSDKName }}.NewService(o.client), providerData.BatchingConfig, specifier, {{ resourceSDKName }}.SpecMatches)
+
+	cache := GetOrCreateCache[*{{ resourceSDKName }}.Entry](
+		providerData,
+		"{{ metaName }}",
+		normalizer,
+		specifier,
+		{{ .TerraformProviderConfig.ExperimentalCacheEnabled }},
+	)
+
+	o.manager =  sdkmanager.NewEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](o.client, {{ resourceSDKName }}.NewService(o.client), providerData.BatchingConfig, cache, specifier, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsUuid }}
-	specifier, _, err := {{ resourceSDKName }}.Versioning(o.client.Versioning())
+	specifier, normalizer, err := {{ resourceSDKName }}.Versioning(o.client.Versioning())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
 		return
 	}
-	o.manager =  sdkmanager.NewUuidObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](o.client, {{ resourceSDKName }}.NewService(o.client), providerData.BatchingConfig, specifier, {{ resourceSDKName }}.SpecMatches)
+
+	cache := GetOrCreateCache[*{{ resourceSDKName }}.Entry](
+		providerData,
+		"{{ metaName }}",
+		normalizer,
+		specifier,
+		{{ .TerraformProviderConfig.ExperimentalCacheEnabled }},
+	)
+
+	o.manager =  sdkmanager.NewUuidObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](o.client, {{ resourceSDKName }}.NewService(o.client), providerData.BatchingConfig, cache, specifier, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsConfig }}
 	specifier, _, err := {{ resourceSDKName }}.Versioning(o.client.Versioning())
 	if err != nil {

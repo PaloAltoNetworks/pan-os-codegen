@@ -43,6 +43,41 @@ func (p *PanosProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp
 type ProviderData struct {
 	Client         *sdk.Client
 	BatchingConfig sdkmanager.BatchingConfig
+	CacheEnabled   bool
+
+	// Per-resource-type cache storage
+	// Key: resource type name (e.g., "address", "service")
+	// Value: CacheManager instance
+	caches sync.Map
+}
+
+// GetOrCreateCache returns the cache for a given resource type, creating if needed.
+// The normalizer and specifier are only used when creating a new cache.
+// This is a package-level function because Go methods cannot have type parameters.
+func GetOrCreateCache[E sdkmanager.Entry](
+	providerData *ProviderData,
+	resourceType string,
+	normalizer sdkmanager.Normalizer[E],
+	specifier func(E) (any, error),
+	resourceCacheEnabled bool,
+) sdkmanager.CacheManager[E] {
+	// Try to load existing cache
+	if cached, ok := providerData.caches.Load(resourceType); ok {
+		return cached.(sdkmanager.CacheManager[E])
+	}
+
+	// Create new cache based on both provider AND resource config
+	// Both must be enabled for caching to work
+	var cache sdkmanager.CacheManager[E]
+	if providerData.CacheEnabled && resourceCacheEnabled {
+		cache = sdkmanager.NewEnabledCacheManager[E](normalizer, specifier)
+	} else {
+		cache = sdkmanager.NewNoOpCacheManager[E]()
+	}
+
+	// Store and return (LoadOrStore handles race conditions)
+	actual, _ := providerData.caches.LoadOrStore(resourceType, cache)
+	return actual.(sdkmanager.CacheManager[E])
 }
 
 // Configure prepares the provider.
@@ -160,16 +195,30 @@ func (p *PanosProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		}
 	}
 
+	// Parse experimental cache strategy
+	cacheStrategy := sdkmanager.CacheStrategyDisabled
+	if !config.ExperimentalCacheStrategy.IsNull() {
+		cacheStr := config.ExperimentalCacheStrategy.ValueString()
+		if cacheStr == "enabled" {
+			cacheStrategy = sdkmanager.CacheStrategyEnabled
+		} else if cacheStr != "disabled" {
+			resp.Diagnostics.AddError("Failed to configure Terraform provider", fmt.Sprintf("experimental_cache_strategy must be 'disabled' or 'enabled', got: %s", cacheStr))
+			return
+		}
+	}
+
 	batchingConfig := sdkmanager.BatchingConfig{
 		MultiConfigBatchSize: int(batchSize),
 		ReadBatchSize:        int(readBatchSize),
 		ListStrategy:         listStrategy,
 		ShardingStrategy:     shardingStrategy,
+		CacheStrategy:        cacheStrategy,
 	}
 
 	providerData := &ProviderData{
 		Client:         con,
 		BatchingConfig: batchingConfig,
+		CacheEnabled:   cacheStrategy == sdkmanager.CacheStrategyEnabled,
 	}
 
 	resp.DataSourceData = providerData

@@ -13,23 +13,23 @@ const (
 
 type categoryLocks struct {
 	mutex *sync.Mutex
-	locks map[string]*sync.Mutex
+	locks map[string]*sync.RWMutex
 }
 
 func newCategoryLocks() *categoryLocks {
 	return &categoryLocks{
 		mutex: &sync.Mutex{},
-		locks: make(map[string]*sync.Mutex),
+		locks: make(map[string]*sync.RWMutex),
 	}
 }
 
-func (o *categoryLocks) getMutex(path string) *sync.Mutex {
+func (o *categoryLocks) getRWMutex(path string) *sync.RWMutex {
 	o.mutex.Lock()
 	defer o.mutex.Unlock()
 
 	mutex, found := o.locks[path]
 	if !found {
-		mutex = &sync.Mutex{}
+		mutex = &sync.RWMutex{}
 		o.locks[path] = mutex
 	}
 
@@ -50,7 +50,7 @@ func newLocksManager() *locksManager {
 
 var manager = newLocksManager()
 
-func GetMutex(category LockCategory, path string) *sync.Mutex {
+func GetRWMutex(category LockCategory, path string) *sync.RWMutex {
 	manager.mutex.Lock()
 	defer manager.mutex.Unlock()
 
@@ -60,5 +60,5 @@ func GetMutex(category LockCategory, path string) *sync.Mutex {
 		manager.categories[category] = categoryLocks
 	}
 
-	return categoryLocks.getMutex(path)
+	return categoryLocks.getRWMutex(path)
 }

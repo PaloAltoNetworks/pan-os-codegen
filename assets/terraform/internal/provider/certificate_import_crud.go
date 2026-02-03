@@ -30,7 +30,7 @@ func NewCertificateImportCustom(data *ProviderData) (*CertificateImportCustom, e
 }
 
 func (o *CertificateImportResource) importCertificate(ctx context.Context, state *CertificateImportResourceModel, template string, vsys string) diag.Diagnostics {
-	mutex := locking.GetMutex(locking.ImportFileLockCategory, "")
+	mutex := locking.GetRWMutex(locking.ImportFileLockCategory, "")
 	mutex.Lock()
 	defer mutex.Unlock()
 

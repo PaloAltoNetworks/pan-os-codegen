@@ -149,6 +149,23 @@ func MockUuidMatcher(entry *MockUuidObject, other *MockUuidObject) bool {
 	return entry.Value == other.Value
 }
 
+type MockUuidNormalizer struct {
+	entries []*MockUuidObject
+}
+
+func (n *MockUuidNormalizer) Normalize() ([]*MockUuidObject, error) {
+	return n.entries, nil
+}
+
+func (n *MockUuidNormalizer) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	var entries []*MockUuidObject
+	if err := d.DecodeElement(&entries, &start); err != nil {
+		return err
+	}
+	n.entries = entries
+	return nil
+}
+
 func NewMockUuidService[E manager.UuidObject, T any](client *MockUuidClient[E]) *MockUuidService[E, T] {
 	return &MockUuidService[E, T]{
 		client: client,

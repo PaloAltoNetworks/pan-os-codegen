@@ -28,7 +28,16 @@ type ImportableEntryObjectManager[E EntryObject, L EntryLocation, IL ImportLocat
 	matcher        func(E, E) bool
 }
 
-func NewImportableEntryObjectManager[E EntryObject, L EntryLocation, IL ImportLocation, IS SDKImportableEntryService[E, L, IL]](client SDKClient, service IS, batchingConfig BatchingConfig, specifier func(E) (any, error), matcher func(E, E) bool) *ImportableEntryObjectManager[E, L, IL, IS] {
+func NewImportableEntryObjectManager[E EntryObject, L EntryLocation, IL ImportLocation, IS SDKImportableEntryService[E, L, IL]](
+	client SDKClient,
+	service IS,
+	batchingConfig BatchingConfig,
+	cache CacheManager[E],
+	specifier func(E) (any, error),
+	matcher func(E, E) bool,
+) *ImportableEntryObjectManager[E, L, IL, IS] {
+	// Note: cache parameter accepted for API compatibility but not used yet by ImportableEntryObjectManager
+	_ = cache
 	return &ImportableEntryObjectManager[E, L, IL, IS]{
 		batchingConfig: batchingConfig,
 		service:        service,

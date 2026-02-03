@@ -67,7 +67,14 @@ type UuidObjectManager[E UuidObject, L UuidLocation, S SDKUuidService[E, L]] str
 	batchReader    *BatchReader[E, S]
 }
 
-func NewUuidObjectManager[E UuidObject, L UuidLocation, S SDKUuidService[E, L]](client SDKClient, service S, batchingConfig BatchingConfig, specifier func(E) (any, error), matcher func(E, E) bool) *UuidObjectManager[E, L, S] {
+func NewUuidObjectManager[E UuidObject, L UuidLocation, S SDKUuidService[E, L]](
+	client SDKClient,
+	service S,
+	batchingConfig BatchingConfig,
+	cache CacheManager[E],
+	specifier func(E) (any, error),
+	matcher func(E, E) bool,
+) *UuidObjectManager[E, L, S] {
 	mgr := &UuidObjectManager[E, L, S]{
 		batchingConfig: batchingConfig,
 		service:        service,
@@ -76,6 +83,8 @@ func NewUuidObjectManager[E UuidObject, L UuidLocation, S SDKUuidService[E, L]](
 		matcher:        matcher,
 	}
 	mgr.batchReader = NewBatchReader[E, S](service, batchingConfig)
+	// Note: cache parameter accepted for API compatibility but not used yet by UuidObjectManager
+	_ = cache
 	return mgr
 }
 
