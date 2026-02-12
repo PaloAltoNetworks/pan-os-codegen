@@ -102,6 +102,7 @@ func (g *GenerateTerraformProvider) appendResourceType(spec *properties.Normaliz
 	terraformProvider.SpecMetadata[names.MetaName] = properties.TerraformProviderSpecMetadata{
 		ResourceSuffix: names.MetaName,
 		StructName:     names.StructName,
+		Subcategory:    spec.TerraformProviderConfig.Subcategory,
 		Flags:          flags,
 	}
 	return nil

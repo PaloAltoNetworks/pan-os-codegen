@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/generate"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/load"
@@ -42,6 +45,141 @@ func NewCommand(ctx context.Context, commandType properties.CommandType, args ..
 		commandType:  commandType,
 		templatePath: templatePath,
 	}, nil
+}
+
+// deriveSubcategoryFromPath extracts the subcategory from the spec file path.
+// It maps directory names to proper subcategory names.
+// For example: specs/network/interface.yaml -> "Network"
+func deriveSubcategoryFromPath(specPath string) string {
+	// Extract the directory name between specs/ and the filename
+	dir := filepath.Dir(specPath)
+	parts := strings.Split(filepath.ToSlash(dir), "/")
+
+	// Find the part after "specs"
+	var category string
+	for i, part := range parts {
+		if part == "specs" && i+1 < len(parts) {
+			category = parts[i+1]
+			break
+		}
+	}
+
+	// Map directory names to subcategory names
+	subcategoryMap := map[string]string{
+		"network":  "Network",
+		"objects":  "Objects",
+		"device":   "Device",
+		"panorama": "Panorama",
+		"policies": "Policies",
+		"actions":  "", // empty for actions
+		"schema":   "", // empty for schema
+	}
+
+	if subcategory, ok := subcategoryMap[category]; ok {
+		return subcategory
+	}
+
+	// Default to empty string if no mapping found
+	return ""
+}
+
+// generateTfplugindocsTemplates creates individual documentation templates for each resource/data source
+// with the correct subcategory. These templates are used by terraform-plugin-docs when generating documentation.
+func generateTfplugindocsTemplates(outputDir string, specMetadata map[string]properties.TerraformProviderSpecMetadata) error {
+	templatesDir := filepath.Join(outputDir, "templates")
+	resourcesDir := filepath.Join(templatesDir, "resources")
+	dataSourcesDir := filepath.Join(templatesDir, "data-sources")
+
+	if err := os.MkdirAll(resourcesDir, 0755); err != nil {
+		return fmt.Errorf("error creating resources templates directory: %w", err)
+	}
+	if err := os.MkdirAll(dataSourcesDir, 0755); err != nil {
+		return fmt.Errorf("error creating data sources templates directory: %w", err)
+	}
+
+	resourceCount := 0
+	dataSourceCount := 0
+
+	for resourceSuffix, metadata := range specMetadata {
+		// Generate template for resources
+		if metadata.Flags&properties.TerraformSpecResource != 0 {
+			subcategory := metadata.Subcategory
+			if subcategory == "" {
+				subcategory = "Uncategorized"
+			}
+
+			resourceTemplate := fmt.Sprintf(`---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: "%s"
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+{{ if .HasExample -}}
+## Example Usage
+
+{{ tffile .ExampleFile }}
+{{- end }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+{{ if .HasImport -}}
+## Import
+
+Import is supported using the following syntax:
+
+{{ codefile "shell" .ImportFile }}
+{{- end }}
+`, subcategory)
+
+			resourcePath := filepath.Join(resourcesDir, fmt.Sprintf("panos%s.md.tmpl", resourceSuffix))
+			if err := os.WriteFile(resourcePath, []byte(resourceTemplate), 0644); err != nil {
+				return fmt.Errorf("error writing resource template %s: %w", resourcePath, err)
+			}
+			resourceCount++
+		}
+
+		// Generate template for data sources
+		if metadata.Flags&properties.TerraformSpecDatasource != 0 {
+			subcategory := metadata.Subcategory
+			if subcategory == "" {
+				subcategory = "Uncategorized"
+			}
+
+			dataSourceTemplate := fmt.Sprintf(`---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: "%s"
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+{{ if .HasExample -}}
+## Example Usage
+
+{{ tffile .ExampleFile }}
+{{- end }}
+
+{{ .SchemaMarkdown | trimspace }}
+`, subcategory)
+
+			dataSourcePath := filepath.Join(dataSourcesDir, fmt.Sprintf("panos%s.md.tmpl", resourceSuffix))
+			if err := os.WriteFile(dataSourcePath, []byte(dataSourceTemplate), 0644); err != nil {
+				return fmt.Errorf("error writing data source template %s: %w", dataSourcePath, err)
+			}
+			dataSourceCount++
+		}
+	}
+
+	slog.Info("Generated tfplugindocs templates", "resources", resourceCount, "dataSources", dataSourceCount, "templatesDir", templatesDir)
+	return nil
 }
 
 func (c *Command) Setup() error {
@@ -92,6 +230,13 @@ func (c *Command) Execute() error {
 
 		if err = spec.Sanity(); err != nil {
 			return fmt.Errorf("%s sanity failed: %s", specPath, err)
+		}
+
+		// Extract subcategory: use YAML override if present, otherwise derive from path
+		if c.commandType == properties.CommandTypeTerraform {
+			if spec.TerraformProviderConfig.Subcategory == "" {
+				spec.TerraformProviderConfig.Subcategory = deriveSubcategoryFromPath(specPath)
+			}
 		}
 
 		if c.commandType == properties.CommandTypeTerraform {
@@ -198,6 +343,12 @@ func (c *Command) Execute() error {
 		if err != nil {
 			return fmt.Errorf("error generating terraform code: %w", err)
 		}
+
+		// Generate tfplugindocs templates with subcategory support
+		if err = generateTfplugindocsTemplates(config.Output.TerraformProvider, specMetadata); err != nil {
+			return fmt.Errorf("error generating tfplugindocs templates: %w", err)
+		}
+
 		slog.Debug("Generated Terraform resources", "resources", resourceList, "dataSources", dataSourceList)
 	}
 
