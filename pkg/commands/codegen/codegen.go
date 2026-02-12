@@ -138,7 +138,10 @@ Import is supported using the following syntax:
 {{- end }}
 `, subcategory)
 
-			resourcePath := filepath.Join(resourcesDir, fmt.Sprintf("panos%s.md.tmpl", resourceSuffix))
+			// Remove leading underscore from resourceSuffix for template filename
+			// terraform-plugin-docs automatically prepends the provider name (panos_)
+			templateName := strings.TrimPrefix(resourceSuffix, "_")
+			resourcePath := filepath.Join(resourcesDir, fmt.Sprintf("%s.md.tmpl", templateName))
 			if err := os.WriteFile(resourcePath, []byte(resourceTemplate), 0644); err != nil {
 				return fmt.Errorf("error writing resource template %s: %w", resourcePath, err)
 			}
@@ -172,7 +175,10 @@ description: |-
 {{ .SchemaMarkdown | trimspace }}
 `, subcategory)
 
-			dataSourcePath := filepath.Join(dataSourcesDir, fmt.Sprintf("panos%s.md.tmpl", resourceSuffix))
+			// Remove leading underscore from resourceSuffix for template filename
+			// terraform-plugin-docs automatically prepends the provider name (panos_)
+			templateName := strings.TrimPrefix(resourceSuffix, "_")
+			dataSourcePath := filepath.Join(dataSourcesDir, fmt.Sprintf("%s.md.tmpl", templateName))
 			if err := os.WriteFile(dataSourcePath, []byte(dataSourceTemplate), 0644); err != nil {
 				return fmt.Errorf("error writing data source template %s: %w", dataSourcePath, err)
 			}
