@@ -101,6 +101,8 @@ func generateTfplugindocsTemplates(outputDir string, specMetadata map[string]pro
 	dataSourceCount := 0
 
 	for resourceSuffix, metadata := range specMetadata {
+		slog.Debug("Processing spec metadata", "resourceSuffix", resourceSuffix, "subcategory", metadata.Subcategory, "flags", metadata.Flags)
+
 		// Generate template for resources
 		if metadata.Flags&properties.TerraformSpecResource != 0 {
 			subcategory := metadata.Subcategory
@@ -345,6 +347,7 @@ func (c *Command) Execute() error {
 		}
 
 		// Generate tfplugindocs templates with subcategory support
+		slog.Debug("Generating tfplugindocs templates", "metadataCount", len(specMetadata))
 		if err = generateTfplugindocsTemplates(config.Output.TerraformProvider, specMetadata); err != nil {
 			return fmt.Errorf("error generating tfplugindocs templates: %w", err)
 		}

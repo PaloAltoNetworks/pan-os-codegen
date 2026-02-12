@@ -99,6 +99,11 @@ func (g *GenerateTerraformProvider) appendResourceType(spec *properties.Normaliz
 	case properties.ResourceCustom, properties.ResourceConfig:
 	}
 
+	// Accumulate flags if metadata already exists for this resource
+	if existing, ok := terraformProvider.SpecMetadata[names.MetaName]; ok {
+		flags |= existing.Flags
+	}
+
 	terraformProvider.SpecMetadata[names.MetaName] = properties.TerraformProviderSpecMetadata{
 		ResourceSuffix: names.MetaName,
 		StructName:     names.StructName,
