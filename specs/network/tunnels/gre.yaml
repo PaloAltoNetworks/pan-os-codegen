@@ -1,0 +1,297 @@
+name: gre-tunnel
+terraform_provider_config:
+  description: GRE Tunnel
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: gre_tunnel
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - network
+  - tunnel
+  - gre
+panos_xpath:
+  path:
+  - network
+  - tunnel
+  - gre
+  vars: []
+locations:
+- name: ngfw
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific NGFW device
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: copy-tos
+    type: bool
+    profiles:
+    - xpath:
+      - copy-tos
+    validators: []
+    spec: {}
+    description: Copy IP TOS bits from inner packet to GRE packet
+    required: false
+  - name: disabled
+    type: bool
+    profiles:
+    - xpath:
+      - disabled
+    validators: []
+    spec: {}
+    description: Disable the GRE tunnel
+    required: false
+  - name: erspan
+    type: bool
+    profiles:
+    - xpath:
+      - erspan
+    validators: []
+    spec: {}
+    description: tap mode for ERSPAN
+    required: false
+  - name: keep-alive
+    type: object
+    profiles:
+    - xpath:
+      - keep-alive
+    validators: []
+    spec:
+      params:
+      - name: enable
+        type: bool
+        profiles:
+        - xpath:
+          - enable
+        validators: []
+        spec: {}
+        description: Enable tunnel monitoring on this tunnel
+        required: false
+      - name: hold-timer
+        type: int64
+        profiles:
+        - xpath:
+          - hold-timer
+        validators:
+        - type: length
+          spec:
+            min: 1
+            max: 64
+        spec:
+          default: 5
+        description: Hold timer
+        required: false
+      - name: interval
+        type: int64
+        profiles:
+        - xpath:
+          - interval
+        validators:
+        - type: length
+          spec:
+            min: 1
+            max: 50
+        spec:
+          default: 10
+        description: Interval
+        required: false
+      - name: retry
+        type: int64
+        profiles:
+        - xpath:
+          - retry
+        validators:
+        - type: length
+          spec:
+            min: 1
+            max: 64
+        spec:
+          default: 3
+        description: Retry
+        required: false
+      variants: []
+    description: Monitor GRE tunnel status
+    required: false
+  - name: local-address
+    type: object
+    profiles:
+    - xpath:
+      - local-address
+    validators: []
+    spec:
+      params:
+      - name: interface
+        type: string
+        profiles:
+        - xpath:
+          - interface
+        validators: []
+        spec: {}
+        description: Interface to terminate tunnel
+        required: false
+      variants:
+      - name: floating-ip
+        type: string
+        profiles:
+        - xpath:
+          - floating-ip
+        validators: []
+        spec: {}
+        description: Floating IP address in HA Active-Active configuration
+        required: false
+        variant_group_id: 0
+      - name: ip
+        type: string
+        profiles:
+        - xpath:
+          - ip
+        validators:
+        - type: length
+          spec:
+            max: 63
+        spec: {}
+        description: specify exact IP address if interface has multiple addresses
+        required: false
+        variant_group_id: 0
+    description: Tunnel local IP configuration
+    required: false
+  - name: peer-address
+    type: object
+    profiles:
+    - xpath:
+      - peer-address
+    validators: []
+    spec:
+      params:
+      - name: ip
+        type: string
+        profiles:
+        - xpath:
+          - ip
+        validators: []
+        spec: {}
+        description: Peer IP address
+        required: false
+      variants: []
+    description: Peer address
+    required: false
+  - name: ttl
+    type: int64
+    profiles:
+    - xpath:
+      - ttl
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 255
+    spec:
+      default: 64
+    description: TTL
+    required: false
+  - name: tunnel-interface
+    type: string
+    profiles:
+    - xpath:
+      - tunnel-interface
+    validators: []
+    spec: {}
+    description: to apply GRE tunnels to tunnel interface
+    required: false
+  variants: []
