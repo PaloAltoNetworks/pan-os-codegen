@@ -1,0 +1,30 @@
+{{- if .ParametersWithTriggerOnChangeOf }}
+// CreateMany signature requires auditComments parameter, so we initialize empty map for all resources
+auditComments := make(map[string]string)
+
+// Extract config for trigger_on_change_of parameters
+var configState {{ .StructName }}Model
+resp.Diagnostics.Append(req.Config.Get(ctx, &configState)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+var configElements []{{ .ResourceTFStructName }}
+resp.Diagnostics.Append(configState.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &configElements, false)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+for _, elt := range configElements {
+	{{- range $pair := .ParametersWithTriggerOnChangeOf }}
+	if !elt.{{ $pair.Trigger.TerraformNameVariant.CamelCase }}.IsNull() &&
+	   !elt.{{ $pair.Trigger.TerraformNameVariant.CamelCase }}.IsUnknown() &&
+	   !elt.{{ $pair.Param.TerraformNameVariant.CamelCase }}.IsNull() &&
+	   !elt.{{ $pair.Param.TerraformNameVariant.CamelCase }}.IsUnknown() {
+		auditComments[elt.Name.ValueString()] = elt.{{ $pair.Param.TerraformNameVariant.CamelCase }}.ValueString()
+	}
+	{{- end }}
+}
+{{- else }}
+auditComments := make(map[string]string)
+{{- end }}

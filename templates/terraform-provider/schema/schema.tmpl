@@ -13,6 +13,9 @@
   {{- if .Sensitive }}
 		Sensitive: {{ .Sensitive }},
   {{- end }}
+  {{- if .WriteOnly }}
+		WriteOnly: {{ .WriteOnly }},
+  {{- end }}
 		ElementType: {{ .ElementType }},
   {{- with .Validators }}
     {{ $package := .Package }}
@@ -53,6 +56,9 @@
   {{- if .Sensitive }}
 		Sensitive: {{ .Sensitive }},
   {{- end }}
+  {{- if .WriteOnly }}
+		WriteOnly: {{ .WriteOnly }},
+  {{- end }}
 		ElementType: {{ .ElementType }},
 	},
 {{- end }}
@@ -72,6 +78,9 @@
   {{- end }}
   {{- if .Sensitive }}
 		Sensitive: {{ .Sensitive }},
+  {{- end }}
+  {{- if .WriteOnly }}
+		WriteOnly: {{ .WriteOnly }},
   {{- end }}
 		NestedObject: {{ $.StructName }}{{ .Name.CamelCase }}Schema(),
 	},
@@ -109,6 +118,9 @@
   {{- end }}
   {{- if .Sensitive }}
 		Sensitive: {{ .Sensitive }},
+  {{- end }}
+  {{- if .WriteOnly }}
+		WriteOnly: {{ .WriteOnly }},
   {{- end }}
   {{- if .Default }}
 		Default: {{ .Default.Type }}({{ .Default.Value }}),
@@ -182,6 +194,9 @@ func {{ .StructName }}Schema() {{ .Package }}.{{ .ReturnType }} {
   {{- end }}
   {{- if .Sensitive }}
 		Sensitive: {{ .Sensitive }},
+  {{- end }}
+  {{- if .WriteOnly }}
+		WriteOnly: {{ .WriteOnly }},
   {{- end }}
 {{- end }}
   {{- with .Validators }}

@@ -28,6 +28,8 @@
 	var location {{ .resourceSDKName }}.Location
 	{{ RenderLocationsStateToPango "state.Location" "location" }}
 
+	{{ RenderTriggeredParamsExtractCreate }}
+
 	if err := location.IsValid(); err != nil {
 		resp.Diagnostics.AddError("Invalid location", err.Error())
 		return

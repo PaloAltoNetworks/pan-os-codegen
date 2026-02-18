@@ -29,6 +29,10 @@ var (
 func init() {
 	sdkClient = &pango.Client{
 		CheckEnvironment: true,
+		Logging: pango.LoggingInfo{
+			LogLevel:      slog.LevelDebug,
+			LogCategories: pango.LogCategorySend | pango.LogCategoryReceive,
+		},
 	}
 
 	ctx := context.Background()

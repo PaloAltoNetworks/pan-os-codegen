@@ -65,8 +65,11 @@ type CodegenOverridesTerraform struct {
 	Sensitive     *bool             `yaml:"sensitive"`
 	Computed      *bool             `yaml:"computed"`
 	Required      *bool             `yaml:"required"`
-	VariantCheck  *VariantCheckType `yaml:"variant_check"`
-	XpathVariable *string           `yaml:"xpath_variable"`
+	WriteOnly     *bool             `yaml:"write_only"`
+	VariantCheck      *VariantCheckType `yaml:"variant_check"`
+	XpathVariable     *string           `yaml:"xpath_variable"`
+	AlsoRequires      *string           `yaml:"also_requires"`
+	TriggerOnChangeOf *string           `yaml:"trigger_on_change_of"`
 }
 
 type CodegenOverrides struct {
