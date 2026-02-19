@@ -1,0 +1,20 @@
+{{- range .Variables }}
+  {{- if eq .Type "entry" }}
+{
+	component := components[{{ .Idx }}]
+  {{- if .AllowEmpty }}
+	if component != "entry" {
+  {{- end }}
+	if !strings.HasPrefix(component, "entry[@name=\"]") && !strings.HasPrefix(component, "entry[@name='") {
+		return nil, errors.NewInvalidXpathComponentError(fmt.Sprintf("{{ .Name.CamelCase }} must be formatted as entry: %s", component))
+	}
+
+	if !strings.HasSuffix(component, "\"]") && !strings.HasSuffix(component, "']") {
+		return nil, errors.NewInvalidXpathComponentError(fmt.Sprintf("{{ .Name.CamelCase }} must be formatted as entry: %s", component))
+	}
+  {{- if .AllowEmpty }}
+	}
+  {{- end }}
+}
+  {{- end }}
+{{- end }}

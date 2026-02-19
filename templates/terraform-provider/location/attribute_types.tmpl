@@ -1,0 +1,20 @@
+{{- range .Specs }}
+func (o *{{ .StructName }}) AttributeTypes() map[string]attr.Type{
+  {{- range .Fields }}
+    {{- if eq .Type "types.Object" }}
+	var {{ .Name.LowerCamelCase }}Obj {{ .TerraformType }}
+    {{- end }}
+  {{- end }}
+	return map[string]attr.Type{
+  {{- range .Fields }}
+    {{- if eq .Type "types.Object" }}
+		"{{ .Name.Underscore }}": {{ .Type }}Type{
+			AttrTypes: {{ .Name.LowerCamelCase }}Obj.AttributeTypes(),
+		},
+    {{- else }}
+		"{{ .Name.Underscore }}": {{ .Type }}Type,
+    {{- end }}
+  {{- end }}
+	}
+}
+{{- end }}

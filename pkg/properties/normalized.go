@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"maps"
+	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -81,11 +82,14 @@ const (
 type TerraformProviderConfig struct {
 	Description           string                     `json:"description" yaml:"description"`
 	Ephemeral             bool                       `json:"ephemeral" yaml:"ephemeral"`
+	Action                bool                       `json:"action" yaml:"action"`
+	CustomValidation      bool                       `json:"custom_validation" yaml:"custom_validation"`
 	SkipResource          bool                       `json:"skip_resource" yaml:"skip_resource"`
 	SkipDatasource        bool                       `json:"skip_datasource" yaml:"skip_datasource"`
 	SkipDatasourceListing bool                       `json:"skip_datasource_listing" yaml:"skip_datasource_listing"`
 	ResourceType          TerraformResourceType      `json:"resource_type" yaml:"resource_type"`
-	CustomFuncs           map[string]string          `json:"custom_functions" yaml:"custom_functions"`
+	XmlNode               *string                    `json:"xml_node" yaml:"xml_node"`
+	CustomFuncs           map[string]bool            `json:"custom_functions" yaml:"custom_functions"`
 	ResourceVariants      []TerraformResourceVariant `json:"resource_variants" yaml:"resource_variants"`
 	Suffix                string                     `json:"suffix" yaml:"suffix"`
 	PluralSuffix          string                     `json:"plural_suffix" yaml:"plural_suffix"`
@@ -715,10 +719,13 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 		TerraformProviderConfig: TerraformProviderConfig{
 			Description:           object.TerraformConfig.Description,
 			Ephemeral:             object.TerraformConfig.Epheneral,
+			Action:                object.TerraformConfig.Action,
+			CustomValidation:      object.TerraformConfig.CustomValidation,
 			SkipResource:          object.TerraformConfig.SkipResource,
 			SkipDatasource:        object.TerraformConfig.SkipDatasource,
 			SkipDatasourceListing: object.TerraformConfig.SkipdatasourceListing,
 			ResourceType:          TerraformResourceType(object.TerraformConfig.ResourceType),
+			XmlNode:               object.TerraformConfig.XmlNode,
 			CustomFuncs:           object.TerraformConfig.CustomFunctions,
 			ResourceVariants:      resourceVariants,
 			Suffix:                object.TerraformConfig.Suffix,
@@ -1119,20 +1126,26 @@ func (spec *Normalization) ResourceXpathVariablesCount() int {
 	return len(spec.PanosXpath.Variables)
 }
 
-const attributesFromXpathComponentsTmpl = `
-{{- range .Components }}
-  {{ if eq .Type "value" }}
-	{{ $.Target }}.{{ .Name }} = types.StringValue(components[{{ .Idx }}])
-  {{- else if eq .Type "entry" }}
-{
-	component := components[{{ .Idx }}]
-	component = strings.TrimPrefix(component, "entry[@name='")
-	component = strings.TrimSuffix(component, "']")
-	{{ $.Target }}.{{ .Name.CamelCase }} = types.StringValue(component)
+// loadTemplate loads a template from either sdk or terraform-provider templates directory
+func loadTemplate(templateType string, templatePath string) (string, error) {
+	fullPath := filepath.Join("templates", templateType, templatePath)
+	content, err := os.ReadFile(fullPath)
+	if err != nil {
+		// Try from parent directories (for when running from subdirectories)
+		for i := 1; i <= 3; i++ {
+			prefix := strings.Repeat("../", i)
+			altPath := filepath.Join(prefix, "templates", templateType, templatePath)
+			content, err = os.ReadFile(altPath)
+			if err == nil {
+				break
+			}
+		}
+		if err != nil {
+			return "", fmt.Errorf("failed to read template %s: %w", fullPath, err)
+		}
+	}
+	return string(content), nil
 }
-  {{- end }}
-{{- end }}
-`
 
 func (spec *Normalization) AttributesFromXpathComponents(target string) (string, error) {
 	type componentCtx struct {
@@ -1169,65 +1182,42 @@ func (spec *Normalization) AttributesFromXpathComponents(target string) (string,
 		Components: components,
 	}
 
-	tmpl := template.Must(template.New("attributes-from-xpath-components").Parse(attributesFromXpathComponentsTmpl))
+	tmplContent, err := loadTemplate("terraform-provider", "partials/attributes_from_xpath_components.tmpl")
+	if err != nil {
+		return "", err
+	}
+
+	tmpl := template.Must(template.New("attributes-from-xpath-components").Parse(tmplContent))
 
 	var buf bytes.Buffer
-	err := tmpl.Execute(&buf, data)
+	err = tmpl.Execute(&buf, data)
 	if err != nil {
 		panic(err)
 	}
 
 	return buf.String(), nil
 }
-
-const resourceXpathAssignmentsTmpl = `
-{{- range .Variables }}
-  {{- if or (eq .Type "entry") (eq .Type "value") }}
-	ans = append(ans, components[{{ .Idx }}])
-  {{- else if eq .Type "static" }}
-	ans = append(ans, "{{ .Name.Original }}")
-  {{- end }}
-{{- end }}
-`
 
 func (spec *Normalization) ResourceXpathAssignments() (string, error) {
 	data := xpathVariablesCtx{
 		Variables: createXpathVariablesContext(spec),
 	}
 
-	tmpl := template.Must(template.New("resource-xpath-assignments").Parse(resourceXpathAssignmentsTmpl))
+	tmplContent, err := loadTemplate("sdk", "partials/resource_xpath_assignments.tmpl")
+	if err != nil {
+		return "", err
+	}
+
+	tmpl := template.Must(template.New("resource-xpath-assignments").Parse(tmplContent))
 
 	var buf bytes.Buffer
-	err := tmpl.Execute(&buf, data)
+	err = tmpl.Execute(&buf, data)
 	if err != nil {
 		panic(err)
 	}
 
 	return buf.String(), nil
 }
-
-const xpathVariableChecksTmpl = `
-{{- range .Variables }}
-  {{- if eq .Type "entry" }}
-{
-	component := components[{{ .Idx }}]
-  {{- if .AllowEmpty }}
-	if component != "entry" {
-  {{- end }}
-	if !strings.HasPrefix(component, "entry[@name=\"]") && !strings.HasPrefix(component, "entry[@name='") {
-		return nil, errors.NewInvalidXpathComponentError(fmt.Sprintf("{{ .Name.CamelCase }} must be formatted as entry: %s", component))
-	}
-
-	if !strings.HasSuffix(component, "\"]") && !strings.HasSuffix(component, "']") {
-		return nil, errors.NewInvalidXpathComponentError(fmt.Sprintf("{{ .Name.CamelCase }} must be formatted as entry: %s", component))
-	}
-  {{- if .AllowEmpty }}
-	}
-  {{- end }}
-}
-  {{- end }}
-{{- end }}
-`
 
 type xpathVariableCtx struct {
 	Type       object.PanosXpathVariableType
@@ -1293,10 +1283,15 @@ func (spec *Normalization) ResourceXpathVariableChecks() (string, error) {
 		Variables: createXpathVariablesContext(spec),
 	}
 
-	var buf bytes.Buffer
-	tmpl := template.Must(template.New("xpath-variable-checks").Parse(xpathVariableChecksTmpl))
+	tmplContent, err := loadTemplate("sdk", "partials/xpath_variable_checks.tmpl")
+	if err != nil {
+		return "", err
+	}
 
-	err := tmpl.Execute(&buf, data)
+	var buf bytes.Buffer
+	tmpl := template.Must(template.New("xpath-variable-checks").Parse(tmplContent))
+
+	err = tmpl.Execute(&buf, data)
 	if err != nil {
 		panic(err)
 	}
@@ -1384,6 +1379,22 @@ func (spec *Normalization) SupportedVersions() []string {
 		return versions
 	}
 	return nil
+}
+
+func (spec Normalization) XmlNode() string {
+	if spec.TerraformProviderConfig.XmlNode != nil {
+		return *spec.TerraformProviderConfig.XmlNode
+	}
+	switch spec.TerraformProviderConfig.ResourceType {
+	case TerraformResourceConfig:
+		return "system"
+	case TerraformResourceEntry, TerraformResourceUuid:
+		return "entry"
+	case TerraformResourceCustom:
+		panic(fmt.Sprintf("unexpected ResourceType: %s ", spec.TerraformProviderConfig.ResourceType))
+	default:
+		panic("unreachable")
+	}
 }
 
 // SupportedVersionDefinitions returns a map of versions keyed by their variable name.
@@ -1560,6 +1571,18 @@ func (spec *Normalization) EntryOrConfig() string {
 
 func (spec *Normalization) HasEntryName() bool {
 	return spec.Entry != nil
+}
+
+func (spec *Normalization) HasAuditComments() bool {
+	var hasVsysLocation bool
+	for _, location := range spec.Locations {
+		if location.Name.CamelCase == "Vsys" {
+			hasVsysLocation = true
+			break
+		}
+	}
+
+	return hasVsysLocation && spec.HasEntryUuid()
 }
 
 func (spec *Normalization) HasEntryUuid() bool {

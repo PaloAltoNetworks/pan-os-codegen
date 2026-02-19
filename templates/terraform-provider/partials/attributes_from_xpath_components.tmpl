@@ -1,0 +1,12 @@
+{{- range .Components }}
+  {{ if eq .Type "value" }}
+	{{ $.Target }}.{{ .Name }} = types.StringValue(components[{{ .Idx }}])
+  {{- else if eq .Type "entry" }}
+{
+	component := components[{{ .Idx }}]
+	component = strings.TrimPrefix(component, "entry[@name='")
+	component = strings.TrimSuffix(component, "']")
+	{{ $.Target }}.{{ .Name.CamelCase }} = types.StringValue(component)
+}
+  {{- end }}
+{{- end }}

@@ -1,0 +1,238 @@
+name: commit
+terraform_provider_config:
+  description: Commit Action
+  skip_resource: true
+  skip_datasource: true
+  resource_type: custom
+  action: true
+  custom_functions:
+    Invoke: true
+  suffix: commit
+go_sdk_config:
+  skip: true
+  package: ["api_key"]
+panos_xpath:
+  path: ["api-key"]
+locations: []
+entries: []
+imports: []
+version: 11.0.2
+spec:
+  params:
+    - name: description
+      type: string
+      profiles:
+        - xpath:
+            - ""
+      validators: []
+      spec: {}
+      description: "Commit description"
+      required: false
+    - name: admins
+      type: list
+      profiles:
+        - xpath:
+            - ""
+          type: member
+      validators: []
+      spec:
+        type: string
+        items:
+          type: string
+      description: "List of administrators whose changes to commit (partial commit)"
+      required: false
+    - name: exclude_device_and_network
+      type: bool
+      profiles:
+        - xpath:
+            - ""
+      validators: []
+      spec: {}
+      description: "Exclude device and network configuration from the commit"
+      required: false
+    - name: exclude_shared_objects
+      type: bool
+      profiles:
+        - xpath:
+            - ""
+      validators: []
+      spec: {}
+      description: "Exclude shared objects from the commit"
+      required: false
+    - name: force
+      type: bool
+      profiles:
+        - xpath:
+            - ""
+      validators: []
+      spec: {}
+      description: "Force the commit operation"
+      required: false
+    - name: exclude_policy_and_objects
+      type: bool
+      profiles:
+        - xpath:
+            - ""
+      validators: []
+      spec: {}
+      description: "Exclude policy and objects from the commit. Available on NGFW only"
+      required: false
+    - name: device_groups
+      type: list
+      profiles:
+        - xpath:
+            - ""
+          type: member
+      validators: []
+      spec:
+        type: string
+        items:
+          type: string
+      description: "Commit only the specified device groups. Available on Panorama only"
+      required: false
+    - name: templates
+      type: list
+      profiles:
+        - xpath:
+            - ""
+          type: member
+      validators: []
+      spec:
+        type: string
+        items:
+          type: string
+      description: "Commit only the specified templates. Available on Panorama only"
+      required: false
+    - name: template_stacks
+      type: list
+      profiles:
+        - xpath:
+            - ""
+          type: member
+      validators: []
+      spec:
+        type: string
+        items:
+          type: string
+      description: "Commit only the specified template stacks. Available on Panorama only"
+      required: false
+    - name: wildfire_appliances
+      type: list
+      profiles:
+        - xpath:
+            - ""
+          type: member
+      validators: []
+      spec:
+        type: string
+        items:
+          type: string
+      description: "Commit only the specified WildFire appliances. Available on Panorama only"
+      required: false
+    - name: wildfire_clusters
+      type: list
+      profiles:
+        - xpath:
+            - ""
+          type: member
+      validators: []
+      spec:
+        type: string
+        items:
+          type: string
+      description: "Commit only the specified WildFire clusters. Available on Panorama only"
+      required: false
+    - name: log_collectors
+      type: list
+      profiles:
+        - xpath:
+            - ""
+          type: member
+      validators: []
+      spec:
+        type: string
+        items:
+          type: string
+      description: "Commit only the specified log collectors. Available on Panorama only"
+      required: false
+    - name: log_collector_groups
+      type: list
+      profiles:
+        - xpath:
+            - ""
+          type: member
+      validators: []
+      spec:
+        type: string
+        items:
+          type: string
+      description: "Commit only the specified log collector groups. Available on Panorama only"
+      required: false
+    - name: push_configuration
+      type: object
+      profiles:
+        - xpath:
+            - ""
+      validators: []
+      spec:
+        params:
+          - name: type
+            type: string
+            profiles:
+              - xpath:
+                  - ""
+            validators: []
+            spec: {}
+            description: "Type of push operation. Valid values: device_group, template, template_stack, log_collector_group, wildfire_appliance, wildfire_cluster"
+            required: true
+          - name: name
+            type: string
+            profiles:
+              - xpath:
+                  - ""
+            validators: []
+            spec: {}
+            description: "Name of the target (device group, template, etc.) to push configuration to"
+            required: true
+          - name: description
+            type: string
+            profiles:
+              - xpath:
+                  - ""
+            validators: []
+            spec: {}
+            description: "Push operation description. If not specified, defaults to the commit description"
+            required: false
+          - name: include_template
+            type: bool
+            profiles:
+              - xpath:
+                  - ""
+            validators: []
+            spec: {}
+            description: "Include template configuration when pushing to a device group. Only applicable when type is device_group"
+            required: false
+          - name: force_template_values
+            type: bool
+            profiles:
+              - xpath:
+                  - ""
+            validators: []
+            spec: {}
+            description: "Force template values to override local values on devices. Applicable for device_group, template, and template_stack types"
+            required: false
+          - name: devices
+            type: list
+            profiles:
+              - xpath:
+                  - ""
+                type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: "List of device serial numbers to push configuration to. If not specified, pushes to all devices in the target"
+            required: false
+      description: "Optional push configuration. If specified, pushes configuration to devices after successful commit. Available on Panorama only"
+      required: false

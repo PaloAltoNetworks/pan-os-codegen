@@ -2,13 +2,21 @@ package {{packageName .GoSdkPath}}
 {{- if .Entry}}
     {{- if $.Imports}}
         {{- if $.Spec.Params.uuid}}
+          {{- if $.HasAuditComments }}
             {{renderImports "service" "filtering" "sync" "audit" "rule" "version" "movement"}}
+          {{- else }}
+            {{renderImports "service" "filtering" "sync" "rule" "version" "movement"}}
+          {{- end }}
         {{- else}}
             {{renderImports "service" "filtering" "sync"}}
         {{- end}}
     {{- else}}
         {{- if $.Spec.Params.uuid}}
+          {{-  if $.HasAuditComments }}
             {{renderImports "service" "filtering" "audit" "movement"}}
+          {{- else }}
+            {{renderImports "service" "filtering" "movement"}}
+          {{- end }}
         {{- else}}
             {{renderImports "service" "filtering"}}
         {{- end}}
@@ -793,7 +801,7 @@ func (s *Service) filterEntriesByLocation(location Location, entries []*Entry) [
 	return filtered
 }
 
-{{- if $.Spec.Params.uuid}}
+{{- if $.Spec.Params.uuid }}
 // MoveGroup arranges the given rules in the order specified.
 // Any rule with a UUID specified is ignored.
 // Only the rule names are considered for the purposes of the rule placement.
@@ -853,7 +861,7 @@ func (s *Service) MoveGroup(ctx context.Context, loc Location, position movement
 	return nil
 }
 
-
+  {{- if $.HasAuditComments }}
         // HITCOUNT returns the hit count for the given rule.
         func (s *Service) HitCount(ctx context.Context, loc Location, rules ...string) ([]util.HitCount, error) {
         switch {
@@ -991,4 +999,5 @@ func (s *Service) MoveGroup(ctx context.Context, loc Location, position movement
         return resp.Comments, nil
         }
     {{- end}}
+  {{- end }}
 {{- end}}

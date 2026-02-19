@@ -4,6 +4,7 @@ terraform_provider_config:
   skip_resource: false
   skip_datasource: false
   resource_type: config
+  xml_node: ssl-decrypt
   resource_variants: []
   suffix: ssl_decrypt
   plural_suffix: ''
@@ -15,7 +16,7 @@ go_sdk_config:
   - device
   - ssldecrypt
 panos_xpath:
-  path: []
+  path: ["ssl-decrypt"]
   vars: []
 locations:
 - name: panorama

@@ -37,12 +37,15 @@ const (
 
 type TerraformConfig struct {
 	Description           string                     `yaml:"description"`
+	Action                bool                       `yaml:"action"`
 	Epheneral             bool                       `yaml:"ephemeral"`
+	CustomValidation      bool                       `yaml:"custom_validation"`
 	SkipResource          bool                       `yaml:"skip_resource"`
 	SkipDatasource        bool                       `yaml:"skip_datasource"`
 	SkipdatasourceListing bool                       `yaml:"skip_datasource_listing"`
 	ResourceType          TerraformResourceType      `yaml:"resource_type"`
-	CustomFunctions       map[string]string          `yaml:"custom_functions"`
+	XmlNode               *string                    `yaml:"xml_node"`
+	CustomFunctions       map[string]bool            `yaml:"custom_functions"`
 	ResourceVariants      []TerraformResourceVariant `yaml:"resource_variants"`
 	Suffix                string                     `yaml:"suffix"`
 	PluralSuffix          string                     `yaml:"plural_suffix"`

@@ -1,0 +1,6 @@
+
+{{- range .Entries }}
+	"{{ .Key }}": resourceFuncs{
+		CreateImportId: {{ .StructName }}ImportStateCreator,
+	},
+{{- end }}

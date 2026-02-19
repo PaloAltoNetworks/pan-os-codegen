@@ -26,17 +26,3 @@ func TestParamToModel(t *testing.T) {
 	assert.Contains(t, result, "types.String")
 	assert.Contains(t, result, "`tfsdk:\"test_param\"`")
 }
-
-func TestTFIDStruct(t *testing.T) {
-	// Given
-	structType := "entry"
-	structName := "TestStruct"
-
-	// When
-	result, err := terraform_provider.CreateTfIdStruct(structType, structName)
-
-	// Then
-	assert.NoError(t, err)
-	assert.Contains(t, result, "Name     string          `json:\"name\"`")
-	assert.Contains(t, result, "Location TestStruct.Location `json:\"location\"`")
-}

@@ -1,0 +1,29 @@
+
+{
+var terraformLocation {{ .TerraformStructName }}
+resp.Diagnostics.Append({{ $.Source }}.As(ctx, &terraformLocation, basetypes.ObjectAsOptions{})...)
+if resp.Diagnostics.HasError() {
+	return
+}
+{{- range .Specs }}
+{{ $type := . }}
+{{ $locationName := .Name }}
+if location.{{ .Name.CamelCase }} != nil {
+  {{- range .Locations }}
+	{
+	var terraformInnerLocation {{ .TerraformStructName }}
+	resp.Diagnostics.Append(terraformLocation.{{ $locationName.CamelCase }}.As(ctx, &terraformInnerLocation, basetypes.ObjectAsOptions{})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+    {{- $pangoStruct := GetPangoStructForLocation $.Variants $type.Name .Name }}
+	{{ $.Dest }} = {{ $.PackageName }}.New{{ $pangoStruct }}({{ $.PackageName }}.{{ $pangoStruct }}Spec{
+    {{- range .Fields }}
+		{{ . }}: terraformInnerLocation.{{ . }}.ValueString(),
+    {{- end }}
+	})
+	}
+  {{- end }}
+}
+}
+{{- end }}

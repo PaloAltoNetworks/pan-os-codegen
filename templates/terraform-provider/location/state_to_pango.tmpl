@@ -1,0 +1,23 @@
+
+{
+var terraformLocation {{ .TerraformStructName }}
+resp.Diagnostics.Append({{ $.Source }}.As(ctx, &terraformLocation, basetypes.ObjectAsOptions{})...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+{{- range .Locations }}
+{{ $locationType := .Name }}
+if !terraformLocation.{{ $locationType }}.IsNull() {
+	{{ $.Dest }}.{{ $locationType }} = &{{ .PangoStructName }}{}
+	var innerLocation {{ .TerraformStructName }}
+	resp.Diagnostics.Append(terraformLocation.{{ .Name }}.As(ctx, &innerLocation, basetypes.ObjectAsOptions{})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+  {{- range .Fields }}
+	{{ $.Dest }}.{{ $locationType }}.{{ .PangoName }} = innerLocation.{{ .TerraformName }}.ValueString()
+  {{- end }}
+}
+{{- end }}
+}

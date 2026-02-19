@@ -1,0 +1,54 @@
+
+{{- define "renderLocationAttribute" }}
+"{{ .Name.Underscore }}": {{ .SchemaType }}{
+	Description: "{{ .Description }}",
+  {{- if .Required }}
+	Required: true,
+  {{- end }}
+  {{- if .Optional }}
+	Optional: true,
+  {{- end }}
+  {{- if .Computed }}
+	Computed: true,
+  {{- end }}
+  {{- if .Default }}
+	Default: {{ .Default.Type }}({{ .Default.Value }}),
+  {{- end }}
+  {{- if .Attributes }}
+	Attributes: map[string]rsschema.Attribute{
+    {{- range .Attributes }}
+		{{- template "renderLocationAttribute" . }}
+    {{- end }}
+	},
+  {{- end }}
+	PlanModifiers: []planmodifier.{{ .ModifierType }}{
+		{{ .ModifierType | LowerCase }}planmodifier.RequiresReplace(),
+	},
+  {{- with .Validators }}
+    {{ $package := .Package }}
+		Validators: []validator.{{ .ListType }}{
+    {{- range .Functions }}
+			{{ $package }}.{{ .Function }}(path.Expressions{
+      {{- range .Expressions }}
+				{{ . }},
+      {{- end }}
+			}...),
+    {{- end }}
+		},
+  {{- end }}
+},
+{{- end }}
+
+func {{ .StructName }}LocationSchema() rsschema.Attribute {
+  {{- with .Schema }}
+	return rsschema.SingleNestedAttribute{
+		Description: "{{ .Description }}",
+		Required: true,
+		Attributes: map[string]rsschema.Attribute{
+{{- range .Attributes }}
+{{- template "renderLocationAttribute" . }}
+{{- end }}
+		},
+	}
+}
+  {{- end }}

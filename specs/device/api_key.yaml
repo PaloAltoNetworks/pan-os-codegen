@@ -3,10 +3,9 @@ terraform_provider_config:
   skip_datasource: true
   description: API Key
   resource_type: custom
-  ephemeral: true
   custom_functions:
-    Open: apiKeyEphemeralResourceOpen
-    Close: apiKeyEphemeralResourceClose
+    Open: true
+  ephemeral: true
   suffix: api_key
 go_sdk_config:
   skip: true

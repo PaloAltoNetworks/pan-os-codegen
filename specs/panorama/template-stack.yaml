@@ -58,10 +58,10 @@ spec:
       type: list
       spec:
         items:
-          type: string
+          type: object
       profiles:
-        - type: member
-          xpath: ["devices"]
+        - type: entry
+          xpath: ["devices", "entry"]
     - name: default-vsys
       description: "Default virtual system"
       type: string

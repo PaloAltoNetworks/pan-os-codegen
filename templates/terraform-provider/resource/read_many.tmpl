@@ -1,0 +1,109 @@
+
+{{- $structName := "" }}
+{{- if eq .ResourceOrDS "DataSource" }}
+  {{ $structName = .dataSourceStructName }}
+{{- else }}
+  {{ $structName = .resourceStructName }}
+{{- end }}
+{{- $resourceSDKStructName := printf "%s.%s" .resourceSDKName .EntryOrConfig }}
+{{- $resourceTFStructName := printf "%s%sObject" $structName .ListAttribute.CamelCase }}
+
+{{- $stateName := "" }}
+{{- if eq .ResourceOrDS "DataSource" }}
+  {{- $stateName = "Config" }}
+{{- else }}
+  {{- $stateName = "State" }}
+{{- end -}}
+
+var state {{ .structName }}{{ .ResourceOrDS }}Model
+
+resp.Diagnostics.Append(req.{{ $stateName }}.Get(ctx, &state)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+// Basic logging.
+tflog.Info(ctx, "performing resource create", map[string]any{
+	"resource_name": "panos_{{ UnderscoreName .structName }}",
+	"function":      "Create",
+})
+
+{{ RenderEncryptedValuesInitialization }}
+
+var location {{ .resourceSDKName }}.Location
+{{ RenderLocationsStateToPango "state.Location" "location" }}
+
+var elements []{{ $resourceTFStructName }}
+resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
+if resp.Diagnostics.HasError() || len(elements) == 0 {
+	return
+}
+
+entries := make([]*{{ $resourceSDKStructName }}, 0, len(elements))
+for _, elt := range elements {
+	var entry *{{ $resourceSDKStructName }}
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, o.client, nil, &entry, ev)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	entries = append(entries, entry)
+}
+
+{{ $exhaustive := "sdkmanager.NonExhaustive" }}
+{{- if .Exhaustive }}
+  {{ $exhaustive = "sdkmanager.Exhaustive" }}
+position := movement.PositionFirst{}
+{{- else }}
+var position movement.Position
+var positionAttribute TerraformPositionObject
+if !state.Position.IsNull() && !state.Position.IsUnknown() {
+	resp.Diagnostics.Append(state.Position.As(ctx, &positionAttribute, basetypes.ObjectAsOptions{})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	position = positionAttribute.CopyToPango()
+}
+{{- end }}
+
+{{- if .Exhaustive }}
+readEntries, _, err := o.manager.ReadMany(ctx, location, entries, {{ $exhaustive }}, position)
+{{- else }}
+readEntries, movementRequired, err := o.manager.ReadMany(ctx, location, entries, {{ $exhaustive }}, position)
+{{- end }}
+if err != nil {
+	if errors.Is(err, sdkmanager.ErrObjectNotFound) {
+		resp.State.RemoveResource(ctx)
+	} else {
+		resp.Diagnostics.AddError("Failed to read entries from the server", err.Error())
+	}
+	return
+}
+
+var objects []{{ $resourceTFStructName }}
+for _, elt := range readEntries {
+	var object {{ $resourceTFStructName }}
+	err := object.CopyFromPango(ctx, o.client, nil, elt, ev)
+	resp.Diagnostics.Append(err...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	objects = append(objects, object)
+}
+
+{{- if not .Exhaustive }}
+if movementRequired {
+	state.Position = types.ObjectNull(positionAttribute.AttributeTypes())
+}
+{{- end }}
+
+var list_diags diag.Diagnostics
+state.{{ .ListAttribute.CamelCase }}, list_diags = types.ListValueFrom(ctx, state.getTypeFor("{{ .ListAttribute.Underscore }}"), objects)
+resp.Diagnostics.Append(list_diags...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+{{ RenderEncryptedValuesFinalizer }}
+
+resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

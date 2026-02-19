@@ -29,8 +29,11 @@ $(GENERATED_OUT_PATH)/%: assets/%
 	cp $< $@
 
 .PHONY: install
-install: codegen
+install: codegen assets
 	cd $(GENERATED_OUT_PATH)/terraform/ && go install
+
+$(GENERATED_OUT_PATH)terraform/terraform-provider-panos: codegen-stamp assets
+	cd $(GENERATED_OUT_PATH)terraform && go build -o terraform-provider-panos ./main.go
 
 .PHONY: examples
 examples: install
@@ -48,6 +51,16 @@ test/pango: codegen assets
 	cd $(GENERATED_OUT_PATH)/pango && \
 	go test -v ./...
 
+.PHONY: test/pango-commit
+test/pango-commit: codegen assets
+	cd $(GENERATED_OUT_PATH)/pango && \
+	ginkgo run -v ./commit/
+
+.PHONY: test/pango-movement
+test/pango-movement: codegen assets
+	cd $(GENERATED_OUT_PATH)/pango && \
+	go test -v ./movement/
+
 .PHONY: test/pango-example
 test/pango-example:
 	cd $(GENERATED_OUT_PATH)/pango && \
@@ -59,7 +72,7 @@ test/terraform: test/terraform-acc test/terraform-manager
 .PHONY: test/terraform-manager
 test/terraform-manager: codegen assets
 	cd $(GENERATED_OUT_PATH)/terraform/ && \
-	go test -v ./internal/manager/
+	go test -coverprofile cover.profile -v ./internal/manager/
 
 .PHONY: test/terraform-acc
 test/terraform-acc: codegen assets

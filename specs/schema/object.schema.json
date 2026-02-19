@@ -20,6 +20,7 @@
       "additionalProperties": false,
       "required": ["suffix", "resource_type"],
       "properties": {
+        "custom_validation": { "type": "boolean" },
         "skip_datasource": { "type": "boolean" },
         "skip_resource": { "type": "boolean" },
         "description": { "type": "string" },
@@ -31,13 +32,14 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "Read": { "type": "string" },
-            "Create": { "type": "string" },
-            "Update": { "type": "string" },
-            "Delete": { "type": "string" },
-            "Open": { "type": "string" },
-            "Refresh": { "type": "string" },
-            "Close": { "type": "string" }
+            "Read": { "type": "boolean" },
+            "Create": { "type": "boolean" },
+            "Update": { "type": "boolean" },
+            "Delete": { "type": "boolean" },
+            "Open": { "type": "boolean" },
+            "Refresh": { "type": "boolean" },
+            "Close": { "type": "boolean" },
+            "Invoke": { "type": "boolean" }
           }
         },
         "resource_variants": {

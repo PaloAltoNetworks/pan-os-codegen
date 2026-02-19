@@ -1,0 +1,12 @@
+
+func (o *{{ .StructName }}Model) resourceXpathParentComponents() ([]string, error) {
+	var components []string
+{{- range .Components }}
+  {{- if eq .Type "value" }}
+	components = append(components, (o.{{ .Name.CamelCase }}.ValueString()))
+  {{- else if eq .Type "entry" }}
+	components = append(components, pangoutil.AsEntryXpath(o.{{ .Name.CamelCase }}.ValueString()))
+  {{- end }}
+{{- end }}
+	return components, nil
+}

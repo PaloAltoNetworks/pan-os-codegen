@@ -1,0 +1,594 @@
+name: syslog-profile
+terraform_provider_config:
+  description: Syslog Server Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: syslog_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - device
+  - profiles
+  - syslog
+panos_xpath:
+  path:
+  - log-settings
+  - syslog
+  vars: []
+locations:
+- name: panorama
+  xpath:
+    path:
+    - config
+    - panorama
+    vars: []
+  description: Located in a panorama.
+  validators: []
+  required: false
+  read_only: false
+- name: vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: ngfw_device
+      description: The NGFW device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The Virtual System name
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys name cannot be "shared". Use the "shared" location instead
+      type: entry
+  description: Located in a specific Virtual System
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+  description: A shared resource located within a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: format
+    type: object
+    profiles:
+    - xpath:
+      - format
+    validators: []
+    spec:
+      params:
+      - name: auth
+        type: string
+        profiles:
+        - xpath:
+          - auth
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: ''
+        required: false
+      - name: config
+        type: string
+        profiles:
+        - xpath:
+          - config
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: ''
+        required: false
+      - name: correlation
+        type: string
+        profiles:
+        - xpath:
+          - correlation
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: ''
+        required: false
+      - name: data
+        type: string
+        profiles:
+        - xpath:
+          - data
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: ''
+        required: false
+      - name: decryption
+        type: string
+        profiles:
+        - xpath:
+          - decryption
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: ''
+        required: false
+      - name: escaping
+        type: object
+        profiles:
+        - xpath:
+          - escaping
+        validators: []
+        spec:
+          params:
+          - name: escape-character
+            type: string
+            profiles:
+            - xpath:
+              - escape-character
+            validators:
+            - type: length
+              spec:
+                min: 1
+                max: 1
+            spec: {}
+            description: Escape character
+            required: false
+          - name: escaped-characters
+            type: string
+            profiles:
+            - xpath:
+              - escaped-characters
+            validators:
+            - type: length
+              spec:
+                max: 255
+            spec: {}
+            description: List of characters to be escaped
+            required: false
+          variants: []
+        description: ''
+        required: false
+      - name: globalprotect
+        type: string
+        profiles:
+        - xpath:
+          - globalprotect
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: ''
+        required: false
+      - name: gtp
+        type: string
+        profiles:
+        - xpath:
+          - gtp
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: ''
+        required: false
+      - name: hip-match
+        type: string
+        profiles:
+        - xpath:
+          - hip-match
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: ''
+        required: false
+      - name: iptag
+        type: string
+        profiles:
+        - xpath:
+          - iptag
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: ''
+        required: false
+      - name: sctp
+        type: string
+        profiles:
+        - xpath:
+          - sctp
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: ''
+        required: false
+      - name: system
+        type: string
+        profiles:
+        - xpath:
+          - system
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: ''
+        required: false
+      - name: threat
+        type: string
+        profiles:
+        - xpath:
+          - threat
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: ''
+        required: false
+      - name: traffic
+        type: string
+        profiles:
+        - xpath:
+          - traffic
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: ''
+        required: false
+      - name: tunnel
+        type: string
+        profiles:
+        - xpath:
+          - tunnel
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: ''
+        required: false
+      - name: url
+        type: string
+        profiles:
+        - xpath:
+          - url
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: ''
+        required: false
+      - name: userid
+        type: string
+        profiles:
+        - xpath:
+          - userid
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: ''
+        required: false
+      - name: wildfire
+        type: string
+        profiles:
+        - xpath:
+          - wildfire
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: ''
+        required: false
+      variants: []
+    description: custom formats for forwarded logs
+    required: false
+  - name: server
+    type: list
+    profiles:
+    - xpath:
+      - server
+      - entry
+      type: entry
+    validators: []
+    spec:
+      type: object
+      items:
+        type: object
+        spec:
+          params:
+          - name: server
+            type: string
+            profiles:
+            - xpath:
+              - server
+            validators:
+            - type: length
+              spec:
+                max: 63
+            spec: {}
+            description: IP address or FQDN of SYSLOG server to use
+            required: false
+          - name: transport
+            type: enum
+            profiles:
+            - xpath:
+              - transport
+            validators:
+            - type: values
+              spec:
+                values:
+                - UDP
+                - TCP
+                - SSL
+            spec:
+              default: UDP
+              values:
+              - value: UDP
+              - value: TCP
+              - value: SSL
+            description: ''
+            required: false
+          - name: port
+            type: int64
+            profiles:
+            - xpath:
+              - port
+            validators:
+            - type: length
+              spec:
+                min: 1
+                max: 65535
+            spec: {}
+            description: Port number (Standard Syslog ports UDP:514, SSL:6514)
+            required: false
+          - name: format
+            type: enum
+            profiles:
+            - xpath:
+              - format
+            validators:
+            - type: values
+              spec:
+                values:
+                - BSD
+                - IETF
+            spec:
+              default: BSD
+              values:
+              - value: BSD
+              - value: IETF
+            description: Format of the Syslog message
+            required: false
+          - name: facility
+            type: enum
+            profiles:
+            - xpath:
+              - facility
+            validators:
+            - type: values
+              spec:
+                values:
+                - LOG_USER
+                - LOG_LOCAL0
+                - LOG_LOCAL1
+                - LOG_LOCAL2
+                - LOG_LOCAL3
+                - LOG_LOCAL4
+                - LOG_LOCAL5
+                - LOG_LOCAL6
+                - LOG_LOCAL7
+            spec:
+              default: LOG_USER
+              values:
+              - value: LOG_USER
+              - value: LOG_LOCAL0
+              - value: LOG_LOCAL1
+              - value: LOG_LOCAL2
+              - value: LOG_LOCAL3
+              - value: LOG_LOCAL4
+              - value: LOG_LOCAL5
+              - value: LOG_LOCAL6
+              - value: LOG_LOCAL7
+            description: ''
+            required: false
+          variants: []
+    description: ''
+    required: false
+    codegen_overrides:
+      terraform:
+        name: servers
+  variants: []

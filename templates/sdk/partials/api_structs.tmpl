@@ -1,0 +1,9 @@
+{{- range .Specs }}
+{{- $spec := . }}
+type {{ .StructName }} struct{
+  {{- range .Fields }}
+    {{- if .IsInternal }}{{ continue }}{{ end }}
+	{{ .Name.CamelCase }} {{ .FinalType }}
+  {{- end }}
+}
+{{- end }}

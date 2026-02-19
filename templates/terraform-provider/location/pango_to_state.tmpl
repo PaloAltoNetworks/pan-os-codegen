@@ -1,0 +1,11 @@
+
+{{- range .Locations }}
+if {{ $.Source }}.{{ .Name }} != nil {
+	{{ $.Dest }}.{{ .Name }} = &{{ .TerraformStructName }}{
+    {{ $locationName := .Name }}
+  {{- range .Fields }}
+		{{ .TerraformName }}: types.{{ .Type }}Value({{ $.Source }}.{{ $locationName }}.{{ .PangoName }}),
+  {{- end }}
+	}
+}
+{{- end }}

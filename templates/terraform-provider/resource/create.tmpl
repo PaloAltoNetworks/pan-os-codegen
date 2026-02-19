@@ -1,0 +1,91 @@
+
+{{- /* Begin */ -}}
+	var state {{ .structName }}Model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Basic logging.
+	tflog.Info(ctx, "performing resource create", map[string]any{
+		"resource_name": "panos_{{ UnderscoreName .structName }}",
+		"function":      "Create",
+{{- if .HasEntryName }}
+		"name":          state.Name.ValueString(),
+{{- end }}
+	})
+
+	// Verify mode.
+	if o.client.Hostname == "" {
+		resp.Diagnostics.AddError("Invalid mode error", InspectionModeError)
+		return
+	}
+
+	{{ RenderEncryptedValuesInitialization }}
+
+	// Determine the location.
+
+	var location {{ .resourceSDKName }}.Location
+	{{ RenderLocationsStateToPango "state.Location" "location" }}
+
+	if err := location.IsValid(); err != nil {
+		resp.Diagnostics.AddError("Invalid location", err.Error())
+		return
+	}
+
+	// Load the desired config.
+	var obj *{{ .resourceSDKName }}.{{ .EntryOrConfig }}
+	resp.Diagnostics.Append(state.CopyToPango(ctx, o.client, nil, &obj, ev)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	/*
+		// Timeout handling.
+		ctx, cancel := context.WithTimeout(ctx, GetTimeout(state.Timeouts.Create))
+		defer cancel()
+	*/
+
+	// Perform the operation.
+
+	components, err := state.resourceXpathParentComponents()
+	if err != nil {
+		resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
+		return
+	}
+
+{{- if .HasImports }}
+	var importLocation {{ .resourceSDKName }}.ImportLocation
+	{{ RenderImportLocationAssignment "state.Location" "importLocation" }}
+	created, err := o.manager.Create(ctx, location, components, obj)
+	if err != nil {
+		resp.Diagnostics.AddError("Error in create", err.Error())
+		return
+	}
+
+	if importLocation != nil {
+		err = o.manager.ImportToLocations(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, obj.Name)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to import resource into location", err.Error())
+			return
+		}
+	}
+{{- else }}
+	created, err := o.manager.Create(ctx, location, components, obj)
+	if err != nil {
+		resp.Diagnostics.AddError("Error in create", err.Error())
+		return
+	}
+{{- end }}
+
+
+	resp.Diagnostics.Append(state.CopyFromPango(ctx, o.client, nil, created, ev)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	{{ RenderEncryptedValuesFinalizer }}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+
+{{- /* Done */ -}}

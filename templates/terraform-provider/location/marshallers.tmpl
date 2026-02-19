@@ -1,0 +1,147 @@
+
+{{- define "renderMarshallerField" }}
+  {{- if eq .Type "types.Object" }}
+	{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_object,
+  {{- else if eq .Type "types.List" }}
+	{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}_list,
+  {{- else }}
+	{{ .Name.CamelCase }}: o.{{ .Name.CamelCase }}.Value{{ .Type | CamelCaseName }}Pointer(),
+  {{- end }}
+{{- end }}
+
+{{- define "renderShadowStructField" }}
+  {{- if eq .Type "types.Object" }}
+    {{- if eq .Name.Underscore "location" }}
+    {{ .Name.CamelCase }} interface{} {{ .Tags }}
+    {{- else }}
+    {{ .Name.CamelCase }} *{{ .StructName }} {{ .Tags }}
+    {{- end }}
+  {{- else if eq .Type "types.List" }}
+    {{ .Name.CamelCase }} {{ .StructName }} {{ .Tags }}
+  {{- else }}
+    {{ .Name.CamelCase }} *{{ .Type }} {{ .Tags }}
+  {{- end }}
+{{- end }}
+
+{{- define "renderUnmarshallerField" }}
+  {{- if eq .Type "types.Object" }}
+    o.{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_object
+  {{- else if eq .Type "types.List" }}
+    o.{{ .Name.CamelCase }} = {{ .Name.LowerCamelCase }}_list
+  {{- else }}
+    o.{{ .Name.CamelCase }} = types.{{ .Type | CamelCaseName }}PointerValue(shadow.{{ .Name.CamelCase }})
+  {{- end }}
+{{- end }}
+
+{{- define "renderPangoObjectConversion" -}}
+  {{- if eq .Type "types.Object" }}
+    {{- if eq .Name.Underscore "location" }}
+	var {{ .Name.LowerCamelCase }}_object types.Object
+	{
+		{{ .Name.LowerCamelCase }}_map, ok := shadow.{{ .Name.CamelCase }}.(map[string]interface{})
+		if !ok {
+			return NewDiagnosticsError("Failed to unmarshal JSON document into {{ .Name.Underscore }}: expected map[string]interface{}", nil)
+		}
+		var err error
+		{{ .Name.LowerCamelCase }}_object, err = MapToTypesObject({{ .Name.LowerCamelCase }}_map, {{ .StructName }}Schema())
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal {{ .Name.Underscore }} from JSON: %w", err)
+		}
+	}
+    {{- else }}
+	var {{ .Name.LowerCamelCase }}_object types.Object
+	{
+		var diags_tmp diag.Diagnostics
+		{{ .Name.LowerCamelCase }}_object, diags_tmp = types.ObjectValueFrom(context.TODO(), shadow.{{ .Name.CamelCase }}.AttributeTypes(), shadow.{{ .Name.CamelCase }})
+		if diags_tmp.HasError() {
+			return NewDiagnosticsError("Failed to unmarshal JSON document into {{ .Name.Underscore }}", diags_tmp.Errors())
+		}
+	}
+    {{- end }}
+  {{- else if eq .Type "types.List" }}
+	var {{ .Name.LowerCamelCase }}_list types.List
+	{
+		var diags_tmp diag.Diagnostics
+		{{ .Name.LowerCamelCase }}_list, diags_tmp = types.ListValueFrom(context.TODO(), types.StringType, shadow.{{ .Name.CamelCase }})
+		if diags_tmp.HasError() {
+			return NewDiagnosticsError("Failed to unmarshal JSON document into {{ .Name.Underscore }}", diags_tmp.Errors())
+		}
+	}
+  {{- end }}
+{{- end }}
+
+{{- define "renderTfObjectConversion" -}}
+  {{- if eq .Type "types.Object" }}
+    {{- if eq .Name.Underscore "location" }}
+	var {{ .Name.LowerCamelCase }}_object interface{}
+        {
+		var err error
+		{{ .Name.LowerCamelCase }}_object, err = TypesObjectToMap(o.{{ .Name.CamelCase }}, {{ .StructName }}Schema())
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal {{ .Name.Underscore }} into JSON document: %w", err)
+		}
+        }
+    {{- else }}
+	var {{ .Name.LowerCamelCase }}_object *{{ .StructName }}
+        {
+		diags := o.{{ .Name.CamelCase }}.As(context.TODO(), &{{ .Name.LowerCamelCase }}_object, basetypes.ObjectAsOptions{})
+		if diags.HasError() {
+			return nil, NewDiagnosticsError("Failed to marshal {{ .Name.Underscore }} into JSON document", diags.Errors())
+		}
+        }
+    {{- end }}
+  {{- else if eq .Type "types.List" }}
+	var {{ .Name.LowerCamelCase }}_list {{ .StructName }}
+	{
+		diags := o.{{ .Name.CamelCase }}.ElementsAs(context.TODO(), &{{ .Name.LowerCamelCase }}_list, false)
+		if diags.HasError() {
+			return nil, NewDiagnosticsError("Failed to marshal {{ .Name.Underscore }} into JSON document", diags.Errors())
+		}
+	}
+  {{- end }}
+{{- end }}
+
+{{- range .Specs }}
+  {{- $spec := . }}
+func (o {{ .StructName }}) MarshalJSON() ([]byte, error) {
+	type shadow struct {
+  {{- range .Fields }}
+    {{- template "renderShadowStructField" . }}
+  {{- end }}
+	}
+
+  {{-  range .Fields }}
+    {{- template "renderTfObjectConversion" . }}
+  {{- end }}
+
+	obj := shadow{
+  {{- range .Fields }}
+    {{- template "renderMarshallerField" . }}
+  {{- end }}
+	}
+
+	return json.Marshal(obj)
+}
+
+func (o *{{ .StructName }}) UnmarshalJSON(data []byte) error {
+	var shadow struct {
+  {{- range .Fields }}
+    {{- template "renderShadowStructField" . }}
+  {{- end }}
+	}
+
+	err := json.Unmarshal(data, &shadow)
+	if err != nil {
+		return err
+	}
+  {{- range .Fields }}
+    {{- template "renderPangoObjectConversion" . }}
+  {{- end }}
+
+  {{- range .Fields }}
+    {{- template "renderUnmarshallerField" . }}
+  {{- end }}
+
+	return nil
+}
+{{- end }}

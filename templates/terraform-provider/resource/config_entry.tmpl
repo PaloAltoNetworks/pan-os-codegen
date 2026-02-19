@@ -1,0 +1,16 @@
+
+{{- range .Entries }}
+	{{- if eq .Type "list" }}
+	resp.Diagnostics.Append(state.{{ .Name }}.ElementsAs(ctx, &obj.{{ .Name }}, false)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	{{- else }}
+	// {{ .Type }}
+		{{- if eq .Type "object" }}
+	// obj.{{ .Name }} = copy{{ .Name }}FromTerraformToPango(state.{{ .Name }})
+		{{- else }}
+	obj.{{ .Name }} = state.{{ .Name }}.Value{{ CamelCaseType .Type }}Pointer()
+		{{- end }}
+	{{- end -}}
+{{- end }}

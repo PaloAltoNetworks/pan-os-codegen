@@ -1,0 +1,52 @@
+{{- range .Structs }}
+func (o *{{ .StructName }}{{ .ModelOrObject }}) AttributeTypes() map[string]attr.Type {
+  {{- range .Fields }}
+    {{- if .Private }}{{ continue }}{{- end }}
+    {{ if (eq .Type "types.Object") }}
+	var {{ .Name.LowerCamelCase }}Obj {{ .TerraformStructType }}
+    {{- else if or (eq .Type "types.List") (eq .Type "types.Set") (eq .Type "types.Map") }}
+      {{- if eq .ItemsType "types.Object" }}
+	var {{ .Name.LowerCamelCase }}Obj {{ .TerraformStructType }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+	return map[string]attr.Type{
+  {{- range .Fields }}
+    {{- if .Private }}{{ continue }}{{- end }}
+    {{- if eq .Type "types.Object" }}
+	"{{ .Name.Underscore }}": {{ .Type }}Type{
+		AttrTypes: {{ .Name.LowerCamelCase }}Obj.AttributeTypes(),
+	},
+    {{- else if or (eq .Type "types.List") (eq .Type "types.Set") (eq .Type "types.Map") }}
+      {{- if (eq .ItemsType "types.Object") }}
+		"{{ .Name.Underscore }}": {{ .Type }}Type{
+			ElemType: types.ObjectType{
+				AttrTypes: {{ .Name.LowerCamelCase }}Obj.AttributeTypes(),
+			},
+		},
+      {{- else }}
+		"{{ .Name.Underscore }}": {{ .Type }}Type{
+			ElemType: {{ .ItemsType }},
+		},
+      {{- end }}
+    {{- else }}
+		"{{ .Name.Underscore }}": {{ .Type }}Type,
+    {{- end }}
+  {{- end }}
+	}
+}
+
+func (o {{ .StructName }}{{ .ModelOrObject }}) AncestorName() string {
+	return "{{ .AncestorName }}"
+}
+
+func (o {{ .StructName }}{{ .ModelOrObject }}) EntryName() *string {
+    {{- if and .HasEntryName (eq .TerraformPluralType "map") }}
+	return &o.name
+    {{- else if .HasEntryName }}
+	return o.Name.ValueStringPointer()
+    {{- else }}
+	return nil
+    {{- end }}
+}
+{{- end }}

@@ -61,4 +61,3 @@ resource "panos_ethernet_interface" "iface2" {
 
   layer3 = {}
 }
-

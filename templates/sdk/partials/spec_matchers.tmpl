@@ -1,0 +1,77 @@
+
+func SpecMatches(a, b *{{ .EntryOrConfig }}) bool {
+	if a == nil && b == nil {
+		return true
+	}
+
+	if (a == nil && b != nil) || (a != nil && b == nil) {
+		return false
+	}
+
+	return a.matches(b)
+}
+
+{{- range .Specs }}
+  {{ if .IsXmlContainer }}{{ continue }}{{ end }}
+  {{ $spec := . }}
+func (o *{{ .StructName }}) matches(other *{{ .StructName }}) bool {
+	if o == nil && other == nil {
+		return true
+	}
+
+	if (o == nil && other != nil) || (o != nil && other == nil) {
+		return false
+	}
+
+  {{- range .Fields }}
+    {{- if .IsInternal }}{{ continue }}{{ end }}
+    {{- if and $spec.TopLevel (eq .Name.CamelCase "Name") }}{{ continue }}{{ end }}
+    {{- if eq .Name.CamelCase "Misc" }}{{ continue }}{{ end }}
+    {{- if eq .Name.CamelCase "MiscAttributes" }}{{ continue }}{{ end }}
+    {{- if eq .FieldType "object" }}
+	if !o.{{ .Name.CamelCase }}.matches(other.{{ .Name.CamelCase }}) {
+		return false
+	}
+    {{- else if eq .FieldType "list-entry" }}
+	if len(o.{{ .Name.CamelCase }}) != len(other.{{ .Name.CamelCase }}) {
+		return false
+	}
+	for idx := range o.{{ .Name.CamelCase }} {
+		if !o.{{ .Name.CamelCase }}[idx].matches(&other.{{ .Name.CamelCase }}[idx]) {
+			return false
+		}
+	}
+    {{- else if eq .FieldType "list-member" }}
+	if !util.OrderedListsMatch[{{ .Type }}](o.{{ .Name.CamelCase}}, other.{{ .Name.CamelCase }}) {
+		return false
+	}
+    {{- else if and (eq .Type "string") (eq .Required false)}}
+	if !util.StringsMatch(o.{{ .Name.CamelCase }}, other.{{ .Name.CamelCase }}) {
+		return false
+	}
+    {{- else if and (eq .Type "int64") (eq .Required false)}}
+	if !util.Ints64Match(o.{{ .Name.CamelCase }}, other.{{ .Name.CamelCase }}) {
+		return false
+	}
+    {{- else if and (eq .Type "int64") (eq .Required false)}}
+	if !util.Ints64Match(o.{{ .Name.CamelCase }}, other.{{ .Name.CamelCase }}) {
+		return false
+	}
+    {{- else if and (eq .Type "bool") (eq .Required false)}}
+	if !util.BoolsMatch(o.{{ .Name.CamelCase }}, other.{{ .Name.CamelCase }}) {
+		return false
+	}
+    {{- else if and (eq .Type "float64") (eq .Required false)}}
+	if !util.FloatsMatch(o.{{ .Name.CamelCase }}, other.{{ .Name.CamelCase }}) {
+		return false
+	}
+    {{- else }}
+	if o.{{ .Name.CamelCase }} != other.{{ .Name.CamelCase }} {
+		return false
+	}
+    {{- end }}
+  {{- end }}
+
+	return true
+}
+{{- end }}

@@ -1,0 +1,8 @@
+{{- range .Specs }}
+{{- $spec := . }}
+type {{ .XmlStructName }} struct{
+  {{- range .Fields }}
+	{{ .Name.CamelCase }} {{ .FinalXmlType }} {{ .Tags }}
+  {{- end }}
+}
+{{- end }}

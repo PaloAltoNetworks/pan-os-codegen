@@ -1,0 +1,11 @@
+{{- range .Structs }}
+type {{ .StructName }}{{ .ModelOrObject }} struct {
+  {{- range .Fields }}
+    {{- if .Private }}
+	{{ .Name.LowerCamelCase }} {{ .Type }} {{ range .Tags }}{{ . }}{{ end }}
+    {{- else }}
+	{{ .Name.CamelCase }} {{ .Type }} {{ range .Tags }}{{ . }} {{ end }}
+    {{- end }}
+  {{- end }}
+}
+{{- end }}

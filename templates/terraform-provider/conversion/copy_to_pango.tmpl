@@ -1,0 +1,195 @@
+{{- define "terraformNestedElementsAssign" }}
+  {{- with .Parameter }}
+
+  {{- $result := .TerraformName.LowerCamelCase }}
+  {{- $diag := .TerraformName.LowerCamelCase | printf "%s_diags" }}
+	var {{ $result }}_entry *{{ $.Spec.PangoType }}{{ .PangoName.CamelCase }}
+	if !o.{{ .TerraformName.CamelCase }}.IsUnknown() && !o.{{ .TerraformName.CamelCase }}.IsNull() {
+		if *obj != nil && (*obj).{{ .PangoName.CamelCase }} != nil {
+			{{ $result }}_entry = (*obj).{{ .PangoName.CamelCase }}
+		} else {
+			{{ $result }}_entry = new({{ $.Spec.PangoType }}{{ .PangoName.CamelCase }})
+		}
+		var object {{ .TerraformType }}
+		diags.Append(o.{{ .TerraformName.CamelCase }}.As(ctx, &object, basetypes.ObjectAsOptions{})...)
+		if diags.HasError() {
+			return diags
+		}
+    {{- if eq $.Spec.ModelOrObject "Model" }}
+		diags.Append(object.CopyToPango(ctx, client, ancestors, &{{ $result }}_entry, ev)...)
+    {{- else }}
+		diags.Append(object.CopyToPango(ctx, client, append(ancestors, o), &{{ $result }}_entry, ev)...)
+    {{- end }}
+		if diags.HasError() {
+			return diags
+		}
+	}
+
+  {{- end }}
+{{- end }}
+
+{{- define "terraformListElementsAs" }}
+  {{- with .Parameter }}
+    {{- $pangoType := printf "%s%s" $.Spec.PangoType .PangoName.CamelCase }}
+    {{- $terraformType := printf "%s%sObject" $.Spec.TerraformType .TerraformName.CamelCase }}
+    {{- $pangoEntries := printf "%s_pango_entries" .TerraformName.LowerCamelCase }}
+    {{- $tfEntries := printf "%s_tf_entries" .TerraformName.LowerCamelCase }}
+    {{- if eq .ItemsType "entry" }}
+		var {{ $tfEntries }} []{{ $terraformType }}
+		var {{ $pangoEntries }} []{{ $pangoType }}
+	{
+		d := o.{{ .TerraformName.CamelCase }}.ElementsAs(ctx, &{{ $tfEntries }}, false)
+		diags.Append(d...)
+		if diags.HasError() {
+			return diags
+		}
+		for _, elt := range {{ $tfEntries }} {
+			var entry *{{ $pangoType }}
+			diags.Append(elt.CopyToPango(ctx, client, append(ancestors, elt), &entry, ev)...)
+			if diags.HasError() {
+				return diags
+			}
+			{{ $pangoEntries }} = append({{ $pangoEntries }}, *entry)
+		}
+	}
+    {{- else }}
+	var {{ $pangoEntries }} []{{ .ItemsType }}
+	if !o.{{ .TerraformName.CamelCase }}.IsUnknown() && !o.{{ .TerraformName.CamelCase }}.IsNull() {
+		object_entries := make([]types.{{ .ItemsType | PascalCase }}, 0, len(o.{{ .TerraformName.CamelCase }}.Elements()))
+		diags.Append(o.{{ .TerraformName.CamelCase }}.ElementsAs(ctx, &object_entries, false)...)
+		if diags.HasError() {
+			diags.AddError("Explicit Error", "Failed something")
+			return diags
+		}
+
+		for _, elt := range object_entries {
+			{{ $pangoEntries }} = append({{ $pangoEntries }}, elt.Value{{ .ItemsType | PascalCase }}())
+		}
+	}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- define "renderStringAsMemberAssignment" }}
+  {{- with .Parameter }}
+    {{- $pangoType := printf "%s%s" $.Spec.PangoType .PangoName.CamelCase }}
+    {{- $pangoEntries := printf "%s_pango_entries" .TerraformName.LowerCamelCase }}
+    {{ $pangoEntries }} := []string{o.{{ .TerraformName.CamelCase }}.ValueString()}
+  {{- end }}
+{{- end }}
+
+{{- define "renderSimpleAssignment" }}
+  {{- if .Encryption }}
+
+	var {{ .TerraformName.LowerCamelCase }}_value *string
+	{
+	valueKey, err := CreateXpathForAttributeWithAncestors(ancestors, "{{ .TerraformName.Original }}")
+	if err != nil {
+		diags.AddError("Failed to create encrypted values state key", err.Error())
+		return diags
+	}
+
+    {{- if eq .Encryption.HashingType "client" }}
+	stateValue, found := ev.GetPlaintextValue(valueKey)
+	if !found || stateValue != o.{{ .TerraformName.CamelCase }}.Value{{ CamelCaseType .Type }}() {
+		hashed, err := {{ .Encryption.HashingFunc }}(ctx, client, o.{{ .TerraformName.CamelCase }}.Value{{ CamelCaseType .Type }}())
+		if err != nil {
+			diags.AddError("Failed to hash sensitive value", err.Error())
+			return diags
+		}
+
+		err = ev.StoreEncryptedValue(valueKey, "{{ .Encryption.HashingType }}", hashed)
+		if err != nil {
+			diags.AddError("Failed to manage encrypted values state", err.Error())
+			return diags
+		}
+
+		err = ev.StorePlaintextValue(valueKey, "{{ .Encryption.HashingType }}", o.{{ .TerraformName.CamelCase }}.ValueString())
+		if err != nil {
+			diags.AddError("Failed to manage encrypted values state", err.Error())
+			return diags
+		}
+
+		{{ .TerraformName.LowerCamelCase }}_value = &hashed
+	} else {
+		{{ .TerraformName.LowerCamelCase }}_value = &stateValue
+	}
+    {{- else }}
+	err = ev.StorePlaintextValue(valueKey, "{{ .Encryption.HashingType }}", o.{{ .TerraformName.CamelCase }}.ValueString())
+	if err != nil {
+		diags.AddError("Failed to manage encrypted values state", err.Error())
+		return diags
+	}
+	{{ .TerraformName.LowerCamelCase }}_value = o.{{ .TerraformName.CamelCase }}.Value{{ CamelCaseType .Type }}Pointer()
+    {{- end }}
+	}
+  {{- else }}
+	{{ .TerraformName.LowerCamelCase }}_value := o.{{ .TerraformName.CamelCase }}.Value{{ CamelCaseType .Type }}Pointer()
+  {{- end }}
+{{- end }}
+
+{{- range .Specs }}
+{{- $spec := . }}
+func (o *{{ .TerraformType }}{{ .ModelOrObject }}) CopyToPango(ctx context.Context, client pangoutil.PangoClient, ancestors []Ancestor, obj **{{ .PangoReturnType }}, ev *EncryptedValuesManager) diag.Diagnostics {
+	var diags diag.Diagnostics
+  {{- range .Params }}
+    {{- $terraformType := printf "%s%s" $spec.TerraformType .TerraformName.CamelCase }}
+    {{- if eq .ComplexType "string-as-member" }}
+      {{- template "renderStringAsMemberAssignment" Map "Parameter" . "Spec" $spec }}
+    {{- else if eq .Type "" }}
+      {{- $pangoType := printf "%sObject" $spec.PangoType }}
+	{{- template "terraformNestedElementsAssign" Map "Parameter" . "Spec" $spec }}
+    {{- else if or (eq .Type "list") (eq .Type "set") }}
+      {{- $pangoType := printf "%s%s" $spec.PangoType .TerraformName.CamelCase }}
+	{{- template "terraformListElementsAs" Map "Parameter" . "Spec" $spec }}
+    {{- else }}
+        {{- template "renderSimpleAssignment" . }}
+    {{- end }}
+  {{- end }}
+
+  {{- range .OneOf }}
+    {{- if eq .ComplexType "string-as-member" }}
+      {{- template "renderStringAsMemberAssignment" Map "Parameter" . "Spec" $spec }}
+    {{- else if eq .Type "" }}
+      {{- $pangoType := printf "%sObject" $spec.PangoType }}
+	{{- template "terraformNestedElementsAssign" Map "Parameter" . "Spec" $spec }}
+    {{- else if or (eq .Type "list") (eq .Type "set") }}
+	{{- template "terraformListElementsAs" Map "Parameter" . "Spec" $spec }}
+    {{- else }}
+        {{- template "renderSimpleAssignment" . }}
+    {{- end }}
+  {{- end }}
+
+  if (*obj) == nil {
+	*obj = new({{ .PangoReturnType }})
+  }
+  {{- if .HasEntryName }}
+	(*obj).Name = o.Name.ValueString()
+  {{- end }}
+  {{- range .Params }}
+    {{- if eq .ComplexType "string-as-member" }}
+	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_pango_entries
+    {{- else if eq .Type "" }}
+	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_entry
+    {{- else if or (eq .Type "list") (eq .Type "set") }}
+	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_pango_entries
+    {{- else }}
+	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_value
+    {{- end }}
+  {{- end }}
+
+  {{- range .OneOf }}
+    {{- if eq .ComplexType "string-as-member" }}
+	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_pango_entries
+    {{- else if eq .Type "" }}
+	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_entry
+    {{- else if or (eq .Type "list") (eq .Type "set") }}
+	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_pango_entries
+    {{- else }}
+	(*obj).{{ .PangoName.CamelCase }} = {{ .TerraformName.LowerCamelCase }}_value
+    {{- end }}
+  {{- end }}
+
+	return diags
+}
+{{- end }}

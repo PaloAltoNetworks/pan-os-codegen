@@ -1,0 +1,151 @@
+
+{{- $structName := "" }}
+{{- if eq .ResourceOrDS "DataSource" }}
+  {{ $structName = .dataSourceStructName }}
+{{- else }}
+  {{ $structName = .resourceStructName }}
+{{- end }}
+{{- $resourceSDKStructName := printf "%s.%s" .resourceSDKName .EntryOrConfig }}
+{{- $resourceTFStructName := printf "%s%sObject" $structName .ListAttribute.CamelCase }}
+
+{{- $stateName := "" }}
+{{- if eq .ResourceOrDS "DataSource" }}
+  {{- $stateName = "Config" }}
+{{- else }}
+  {{- $stateName = "State" }}
+{{- end -}}
+
+
+
+var state {{ .structName }}{{ .ResourceOrDS }}Model
+
+resp.Diagnostics.Append(req.{{ $stateName }}.Get(ctx, &state)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+// Basic logging.
+tflog.Info(ctx, "performing resource create", map[string]any{
+	"resource_name": "panos_{{ UnderscoreName .structName }}",
+	"function":      "Create",
+})
+
+{{ RenderEncryptedValuesInitialization }}
+
+var location {{ .resourceSDKName }}.Location
+{{ RenderLocationsStateToPango "state.Location" "location" }}
+
+{{- if eq .PluralType "map" }}
+elements := make(map[string]{{ $resourceTFStructName }})
+resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
+if len(elements) == 0 || resp.Diagnostics.HasError() {
+	return
+}
+
+entries := make([]*{{ $resourceSDKStructName }}, 0, len(elements))
+for name, elt := range elements {
+	var entry *{{ $resourceSDKStructName }}
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, o.client, nil, &entry, ev)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	entry.Name = name
+	entries = append(entries, entry)
+}
+
+{{- else if or (eq .PluralType "list") (eq .PluralType "set") }}
+var elements []{{ $resourceTFStructName }}
+resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+entries := make([]*{{ $resourceSDKStructName }}, 0, len(elements))
+for _, elt := range elements {
+	var entry *{{ $resourceSDKStructName }}
+	resp.Diagnostics.Append(elt.CopyToPango(ctx, o.client, nil, &entry, ev)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	entries = append(entries, entry)
+}
+{{- end }}
+
+components, err := state.resourceXpathParentComponents()
+if err != nil {
+	resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
+	return
+}
+
+readEntries, err := o.manager.ReadMany(ctx, location, components)
+if err != nil {
+	if errors.Is(err, sdkmanager.ErrObjectNotFound) {
+		resp.State.RemoveResource(ctx)
+	} else {
+		resp.Diagnostics.AddError("Failed to read entries from the server", err.Error())
+	}
+	return
+}
+
+{{- if eq .PluralType "map" }}
+entriesByName := make(map[string]*{{ $resourceSDKStructName }})
+for _, elt := range entries {
+	entriesByName[elt.EntryName()] = elt
+}
+
+objects := make(map[string]{{ $resourceTFStructName }})
+for _, elt := range readEntries {
+	if _, found := entriesByName[elt.EntryName()]; !found {
+		continue
+	}
+
+	var object {{ $resourceTFStructName }}
+	object.name = elt.Name
+	resp.Diagnostics.Append(object.CopyFromPango(ctx, o.client, nil, elt, ev)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	objects[elt.Name] = object
+}
+{{- else if or (eq .PluralType "list") (eq .PluralType "set") }}
+objects := make([]{{ $resourceTFStructName }}, len(readEntries))
+for idx, elt := range readEntries {
+	var object {{ $resourceTFStructName }}
+	resp.Diagnostics.Append(object.CopyFromPango(ctx, o.client, nil, elt, ev)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	objects[idx] = object
+}
+{{- end }}
+
+{{ if eq .PluralType "map" }}
+var map_diags diag.Diagnostics
+state.{{ .ListAttribute.CamelCase }}, map_diags = types.MapValueFrom(ctx, state.getTypeFor("{{ .ListAttribute.Underscore }}"), objects)
+resp.Diagnostics.Append(map_diags...)
+if resp.Diagnostics.HasError() {
+	return
+}
+{{- else if eq .PluralType "list" }}
+var list_diags diag.Diagnostics
+state.{{ .ListAttribute.CamelCase }}, list_diags = types.ListValueFrom(ctx, state.getTypeFor("{{ .ListAttribute.Underscore }}"), objects)
+resp.Diagnostics.Append(list_diags...)
+if resp.Diagnostics.HasError() {
+	return
+}
+{{- else if eq .PluralType "set" }}
+var list_diags diag.Diagnostics
+state.{{ .ListAttribute.CamelCase }}, list_diags = types.SetValueFrom(ctx, state.getTypeFor("{{ .ListAttribute.Underscore }}"), objects)
+resp.Diagnostics.Append(list_diags...)
+if resp.Diagnostics.HasError() {
+	return
+}
+{{- end }}
+
+{{- if .ResourceXpathVariablesWithChecks }}
+{{ AttributesFromXpathComponents "state" }}
+{{- end }}
+
+{{ RenderEncryptedValuesFinalizer }}
+
+resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

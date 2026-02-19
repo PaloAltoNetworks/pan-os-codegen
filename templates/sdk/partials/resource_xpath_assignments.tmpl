@@ -1,0 +1,7 @@
+{{- range .Variables }}
+  {{- if or (eq .Type "entry") (eq .Type "value") }}
+	ans = append(ans, components[{{ .Idx }}])
+  {{- else if eq .Type "static" }}
+	ans = append(ans, "{{ .Name.Original }}")
+  {{- end }}
+{{- end }}

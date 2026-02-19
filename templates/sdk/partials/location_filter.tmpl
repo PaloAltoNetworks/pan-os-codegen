@@ -1,0 +1,17 @@
+func (o Location) LocationFilter() *string {
+{{ range .Specs }}
+  {{ $spec := . }}
+  {{- if not .HasFilter }}{{ continue }}{{ end }}
+	if o.{{ $spec.Name.CamelCase }} != nil {
+  {{- range .Variables }}
+    {{- if not .LocationFilter }}{{ continue }}{{ end }}
+		if o.{{ $spec.Name.CamelCase }}.{{ .Name.CamelCase }} == "" {
+			return nil
+		} else {
+			return &o.{{ $spec.Name.CamelCase }}.{{ .Name.CamelCase }}
+		}
+  {{- end }}
+	}
+{{- end }}
+	return nil
+}

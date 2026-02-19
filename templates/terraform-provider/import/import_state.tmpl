@@ -1,0 +1,76 @@
+
+	var obj {{ .StructName }}ImportState
+	data, err := base64.StdEncoding.DecodeString(req.ID)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to decode Import ID", err.Error())
+		return
+	}
+
+{{- if and .PluralType (not .HasParent) }}
+	{{ RenderEncryptedValuesInitialization }}
+{{- end }}
+
+	err = json.Unmarshal(data, &obj)
+	if err != nil {
+		var diagsErr *DiagnosticsError
+		if errors.As(err, &diagsErr) {
+			resp.Diagnostics.Append(diagsErr.Diagnostics()...)
+		} else {
+			resp.Diagnostics.AddError("Failed to unmarshal Import ID", err.Error())
+		}
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("location"), obj.Location)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- if .HasParent }}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("{{ .ParentAttribute.Underscore }}"), obj.{{ .ParentAttribute.CamelCase }})...)
+  {{- if eq .PluralType "" }}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), obj.Name)...)
+  {{- end }}
+{{- else if eq .PluralType "map" }}
+	names := make(map[string]*{{ .ListStructName }})
+
+	var objectNames []string
+	resp.Diagnostics.Append(obj.Names.ElementsAs(ctx, &objectNames, false)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	for _, elt := range objectNames {
+		object := &{{ .ListStructName }}{}
+		resp.Diagnostics.Append(object.CopyFromPango(ctx, o.client, nil, &{{ .PangoStructName }}{}, ev)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		names[elt] = object
+	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("{{ .ListAttribute.Underscore }}"), names)...)
+{{- else if eq .PluralType "list" }}
+  {{- if .HasPosition }}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("position"), obj.Position)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+  {{- end }}
+
+	var names []*{{ .ListStructName }}
+	var objectNames []string
+	resp.Diagnostics.Append(obj.Names.ElementsAs(ctx, &objectNames, false)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	for _, elt := range objectNames {
+		object := &{{ .ListStructName }}{}
+		resp.Diagnostics.Append(object.CopyFromPango(ctx, o.client, nil, &{{ .PangoStructName }}{}, ev)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		object.Name = types.StringValue(elt)
+		names = append(names, object)
+	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("{{ .ListAttribute.Underscore }}"), names)...)
+{{- else }}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), obj.Name)...)
+{{- end -}}

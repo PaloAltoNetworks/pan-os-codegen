@@ -1,0 +1,73 @@
+
+{{ $resourceSDKStructName := printf "%s.%s" .resourceSDKName .EntryOrConfig }}
+
+	var state {{ .structName }}Model
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Basic logging.
+	tflog.Info(ctx, "performing resource delete", map[string]any{
+		"resource_name": "panos_{{ UnderscoreName .structName }}",
+		"function":      "Delete",
+{{- if .HasEntryName }}
+		"name":          state.Name.ValueString(),
+{{- end }}
+	})
+
+	// Verify mode.
+	if o.client.Hostname == "" {
+		resp.Diagnostics.AddError("Invalid mode error", InspectionModeError)
+		return
+	}
+
+	var location {{ .resourceSDKName }}.Location
+	{{ RenderLocationsStateToPango "state.Location" "location" }}
+
+{{- if .HasEntryName }}
+	components, err := state.resourceXpathParentComponents()
+	if err != nil {
+		resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
+		return
+	}
+  {{- if .HasImports }}
+	var importLocation {{ .resourceSDKName }}.ImportLocation
+	{{ RenderImportLocationAssignment "state.Location" "importLocation" }}
+	if importLocation != nil {
+		err = o.manager.UnimportFromLocations(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, state.Name.ValueString())
+	}
+	if err != nil {
+		resp.Diagnostics.AddError("Error in delete", err.Error())
+		return
+	}
+	err = o.manager.Delete(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, components, []string{state.Name.ValueString()})
+  {{- else }}
+	err = o.manager.Delete(ctx, location, components, []string{state.Name.ValueString()})
+  {{- end }}
+	if err != nil && !errors.Is(err, sdkmanager.ErrObjectNotFound) {
+		resp.Diagnostics.AddError("Error in delete", err.Error())
+		return
+	}
+{{- else }}
+	components, err := state.resourceXpathParentComponents()
+	if err != nil {
+		resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
+		return
+	}
+
+	existing, err := o.manager.Read(ctx, location, components)
+	if err != nil {
+		resp.Diagnostics.AddError("Error while deleting resource", err.Error())
+		return
+	}
+
+	var obj {{ $resourceSDKStructName }}
+	obj.Misc = existing.Misc
+
+	err = o.manager.Delete(ctx, location, &obj)
+	if err != nil && !errors.Is(err, sdkmanager.ErrObjectNotFound) {
+		resp.Diagnostics.AddError("Error in delete", err.Error())
+		return
+	}
+{{- end }}
