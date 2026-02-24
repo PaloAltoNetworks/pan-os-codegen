@@ -25,100 +25,34 @@ func RenderImportStateMarshallers(resourceTyp properties.ResourceType, names *Na
 
 // RenderImportLocationAssignment generates code to assign import location data.
 func RenderImportLocationAssignment(names *NameProvider, spec *properties.Normalization, source string, dest string) (string, error) {
-	if len(spec.Imports) == 0 {
+	if len(spec.Imports.Variants) == 0 {
 		return "", nil
 	}
 
-	type importVariantSpec struct {
-		PangoStructNames *map[string]string
-	}
-
-	type importLocationSpec struct {
-		TerraformStructName string
-		Name                *properties.NameVariant
-		Fields              []string
-	}
-
-	type importSpec struct {
-		TerraformStructName string
-		Name                *properties.NameVariant
-		Locations           []importLocationSpec
-	}
-
-	var importSpecs []importSpec
-	variantsByName := make(map[string]importVariantSpec)
-	for _, elt := range spec.Imports {
-		existing, found := variantsByName[elt.Type.CamelCase]
-		if !found {
-			pangoStructNames := make(map[string]string)
-			existing = importVariantSpec{
-				PangoStructNames: &pangoStructNames,
-			}
-		}
-
-		var locations []importLocationSpec
-		for _, loc := range elt.Locations {
-			if !loc.Required {
-				continue
-			}
-
-			var fields []string
-			for _, elt := range loc.XpathVariables {
-				fields = append(fields, elt.Name.CamelCase)
-			}
-
-			tfStructName := fmt.Sprintf("%s%sLocation", names.StructName, elt.Type.CamelCase)
-			pangoStructName := fmt.Sprintf("%s%s%sImportLocation", elt.Variant.CamelCase, elt.Type.CamelCase, loc.Name.CamelCase)
-			(*existing.PangoStructNames)[loc.Name.CamelCase] = pangoStructName
-			locations = append(locations, importLocationSpec{
-				TerraformStructName: tfStructName,
-				Name:                loc.Name,
-				Fields:              fields,
-			})
-		}
-		variantsByName[elt.Type.CamelCase] = existing
-
-		importSpecs = append(importSpecs, importSpec{
-			Name:      elt.Type,
-			Locations: locations,
-		})
-	}
-
 	type context struct {
-		TerraformStructName string
-		PackageName         string
-		Source              string
-		Dest                string
-		Variants            map[string]importVariantSpec
-		Specs               []importSpec
+		Variants    []*properties.NameVariant
+		StructName  string
+		Source      string
+		Destination string
+	}
+
+	var variants []*properties.NameVariant
+
+	for _, elt := range spec.Imports.Variants {
+		if elt == "*" {
+			continue
+		}
+		variants = append(variants, properties.NewNameVariant(elt))
 	}
 
 	data := context{
-		TerraformStructName: fmt.Sprintf("%sLocation", names.StructName),
-		PackageName:         names.PackageName,
-		Source:              source,
-		Dest:                dest,
-		Variants:            variantsByName,
-		Specs:               importSpecs,
+		Variants:    variants,
+		StructName:  names.StructName,
+		Source:      source,
+		Destination: dest,
 	}
 
-	funcMap := template.FuncMap{
-		"GetPangoStructForLocation": func(variants map[string]importVariantSpec, typ *properties.NameVariant, location *properties.NameVariant) (string, error) {
-			variantSpec, found := variants[typ.CamelCase]
-			if !found {
-				return "", fmt.Errorf("failed to find variant for type '%s'", typ.CamelCase)
-			}
-
-			structName, found := (*variantSpec.PangoStructNames)[location.CamelCase]
-			if !found {
-				return "", fmt.Errorf("failed to find variant for type '%s', location '%s'", typ.CamelCase, location.CamelCase)
-			}
-
-			return structName, nil
-		},
-	}
-
-	return processTemplate("location/assignment.tmpl", "render-locations-pango-to-state", data, funcMap)
+	return processTemplate("import/import_location_assignment.tmpl", "render-locations-pango-to-state", data, commonFuncMap)
 }
 
 // importStateStructFieldSpec describes a field in an import state struct.

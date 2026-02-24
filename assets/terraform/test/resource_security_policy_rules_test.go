@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"strings"
 	"testing"
 
@@ -33,7 +32,7 @@ resource "panos_security_policy_rules" "rules" {
   location = {
     device_group = {
       name = panos_device_group.example.name
-      ruleset = "pre-ruleset"
+      rulebase = "pre-rulebase"
     }
   }
 
@@ -77,7 +76,10 @@ func TestAccSecurityPolicyRulesImport(t *testing.T) {
 		}
 	}
 
-	importStateGenerateIDInvalid := importStateGenerateIDWithPrefixAndRules([]string{"rule-2", "rule-3", "rule-4", "rule-5"})
+	// Import with a superset of rules (rule-5 doesn't exist on server).
+	// ReadMany now handles missing entries gracefully by returning only existing ones,
+	// so this import succeeds with the 3 existing rules rather than failing.
+	importStateGenerateIDPartial := importStateGenerateIDWithPrefixAndRules([]string{"rule-2", "rule-3", "rule-4", "rule-5"})
 	importStateGenerateIDValid := importStateGenerateIDWithPrefixAndRules([]string{"rule-2", "rule-3", "rule-4"})
 
 	resource.Test(t, resource.TestCase{
@@ -99,8 +101,7 @@ func TestAccSecurityPolicyRulesImport(t *testing.T) {
 				},
 				ResourceName:      "panos_security_policy_rules.imported",
 				ImportState:       true,
-				ImportStateIdFunc: importStateGenerateIDInvalid,
-				ExpectError:       regexp.MustCompile("Not all entries found on the server"),
+				ImportStateIdFunc: importStateGenerateIDPartial,
 			},
 			{
 				Config: configStep2,

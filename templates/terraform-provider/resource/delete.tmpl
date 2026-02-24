@@ -32,19 +32,18 @@
 		return
 	}
   {{- if .HasImports }}
-	var importLocation {{ .resourceSDKName }}.ImportLocation
-	{{ RenderImportLocationAssignment "state.Location" "importLocation" }}
-	if importLocation != nil {
-		err = o.manager.UnimportFromLocations(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, state.Name.ValueString())
+	var importVsys string
+	{{ RenderImportLocationAssignment "state" "importVsys" }}
+	if importVsys != "" {
+		err = o.manager.UnimportFromLocation(ctx, location, importVsys, state.Name.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to unimport resource from location", err.Error())
+			return
+		}
 	}
-	if err != nil {
-		resp.Diagnostics.AddError("Error in delete", err.Error())
-		return
-	}
-	err = o.manager.Delete(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, components, []string{state.Name.ValueString()})
-  {{- else }}
-	err = o.manager.Delete(ctx, location, components, []string{state.Name.ValueString()})
   {{- end }}
+
+	err = o.manager.Delete(ctx, location, components, []string{state.Name.ValueString()})
 	if err != nil && !errors.Is(err, sdkmanager.ErrObjectNotFound) {
 		resp.Diagnostics.AddError("Error in delete", err.Error())
 		return
