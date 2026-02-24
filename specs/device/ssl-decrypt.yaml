@@ -16,7 +16,8 @@ go_sdk_config:
   - device
   - ssldecrypt
 panos_xpath:
-  path: ["ssl-decrypt"]
+  path:
+  - ssl-decrypt
   vars: []
 locations:
 - name: panorama
@@ -200,7 +201,6 @@ locations:
   required: false
   read_only: false
 entries: []
-imports: []
 spec:
   params:
   - name: disabled-ssl-exclude-cert-from-predefined

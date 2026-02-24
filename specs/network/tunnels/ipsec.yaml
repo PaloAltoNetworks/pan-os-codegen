@@ -23,25 +23,6 @@ panos_xpath:
   - ipsec
   vars: []
 locations:
-- name: ngfw
-  xpath:
-    path:
-    - config
-    - devices
-    - $ngfw_device
-    vars:
-    - name: ngfw_device
-      description: The NGFW device
-      required: false
-      default: localhost.localdomain
-      validators: []
-      type: entry
-  description: Located in a specific NGFW device
-  devices:
-  - ngfw
-  validators: []
-  required: false
-  read_only: false
 - name: template
   xpath:
     path:
@@ -116,7 +97,6 @@ entries:
 - name: name
   description: ''
   validators: []
-imports: []
 spec:
   params:
   - name: anti-replay

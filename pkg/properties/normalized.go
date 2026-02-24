@@ -15,6 +15,7 @@ import (
 	"text/template"
 
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/content"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/imports"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/object"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/parameter"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/schema/validator"
@@ -31,7 +32,7 @@ type Normalization struct {
 	PanosXpath              PanosXpath              `json:"panos_xpath" yaml:"panos_xpath"`
 	Locations               map[string]*Location    `json:"locations" yaml:"locations"`
 	Entry                   *Entry                  `json:"entry" yaml:"entry"`
-	Imports                 []Import                `json:"imports" yaml:"imports"`
+	Imports                 imports.Import          `json:"imports" yaml:"imports"`
 	Version                 string                  `json:"version" yaml:"version"`
 	Spec                    *Spec                   `json:"spec" yaml:"spec"`
 	Const                   map[string]*Const       `json:"const" yaml:"const"`
@@ -40,27 +41,6 @@ type Normalization struct {
 type PanosXpath struct {
 	Path      []string                    `yaml:"path"`
 	Variables []object.PanosXpathVariable `yaml:"vars"`
-}
-
-type Import struct {
-	Variant   *NameVariant
-	Type      *NameVariant
-	Locations map[string]ImportLocation
-}
-
-type ImportLocation struct {
-	Name           *NameVariant
-	SpecOrder      int
-	Required       bool
-	XpathElements  []string
-	XpathVariables map[string]ImportXpathVariable
-}
-
-type ImportXpathVariable struct {
-	Name        *NameVariant
-	SpecOrder   int
-	Description string
-	Default     string
 }
 
 type TerraformResourceType string
@@ -735,6 +715,7 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 			PluralDescription:     object.TerraformConfig.PluralDescription,
 		},
 		Locations:             make(map[string]*Location),
+		Imports:               object.Imports,
 		GoSdkSkip:             object.GoSdkConfig.Skip,
 		GoSdkPath:             object.GoSdkConfig.Package,
 		GoSdkSupportedMethods: object.GoSdkConfig.SupportedMethods,
@@ -817,51 +798,6 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 			spec.Entry = specEntry
 		}
 
-	}
-
-	var imports []Import
-	for _, elt := range object.Imports {
-		locations := make(map[string]ImportLocation, len(elt.Locations))
-		for idx, location := range elt.Locations {
-			schemaXpathVars := make(map[string]xpathschema.Variable, len(location.Xpath.Variables))
-			xpathVars := make(map[string]ImportXpathVariable, len(location.Xpath.Variables))
-			for variableIdx, xpathVariable := range location.Xpath.Variables {
-				schemaXpathVars[xpathVariable.Name] = xpathVariable
-
-				_, found := xpathVars[xpathVariable.Name]
-				if found {
-					panic(fmt.Sprintf("Variable duplicate: %s", xpathVariable.Name))
-				}
-
-				xpathVars[xpathVariable.Name] = ImportXpathVariable{
-					Name:        NewNameVariant(xpathVariable.Name),
-					SpecOrder:   variableIdx,
-					Description: xpathVariable.Description,
-					Default:     xpathVariable.Default,
-				}
-			}
-
-			var xpath []string
-			xpath = append(xpath, location.Xpath.Elements...)
-
-			locations[location.Name] = ImportLocation{
-				Name:           NewNameVariant(location.Name),
-				SpecOrder:      idx,
-				Required:       location.Required,
-				XpathVariables: xpathVars,
-				XpathElements:  xpath,
-			}
-		}
-
-		imports = append(imports, Import{
-			Type:      NewNameVariant(elt.Type),
-			Variant:   NewNameVariant(elt.Variant),
-			Locations: locations,
-		})
-	}
-
-	if len(imports) > 0 {
-		spec.Imports = imports
 	}
 
 	consts := make(map[string]*Const)
@@ -964,26 +900,6 @@ func (spec *Normalization) OrderedLocations() []*Location {
 	elements := make([]*Location, len(spec.Locations))
 	for _, elt := range spec.Locations {
 		elements[elt.SpecOrder] = elt
-	}
-
-	return elements
-}
-
-func (o *Import) OrderedLocations() []*ImportLocation {
-	elements := make([]*ImportLocation, len(o.Locations))
-
-	for _, elt := range o.Locations {
-		elements[elt.SpecOrder] = &elt
-	}
-
-	return elements
-}
-
-func (o *ImportLocation) OrderedXpathVariables() []*ImportXpathVariable {
-	elements := make([]*ImportXpathVariable, len(o.XpathVariables))
-
-	for _, elt := range o.XpathVariables {
-		elements[elt.SpecOrder] = &elt
 	}
 
 	return elements

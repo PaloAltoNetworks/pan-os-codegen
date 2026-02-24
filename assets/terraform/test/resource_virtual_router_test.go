@@ -1,14 +1,17 @@
 package provider_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
+	"github.com/PaloAltoNetworks/pango/network/virtual_router"
 	"github.com/hashicorp/terraform-plugin-testing/config"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
@@ -3954,5 +3957,235 @@ resource "panos_virtual_router" "test" {
   administrative_distances = {
     static = 10
   }
+}
+`
+
+// TestAccPanosVirtualRouter_VsysImport_Lifecycle verifies that virtual router
+// import status correctly follows vsys field changes through:
+// empty → vsys1 → vsys2 → empty
+func TestAccPanosVirtualRouter_VsysImport_Lifecycle(t *testing.T) {
+	t.Parallel()
+
+	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
+	templateName := fmt.Sprintf("acc-vr-import-lifecycle-%s", nameSuffix)
+	routerName := fmt.Sprintf("test-vr-lifecycle-%s", nameSuffix)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: panosVirtualRouter_VsysImport_EmptyVsys_Tmpl,
+				ConfigVariables: map[string]config.Variable{
+					"template_name": config.StringVariable(templateName),
+					"router_name":   config.StringVariable(routerName),
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					ExpectVsysImportAbsent("panos_virtual_router.test", "vsys1", ImportTypeVirtualRouter),
+					ExpectVsysImportAbsent("panos_virtual_router.test", "vsys2", ImportTypeVirtualRouter),
+				},
+			},
+			{
+				Config: panosVirtualRouter_VsysImport_Vsys1_Tmpl,
+				ConfigVariables: map[string]config.Variable{
+					"template_name": config.StringVariable(templateName),
+					"router_name":   config.StringVariable(routerName),
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					ExpectVsysImportExists("panos_virtual_router.test", "vsys1", ImportTypeVirtualRouter),
+					ExpectVsysImportAbsent("panos_virtual_router.test", "vsys2", ImportTypeVirtualRouter),
+				},
+			},
+			{
+				Config: panosVirtualRouter_VsysImport_Vsys2_Tmpl,
+				ConfigVariables: map[string]config.Variable{
+					"template_name": config.StringVariable(templateName),
+					"router_name":   config.StringVariable(routerName),
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					ExpectVsysImportAbsent("panos_virtual_router.test", "vsys1", ImportTypeVirtualRouter),
+					ExpectVsysImportExists("panos_virtual_router.test", "vsys2", ImportTypeVirtualRouter),
+				},
+			},
+			{
+				Config: panosVirtualRouter_VsysImport_EmptyVsys_Tmpl,
+				ConfigVariables: map[string]config.Variable{
+					"template_name": config.StringVariable(templateName),
+					"router_name":   config.StringVariable(routerName),
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					ExpectVsysImportAbsent("panos_virtual_router.test", "vsys1", ImportTypeVirtualRouter),
+					ExpectVsysImportAbsent("panos_virtual_router.test", "vsys2", ImportTypeVirtualRouter),
+				},
+			},
+		},
+	})
+}
+
+// TestAccPanosVirtualRouter_VsysImport_ManualDrift verifies that Terraform does not
+// interfere with manual imports when vsys is empty (not managed by Terraform).
+func TestAccPanosVirtualRouter_VsysImport_ManualDrift(t *testing.T) {
+	t.Parallel()
+
+	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
+	templateName := fmt.Sprintf("acc-vr-drift-%s", nameSuffix)
+	routerName := fmt.Sprintf("test-vr-drift-%s", nameSuffix)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				// Create with empty vsys - Terraform doesn't manage import
+				Config: panosVirtualRouter_VsysImport_EmptyVsys_Tmpl,
+				ConfigVariables: map[string]config.Variable{
+					"template_name": config.StringVariable(templateName),
+					"router_name":   config.StringVariable(routerName),
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					ExpectVsysImportAbsent("panos_virtual_router.test", "vsys1", ImportTypeVirtualRouter),
+				},
+			},
+			{
+				// Manually import outside Terraform
+				Config: panosVirtualRouter_VsysImport_EmptyVsys_Tmpl,
+				ConfigVariables: map[string]config.Variable{
+					"template_name": config.StringVariable(templateName),
+					"router_name":   config.StringVariable(routerName),
+				},
+				Check: resource.ComposeTestCheckFunc(
+					manuallyImportVirtualRouterToVsys(templateName, routerName, "vsys1"),
+				),
+				ConfigStateChecks: []statecheck.StateCheck{
+					// Verify manual import exists
+					ExpectVsysImportExists("panos_virtual_router.test", "vsys1", ImportTypeVirtualRouter),
+				},
+				// PlanOnly with ExpectNonEmptyPlan=false would verify no changes in plan
+				// but that's not directly supported. The re-apply in this step serves
+				// as verification that Terraform doesn't try to remove the manual import.
+			},
+			{
+				// Cleanup: manually unimport before destroy
+				Config: panosVirtualRouter_VsysImport_EmptyVsys_Tmpl,
+				ConfigVariables: map[string]config.Variable{
+					"template_name": config.StringVariable(templateName),
+					"router_name":   config.StringVariable(routerName),
+				},
+				Check: resource.ComposeTestCheckFunc(
+					manuallyUnimportVirtualRouterFromVsys(templateName, routerName, "vsys1"),
+				),
+				ConfigStateChecks: []statecheck.StateCheck{
+					ExpectVsysImportAbsent("panos_virtual_router.test", "vsys1", ImportTypeVirtualRouter),
+				},
+			},
+		},
+	})
+}
+
+// manuallyImportVirtualRouterToVsys imports a virtual router to a vsys outside of Terraform
+func manuallyImportVirtualRouterToVsys(templateName, routerName, vsysName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		// Build location
+		location := virtual_router.NewTemplateLocation()
+		location.Template.Template = templateName
+
+		// Import to specified vsys
+		svc := virtual_router.NewService(sdkClient)
+		err := svc.ImportToLocation(context.Background(), *location, vsysName, routerName)
+		if err != nil {
+			return fmt.Errorf("manual import of %s to %s failed: %w", routerName, vsysName, err)
+		}
+
+		return nil
+	}
+}
+
+// manuallyUnimportVirtualRouterFromVsys unimports a virtual router from a vsys outside of Terraform
+func manuallyUnimportVirtualRouterFromVsys(templateName, routerName, vsysName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		// Build location
+		location := virtual_router.NewTemplateLocation()
+		location.Template.Template = templateName
+
+		// Unimport from specified vsys
+		svc := virtual_router.NewService(sdkClient)
+		err := svc.UnimportFromLocation(context.Background(), *location, vsysName, routerName)
+		if err != nil {
+			return fmt.Errorf("manual unimport of %s from %s failed: %w", routerName, vsysName, err)
+		}
+
+		return nil
+	}
+}
+
+const panosVirtualRouter_VsysImport_EmptyVsys_Tmpl = `
+variable "template_name" { type = string }
+variable "router_name" { type = string }
+
+resource "panos_template" "template" {
+    name = var.template_name
+    location = {
+        panorama = {
+            panorama_device = "localhost.localdomain"
+        }
+    }
+}
+
+resource "panos_virtual_router" "test" {
+    location = {
+        template = {
+            name = panos_template.template.name
+            vsys = ""  # Empty - no import
+        }
+    }
+    name = var.router_name
+}
+`
+
+const panosVirtualRouter_VsysImport_Vsys1_Tmpl = `
+variable "template_name" { type = string }
+variable "router_name" { type = string }
+
+resource "panos_template" "template" {
+    name = var.template_name
+    location = {
+        panorama = {
+            panorama_device = "localhost.localdomain"
+        }
+    }
+}
+
+resource "panos_virtual_router" "test" {
+    location = {
+        template = {
+            name = panos_template.template.name
+            vsys = "vsys1"
+        }
+    }
+    name = var.router_name
+}
+`
+
+const panosVirtualRouter_VsysImport_Vsys2_Tmpl = `
+variable "template_name" { type = string }
+variable "router_name" { type = string }
+
+resource "panos_template" "template" {
+    name = var.template_name
+    location = {
+        panorama = {
+            panorama_device = "localhost.localdomain"
+        }
+    }
+}
+
+resource "panos_virtual_router" "test" {
+    location = {
+        template = {
+            name = panos_template.template.name
+            vsys = "vsys2"
+        }
+    }
+    name = var.router_name
 }
 `
