@@ -76,6 +76,7 @@ const (
 type TerraformProviderSpecMetadata struct {
 	ResourceSuffix string
 	StructName     string
+	Subcategory    string
 	Flags          TerraformSpecFlags
 }
 
