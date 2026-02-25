@@ -32,6 +32,9 @@ tflog.Info(ctx, "performing resource create", map[string]any{
 
 var location {{ .resourceSDKName }}.Location
 {{ RenderLocationsStateToPango "state.Location" "location" }}
+if resp.Diagnostics.HasError() {
+	return;
+}
 
 var elements []{{ $resourceTFStructName }}
 resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)

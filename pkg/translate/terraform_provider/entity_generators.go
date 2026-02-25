@@ -91,6 +91,15 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 		"RenderXpathComponentsGetter": func() (string, error) {
 			return RenderXpathComponentsGetter(names.ResourceStructName, spec)
 		},
+		"RenderMainStruct": func() (string, error) {
+			return RenderMainStruct(resourceTyp, schemaTyp, names, spec)
+		},
+		"RenderConfigureFunc": func() (string, error) {
+			return RenderConfigureFunc(resourceTyp, schemaTyp, names, spec)
+		},
+		"RenderModelStructs": func() (string, error) {
+			return RenderModelStructs(resourceTyp, schemaTyp, names, spec)
+		},
 		"ResourceCreateFunction": func(structName string, serviceName string) (string, error) {
 			return ResourceCreateFunction(resourceTyp, names, serviceName, spec, terraformProvider, names.PackageName)
 		},
@@ -265,6 +274,37 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 	return nil
 }
 
+// GenerateTerraformListResource generates a Terraform list resource template.
+func (o *GenerateTerraformProvider) GenerateTerraformListResource(resourceTyp properties.ResourceType, spec *properties.Normalization, provider *properties.TerraformProviderFile) error {
+	provider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/list", "")
+	provider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/list/schema", "listschema")
+
+	names := NewNameProvider(spec, resourceTyp)
+
+	funcMap := template.FuncMap{
+		"structName": func() string { return names.StructName },
+		"metaName":   func() string { return names.MetaName },
+
+		"RenderModelStructs": func() (string, error) {
+			return RenderModelStructs(resourceTyp, properties.SchemaListResource, names, spec)
+		},
+		"RenderMainStruct": func() (string, error) {
+			return RenderMainStruct(resourceTyp, properties.SchemaListResource, names, spec)
+		},
+		"RenderConfigureFunc": func() (string, error) {
+			return RenderConfigureFunc(resourceTyp, properties.SchemaListResource, names, spec)
+		},
+		"RenderSchema": func() (string, error) {
+			return RenderSchema(resourceTyp, properties.SchemaListResource, names, spec, provider.ImportManager)
+		},
+		"RenderListFunc": func() (string, error) {
+			return RenderListFunc(resourceTyp, properties.SchemaListResource, names, spec, provider.ImportManager)
+		},
+	}
+
+	return o.generateTerraformEntityTemplate(resourceTyp, properties.SchemaListResource, names, spec, provider, "resource/list_resource.tmpl", funcMap)
+}
+
 // GenerateTerraformAction generates a Terraform action template.
 func (o *GenerateTerraformProvider) GenerateTerraformAction(spec *properties.Normalization, provider *properties.TerraformProviderFile) error {
 	provider.ImportManager.AddStandardImport("context", "")
@@ -288,7 +328,7 @@ func (o *GenerateTerraformProvider) GenerateTerraformAction(spec *properties.Nor
 		"metaName":            func() string { return names.MetaName },
 		"HasCustomValidation": func() bool { return spec.TerraformProviderConfig.CustomValidation },
 
-		"RenderStructs": func() (string, error) { return RenderStructs(resourceTyp, properties.SchemaAction, names, spec) },
+		"RenderModelStructs": func() (string, error) { return RenderModelStructs(resourceTyp, properties.SchemaAction, names, spec) },
 		"RenderSchema": func() (string, error) {
 			return RenderSchema(resourceTyp, properties.SchemaAction, names, spec, provider.ImportManager)
 		},
@@ -386,6 +426,15 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 			"RenderDataSourceStructs": func() (string, error) { return RenderDataSourceStructs(resourceTyp, names, spec) },
 			"RenderDataSourceSchema": func() (string, error) {
 				return RenderDataSourceSchema(resourceTyp, names, spec, terraformProvider.ImportManager)
+			},
+			"RenderMainStruct": func() (string, error) {
+				return RenderMainStruct(resourceTyp, properties.SchemaDataSource, names, spec)
+			},
+			"RenderConfigureFunc": func() (string, error) {
+				return RenderConfigureFunc(resourceTyp, properties.SchemaDataSource, names, spec)
+			},
+			"RenderModelStructs": func() (string, error) {
+				return RenderModelStructs(resourceTyp, properties.SchemaDataSource, names, spec)
 			},
 		}
 		err := g.generateTerraformEntityTemplate(resourceTyp, properties.SchemaDataSource, names, spec, terraformProvider, "datasource/datasource.tmpl", funcMap)

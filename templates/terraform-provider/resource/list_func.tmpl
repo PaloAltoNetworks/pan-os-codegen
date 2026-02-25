@@ -1,0 +1,68 @@
+func (o *{{ .StructName }}) List(ctx context.Context, req list.ListRequest, stream *list.ListResultsStream) {
+	var data {{ .StructName }}Model
+
+	diags := req.Config.Get(ctx, &data)
+	if diags.HasError() {
+		stream.Results = list.ListResultsStreamDiagnostics(diags)
+		return
+	}
+
+	var location {{ .SDKName }}.Location
+	{{ RenderLocationsStateToPango "data.Location" "location" }}
+	if diags.HasError() {
+		stream.Results = list.ListResultsStreamDiagnostics(diags)
+		return
+	}
+
+	components := []string{}
+	entries, err := o.manager.ReadMany(ctx, location, components)
+	if err != nil && !errors.Is(err, sdkmanager.ErrObjectNotFound) {
+		stream.Results = list.ListResultsStreamDiagnostics(diag.Diagnostics{
+			diag.NewErrorDiagnostic("Error while listing entries on the server", err.Error()),
+		})
+		return
+	}
+
+	stream.Results = func(push func(list.ListResult) bool) {
+		for _, elt := range entries {
+			result := req.NewListResult(ctx)
+
+			identityLocation, diags := terraformLocation.Identity(ctx)
+			result.Diagnostics.Append(diags...)
+			if result.Diagnostics.HasError() {
+				push(result)
+				return
+			}
+
+			identity := {{ .IdentityModel }}{
+				Name: types.StringValue(elt.EntryName()),
+				Location: identityLocation,
+			}
+
+			result.Diagnostics.Append(result.Identity.Set(ctx, identity)...)
+			if result.Diagnostics.HasError() {
+				push(result)
+				return
+			}
+
+			var object {{ .ResourceStructName }}Model
+			object.Location = data.Location
+
+			result.Diagnostics.Append(object.CopyFromPango(ctx, o.client, nil, elt, nil)...)
+			if result.Diagnostics.HasError() {
+				push(result)
+				return
+			}
+
+			result.Diagnostics.Append(result.Resource.Set(ctx, object)...)
+			if result.Diagnostics.HasError() {
+				push(result)
+				return
+			}
+
+			if !push(result) {
+				return
+			}
+		}
+	}
+}

@@ -16,8 +16,10 @@ type SchemaType string
 const (
 	SchemaResource          SchemaType = "resource"
 	SchemaEphemeralResource SchemaType = "ephemeral-resource"
+	SchemaListResource      SchemaType = "list-resource"
 	SchemaAction            SchemaType = "action"
 	SchemaDataSource        SchemaType = "datasource"
 	SchemaCommon            SchemaType = "common"
 	SchemaProvider          SchemaType = "provider"
+	SchemaCustom            SchemaType = "custom"
 )
