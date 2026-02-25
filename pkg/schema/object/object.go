@@ -114,7 +114,7 @@ type Object struct {
 	GoSdkConfig     *GoSdkConfig        `yaml:"go_sdk_config"`
 	Locations       []location.Location `yaml:"locations"`
 	Entries         []Entry             `yaml:"entries"`
-	Imports         []imports.Import    `yaml:"imports"`
+	Imports         imports.Import      `yaml:"imports"`
 	Spec            *Spec               `yaml:"spec"`
 }
 

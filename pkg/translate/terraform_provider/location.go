@@ -48,20 +48,12 @@ func getLocationStructsContext(names *NameProvider, spec *properties.Normalizati
 
 		var fields []locationStructFieldCtx
 
-		for _, i := range spec.Imports {
-			if i.Type.CamelCase != data.Name.CamelCase {
-				continue
-			}
-
-			for _, elt := range i.OrderedLocations() {
-				if elt.Required {
-					fields = append(fields, locationStructFieldCtx{
-						Name: elt.Name,
-						Type: "types.String",
-						Tags: []string{fmt.Sprintf("`tfsdk:\"%s\"`", elt.Name.Underscore)},
-					})
-				}
-			}
+		if data.Name.Original == "template" && len(spec.Imports.Variants) > 0 {
+			fields = append(fields, locationStructFieldCtx{
+				Name: properties.NewNameVariant("vsys"),
+				Type: "types.String",
+				Tags: []string{"`tfsdk:\"vsys\"`"},
+			})
 		}
 
 		for _, param := range data.OrderedVars() {
@@ -121,33 +113,23 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 	for _, data := range spec.OrderedLocations() {
 		var variableAttrs []attributeCtx
 
-		for _, i := range spec.Imports {
-			if i.Type.CamelCase != data.Name.CamelCase {
-				continue
-			}
-
-			for _, elt := range i.OrderedLocations() {
-				if elt.Required {
-					var defaultValue *defaultCtx
-					for varName, variable := range elt.XpathVariables {
-						if varName == elt.Name.Original && variable.Default != "" {
-							defaultValue = &defaultCtx{
-								Type:  "stringdefault.StaticString",
-								Value: fmt.Sprintf(`"%s"`, variable.Default),
-							}
-						}
-					}
-					variableAttrs = append(variableAttrs, attributeCtx{
-						Name:         elt.Name,
-						SchemaType:   "rsschema.StringAttribute",
-						Required:     defaultValue == nil,
-						Optional:     defaultValue != nil,
-						Computed:     defaultValue != nil,
-						ModifierType: "String",
-						Default:      defaultValue,
-					})
+		if data.Name.Original == "template" && len(spec.Imports.Variants) > 0 {
+			var defaultValue *defaultCtx
+			if spec.Imports.DefaultValue != nil {
+				defaultValue = &defaultCtx{
+					Type:  "stringdefault.StaticString",
+					Value: fmt.Sprintf(`"%s"`, *spec.Imports.DefaultValue),
 				}
 			}
+			variableAttrs = append(variableAttrs, attributeCtx{
+				Name:         properties.NewNameVariant("vsys"),
+				SchemaType:   "rsschema.StringAttribute",
+				Required:     false,
+				Optional:     true,
+				Computed:     true,
+				ModifierType: "String",
+				Default:      defaultValue,
+			})
 		}
 
 		for _, variable := range data.OrderedVars() {
@@ -279,20 +261,12 @@ func createLocationMarshallerSpecs(names *NameProvider, spec *properties.Normali
 		}
 
 		// Add import location (e.g. vsys) name to location
-		for _, i := range spec.Imports {
-			if i.Type.CamelCase != loc.Name.CamelCase {
-				continue
-			}
-
-			for _, elt := range i.OrderedLocations() {
-				if elt.Required {
-					fields = append(fields, marshallerFieldSpec{
-						Name: elt.Name,
-						Type: "string",
-						Tags: fmt.Sprintf("`tfsdk:\"%s\"`", elt.Name.Underscore),
-					})
-				}
-			}
+		if loc.Name.Original == "template" && len(spec.Imports.Variants) > 0 {
+			fields = append(fields, marshallerFieldSpec{
+				Name: properties.NewNameVariant("vsys"),
+				Type: "string",
+				Tags: "`tfsdk:\"vsys\"`",
+			})
 		}
 
 		specs = append(specs, marshallerSpec{

@@ -131,7 +131,6 @@ entries:
 - name: name
   description: ''
   validators: []
-imports: []
 spec:
   params:
   - name: virtual-router

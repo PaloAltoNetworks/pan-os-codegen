@@ -84,7 +84,7 @@ locations:
       required: true
       validators: []
       type: entry
-  description: Located in a specific template
+  description: A shared resource located within a specific template
   devices:
   - panorama
   validators: []
@@ -220,7 +220,6 @@ entries:
 - name: name
   description: ''
   validators: []
-imports: []
 spec:
   params:
   - name: allow-list

@@ -112,7 +112,6 @@ locations:
   required: false
   read_only: false
 entries: []
-imports: []
 spec:
   params:
   - name: dns-setting

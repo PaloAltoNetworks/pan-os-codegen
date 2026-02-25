@@ -55,16 +55,16 @@
 	}
 
 {{- if .HasImports }}
-	var importLocation {{ .resourceSDKName }}.ImportLocation
-	{{ RenderImportLocationAssignment "state.Location" "importLocation" }}
 	created, err := o.manager.Create(ctx, location, components, obj)
 	if err != nil {
 		resp.Diagnostics.AddError("Error in create", err.Error())
 		return
 	}
 
-	if importLocation != nil {
-		err = o.manager.ImportToLocations(ctx, location, []{{ .resourceSDKName }}.ImportLocation{importLocation}, obj.Name)
+	var importVsys string
+	{{ RenderImportLocationAssignment "state" "importVsys" }}
+	if importVsys != "" {
+		err = o.manager.ImportToLocation(ctx, location, importVsys, obj.Name)
 		if err != nil {
 			resp.Diagnostics.AddError("Failed to import resource into location", err.Error())
 			return

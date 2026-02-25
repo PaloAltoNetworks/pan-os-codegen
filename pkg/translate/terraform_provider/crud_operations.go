@@ -75,7 +75,7 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 	data := map[string]interface{}{
 		"PluralType":            paramSpec.TerraformProviderConfig.PluralType,
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
-		"HasImports":            len(paramSpec.Imports) > 0,
+		"HasImports":            len(paramSpec.Imports.Variants) > 0,
 		"Exhaustive":            exhaustive,
 		"ListAttribute":         listAttributeVariant,
 		"EntryOrConfig":         paramSpec.EntryOrConfig(),
@@ -327,7 +327,7 @@ func ResourceDeleteFunction(resourceTyp properties.ResourceType, names *NameProv
 	data := map[string]interface{}{
 		"PluralType":            paramSpec.TerraformProviderConfig.PluralType,
 		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
-		"HasImports":            len(paramSpec.Imports) > 0,
+		"HasImports":            len(paramSpec.Imports.Variants) > 0,
 		"EntryOrConfig":         paramSpec.EntryOrConfig(),
 		"ListAttribute":         listAttributeVariant,
 		"Exhaustive":            exhaustive,

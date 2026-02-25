@@ -27,7 +27,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 	funcMap := template.FuncMap{
 		"GoSDKSkipped": func() bool { return spec.GoSdkSkip },
 		"IsEntry":      func() bool { return spec.HasEntryName() && !spec.HasEntryUuid() },
-		"HasImports":   func() bool { return len(spec.Imports) > 0 },
+		"HasImports":   func() bool { return len(spec.Imports.Variants) > 0 },
 
 		"IsCustom":    func() bool { return spec.TerraformProviderConfig.ResourceType == properties.TerraformResourceCustom },
 		"IsUuid":      func() bool { return spec.HasEntryUuid() },
@@ -349,7 +349,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 
 				panic("unreachable")
 			},
-			"HasImports":           func() bool { return len(spec.Imports) > 0 },
+			"HasImports":           func() bool { return len(spec.Imports.Variants) > 0 },
 			"HasLocations":         func() bool { return len(spec.Locations) > 0 },
 			"IsCustom":             func() bool { return spec.TerraformProviderConfig.ResourceType == properties.TerraformResourceCustom },
 			"IsUuid":               func() bool { return spec.HasEntryUuid() },

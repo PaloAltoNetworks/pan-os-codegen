@@ -1,14 +1,14 @@
 package {{packageName .GoSdkPath}}
 {{- if .Entry}}
-    {{- if $.Imports}}
+    {{- if $.Imports.Variants}}
         {{- if $.Spec.Params.uuid}}
           {{- if $.HasAuditComments }}
-            {{renderImports "service" "filtering" "sync" "audit" "rule" "version" "movement"}}
+             {{renderImports "service" "filtering" "sync" "audit" "rule" "version" "movement" "imports"}}
           {{- else }}
-            {{renderImports "service" "filtering" "sync" "rule" "version" "movement"}}
+            {{renderImports "service" "filtering" "sync" "rule" "version" "movement" "imports"}}
           {{- end }}
         {{- else}}
-            {{renderImports "service" "filtering" "sync"}}
+            {{renderImports "service" "filtering" "sync" "imports"}}
         {{- end}}
     {{- else}}
         {{- if $.Spec.Params.uuid}}
@@ -41,9 +41,7 @@ client: client,
 }
 
 // Create adds new item, then returns the result.
-  {{- if and (.Entry) (.Imports)}}
-func (s *Service) Create(ctx context.Context, loc Location, importLocations []ImportLocation, entry *Entry) (*Entry, error) {
-  {{- else if (.Entry) }}
+  {{- if (.Entry) }}
 func (s *Service) Create(ctx context.Context, loc Location, entry *Entry) (*Entry, error) {
   {{- else }}
 func (s *Service) Create(ctx context.Context, loc Location, config *Config) (*Config, error) {
@@ -74,13 +72,6 @@ func (s *Service) Create(ctx context.Context, loc Location, config *Config) (*Co
 	if err != nil {
 		return nil, err
 	}
-
-  {{- if .Imports }}
-	err = s.ImportToLocations(ctx, loc, importLocations, entry.Name)
-	if err != nil {
-		return nil, err
-	}
-  {{- end }}
 
 	return s.ReadWithXpath(ctx, util.AsXpath(path), "get")
 }
@@ -127,137 +118,147 @@ func (s *Service) {{ $funcDef }} {
   {{- end }}
 }
 
-{{- if .Imports }}
+{{- if .Imports.Variants }}
 
-func (s *Service) ImportToLocations(ctx context.Context, loc Location, importLocations []ImportLocation, entryName string) error {
+type member struct {
+	Name string `xml:",chardata"`
+}
+
+type response struct {
+	Members []member `xml:"result>{{ .Imports.Target }}>member"`
+}
+
+type request struct {
+	XMLName xml.Name `xml:"{{ .Imports.Target }}"`
+	Members []member `xml:"member"`
+}
+
+func (s *Service) ImportToLocation(ctx context.Context, loc Location, vsys string, name string) error {
 	vn := s.client.Versioning()
 
-	importToLocation := func(il ImportLocation) error {
-		xpath, err := il.XpathForLocation(vn, loc)
-                if err != nil {
-			return err
-		}
+	xpath, err := loc.XpathPrefix(vn)
+        if err != nil {
+		return err
+	}
+	xpath = append(xpath, []string{"vsys", util.AsEntryXpath(vsys), "import", "network", "{{ .Imports.Target }}"}...)
 
-		mutex := locking.GetMutex(locking.XpathLockCategory, util.AsXpath(xpath))
-                mutex.Lock()
-                defer mutex.Unlock()
+	mutex := locking.GetMutex(locking.XpathLockCategory, util.AsXpath(xpath))
+        mutex.Lock()
+        defer mutex.Unlock()
 
-                cmd := &xmlapi.Config{
-	                Action:  "get",
-	                Xpath:   util.AsXpath(xpath),
-		}
+        cmd := &xmlapi.Config{
+                Action:  "get",
+                Xpath:   util.AsXpath(xpath),
+	}
 
-                bytes, _, err := s.client.Communicate(ctx, cmd, false, nil)
-		if err != nil && !errors.IsObjectNotFound(err) {
-			return err
-		}
-
-		existing, err := il.UnmarshalPangoXML(bytes)
-                if err != nil {
-                	return err
-		}
-
-		for _, elt := range existing {
-                	if elt == entryName {
-                        	return nil
-			}
-		}
-
-		existing = append(existing, entryName)
-
-		element, err := il.MarshalPangoXML(existing)
-                if err != nil {
-                	return err
-		}
-
-		cmd = &xmlapi.Config{
-                	Action: "set",
-                        Xpath: util.AsXpath(xpath[:len(xpath)-1]),
-                        Element: element,
-		}
-
-                _, _, err = s.client.Communicate(ctx, cmd, false, nil)
-		if err != nil {
-			return err
-		}
-
+        bytes, _, err := s.client.Communicate(ctx, cmd, false, nil)
+	if err != nil && !errors.IsObjectNotFound(err) {
 		return err
 	}
 
-        for _, elt := range importLocations {
-		err := importToLocation(elt)
-                if err != nil {
-			return err
+	var resp response
+        err = xml.Unmarshal(bytes, &resp)
+        if err != nil {
+        	return err
+	}
+
+	existing := resp.Members
+
+	for _, elt := range existing {
+        	if elt.Name == name {
+                	return nil
 		}
-        }
+	}
+
+	existing = append(existing, []member{ { Name: name } }...)
+
+	req := request{
+        	Members: existing,
+	}
+
+	element, err := xml.Marshal(req)
+        if err != nil {
+        	return err
+	}
+
+	cmd = &xmlapi.Config{
+        	Action: "set",
+                Xpath: util.AsXpath(xpath[:len(xpath)-1]),
+                Element: string(element),
+	}
+
+        _, _, err = s.client.Communicate(ctx, cmd, false, nil)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func (s *Service) UnimportFromLocations(ctx context.Context, loc Location, importLocations []ImportLocation, values []string) error {
+func (s *Service) UnimportFromLocation(ctx context.Context, loc Location, vsys string, name string) error {
 	vn := s.client.Versioning()
-	valuesByName := make(map[string]bool)
-	for _, elt := range values {
-		valuesByName[elt] = true
+
+	xpath, err := loc.XpathPrefix(vn)
+        if err != nil {
+		return err
+	}
+	xpath = append(xpath, []string{"vsys", util.AsEntryXpath(vsys), "import", "network", "{{ .Imports.Target }}"}...)
+
+	mutex := locking.GetMutex(locking.XpathLockCategory, util.AsXpath(xpath))
+        mutex.Lock()
+        defer mutex.Unlock()
+
+        cmd := &xmlapi.Config{
+                Action:  "get",
+                Xpath:   util.AsXpath(xpath),
 	}
 
-	unimportFromLocation := func(il ImportLocation) error {
-		xpath, err := il.XpathForLocation(vn, loc)
-                if err != nil {
-			return err
-		}
-
-		mutex := locking.GetMutex(locking.XpathLockCategory, util.AsXpath(xpath))
-                mutex.Lock()
-                defer mutex.Unlock()
-
-                cmd := &xmlapi.Config{
-	                Action:  "get",
-	                Xpath:   util.AsXpath(xpath),
-		}
-
-                bytes, _, err := s.client.Communicate(ctx, cmd, false, nil)
-		if err != nil && !errors.IsObjectNotFound(err) {
-			return err
-		}
-
-		existing, err := il.UnmarshalPangoXML(bytes)
-                if err != nil {
-                	return err
-		}
-
-		var filtered []string
-		for _, elt := range existing {
-			if _, found := valuesByName[elt]; !found {
-                        	filtered = append(filtered, elt)
-			}
-		}
-
-		element, err := il.MarshalPangoXML(filtered)
-                if err != nil {
-                	return err
-		}
-
-		cmd = &xmlapi.Config{
-                	Action: "edit",
-                        Xpath: util.AsXpath(xpath),
-			Element: element,
-		}
-
-                _, _, err = s.client.Communicate(ctx, cmd, false, nil)
-		if err != nil {
-			return err
-		}
-
+        bytes, _, err := s.client.Communicate(ctx, cmd, false, nil)
+	if err != nil && !errors.IsObjectNotFound(err) {
 		return err
 	}
 
-        for _, elt := range importLocations {
-		err := unimportFromLocation(elt)
-                if err != nil {
-			return err
+	var resp response
+        err = xml.Unmarshal(bytes, &resp)
+        if err != nil {
+        	return err
+	}
+
+	existing := resp.Members
+
+	var filtered []member
+        var updateRequired bool
+	for _, elt := range existing {
+        	if elt.Name == name {
+                	updateRequired = true
+		} else {
+                	filtered = append(filtered, elt)
 		}
-        }
+	}
+
+	if !updateRequired {
+        	return nil
+	}
+
+	req := request{
+        	Members: filtered,
+	}
+
+	element, err := xml.Marshal(req)
+        if err != nil {
+        	return err
+	}
+
+	cmd = &xmlapi.Config{
+        	Action: "edit",
+                Xpath: util.AsXpath(xpath),
+		Element: string(element),
+	}
+
+        _, _, err = s.client.Communicate(ctx, cmd, false, nil)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -497,18 +498,18 @@ func (s *Service) UpdateWithXpath(ctx context.Context, xpath string, entry *{{ $
 }
 
 // Delete deletes the given item.
-{{- if and .Entry .Imports}}
-    func (s *Service) Delete(ctx context.Context, loc Location, importLocations []ImportLocation, name ...string) error {
+{{- if and .Entry .Imports.Variants}}
+    func (s *Service) Delete(ctx context.Context, loc Location, vsys string, name ...string) error {
     {{- if $.Spec.Params.uuid}}
-        return s.delete(ctx, loc, importLocations, name, true)
+        return s.delete(ctx, loc, vsys, name, true)
     {{- else}}
-        return s.delete(ctx, loc, importLocations, name)
+        return s.delete(ctx, loc, vsys, name)
     {{- end}}
     }
     {{- if $.Spec.Params.uuid}}
         // DeleteById deletes the given item with specified ID.
-        func (s *Service) DeleteById(ctx context.Context, loc Location, importLocations []ImportLocation, uuid ...string) error {
-        return s.delete(ctx, loc, importLocations, uuid, false)
+        func (s *Service) DeleteById(ctx context.Context, loc Location, vsys string, uuid ...string) error {
+        return s.delete(ctx, loc, vsys, uuid, false)
         }
     {{- end}}
 {{- else if .Entry }}
@@ -531,11 +532,11 @@ func (s *Service) UpdateWithXpath(ctx context.Context, xpath string, entry *{{ $
     }
 {{- end}}
 
-{{- if and .Entry .Imports }}
+{{- if and .Entry .Imports.Variants }}
     {{- if $.Spec.Params.uuid}}
-        func (s *Service) delete(ctx context.Context, loc Location, importLocations []ImportLocation, values []string, byName bool) error {
+        func (s *Service) delete(ctx context.Context, loc Location, vsys string, values []string, byName bool) error {
     {{- else}}
-        func (s *Service) delete(ctx context.Context, loc Location, importLocations []ImportLocation, values []string) error {
+        func (s *Service) delete(ctx context.Context, loc Location, vsys string, values []string) error {
     {{- end}}
 {{- else if .Entry}}
     {{- if $.Spec.Params.uuid}}
@@ -573,12 +574,7 @@ vn := s.client.Versioning()
 {{- if .Entry}}
     var err error
     deletes := xmlapi.NewMultiConfig(len(values))
-  {{- if .Imports }}
-    err = s.UnimportFromLocations(ctx, loc, importLocations, values)
-    if err != nil {
-        return err
-    }
-  {{- end }}
+
     for _, value := range values {
     var path []string
         path, err = loc.XpathWithComponents(vn, util.AsEntryXpath(value))
@@ -683,7 +679,7 @@ return err
 {{- if false }}
 // RemoveFromImport removes the given config object from import
 func (s *Service) RemoveFromImport(ctx context.Context, loc Location, entry Entry) error {
-    {{- range $_, $import := $.Imports}}
+    {{- range $_, $import := $.Imports.Variants}}
     if loc.{{$import.Name.CamelCase}} != nil {
 		templateLocation, templateApi, templateEntry, importedNames, err := s.getImportedNamesFor{{$import.Name.CamelCase}}(ctx, loc, entry)
         if err != nil {
