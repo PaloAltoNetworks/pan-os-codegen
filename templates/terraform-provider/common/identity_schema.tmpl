@@ -1,0 +1,16 @@
+
+func (o {{ .StructName }}) IdentitySchema(_ context.Context, _ resource.IdentitySchemaRequest, resp *resource.IdentitySchemaResponse) {
+	resp.IdentitySchema = identityschema.Schema{
+		Attributes: map[string]identityschema.Attribute{
+{{- range .Fields }}
+			"{{ .Name }}": {{ .Type }}{
+  {{- if .RequiredForImport }}
+				RequiredForImport: true,
+  {{- else if .OptionalForImport }}
+				OptionalForImport: true,
+  {{- end }}
+			},
+{{- end }}
+		},
+	}
+}

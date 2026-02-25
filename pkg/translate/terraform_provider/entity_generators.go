@@ -157,6 +157,8 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/movement", "")
 				terraformProvider.ImportManager.AddStandardImport("strings", "")
 			case properties.ResourceEntry:
+				terraformProvider.ImportManager.AddStandardImport("strings", "")
+				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/identityschema", "")
 			case properties.ResourceEntryPlural:
 			case properties.ResourceCustom, properties.ResourceConfig:
 			}
@@ -215,7 +217,11 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 			}
 
 			switch resourceTyp {
-			case properties.ResourceEntry, properties.ResourceConfig:
+			case properties.ResourceEntry:
+				terraformProvider.ImportManager.AddStandardImport("strings", "")
+				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/identityschema", "")
+				terraformProvider.ImportManager.AddStandardImport("errors", "")
+			case properties.ResourceConfig:
 				terraformProvider.ImportManager.AddStandardImport("errors", "")
 			case properties.ResourceEntryPlural, properties.ResourceUuid:
 			case properties.ResourceUuidPlural, properties.ResourceCustom:
@@ -433,6 +439,8 @@ func (g *GenerateTerraformProvider) GenerateCommonCode(resourceTyp properties.Re
 	names := NewNameProvider(spec, resourceTyp)
 	funcMap := template.FuncMap{
 		"HasLocations":          func() bool { return len(spec.Locations) > 0 },
+		"RenderIdentityModel":   func() (string, error) { return RenderIdentityModel(resourceTyp, names, spec) },
+		"RenderIdentitySchema":  func() (string, error) { return RenderIdentitySchema(resourceTyp, names, spec) },
 		"RenderLocationStructs": func() (string, error) { return RenderLocationStructs(resourceTyp, names, spec) },
 		"RenderLocationSchemaGetter": func() (string, error) {
 			return RenderLocationSchemaGetter(names, spec, terraformProvider.ImportManager)
@@ -440,6 +448,9 @@ func (g *GenerateTerraformProvider) GenerateCommonCode(resourceTyp properties.Re
 		"RenderLocationMarshallers": func() (string, error) { return RenderLocationMarshallers(names, spec) },
 		"RenderLocationAttributeTypes": func() (string, error) {
 			return RenderLocationAttributeTypes(names, spec)
+		},
+		"RenderLocationAsIdentityGetter": func() (string, error) {
+			return RenderLocationAsIdentityGetter(resourceTyp, names, spec)
 		},
 	}
 	return g.generateTerraformEntityTemplate(resourceTyp, properties.SchemaCommon, names, spec, terraformProvider, "common/common.tmpl", funcMap)
