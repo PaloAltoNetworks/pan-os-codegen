@@ -8,7 +8,9 @@ import (
 	"testing"
 
 	sdkerrors "github.com/PaloAltoNetworks/pango/errors"
+	"github.com/PaloAltoNetworks/pango/objects/profiles/customurlcategory"
 	"github.com/PaloAltoNetworks/pango/policies/rules/security"
+	"github.com/PaloAltoNetworks/pango/util"
 
 	"github.com/hashicorp/terraform-plugin-testing/config"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -945,6 +947,427 @@ func TestAccSecurityPolicy_DeletePartiallyMissing(t *testing.T) {
 				},
 				ConfigStateChecks: []statecheck.StateCheck{
 					ExpectServerSecurityRulesCount(prefix, 0),
+				},
+			},
+		},
+	})
+}
+
+// Custom state check to verify URL categories using SDK
+type expectSecurityRuleCustomUrlCategory struct {
+	RuleName           string
+	DeviceGroup        string
+	ExpectedCategories []string
+}
+
+func ExpectSecurityRuleCustomUrlCategory(ruleName string, deviceGroup string, expectedCategories []string) *expectSecurityRuleCustomUrlCategory {
+	return &expectSecurityRuleCustomUrlCategory{
+		RuleName:           ruleName,
+		DeviceGroup:        deviceGroup,
+		ExpectedCategories: expectedCategories,
+	}
+}
+
+func (o *expectSecurityRuleCustomUrlCategory) CheckState(ctx context.Context, req statecheck.CheckStateRequest, resp *statecheck.CheckStateResponse) {
+	// Use SDK to read the security rule
+	securityService := security.NewService(sdkClient)
+	location := security.NewDeviceGroupLocation()
+	location.DeviceGroup.DeviceGroup = o.DeviceGroup
+
+	// Build XPath for the rule
+	vn := sdkClient.Versioning()
+	path, err := location.XpathWithComponents(vn, util.AsEntryXpath(o.RuleName))
+	if err != nil {
+		resp.Error = fmt.Errorf("failed to build xpath for security rule %s: %w", o.RuleName, err)
+		return
+	}
+
+	// Read the rule from the server using XPath
+	entry, err := securityService.ReadWithXpath(ctx, util.AsXpath(path), "get")
+	if err != nil {
+		resp.Error = fmt.Errorf("failed to read security rule %s: %w", o.RuleName, err)
+		return
+	}
+
+	// Verify categories
+	if len(entry.Category) != len(o.ExpectedCategories) {
+		resp.Error = fmt.Errorf("expected %d categories, got %d. Expected: %v, Got: %v",
+			len(o.ExpectedCategories), len(entry.Category), o.ExpectedCategories, entry.Category)
+		return
+	}
+
+	// Check each expected category is present
+	categoryMap := make(map[string]bool)
+	for _, cat := range entry.Category {
+		categoryMap[cat] = true
+	}
+
+	for _, expectedCat := range o.ExpectedCategories {
+		if !categoryMap[expectedCat] {
+			resp.Error = fmt.Errorf("expected category %s not found in rule. Got categories: %v",
+				expectedCat, entry.Category)
+			return
+		}
+	}
+}
+
+// Custom state check to verify custom URL category exists and has correct properties
+type expectCustomUrlCategoryOnServer struct {
+	CategoryName string
+	DeviceGroup  string
+	ExpectedUrls []string
+}
+
+func ExpectCustomUrlCategoryOnServer(categoryName string, deviceGroup string, expectedUrls []string) *expectCustomUrlCategoryOnServer {
+	return &expectCustomUrlCategoryOnServer{
+		CategoryName: categoryName,
+		DeviceGroup:  deviceGroup,
+		ExpectedUrls: expectedUrls,
+	}
+}
+
+func (o *expectCustomUrlCategoryOnServer) CheckState(ctx context.Context, req statecheck.CheckStateRequest, resp *statecheck.CheckStateResponse) {
+	// Use SDK to read the custom URL category
+	urlCategoryService := customurlcategory.NewService(sdkClient)
+	location := customurlcategory.NewDeviceGroupLocation()
+	location.DeviceGroup.DeviceGroup = o.DeviceGroup
+
+	// Build XPath for the category
+	vn := sdkClient.Versioning()
+	path, err := location.XpathWithComponents(vn, util.AsEntryXpath(o.CategoryName))
+	if err != nil {
+		resp.Error = fmt.Errorf("failed to build xpath for custom URL category %s: %w", o.CategoryName, err)
+		return
+	}
+
+	// Read the category from the server using XPath
+	entry, err := urlCategoryService.ReadWithXpath(ctx, util.AsXpath(path), "get")
+	if err != nil {
+		resp.Error = fmt.Errorf("failed to read custom URL category %s: %w", o.CategoryName, err)
+		return
+	}
+
+	// Verify the URLs
+	if len(entry.List) != len(o.ExpectedUrls) {
+		resp.Error = fmt.Errorf("expected %d URLs, got %d. Expected: %v, Got: %v",
+			len(o.ExpectedUrls), len(entry.List), o.ExpectedUrls, entry.List)
+		return
+	}
+
+	urlMap := make(map[string]bool)
+	for _, url := range entry.List {
+		urlMap[url] = true
+	}
+
+	for _, expectedUrl := range o.ExpectedUrls {
+		if !urlMap[expectedUrl] {
+			resp.Error = fmt.Errorf("expected URL %s not found in category. Got URLs: %v",
+				expectedUrl, entry.List)
+			return
+		}
+	}
+}
+
+const securityPolicyWithCustomUrlCategoryTmpl = `
+variable "prefix" { type = string }
+
+resource "panos_device_group" "dg" {
+  location = { panorama = {} }
+
+  name = format("%s-dg", var.prefix)
+}
+
+resource "panos_custom_url_category" "test_category" {
+  location = { device_group = { name = panos_device_group.dg.name } }
+
+  name = format("%s-custom-url-cat", var.prefix)
+  type = "URL List"
+  list = ["malicious.example.com", "phishing.example.org"]
+  description = "Test custom URL category for security policy"
+}
+
+resource "panos_security_policy" "policy" {
+  location = { device_group = { name = panos_device_group.dg.name } }
+
+  rules = [{
+    name = format("%s-rule-with-custom-url", var.prefix)
+
+    source_zones     = ["any"]
+    source_addresses = ["any"]
+
+    destination_zones     = ["any"]
+    destination_addresses = ["any"]
+
+    services     = ["any"]
+    applications = ["any"]
+
+    # Reference the custom URL category
+    category = [panos_custom_url_category.test_category.name]
+
+    action = "deny"
+    log_end = true
+  }]
+}
+`
+
+const securityPolicyWithMultipleUrlCategoriesTmpl = `
+variable "prefix" { type = string }
+
+resource "panos_device_group" "dg" {
+  location = { panorama = {} }
+
+  name = format("%s-dg", var.prefix)
+}
+
+resource "panos_custom_url_category" "malware_category" {
+  location = { device_group = { name = panos_device_group.dg.name } }
+
+  name = format("%s-malware-urls", var.prefix)
+  type = "URL List"
+  list = ["malware1.example.com", "malware2.example.com"]
+}
+
+resource "panos_custom_url_category" "phishing_category" {
+  location = { device_group = { name = panos_device_group.dg.name } }
+
+  name = format("%s-phishing-urls", var.prefix)
+  type = "URL List"
+  list = ["phishing1.example.com", "phishing2.example.com"]
+}
+
+resource "panos_security_policy" "policy" {
+  location = { device_group = { name = panos_device_group.dg.name } }
+
+  rules = [{
+    name = format("%s-rule-multi-url", var.prefix)
+
+    source_zones     = ["any"]
+    source_addresses = ["any"]
+
+    destination_zones     = ["any"]
+    destination_addresses = ["any"]
+
+    services     = ["any"]
+    applications = ["any"]
+
+    # Reference multiple custom URL categories
+    category = [
+      panos_custom_url_category.malware_category.name,
+      panos_custom_url_category.phishing_category.name,
+    ]
+
+    action = "deny"
+    log_end = true
+  }]
+}
+`
+
+const securityPolicyUrlCategoryUpdatedTmpl = `
+variable "prefix" { type = string }
+
+resource "panos_device_group" "dg" {
+  location = { panorama = {} }
+
+  name = format("%s-dg", var.prefix)
+}
+
+resource "panos_custom_url_category" "test_category" {
+  location = { device_group = { name = panos_device_group.dg.name } }
+
+  name = format("%s-custom-url-cat", var.prefix)
+  type = "URL List"
+  # Updated list
+  list = ["updated1.example.com", "updated2.example.com", "updated3.example.com"]
+  description = "Updated test custom URL category"
+}
+
+resource "panos_security_policy" "policy" {
+  location = { device_group = { name = panos_device_group.dg.name } }
+
+  rules = [{
+    name = format("%s-rule-with-custom-url", var.prefix)
+
+    source_zones     = ["any"]
+    source_addresses = ["any"]
+
+    destination_zones     = ["any"]
+    destination_addresses = ["any"]
+
+    services     = ["any"]
+    applications = ["any"]
+
+    # Still references the same category (by name)
+    category = [panos_custom_url_category.test_category.name]
+
+    action = "deny"
+    log_end = true
+  }]
+}
+`
+
+func TestAccSecurityPolicy_WithCustomUrlCategory(t *testing.T) {
+	t.Parallel()
+
+	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
+	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
+	deviceGroup := fmt.Sprintf("%s-dg", prefix)
+	customUrlCategoryName := fmt.Sprintf("%s-custom-url-cat", prefix)
+	ruleName := fmt.Sprintf("%s-rule-with-custom-url", prefix)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProviders,
+		Steps: []resource.TestStep{
+			// Step 1: Create custom URL category and security policy referencing it
+			{
+				Config: securityPolicyWithCustomUrlCategoryTmpl,
+				ConfigVariables: map[string]config.Variable{
+					"prefix": config.StringVariable(prefix),
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					// Verify Terraform state
+					statecheck.ExpectKnownValue(
+						"panos_custom_url_category.test_category",
+						tfjsonpath.New("name"),
+						knownvalue.StringExact(customUrlCategoryName),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_custom_url_category.test_category",
+						tfjsonpath.New("list"),
+						knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact("malicious.example.com"),
+							knownvalue.StringExact("phishing.example.org"),
+						}),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_security_policy.policy",
+						tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("category"),
+						knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact(customUrlCategoryName),
+						}),
+					),
+					// Verify via SDK that custom URL category exists on server
+					ExpectCustomUrlCategoryOnServer(
+						customUrlCategoryName,
+						deviceGroup,
+						[]string{"malicious.example.com", "phishing.example.org"},
+					),
+					// Verify via SDK that security rule has correct category reference
+					ExpectSecurityRuleCustomUrlCategory(
+						ruleName,
+						deviceGroup,
+						[]string{customUrlCategoryName},
+					),
+				},
+			},
+			// Step 2: Update custom URL category (URLs change, but name stays the same)
+			{
+				Config: securityPolicyUrlCategoryUpdatedTmpl,
+				ConfigVariables: map[string]config.Variable{
+					"prefix": config.StringVariable(prefix),
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					// Verify updated URLs
+					statecheck.ExpectKnownValue(
+						"panos_custom_url_category.test_category",
+						tfjsonpath.New("list"),
+						knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact("updated1.example.com"),
+							knownvalue.StringExact("updated2.example.com"),
+							knownvalue.StringExact("updated3.example.com"),
+						}),
+					),
+					// Verify security rule still references the category
+					statecheck.ExpectKnownValue(
+						"panos_security_policy.policy",
+						tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("category"),
+						knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact(customUrlCategoryName),
+						}),
+					),
+					// Verify via SDK
+					ExpectCustomUrlCategoryOnServer(
+						customUrlCategoryName,
+						deviceGroup,
+						[]string{"updated1.example.com", "updated2.example.com", "updated3.example.com"},
+					),
+					ExpectSecurityRuleCustomUrlCategory(
+						ruleName,
+						deviceGroup,
+						[]string{customUrlCategoryName},
+					),
+				},
+			},
+			// Step 3: Plan-only check to ensure no drift
+			{
+				Config: securityPolicyUrlCategoryUpdatedTmpl,
+				ConfigVariables: map[string]config.Variable{
+					"prefix": config.StringVariable(prefix),
+				},
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
+func TestAccSecurityPolicy_WithMultipleCustomUrlCategories(t *testing.T) {
+	t.Parallel()
+
+	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
+	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
+	deviceGroup := fmt.Sprintf("%s-dg", prefix)
+	malwareCategoryName := fmt.Sprintf("%s-malware-urls", prefix)
+	phishingCategoryName := fmt.Sprintf("%s-phishing-urls", prefix)
+	ruleName := fmt.Sprintf("%s-rule-multi-url", prefix)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: securityPolicyWithMultipleUrlCategoriesTmpl,
+				ConfigVariables: map[string]config.Variable{
+					"prefix": config.StringVariable(prefix),
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					// Verify both categories exist
+					statecheck.ExpectKnownValue(
+						"panos_custom_url_category.malware_category",
+						tfjsonpath.New("name"),
+						knownvalue.StringExact(malwareCategoryName),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_custom_url_category.phishing_category",
+						tfjsonpath.New("name"),
+						knownvalue.StringExact(phishingCategoryName),
+					),
+					// Verify security rule references both categories
+					statecheck.ExpectKnownValue(
+						"panos_security_policy.policy",
+						tfjsonpath.New("rules").AtSliceIndex(0).AtMapKey("category"),
+						knownvalue.ListExact([]knownvalue.Check{
+							knownvalue.StringExact(malwareCategoryName),
+							knownvalue.StringExact(phishingCategoryName),
+						}),
+					),
+					// Verify via SDK that both categories are on the server
+					ExpectCustomUrlCategoryOnServer(
+						malwareCategoryName,
+						deviceGroup,
+						[]string{"malware1.example.com", "malware2.example.com"},
+					),
+					ExpectCustomUrlCategoryOnServer(
+						phishingCategoryName,
+						deviceGroup,
+						[]string{"phishing1.example.com", "phishing2.example.com"},
+					),
+					// Verify via SDK that security rule references both categories
+					ExpectSecurityRuleCustomUrlCategory(
+						ruleName,
+						deviceGroup,
+						[]string{malwareCategoryName, phishingCategoryName},
+					),
 				},
 			},
 		},
