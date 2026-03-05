@@ -1299,3 +1299,156 @@ func TestAccSecurityPolicyRules_BeforePivotWithUpdate(t *testing.T) {
 func mergeConfigs(configs ...string) string {
 	return strings.Join(configs, "\n")
 }
+
+func checkNoRulesInRulebase(t *testing.T, prefix string, rulebase string) func() {
+	return func() {
+		t.Helper()
+		location := security.NewDeviceGroupLocation()
+		location.DeviceGroup.DeviceGroup = fmt.Sprintf("%s-dg", prefix)
+		location.DeviceGroup.Rulebase = rulebase
+		service := security.NewService(sdkClient)
+		entries, err := service.List(context.TODO(), *location, "get", "", "")
+		if err != nil {
+			if err.Error() == "Object not found" {
+				return
+			}
+			t.Fatalf("unexpected error listing %s rules: %v", rulebase, err)
+		}
+		for _, entry := range entries {
+			if strings.HasPrefix(entry.Name, prefix) {
+				t.Fatalf("found leaked rule %q in %s after failed apply", entry.Name, rulebase)
+			}
+		}
+	}
+}
+
+const securityPolicyRules_InvalidPivot_Base_Tmpl = `
+variable "prefix" { type = string }
+
+resource "panos_device_group" "dg" {
+  location = { panorama = {} }
+  name = format("%s-dg", var.prefix)
+}
+
+resource "panos_security_policy_rules" "pre" {
+  location = { device_group = { name = panos_device_group.dg.name, rulebase = "pre-rulebase" } }
+  position = { where = "last" }
+  rules = [{
+    name                  = format("%s-pre-rule-1", var.prefix)
+    source_zones          = ["any"]
+    source_addresses      = ["any"]
+    destination_zones     = ["any"]
+    destination_addresses = ["any"]
+    services              = ["any"]
+    applications          = ["any"]
+  }]
+}
+`
+
+const securityPolicyRules_InvalidPivot_NonExistent_Tmpl = `
+resource "panos_security_policy_rules" "post" {
+  location = { device_group = { name = panos_device_group.dg.name, rulebase = "post-rulebase" } }
+  position = { where = "before", directly = true, pivot = format("%s-nonexistent", var.prefix) }
+  rules = [{
+    name                  = format("%s-post-rule-1", var.prefix)
+    source_zones          = ["any"]
+    source_addresses      = ["any"]
+    destination_zones     = ["any"]
+    destination_addresses = ["any"]
+    services              = ["any"]
+    applications          = ["any"]
+  }]
+}
+`
+
+const securityPolicyRules_InvalidPivot_CrossRulebase_Tmpl = `
+resource "panos_security_policy_rules" "post" {
+  location = { device_group = { name = panos_device_group.dg.name, rulebase = "post-rulebase" } }
+  position = { where = "before", directly = true, pivot = format("%s-pre-rule-1", var.prefix) }
+  rules = [{
+    name                  = format("%s-post-rule-1", var.prefix)
+    source_zones          = ["any"]
+    source_addresses      = ["any"]
+    destination_zones     = ["any"]
+    destination_addresses = ["any"]
+    services              = ["any"]
+    applications          = ["any"]
+  }]
+}
+`
+
+func TestAccSecurityPolicyRules_NonExistentPivot(t *testing.T) {
+	t.Parallel()
+
+	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
+	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
+
+	configBase := securityPolicyRules_InvalidPivot_Base_Tmpl
+	configNonExistent := mergeConfigs(configBase, securityPolicyRules_InvalidPivot_NonExistent_Tmpl)
+
+	configVars := map[string]config.Variable{
+		"prefix": config.StringVariable(prefix),
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProviders,
+		Steps: []resource.TestStep{
+			// Step 1: Create device group + pre-rulebase rule
+			{
+				Config:          configBase,
+				ConfigVariables: configVars,
+			},
+			// Step 2: Add post-rulebase rule with non-existent pivot — expect apply failure
+			{
+				Config:          configNonExistent,
+				ConfigVariables: configVars,
+				ExpectError:     regexp.MustCompile("Failed to move group"),
+			},
+			// Step 3: Verify no rules leaked to post-rulebase
+			{
+				Config:          configBase,
+				ConfigVariables: configVars,
+				PreConfig:       checkNoRulesInRulebase(t, prefix, "post-rulebase"),
+			},
+		},
+	})
+}
+
+func TestAccSecurityPolicyRules_CrossRulebasePivot(t *testing.T) {
+	t.Parallel()
+
+	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
+	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
+
+	configBase := securityPolicyRules_InvalidPivot_Base_Tmpl
+	configCrossRulebase := mergeConfigs(configBase, securityPolicyRules_InvalidPivot_CrossRulebase_Tmpl)
+
+	configVars := map[string]config.Variable{
+		"prefix": config.StringVariable(prefix),
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProviders,
+		Steps: []resource.TestStep{
+			// Step 1: Create device group + pre-rulebase rule
+			{
+				Config:          configBase,
+				ConfigVariables: configVars,
+			},
+			// Step 2: Add post-rulebase rule using pre-rulebase rule as pivot — expect apply failure
+			{
+				Config:          configCrossRulebase,
+				ConfigVariables: configVars,
+				ExpectError:     regexp.MustCompile("Failed to move group"),
+			},
+			// Step 3: Verify no rules leaked to post-rulebase
+			{
+				Config:          configBase,
+				ConfigVariables: configVars,
+				PreConfig:       checkNoRulesInRulebase(t, prefix, "post-rulebase"),
+			},
+		},
+	})
+}
