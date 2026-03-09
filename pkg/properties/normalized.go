@@ -81,6 +81,7 @@ const (
 
 type TerraformProviderConfig struct {
 	Description           string                     `json:"description" yaml:"description"`
+	Subcategory           string                     `json:"subcategory" yaml:"subcategory"`
 	Ephemeral             bool                       `json:"ephemeral" yaml:"ephemeral"`
 	Action                bool                       `json:"action" yaml:"action"`
 	CustomValidation      bool                       `json:"custom_validation" yaml:"custom_validation"`
