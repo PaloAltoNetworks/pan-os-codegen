@@ -84,7 +84,7 @@ func renderSpecsForParams(names *NameProvider, schemaTyp properties.SchemaType, 
 			structPrefix = names.DataSourceStructName
 		case properties.SchemaResource, properties.SchemaEphemeralResource:
 			structPrefix = names.ResourceStructName
-		case properties.SchemaCommon, properties.SchemaProvider, properties.SchemaAction:
+		case properties.SchemaListResource, properties.SchemaCommon, properties.SchemaProvider, properties.SchemaAction, properties.SchemaCustom:
 			panic(fmt.Sprintf("invalid schema type: %s", schemaTyp))
 		}
 

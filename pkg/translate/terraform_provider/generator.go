@@ -8,6 +8,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/imports"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
 )
 
@@ -80,9 +81,11 @@ func (g *GenerateTerraformProvider) appendResourceType(spec *properties.Normaliz
 	case properties.SchemaEphemeralResource:
 		flags |= properties.TerraformSpecEphemeralResource
 		terraformProvider.EphemeralResources = append(terraformProvider.EphemeralResources, names.ResourceStructName)
+	case properties.SchemaListResource:
+		terraformProvider.ListResources = append(terraformProvider.ListResources, names.ListResourceStructName())
 	case properties.SchemaAction:
 		terraformProvider.Actions = append(terraformProvider.Actions, names.ActionStructName())
-	case properties.SchemaProvider, properties.SchemaCommon:
+	case properties.SchemaProvider, properties.SchemaCommon, properties.SchemaCustom:
 	default:
 		panic(fmt.Sprintf("unsupported schemaTyp: '%s'", schemaTyp))
 	}
@@ -117,13 +120,15 @@ func (g *GenerateTerraformProvider) generateTerraformEntityTemplate(resourceTyp 
 		resourceType = "Resource"
 	case properties.SchemaEphemeralResource:
 		resourceType = "EphemeralResource"
+	case properties.SchemaListResource:
+		resourceType = "ListResource"
 	case properties.SchemaCommon:
 		resourceType = "Common"
 	case properties.SchemaProvider:
 		resourceType = "ProviderFile"
 	case properties.SchemaAction:
 		resourceType = "Action"
-	default:
+	case properties.SchemaCustom:
 		panic(fmt.Sprintf("unsupported schemaTyp: '%+v'", schemaTyp))
 	}
 
@@ -133,4 +138,88 @@ func (g *GenerateTerraformProvider) generateTerraformEntityTemplate(resourceTyp 
 		return err
 	}
 	return g.executeTemplate(template, spec, terraformProvider, resourceTyp, schemaTyp, names)
+}
+
+func renderMainAndConfigureTmpls(tmpl string, resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider, spec *properties.Normalization) (string, error) {
+	type context struct {
+		BareStructName    string
+		StructName        string
+		PackageName       string
+		SDKName           string
+		IsCustom          bool
+		IsImportableEntry bool
+		IsEntry           bool
+		IsUuid            bool
+		IsConfig          bool
+	}
+
+	data := context{}
+
+	switch resourceTyp {
+	case properties.ResourceConfig:
+		data.IsConfig = true
+	case properties.ResourceCustom:
+		data.IsCustom = true
+	case properties.ResourceEntry, properties.ResourceEntryPlural:
+		if len(spec.Imports.Variants) > 0 {
+			data.IsImportableEntry = true
+		} else {
+			data.IsEntry = true
+		}
+	case properties.ResourceUuid, properties.ResourceUuidPlural:
+		data.IsUuid = true
+	}
+
+	data.BareStructName = names.StructName
+	data.SDKName = names.PackageName
+
+	switch schemaTyp {
+	case properties.SchemaListResource:
+		data.StructName = names.ListResourceStructName()
+	case properties.SchemaDataSource:
+		data.StructName = names.DataSourceStructName
+	case properties.SchemaResource, properties.SchemaEphemeralResource:
+		data.StructName = names.ResourceStructName
+	case properties.SchemaAction, properties.SchemaCommon, properties.SchemaProvider, properties.SchemaCustom:
+	}
+
+	if spec.TerraformProviderConfig.Ephemeral {
+		data.PackageName = "ephemeral"
+	} else {
+		data.PackageName = "resource"
+	}
+
+	return processTemplate(tmpl, "render-main-and-configure-tmpls", data, commonFuncMap)
+}
+
+func RenderMainStruct(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider, spec *properties.Normalization) (string, error) {
+	return renderMainAndConfigureTmpls("common/structure.tmpl", resourceTyp, schemaTyp, names, spec)
+}
+
+func RenderConfigureFunc(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider, spec *properties.Normalization) (string, error) {
+	return renderMainAndConfigureTmpls("common/configure_func.tmpl", resourceTyp, schemaTyp, names, spec)
+}
+
+func RenderListFunc(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, names *NameProvider, spec *properties.Normalization, manager *imports.Manager) (string, error) {
+	type context struct {
+		StructName         string
+		IdentityModel      string
+		ResourceStructName string
+		SDKName            string
+	}
+
+	data := context{
+		StructName:         names.ListResourceStructName(),
+		IdentityModel:      fmt.Sprintf("%sIdentityModel", names.ResourceStructName),
+		ResourceStructName: names.ResourceStructName,
+		SDKName:            names.PackageName,
+	}
+
+	funcMap := template.FuncMap{
+		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
+			return RenderLocationsStateToPango(names, spec, source, dest, "diags")
+		},
+	}
+
+	return processTemplate("resource/list_func.tmpl", "render-list-func", data, funcMap)
 }

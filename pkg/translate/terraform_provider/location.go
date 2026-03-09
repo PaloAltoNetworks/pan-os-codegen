@@ -358,11 +358,12 @@ func RenderLocationsPangoToState(names *NameProvider, spec *properties.Normaliza
 }
 
 // RenderLocationsStateToPango generates code to convert Terraform state to Pango locations.
-func RenderLocationsStateToPango(names *NameProvider, spec *properties.Normalization, source string, dest string) (string, error) {
+func RenderLocationsStateToPango(names *NameProvider, spec *properties.Normalization, source string, dest string, diags string) (string, error) {
 	type context struct {
 		TerraformStructName string
 		Source              string
 		Dest                string
+		Diags               string
 		Locations           []locationCtx
 	}
 	data := context{
@@ -370,6 +371,7 @@ func RenderLocationsStateToPango(names *NameProvider, spec *properties.Normaliza
 		Locations:           renderLocationsGetContext(names, spec),
 		Source:              source,
 		Dest:                dest,
+		Diags:               diags,
 	}
 	return processTemplate("location/state_to_pango.tmpl", "render-locations-state-to-pango", data, commonFuncMap)
 }

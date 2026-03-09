@@ -1,0 +1,50 @@
+func (o *{{ .StructName }}) Configure(ctx context.Context, req {{ .PackageName }}.ConfigureRequest, resp *{{ .PackageName }}.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
+	}
+
+	providerData := req.ProviderData.(*ProviderData)
+	o.client = providerData.Client
+
+{{- if .IsCustom }}
+	custom, err := New{{ .BareStructName }}Custom(providerData)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
+		return
+	}
+	o.custom = custom
+{{- else if and .IsImportableEntry }}
+	specifier, _, err := {{ .SDKName }}.Versioning(o.client.Versioning())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
+		return
+	}
+
+	batchSize := providerData.MultiConfigBatchSize
+	o.manager =  sdkmanager.NewImportableEntryObjectManager(o.client, {{ .SDKName }}.NewService(o.client), batchSize, specifier, {{ .SDKName }}.SpecMatches)
+{{- else if .IsEntry }}
+	specifier, _, err := {{ .SDKName }}.Versioning(o.client.Versioning())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
+		return
+	}
+	batchSize := providerData.MultiConfigBatchSize
+	o.manager =  sdkmanager.NewEntryObjectManager[*{{ .SDKName }}.Entry, {{ .SDKName }}.Location, *{{ .SDKName }}.Service](o.client, {{ .SDKName }}.NewService(o.client), batchSize, specifier, {{ .SDKName }}.SpecMatches)
+{{- else if .IsUuid }}
+	specifier, _, err := {{ .SDKName }}.Versioning(o.client.Versioning())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
+		return
+	}
+	batchSize := providerData.MultiConfigBatchSize
+	o.manager =  sdkmanager.NewUuidObjectManager[*{{ .SDKName }}.Entry, {{ .SDKName }}.Location, *{{ .SDKName }}.Service](o.client, {{ .SDKName }}.NewService(o.client), batchSize, specifier, {{ .SDKName }}.SpecMatches)
+{{- else if .IsConfig }}
+	specifier, _, err := {{ .SDKName }}.Versioning(o.client.Versioning())
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
+		return
+	}
+	o.manager =  sdkmanager.NewConfigObjectManager(o.client, {{ .SDKName }}.NewService(o.client), specifier)
+{{- end }}
+}
