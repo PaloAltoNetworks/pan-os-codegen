@@ -326,17 +326,21 @@ func (o *UuidObjectManager[E, L, S]) CreateMany(ctx context.Context, location L,
 		}
 	}
 
+	var moveErr error
 	switch exhaustive {
 	case Exhaustive:
-		err := o.moveExhaustive(ctx, location, planEntriesByName, sdkPosition)
-		if err != nil {
-			return nil, err
-		}
+		moveErr = o.moveExhaustive(ctx, location, planEntriesByName, sdkPosition)
 	case NonExhaustive:
-		err := o.moveNonExhaustive(ctx, location, planEntries, planEntriesByName, sdkPosition)
-		if err != nil {
-			return nil, err
+		moveErr = o.moveNonExhaustive(ctx, location, planEntries, planEntriesByName, sdkPosition)
+	}
+
+	if moveErr != nil {
+		names := make([]string, 0, len(planEntriesByName))
+		for name := range planEntriesByName {
+			names = append(names, name)
 		}
+		cleanupErr := o.Delete(ctx, location, parentComponents, names, exhaustive)
+		return nil, errors.Join(moveErr, cleanupErr)
 	}
 
 	existing, err = o.service.List(ctx, location, "get", "", "")
@@ -599,17 +603,17 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 		}
 	}
 
+	var moveErr error
 	switch exhaustive {
 	case Exhaustive:
-		err := o.moveExhaustive(ctx, location, processedStateEntries, position)
-		if err != nil {
-			return nil, err
-		}
+		moveErr = o.moveExhaustive(ctx, location, processedStateEntries, position)
 	case NonExhaustive:
-		err := o.moveNonExhaustive(ctx, location, planEntries, planEntriesByName, position)
-		if err != nil {
-			return nil, err
-		}
+		moveErr = o.moveNonExhaustive(ctx, location, planEntries, planEntriesByName, position)
+	}
+
+	if moveErr != nil {
+		cleanupErr := o.cleanUpIncompleteUpdate(ctx, location, parentComponents, processedStateEntries, exhaustive)
+		return nil, errors.Join(moveErr, cleanupErr)
 	}
 
 	existing, err = o.service.List(ctx, location, "get", "", "")
