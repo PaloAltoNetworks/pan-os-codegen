@@ -101,7 +101,6 @@ entries:
 - name: name
   description: ''
   validators: []
-imports: []
 spec:
   params:
   - name: able-to-transfer-file
