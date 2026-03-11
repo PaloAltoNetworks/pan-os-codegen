@@ -1,0 +1,843 @@
+name: custom-spyware
+terraform_provider_config:
+  description: Custom Spyware
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: custom_spyware
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+go_sdk_config:
+  skip: false
+  package:
+  - objects
+  - custom
+  - spyware
+panos_xpath:
+  path:
+  - threats
+  - spyware
+  vars: []
+locations:
+- name: shared
+  xpath:
+    path:
+    - config
+    - shared
+    vars: []
+  description: Panorama shared object
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: ngfw_device
+      description: The NGFW device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The Virtual System name
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys name cannot be "shared". Use the "shared" location instead
+      type: entry
+  description: Located in a specific Virtual System
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: device-group
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - device-group
+    - $device_group
+    vars:
+    - name: panorama_device
+      description: Panorama device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: device_group
+      description: Device Group name
+      required: true
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The device group name cannot be "shared". Use the "shared" location
+              instead
+      type: entry
+  description: Located in a specific Device Group
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+imports: []
+spec:
+  params:
+  - name: bugtraq
+    type: list
+    profiles:
+    - xpath:
+      - bugtraq
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: comment
+    type: string
+    profiles:
+    - xpath:
+      - comment
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 256
+    spec: {}
+    description: ''
+    required: false
+  - name: cve
+    type: list
+    profiles:
+    - xpath:
+      - cve
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: default-action
+    type: object
+    profiles:
+    - xpath:
+      - default-action
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: alert
+        type: object
+        profiles:
+        - xpath:
+          - alert
+        validators: []
+        spec:
+          params: []
+          variants: []
+        description: ''
+        required: false
+      - name: allow
+        type: object
+        profiles:
+        - xpath:
+          - allow
+        validators: []
+        spec:
+          params: []
+          variants: []
+        description: ''
+        required: false
+      - name: block-ip
+        type: object
+        profiles:
+        - xpath:
+          - block-ip
+        validators: []
+        spec:
+          params:
+          - name: duration
+            type: int64
+            profiles:
+            - xpath:
+              - duration
+            validators:
+            - type: length
+              spec:
+                min: 1
+                max: 3600
+            spec: {}
+            description: Duration for block ip
+            required: false
+          - name: track-by
+            type: enum
+            profiles:
+            - xpath:
+              - track-by
+            validators:
+            - type: values
+              spec:
+                values:
+                - source
+                - source-and-destination
+            spec:
+              values:
+              - value: source
+              - value: source-and-destination
+            description: ''
+            required: false
+          variants: []
+        description: ''
+        required: false
+      - name: drop
+        type: object
+        profiles:
+        - xpath:
+          - drop
+        validators: []
+        spec:
+          params: []
+          variants: []
+        description: ''
+        required: false
+      - name: reset-both
+        type: object
+        profiles:
+        - xpath:
+          - reset-both
+        validators: []
+        spec:
+          params: []
+          variants: []
+        description: ''
+        required: false
+      - name: reset-client
+        type: object
+        profiles:
+        - xpath:
+          - reset-client
+        validators: []
+        spec:
+          params: []
+          variants: []
+        description: ''
+        required: false
+      - name: reset-server
+        type: object
+        profiles:
+        - xpath:
+          - reset-server
+        validators: []
+        spec:
+          params: []
+          variants: []
+        description: ''
+        required: false
+    description: ''
+    required: false
+  - name: direction
+    type: string
+    profiles:
+    - xpath:
+      - direction
+    validators: []
+    spec: {}
+    description: ''
+    required: false
+  - name: disable-override
+    type: enum
+    profiles:
+    - xpath:
+      - disable-override
+    validators:
+    - type: values
+      spec:
+        values:
+        - 'yes'
+        - 'no'
+    spec:
+      values:
+      - value: 'yes'
+      - value: 'no'
+    description: disable object override in child device groups
+    required: false
+  - name: reference
+    type: list
+    profiles:
+    - xpath:
+      - reference
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  - name: severity
+    type: string
+    profiles:
+    - xpath:
+      - severity
+    validators: []
+    spec: {}
+    description: ''
+    required: false
+  - name: signature
+    type: object
+    profiles:
+    - xpath:
+      - signature
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: combination
+        type: object
+        profiles:
+        - xpath:
+          - combination
+        validators: []
+        spec:
+          params:
+          - name: and-condition
+            type: list
+            profiles:
+            - xpath:
+              - and-condition
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: or-condition
+                    type: list
+                    profiles:
+                    - xpath:
+                      - or-condition
+                      - entry
+                      type: entry
+                    validators: []
+                    spec:
+                      type: object
+                      items:
+                        type: object
+                        spec:
+                          params:
+                          - name: threat-id
+                            type: string
+                            profiles:
+                            - xpath:
+                              - threat-id
+                            validators:
+                            - type: length
+                              spec:
+                                max: 10
+                            spec: {}
+                            description: threat id
+                            required: false
+                          variants: []
+                    description: ''
+                    required: false
+                  variants: []
+            description: ''
+            required: false
+          - name: order-free
+            type: bool
+            profiles:
+            - xpath:
+              - order-free
+            validators: []
+            spec: {}
+            description: ''
+            required: false
+          - name: time-attribute
+            type: object
+            profiles:
+            - xpath:
+              - time-attribute
+            validators: []
+            spec:
+              params:
+              - name: interval
+                type: int64
+                profiles:
+                - xpath:
+                  - interval
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 3600
+                spec: {}
+                description: ''
+                required: false
+              - name: threshold
+                type: int64
+                profiles:
+                - xpath:
+                  - threshold
+                validators:
+                - type: length
+                  spec:
+                    min: 1
+                    max: 255
+                spec: {}
+                description: ''
+                required: false
+              - name: track-by
+                type: enum
+                profiles:
+                - xpath:
+                  - track-by
+                validators:
+                - type: values
+                  spec:
+                    values:
+                    - source
+                    - destination
+                    - source-and-destination
+                spec:
+                  default: source-and-destination
+                  values:
+                  - value: source
+                  - value: destination
+                  - value: source-and-destination
+                description: ''
+                required: false
+              variants: []
+            description: ''
+            required: false
+          variants: []
+        description: ''
+        required: false
+      - name: standard
+        type: list
+        profiles:
+        - xpath:
+          - standard
+          - entry
+          type: entry
+        validators: []
+        spec:
+          type: object
+          items:
+            type: object
+            spec:
+              params:
+              - name: comment
+                type: string
+                profiles:
+                - xpath:
+                  - comment
+                validators:
+                - type: length
+                  spec:
+                    min: 0
+                    max: 256
+                spec: {}
+                description: ''
+                required: false
+              - name: scope
+                type: enum
+                profiles:
+                - xpath:
+                  - scope
+                validators:
+                - type: values
+                  spec:
+                    values:
+                    - protocol-data-unit
+                    - session
+                spec:
+                  default: protocol-data-unit
+                  values:
+                  - value: protocol-data-unit
+                  - value: session
+                description: ''
+                required: false
+              - name: order-free
+                type: bool
+                profiles:
+                - xpath:
+                  - order-free
+                validators: []
+                spec: {}
+                description: ''
+                required: false
+              - name: and-condition
+                type: list
+                profiles:
+                - xpath:
+                  - and-condition
+                  - entry
+                  type: entry
+                validators: []
+                spec:
+                  type: object
+                  items:
+                    type: object
+                    spec:
+                      params:
+                      - name: or-condition
+                        type: list
+                        profiles:
+                        - xpath:
+                          - or-condition
+                          - entry
+                          type: entry
+                        validators: []
+                        spec:
+                          type: object
+                          items:
+                            type: object
+                            spec:
+                              params:
+                              - name: operator
+                                type: object
+                                profiles:
+                                - xpath:
+                                  - operator
+                                validators: []
+                                spec:
+                                  params: []
+                                  variants:
+                                  - name: less-than
+                                    type: object
+                                    profiles:
+                                    - xpath:
+                                      - less-than
+                                    validators: []
+                                    spec:
+                                      params:
+                                      - name: value
+                                        type: int64
+                                        profiles:
+                                        - xpath:
+                                          - value
+                                        validators:
+                                        - type: length
+                                          spec:
+                                            min: 0
+                                            max: 4294967295
+                                        spec: {}
+                                        description: ''
+                                        required: false
+                                      - name: context
+                                        type: string
+                                        profiles:
+                                        - xpath:
+                                          - context
+                                        validators:
+                                        - type: length
+                                          spec:
+                                            max: 127
+                                        spec: {}
+                                        description: ''
+                                        required: false
+                                      - name: qualifier
+                                        type: list
+                                        profiles:
+                                        - xpath:
+                                          - qualifier
+                                          - entry
+                                          type: entry
+                                        validators: []
+                                        spec:
+                                          type: object
+                                          items:
+                                            type: object
+                                            spec:
+                                              params:
+                                              - name: value
+                                                type: string
+                                                profiles:
+                                                - xpath:
+                                                  - value
+                                                validators: []
+                                                spec: {}
+                                                description: ''
+                                                required: false
+                                              variants: []
+                                        description: ''
+                                        required: false
+                                      variants: []
+                                    description: ''
+                                    required: false
+                                  - name: equal-to
+                                    type: object
+                                    profiles:
+                                    - xpath:
+                                      - equal-to
+                                    validators: []
+                                    spec:
+                                      params:
+                                      - name: value
+                                        type: int64
+                                        profiles:
+                                        - xpath:
+                                          - value
+                                        validators:
+                                        - type: length
+                                          spec:
+                                            min: 0
+                                            max: 4294967295
+                                        spec: {}
+                                        description: ''
+                                        required: false
+                                      - name: negate
+                                        type: bool
+                                        profiles:
+                                        - xpath:
+                                          - negate
+                                        validators: []
+                                        spec: {}
+                                        description: ''
+                                        required: false
+                                      - name: context
+                                        type: string
+                                        profiles:
+                                        - xpath:
+                                          - context
+                                        validators:
+                                        - type: length
+                                          spec:
+                                            max: 127
+                                        spec: {}
+                                        description: ''
+                                        required: false
+                                      - name: qualifier
+                                        type: list
+                                        profiles:
+                                        - xpath:
+                                          - qualifier
+                                          - entry
+                                          type: entry
+                                        validators: []
+                                        spec:
+                                          type: object
+                                          items:
+                                            type: object
+                                            spec:
+                                              params:
+                                              - name: value
+                                                type: string
+                                                profiles:
+                                                - xpath:
+                                                  - value
+                                                validators: []
+                                                spec: {}
+                                                description: ''
+                                                required: false
+                                              variants: []
+                                        description: ''
+                                        required: false
+                                      variants: []
+                                    description: ''
+                                    required: false
+                                  - name: greater-than
+                                    type: object
+                                    profiles:
+                                    - xpath:
+                                      - greater-than
+                                    validators: []
+                                    spec:
+                                      params:
+                                      - name: value
+                                        type: int64
+                                        profiles:
+                                        - xpath:
+                                          - value
+                                        validators:
+                                        - type: length
+                                          spec:
+                                            min: 0
+                                            max: 4294967295
+                                        spec: {}
+                                        description: ''
+                                        required: false
+                                      - name: context
+                                        type: string
+                                        profiles:
+                                        - xpath:
+                                          - context
+                                        validators:
+                                        - type: length
+                                          spec:
+                                            max: 127
+                                        spec: {}
+                                        description: ''
+                                        required: false
+                                      - name: qualifier
+                                        type: list
+                                        profiles:
+                                        - xpath:
+                                          - qualifier
+                                          - entry
+                                          type: entry
+                                        validators: []
+                                        spec:
+                                          type: object
+                                          items:
+                                            type: object
+                                            spec:
+                                              params:
+                                              - name: value
+                                                type: string
+                                                profiles:
+                                                - xpath:
+                                                  - value
+                                                validators: []
+                                                spec: {}
+                                                description: ''
+                                                required: false
+                                              variants: []
+                                        description: ''
+                                        required: false
+                                      variants: []
+                                    description: ''
+                                    required: false
+                                  - name: pattern-match
+                                    type: object
+                                    profiles:
+                                    - xpath:
+                                      - pattern-match
+                                    validators: []
+                                    spec:
+                                      params:
+                                      - name: context
+                                        type: string
+                                        profiles:
+                                        - xpath:
+                                          - context
+                                        validators:
+                                        - type: length
+                                          spec:
+                                            max: 127
+                                        spec: {}
+                                        description: ''
+                                        required: false
+                                      - name: pattern
+                                        type: string
+                                        profiles:
+                                        - xpath:
+                                          - pattern
+                                        validators:
+                                        - type: length
+                                          spec:
+                                            max: 127
+                                        spec: {}
+                                        description: ''
+                                        required: false
+                                      - name: negate
+                                        type: bool
+                                        profiles:
+                                        - xpath:
+                                          - negate
+                                        validators: []
+                                        spec: {}
+                                        description: ''
+                                        required: false
+                                      - name: qualifier
+                                        type: list
+                                        profiles:
+                                        - xpath:
+                                          - qualifier
+                                          - entry
+                                          type: entry
+                                        validators: []
+                                        spec:
+                                          type: object
+                                          items:
+                                            type: object
+                                            spec:
+                                              params:
+                                              - name: value
+                                                type: string
+                                                profiles:
+                                                - xpath:
+                                                  - value
+                                                validators: []
+                                                spec: {}
+                                                description: ''
+                                                required: false
+                                              variants: []
+                                        description: ''
+                                        required: false
+                                      variants: []
+                                    description: ''
+                                    required: false
+                                description: ''
+                                required: false
+                              variants: []
+                        description: ''
+                        required: false
+                      variants: []
+                description: ''
+                required: false
+              variants: []
+        description: ''
+        required: false
+        codegen_overrides:
+          terraform:
+            variant_check: Disabled
+    description: ''
+    required: false
+  - name: threatname
+    type: string
+    profiles:
+    - xpath:
+      - threatname
+    validators:
+    - type: length
+      spec:
+        max: 1024
+    spec: {}
+    description: alphanumeric string [ 0-9a-zA-Z._-]
+    required: false
+  - name: vendor
+    type: list
+    profiles:
+    - xpath:
+      - vendor
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+  variants: []
