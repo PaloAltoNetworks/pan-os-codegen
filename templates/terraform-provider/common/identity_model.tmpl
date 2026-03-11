@@ -1,0 +1,6 @@
+
+type {{ .StructName }} struct {
+{{- range .Fields }}
+	{{ .Name }} {{ .Type }} `tfsdk:"{{ .Tag }}"`
+{{ end }}
+}

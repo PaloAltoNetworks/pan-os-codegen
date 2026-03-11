@@ -12,12 +12,15 @@ type locationStructFieldCtx struct {
 	Name          *properties.NameVariant
 	TerraformType string
 	Type          string
+	AsIdentity    bool
 	Tags          []string
 }
 
 // locationStructCtx describes a location struct.
 type locationStructCtx struct {
 	StructName string
+	XpathName  *properties.NameVariant
+	TopLevel   bool
 	Fields     []locationStructFieldCtx
 }
 
@@ -32,6 +35,7 @@ func getLocationStructsContext(names *NameProvider, spec *properties.Normalizati
 	// Create the top location structure that references other locations
 	topLocation := locationStructCtx{
 		StructName: fmt.Sprintf("%sLocation", names.StructName),
+		TopLevel:   true,
 	}
 
 	for _, data := range spec.OrderedLocations() {
@@ -43,6 +47,7 @@ func getLocationStructsContext(names *NameProvider, spec *properties.Normalizati
 			Name:          data.Name,
 			TerraformType: structName,
 			Type:          structType,
+			AsIdentity:    true,
 			Tags:          []string{tfTag},
 		})
 
@@ -64,13 +69,15 @@ func getLocationStructsContext(names *NameProvider, spec *properties.Normalizati
 				paramTag = "`tfsdk:\"name\"`"
 			}
 			fields = append(fields, locationStructFieldCtx{
-				Name: name,
-				Type: "types.String",
-				Tags: []string{paramTag},
+				Name:       name,
+				Type:       "types.String",
+				AsIdentity: true,
+				Tags:       []string{paramTag},
 			})
 		}
 
 		location := locationStructCtx{
+			XpathName:  data.Name,
 			StructName: structName,
 			Fields:     fields,
 		}
@@ -389,4 +396,139 @@ func RenderLocationAttributeTypes(names *NameProvider, spec *properties.Normaliz
 		Specs: locations,
 	}
 	return processTemplate("location/attribute_types.tmpl", "render-location-structs", data, commonFuncMap)
+}
+
+// RenderIdentityModel generates identity model struct.
+func RenderIdentityModel(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
+	switch resourceTyp {
+	case properties.ResourceUuid, properties.ResourceUuidPlural, properties.ResourceEntryPlural:
+		return "", nil
+	case properties.ResourceConfig, properties.ResourceCustom:
+		return "", nil
+	case properties.ResourceEntry:
+	}
+
+	if spec.TerraformProviderConfig.Ephemeral {
+		return "", nil
+	}
+
+	if spec.TerraformProviderConfig.SkipResource {
+		return "", nil
+	}
+
+	type fieldCtx struct {
+		Name string
+		Type string
+		Tag  string
+	}
+
+	type context struct {
+		StructName string
+		Fields     []fieldCtx
+	}
+
+	var fields []fieldCtx
+	if spec.HasEntryName() {
+		fields = []fieldCtx{
+			{Name: "Name", Type: "types.String", Tag: "name"},
+			{Name: "Location", Type: "types.String", Tag: "location"},
+		}
+	} else {
+		fields = []fieldCtx{
+			{Name: "Config", Type: "types.String", Tag: "config"},
+			{Name: "Location", Type: "types.String", Tag: "location"},
+		}
+	}
+
+	data := context{
+		StructName: names.IdentityModelStructName(),
+		Fields:     fields,
+	}
+
+	return processTemplate("common/identity_model.tmpl", "render-identity-model", data, commonFuncMap)
+}
+
+// RenderIdentitySchema generates identity schema method.
+func RenderIdentitySchema(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
+	switch resourceTyp {
+	case properties.ResourceUuid, properties.ResourceUuidPlural, properties.ResourceEntryPlural:
+		return "", nil
+	case properties.ResourceConfig, properties.ResourceCustom:
+		return "", nil
+	case properties.ResourceEntry:
+	}
+
+	if spec.TerraformProviderConfig.Ephemeral {
+		return "", nil
+	}
+
+	if spec.TerraformProviderConfig.SkipResource {
+		return "", nil
+	}
+
+	type fieldCtx struct {
+		Name              string
+		Type              string
+		RequiredForImport bool
+		OptionalForImport bool
+	}
+
+	type context struct {
+		StructName string
+		Fields     []fieldCtx
+	}
+
+	var fields []fieldCtx
+	if spec.HasEntryName() {
+		fields = []fieldCtx{
+			{Name: "name", Type: "identityschema.StringAttribute", RequiredForImport: true},
+			{Name: "location", Type: "identityschema.StringAttribute", RequiredForImport: true},
+		}
+	} else {
+		fields = []fieldCtx{
+			{Name: "config", Type: "identityschema.StringAttribute", RequiredForImport: true},
+			{Name: "location", Type: "identityschema.StringAttribute", RequiredForImport: true},
+		}
+	}
+
+	data := context{
+		StructName: fmt.Sprintf("%sResource", names.StructName),
+		Fields:     fields,
+	}
+
+	return processTemplate("common/identity_schema.tmpl", "render-identity-schema", data, commonFuncMap)
+
+}
+
+// RenderLocationAsIdentityGetter generates location-to-identity conversion code.
+func RenderLocationAsIdentityGetter(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
+	switch resourceTyp {
+	case properties.ResourceUuid, properties.ResourceUuidPlural, properties.ResourceEntryPlural:
+		return "", nil
+	case properties.ResourceConfig, properties.ResourceCustom:
+		return "", nil
+	case properties.ResourceEntry:
+	}
+
+	if spec.TerraformProviderConfig.Ephemeral {
+		return "", nil
+	}
+
+	if spec.TerraformProviderConfig.SkipResource {
+		return "", nil
+	}
+
+	type context struct {
+		StructName string
+		Specs      []locationStructCtx
+	}
+
+	locations := getLocationStructsContext(names, spec)
+
+	data := context{
+		StructName: names.StructName,
+		Specs:      locations,
+	}
+
+	return processTemplate("location/identity.tmpl", "render-location-as-identity", data, commonFuncMap)
 }

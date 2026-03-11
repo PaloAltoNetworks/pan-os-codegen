@@ -64,6 +64,10 @@ func (o TerraformNameProvider) ActionStructName() string {
 	return fmt.Sprintf("%sAction", o.StructName)
 }
 
+func (o TerraformNameProvider) IdentityModelStructName() string {
+	return fmt.Sprintf("%sIdentityModel", o.ResourceStructName)
+}
+
 type TerraformSpecFlags uint
 
 const (
