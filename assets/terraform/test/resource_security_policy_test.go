@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/PaloAltoNetworks/pango/movement"
 	"github.com/PaloAltoNetworks/pango/policies/rules/security"
 
 	"github.com/hashicorp/terraform-plugin-testing/config"
@@ -17,6 +18,40 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
+
+func CreateServerSecurityRules(prefix string, ruleNames []string, beforePivot string) {
+	location := security.NewDeviceGroupLocation()
+	location.DeviceGroup.DeviceGroup = fmt.Sprintf("%s-dg", prefix)
+
+	service := security.NewService(sdkClient)
+	ctx := context.TODO()
+
+	var entries []*security.Entry
+	for _, name := range ruleNames {
+		entry := &security.Entry{
+			Name:        prefixed(prefix, name),
+			Source:      []string{"any"},
+			Destination: []string{"any"},
+			From:        []string{"any"},
+			To:          []string{"any"},
+			Service:     []string{"any"},
+		}
+		_, err := service.Create(ctx, *location, entry)
+		if err != nil {
+			panic(fmt.Sprintf("CreateServerSecurityRules failed: %s", err))
+		}
+		entries = append(entries, entry)
+	}
+
+	position := movement.PositionBefore{
+		Pivot:    prefixed(prefix, beforePivot),
+		Directly: true,
+	}
+	err := service.MoveGroup(ctx, *location, position, entries, 10)
+	if err != nil {
+		panic(fmt.Sprintf("CreateServerSecurityRules move failed: %s", err))
+	}
+}
 
 func DeleteServerSecurityRules(prefix string, ruleNames []string) {
 	location := security.NewDeviceGroupLocation()
