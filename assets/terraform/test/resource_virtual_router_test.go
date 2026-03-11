@@ -3960,6 +3960,124 @@ resource "panos_virtual_router" "test" {
 }
 `
 
+func TestAccPanosVirtualRouter_TemplateVsys(t *testing.T) {
+	t.Skip("template-vsys/template-stack-vsys location not supported")
+	t.Parallel()
+
+	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
+	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccVirtualRouterTemplateVsys,
+				ConfigVariables: map[string]config.Variable{
+					"prefix": config.StringVariable(prefix),
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue(
+						"panos_virtual_router.test",
+						tfjsonpath.New("name"),
+						knownvalue.StringExact(prefix),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_virtual_router.test",
+						tfjsonpath.New("location").AtMapKey("template_vsys").AtMapKey("template"),
+						knownvalue.StringExact(prefix),
+					),
+				},
+			},
+		},
+	})
+}
+
+const testAccVirtualRouterTemplateVsys = `
+variable "prefix" { type = string }
+
+resource "panos_template" "test" {
+  location = { panorama = {} }
+  name     = var.prefix
+}
+
+resource "panos_virtual_router" "test" {
+  location = {
+    template_vsys = {
+      template = panos_template.test.name
+    }
+  }
+
+  name = var.prefix
+
+  administrative_distances = {
+    static = 10
+  }
+}
+`
+
+func TestAccPanosVirtualRouter_TemplateStackVsys(t *testing.T) {
+	t.Skip("template-vsys/template-stack-vsys location not supported")
+	t.Parallel()
+
+	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
+	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccVirtualRouterTemplateStackVsys,
+				ConfigVariables: map[string]config.Variable{
+					"prefix": config.StringVariable(prefix),
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue(
+						"panos_virtual_router.test",
+						tfjsonpath.New("name"),
+						knownvalue.StringExact(prefix),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_virtual_router.test",
+						tfjsonpath.New("location").AtMapKey("template_stack_vsys").AtMapKey("template_stack"),
+						knownvalue.StringExact(fmt.Sprintf("%s-stack", prefix)),
+					),
+				},
+			},
+		},
+	})
+}
+
+const testAccVirtualRouterTemplateStackVsys = `
+variable "prefix" { type = string }
+
+resource "panos_template" "test" {
+  location = { panorama = {} }
+  name     = "${var.prefix}-tpl"
+}
+
+resource "panos_template_stack" "test" {
+  location = { panorama = {} }
+  name     = "${var.prefix}-stack"
+  templates = [panos_template.test.name]
+}
+
+resource "panos_virtual_router" "test" {
+  location = {
+    template_stack_vsys = {
+      template_stack = panos_template_stack.test.name
+    }
+  }
+
+  name = var.prefix
+
+  administrative_distances = {
+    static = 10
+  }
+}
+`
+
 // TestAccPanosVirtualRouter_VsysImport_Lifecycle verifies that virtual router
 // import status correctly follows vsys field changes through:
 // empty → vsys1 → vsys2 → empty
