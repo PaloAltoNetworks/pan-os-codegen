@@ -10,13 +10,15 @@ terraform_provider_config:
   plural_suffix: ''
   plural_name: ''
   plural_description: ''
+  custom_validation: false
 go_sdk_config:
   skip: false
   package:
   - device
   - ssldecrypt
 panos_xpath:
-  path: ["ssl-decrypt"]
+  path:
+  - ssl-decrypt
   vars: []
 locations:
 - name: panorama
@@ -200,7 +202,6 @@ locations:
   required: false
   read_only: false
 entries: []
-imports: []
 spec:
   params:
   - name: disabled-ssl-exclude-cert-from-predefined

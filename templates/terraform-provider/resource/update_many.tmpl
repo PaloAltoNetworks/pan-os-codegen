@@ -40,12 +40,15 @@ for idx, elt := range elements {
   {{ $exhaustive = "sdkmanager.Exhaustive" }}
 position := movement.PositionFirst{}
 {{- else }}
+var position movement.Position
 var positionAttribute TerraformPositionObject
-resp.Diagnostics.Append(plan.Position.As(ctx, &positionAttribute, basetypes.ObjectAsOptions{})...)
-if resp.Diagnostics.HasError() {
-	return
+if !plan.Position.IsNull() && !plan.Position.IsUnknown() {
+	resp.Diagnostics.Append(plan.Position.As(ctx, &positionAttribute, basetypes.ObjectAsOptions{})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	position = positionAttribute.CopyToPango()
 }
-position := positionAttribute.CopyToPango()
 {{- end }}
 
 existing, _, err := o.manager.ReadMany(ctx, location, stateEntries, {{ $exhaustive }}, position)

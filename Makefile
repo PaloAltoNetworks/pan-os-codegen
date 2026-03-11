@@ -21,7 +21,7 @@ assets: $(ASSETS_DST)
 .PHONY: codegen
 codegen: codegen-stamp
 codegen-stamp: target/codegen $(CODEGEN_SPECS)
-	CODEGEN_LOG_LEVEL=$(CODEGEN_LOG_LEVEL) ./target/codegen -config config.yaml
+	CODEGEN_LOG_LEVEL=$(CODEGEN_LOG_LEVEL) ./target/codegen -config cmd/codegen/config.yaml
 	touch $@
 
 $(GENERATED_OUT_PATH)/%: assets/%

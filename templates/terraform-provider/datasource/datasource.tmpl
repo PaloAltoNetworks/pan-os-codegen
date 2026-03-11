@@ -16,7 +16,7 @@ type {{ dataSourceStructName }} struct {
 {{- if IsCustom }}
 	custom *{{ structName }}Custom
 {{- else if and IsEntry HasImports }}
-	manager *sdkmanager.ImportableEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, {{ resourceSDKName }}.ImportLocation, *{{ resourceSDKName }}.Service]
+	manager *sdkmanager.ImportableEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service]
 {{- else if IsEntry }}
 	manager *sdkmanager.EntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service]
 {{- else if IsUuid }}

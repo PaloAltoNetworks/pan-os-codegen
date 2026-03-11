@@ -243,6 +243,9 @@ spec:
                   type: string
                   profiles:
                     - xpath: ["private-key"]
+                  codegen_overrides:
+                    terraform:
+                      sensitive: true
                 - name: passphrase
                   type: string
                   profiles:
