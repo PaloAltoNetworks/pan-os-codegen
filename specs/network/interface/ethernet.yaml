@@ -135,6 +135,7 @@ imports:
   - layer2
   - layer3
   - tap
+  - virtual-wire
   default_value: vsys1
 spec:
   params:

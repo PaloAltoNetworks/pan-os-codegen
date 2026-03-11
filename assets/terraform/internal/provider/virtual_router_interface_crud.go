@@ -39,7 +39,7 @@ func NewVirtualRouterInterfaceCustom(provider *ProviderData) (*VirtualRouterInte
 }
 
 func terraformToSdkLocation(ctx context.Context, locationObj types.Object) (*vrouter.Location, diag.Diagnostics) {
-	var terraformLocation VirtualRouterLocation
+	var terraformLocation VirtualRouterInterfaceLocation
 
 	diags := locationObj.As(ctx, &terraformLocation, basetypes.ObjectAsOptions{})
 	if diags.HasError() {
@@ -50,7 +50,7 @@ func terraformToSdkLocation(ctx context.Context, locationObj types.Object) (*vro
 
 	if !terraformLocation.Ngfw.IsNull() {
 		location.Ngfw = &vrouter.NgfwLocation{}
-		var innerLocation VirtualRouterNgfwLocation
+		var innerLocation VirtualRouterInterfaceNgfwLocation
 		diags.Append(terraformLocation.Ngfw.As(ctx, &innerLocation, basetypes.ObjectAsOptions{})...)
 		if diags.HasError() {
 			return nil, diags
@@ -60,7 +60,7 @@ func terraformToSdkLocation(ctx context.Context, locationObj types.Object) (*vro
 
 	if !terraformLocation.Template.IsNull() {
 		location.Template = &vrouter.TemplateLocation{}
-		var innerLocation VirtualRouterTemplateLocation
+		var innerLocation VirtualRouterInterfaceTemplateLocation
 		diags.Append(terraformLocation.Template.As(ctx, &innerLocation, basetypes.ObjectAsOptions{})...)
 		if diags.HasError() {
 			return nil, diags
@@ -72,7 +72,7 @@ func terraformToSdkLocation(ctx context.Context, locationObj types.Object) (*vro
 
 	if !terraformLocation.TemplateStack.IsNull() {
 		location.TemplateStack = &vrouter.TemplateStackLocation{}
-		var innerLocation VirtualRouterTemplateStackLocation
+		var innerLocation VirtualRouterInterfaceTemplateStackLocation
 		diags.Append(terraformLocation.TemplateStack.As(ctx, &innerLocation, basetypes.ObjectAsOptions{})...)
 		if diags.HasError() {
 			return nil, diags
@@ -80,6 +80,17 @@ func terraformToSdkLocation(ctx context.Context, locationObj types.Object) (*vro
 		location.TemplateStack.PanoramaDevice = innerLocation.PanoramaDevice.ValueString()
 		location.TemplateStack.TemplateStack = innerLocation.Name.ValueString()
 		location.TemplateStack.NgfwDevice = innerLocation.NgfwDevice.ValueString()
+	}
+
+	if !terraformLocation.Vsys.IsNull() {
+		location.Vsys = &vrouter.VsysLocation{}
+		var innerLocation VirtualRouterInterfaceVsysLocation
+		diags.Append(terraformLocation.Vsys.As(ctx, &innerLocation, basetypes.ObjectAsOptions{})...)
+		if diags.HasError() {
+			return nil, diags
+		}
+		location.Vsys.NgfwDevice = innerLocation.NgfwDevice.ValueString()
+		location.Vsys.Vsys = innerLocation.Name.ValueString()
 	}
 
 	return location, nil
@@ -173,7 +184,7 @@ func (o *VirtualRouterInterfaceResource) CreateCustom(ctx context.Context, req r
 	}
 
 	object.Interface = o.addInterface(object.Interface, plan.Interface.ValueString())
-	_, err = o.custom.manager.Update(ctx, *location, components, object, object.Name)
+	_, err = o.custom.manager.Update(ctx, *location, components, object, "")
 	if err != nil {
 		resp.Diagnostics.AddError("Error while creating interface entry", err.Error())
 		return
@@ -348,7 +359,7 @@ func (o *VirtualRouterInterfaceResource) DeleteCustom(ctx context.Context, req r
 	}
 
 	object.Interface = o.removeInterface(object.Interface, state.Interface.ValueString())
-	o.custom.manager.Update(ctx, *location, components, object, object.Name)
+	o.custom.manager.Update(ctx, *location, components, object, "")
 	if err != nil {
 		resp.Diagnostics.AddError("Error while deleting interface", err.Error())
 	}
