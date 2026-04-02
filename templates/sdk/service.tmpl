@@ -886,7 +886,7 @@ func (s *Service) MoveGroup(ctx context.Context, loc Location, position movement
 
         vn := s.client.Versioning()
 
-        path, err := loc.XpathWithComponents(vn, name)
+        path, err := loc.XpathWithComponents(vn, util.AsEntryXpath(name))
         if err != nil {
         return err
         }
@@ -911,7 +911,7 @@ func (s *Service) MoveGroup(ctx context.Context, loc Location, position movement
 
         vn := s.client.Versioning()
 
-        path, err := loc.XpathWithComponents(vn, name)
+        path, err := loc.XpathWithComponents(vn, util.AsEntryXpath(name))
         if err != nil {
         return "", err
         }
