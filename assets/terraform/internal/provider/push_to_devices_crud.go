@@ -7,8 +7,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/action"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 
-	"github.com/PaloAltoNetworks/pango"
 	"github.com/PaloAltoNetworks/pango/commit"
+	pangoutil "github.com/PaloAltoNetworks/pango/util"
 	"github.com/PaloAltoNetworks/pango/xmlapi"
 )
 
@@ -35,7 +35,7 @@ type pushToDevicesSpec struct {
 //   - diag.Diagnostics: Contains any errors or warnings from the operation
 func pushToDevices(
 	ctx context.Context,
-	client *pango.Client,
+	client pangoutil.PangoClient,
 	spec pushToDevicesSpec,
 ) diag.Diagnostics {
 	var diags diag.Diagnostics

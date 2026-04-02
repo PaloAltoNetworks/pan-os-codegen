@@ -78,6 +78,7 @@ type TerraformProviderConfig struct {
 	PluralType               object.TerraformPluralType `json:"plural_type" yaml:"plural_type"`
 	PluralDescription        string                     `json:"plural_description" yaml:"plural_description"`
 	ExperimentalCacheEnabled bool                       `json:"experimental_cache_enabled" yaml:"experimental_cache_enabled"`
+	SupportsLocalXml         *bool                      `json:"supports_local_xml" yaml:"supports_local_xml"`
 }
 
 type Location struct {
@@ -716,6 +717,7 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 			PluralType:               object.TerraformConfig.PluralType,
 			PluralDescription:        object.TerraformConfig.PluralDescription,
 			ExperimentalCacheEnabled: object.TerraformConfig.ExperimentalCacheEnabled,
+			SupportsLocalXml:         object.TerraformConfig.SupportsLocalXml,
 		},
 		Locations:             make(map[string]*Location),
 		Imports:               object.Imports,
@@ -1618,4 +1620,90 @@ func listContains(versions []string, checkedVersion string) bool {
 		}
 	}
 	return true
+}
+
+// FinalLocalXmlSupported returns whether the resource supports local XML mode.
+//
+// This function is the ONLY code generation path for checking local XML support.
+// Templates must NEVER check TerraformProviderConfig.SupportsLocalXml directly.
+//
+// Priority logic:
+//  1. If SupportsLocalXml is explicitly set (not nil), return that value
+//  2. If nil (or omitted), apply auto-detection fallback
+//
+// Auto-detection rules:
+//   - Returns true if resource type is NOT Custom AND resource has NO hashed fields
+//   - Hashed fields cannot reliably round-trip through XML, so resources with
+//     hashed fields are automatically excluded from local XML support
+func (spec *Normalization) FinalLocalXmlSupported() bool {
+	// Priority 1: Check if explicitly set
+	if spec.TerraformProviderConfig.SupportsLocalXml != nil {
+		return *spec.TerraformProviderConfig.SupportsLocalXml
+	}
+
+	// Priority 2: Auto-detection fallback
+	return autoDetectLocalXmlSupport(spec)
+}
+
+// autoDetectLocalXmlSupport determines support based on resource characteristics.
+// Returns true if: NOT Custom type AND NO hashed fields
+func autoDetectLocalXmlSupport(spec *Normalization) bool {
+	// Custom resources are explicitly excluded
+	if spec.TerraformProviderConfig.ResourceType == TerraformResourceCustom {
+		return false
+	}
+
+	// Resources with hashed fields cannot round-trip through XML
+	if hasHashedFields(spec) {
+		return false
+	}
+
+	return true
+}
+
+// hasHashedFields recursively checks if any parameter in the spec has hashing enabled.
+func hasHashedFields(spec *Normalization) bool {
+	if spec.Spec == nil {
+		return false
+	}
+
+	// Check params
+	for _, param := range spec.Spec.Params {
+		if paramHasHashing(param) {
+			return true
+		}
+	}
+
+	// Check oneOf (variants)
+	for _, param := range spec.Spec.OneOf {
+		if paramHasHashing(param) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// paramHasHashing recursively checks if a parameter or any nested parameters have hashing.
+func paramHasHashing(param *SpecParam) bool {
+	// Check if this parameter has hashing
+	if param.Hashing != nil {
+		return true
+	}
+
+	// Check nested parameters recursively
+	if param.Spec != nil {
+		for _, nestedParam := range param.Spec.Params {
+			if paramHasHashing(nestedParam) {
+				return true
+			}
+		}
+		for _, nestedParam := range param.Spec.OneOf {
+			if paramHasHashing(nestedParam) {
+				return true
+			}
+		}
+	}
+
+	return false
 }

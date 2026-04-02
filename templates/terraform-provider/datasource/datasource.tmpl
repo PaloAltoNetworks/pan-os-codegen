@@ -11,7 +11,7 @@ func New{{ dataSourceStructName }}() datasource.DataSource {
 }
 
 type {{ dataSourceStructName }} struct {
-    client *pango.Client
+    client pangoutil.PangoClient
 
 {{- if IsCustom }}
 	custom *{{ structName }}Custom

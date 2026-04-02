@@ -159,6 +159,303 @@ func NewLocalXmlClient(configXml []byte, opts ...LocalClientOption) (*LocalXmlCl
 	return client, nil
 }
 
+ // LoadFromFile loads XML configuration from the specified file.
+ // This replaces any existing in-memory configuration.
+ //
+ // The filepath is stored and will be used for auto-save operations if enabled.
+ // Both absolute and relative paths are supported.
+ //
+ // Example:
+ //
+ //	err := client.LoadFromFile("/path/to/running-config.xml")
+ //	if err != nil {
+ //	    return fmt.Errorf("failed to load config: %w", err)
+ //	}
+ func (c *LocalXmlClient) LoadFromFile(filepath string) error {
+ 	// Read file
+ 	xmlBytes, err := os.ReadFile(filepath)
+ 	if err != nil {
+ 		if os.IsNotExist(err) {
+ 			return fmt.Errorf("XML file not found: %s", filepath)
+ 		}
+ 		if os.IsPermission(err) {
+ 			return fmt.Errorf("permission denied reading file: %s", filepath)
+ 		}
+ 		return fmt.Errorf("failed to read XML file %s: %w", filepath, err)
+ 	}
+ 
+ 	// Parse XML
+ 	doc, err := xmlquery.Parse(bytes.NewReader(xmlBytes))
+ 	if err != nil {
+ 		return fmt.Errorf("failed to parse XML from %s: %w", filepath, err)
+ 	}
+ 
+ 	// Find config root
+ 	configNode := xmlquery.FindOne(doc, "/config")
+ 	if configNode == nil {
+ 		return fmt.Errorf("invalid PAN-OS XML: missing <config> root element in %s", filepath)
+ 	}
+ 
+ 	// Detect version
+ 	var ver version.Number
+ 	if versionAttr := configNode.SelectAttr("detail-version"); versionAttr != "" {
+ 		ver, err = version.New(versionAttr)
+ 		if err != nil {
+ 			return fmt.Errorf("failed to parse version from %s: %w", filepath, err)
+ 		}
+ 	}
+ 
+ 	// Detect device type
+ 	var devType deviceType
+ 	panoramaNode := xmlquery.FindOne(doc, "/config/panorama")
+ 	if panoramaNode != nil {
+ 		devType = deviceTypePanorama
+ 	} else {
+ 		devType = deviceTypeFirewall
+ 	}
+ 
+ 	// Update state (thread-safe)
+ 	c.mu.Lock()
+ 	defer c.mu.Unlock()
+ 
+ 	c.rootNode = doc
+ 	c.version = ver
+ 	c.deviceType = devType
+ 	c.filepath = filepath
+ 
+ 	return nil
+ }
+ 
+ // saveToFileInternal serializes and saves the XML document without acquiring locks.
+ // CRITICAL: Caller MUST hold write lock before calling this method.
+ // This is an internal helper for auto-save integration within locked operations.
+ //
+ // Uses atomic write pattern (temp file + rename) to prevent corruption.
+ //
+ // Internal usage only - external callers should use SaveToFile() instead.
+ func (c *LocalXmlClient) saveToFileInternal(filepath string) error {
+ 	if filepath == "" {
+ 		return fmt.Errorf("filepath cannot be empty")
+ 	}
+ 
+ 	if c.rootNode == nil {
+ 		return fmt.Errorf("cannot save: client not initialized")
+ 	}
+ 
+ 	// Serialize rootNode to XML string
+ 	// Note: c.rootNode access is safe because caller holds lock
+ 	xmlStr := c.rootNode.OutputXML(false)
+ 
+ 	// Atomic write pattern: write to temp file, then rename
+ 	dir := path.Dir(filepath)
+ 	tmpFile, err := os.CreateTemp(dir, ".tmp-*.xml")
+ 	if err != nil {
+ 		return fmt.Errorf("failed to create temp file in %s: %w", dir, err)
+ 	}
+ 	tmpPath := tmpFile.Name()
+ 
+ 	// Ensure cleanup on error
+ 	defer func() {
+ 		if tmpFile != nil {
+ 			tmpFile.Close()
+ 			os.Remove(tmpPath)
+ 		}
+ 	}()
+ 
+ 	// Write XML content
+ 	if _, err := tmpFile.WriteString(xmlStr); err != nil {
+ 		return fmt.Errorf("failed to write to temp file: %w", err)
+ 	}
+ 
+ 	// Fsync before rename (ensure data on disk)
+ 	if err := tmpFile.Sync(); err != nil {
+ 		return fmt.Errorf("failed to sync temp file: %w", err)
+ 	}
+ 
+ 	// Close temp file
+ 	if err := tmpFile.Close(); err != nil {
+ 		return fmt.Errorf("failed to close temp file: %w", err)
+ 	}
+ 	tmpFile = nil // Prevent defer cleanup
+ 
+ 	// Atomic rename
+ 	if err := os.Rename(tmpPath, filepath); err != nil {
+ 		os.Remove(tmpPath) // Clean up
+ 		return fmt.Errorf("failed to rename temp file to %s: %w", filepath, err)
+ 	}
+ 
+ 	return nil
+ }
+ 
+ // SaveToFile saves the current in-memory configuration to the specified file.
+ // Uses atomic write pattern (temp file + rename) to prevent corruption.
+ //
+ // The filepath is stored and will be used for subsequent auto-save operations.
+ //
+ // Example:
+ //
+ //	err := client.SaveToFile("/path/to/output-config.xml")
+ //	if err != nil {
+ //	    return fmt.Errorf("failed to save config: %w", err)
+ //	}
+ func (c *LocalXmlClient) SaveToFile(filepath string) error {
+ 	// Acquire read lock for serialization
+ 	c.mu.RLock()
+ 	err := c.saveToFileInternal(filepath)
+ 	c.mu.RUnlock()
+ 
+ 	if err != nil {
+ 		return err
+ 	}
+ 
+ 	// Update filepath (requires write lock)
+ 	c.mu.Lock()
+ 	c.filepath = filepath
+ 	c.mu.Unlock()
+ 
+ 	return nil
+ }
+ 
+ // Setup loads the XML configuration file specified in the constructor.
+ // This enables deferred loading patterns where the client is created
+ // but file I/O is delayed until Setup() is called.
+ //
+ // This method must be called before performing any CRUD operations.
+ // Calling Setup() multiple times will reload the file from disk.
+ //
+ // Example:
+ //
+ //	client, err := pango.NewLocalXmlClient("/path/to/config.xml")
+ //	if err != nil {
+ //	    return err
+ //	}
+ //
+ //	// Perform other initialization...
+ //
+ //	if err := client.Setup(); err != nil {
+ //	    return fmt.Errorf("failed to load config: %w", err)
+ //	}
+ //
+ //	// Client ready for operations
+ //	svc := address.NewService(client)
+ func (c *LocalXmlClient) Setup() error {
+ 	// Get filepath (thread-safe)
+ 	c.mu.RLock()
+ 	filepath := c.filepath
+ 	c.mu.RUnlock()
+ 
+ 	// Validate filepath is set
+ 	if filepath == "" {
+ 		return fmt.Errorf("cannot setup: filepath not set (should have been set in constructor)")
+ 	}
+ 
+ 	// Load file using existing LoadFromFile method
+ 	return c.LoadFromFile(filepath)
+ }
+ 
++// Initialize is a no-op for LocalXmlClient.
++// All initialization work is performed in Setup() which loads the XML file.
++// This method exists for PangoClient interface compatibility with API client.
++//
++// For API mode clients, Initialize performs post-Setup authentication and
++// system info retrieval. For LocalXmlClient, this is not applicable.
++func (c *LocalXmlClient) Initialize(ctx context.Context) error {
++	// No-op: all initialization done in Setup()
++	return nil
++}
++
++// SetupLocalInspection returns an unsupported operation error.
++// This method is specific to API client's local inspection mode and is not
++// applicable to LocalXmlClient which already operates on local XML files.
++//
++// To use LocalXmlClient, use the normal constructor pattern:
++//
++//	client, err := pango.NewLocalXmlClient("/path/to/config.xml")
++//	if err != nil {
++//	    return err
++//	}
++//	if err := client.Setup(); err != nil {
++//	    return err
++//	}
++func (c *LocalXmlClient) SetupLocalInspection(schema, panosVersion string) error {
++	return ErrUnsupportedOperation
++}
++
+ // SetAutoSave enables or disables auto-save mode at runtime.
+ // When enabled, the client automatically saves changes to the file
+ // after each CRUD operation (set/edit/delete).
+ //
+ // During multiconfig operations, auto-save is deferred until all
+ // operations complete successfully.
+ //
+ // This can be called at any time to toggle auto-save behavior.
+ //
+ // Example:
+ //
+ //	client.SetAutoSave(true)   // Enable auto-save
+ //	client.SetAutoSave(false)  // Disable auto-save
+ func (c *LocalXmlClient) SetAutoSave(enabled bool) {
+ 	c.mu.Lock()
+ 	defer c.mu.Unlock()
+ 	c.autoSave = enabled
+ }
+ 
+ // GetAutoSave returns whether auto-save mode is currently enabled.
+ //
+ // Example:
+ //
+ //	if client.GetAutoSave() {
+ //	    fmt.Println("Auto-save is enabled")
+ //	}
+ func (c *LocalXmlClient) GetAutoSave() bool {
+ 	c.mu.RLock()
+ 	defer c.mu.RUnlock()
+ 	return c.autoSave
+ }
+ 
+ // GetFilepath returns the current file path for this client.
+ // This is the path that will be used for Setup() to load the configuration,
+ // and for auto-save operations (if enabled).
+ // The path may be updated by LoadFromFile() or SaveToFile() operations.
+ func (c *LocalXmlClient) GetFilepath() string {
+ 	c.mu.RLock()
+ 	defer c.mu.RUnlock()
+ 	return c.filepath
+ }
+ 
+ // autoSaveIfEnabled saves the configuration to file if auto-save is enabled.
+ //
+ // CRITICAL: Caller MUST hold write lock before calling.
+ // This is called internally after successful CRUD operations (set/edit/delete)
+ // within Communicate() which already holds the write lock.
+ //
+ // It performs a no-op (returns nil) if auto-save is disabled or filepath is not set.
+ //
+ // Note: This method is for single operations only. MultiConfig() handles
+ // auto-save internally using a different pattern to avoid lock conflicts.
+ func (c *LocalXmlClient) autoSaveIfEnabled() error {
+ 	// Skip if auto-save disabled
+ 	if !c.autoSave {
+ 		return nil
+ 	}
+ 
+ 	// Validate filepath is set
+ 	if c.filepath == "" {
+ 		return fmt.Errorf("auto-save enabled but filepath not set")
+ 	}
+ 
+ 	// Save using internal method (assumes caller holds lock)
+ 	return c.saveToFileInternal(c.filepath)
+ }
+ 
+ // isInitialized checks if the client has been initialized via Setup().
+ // CRITICAL: Caller MUST hold either read or write lock before calling.
+ // This is an internal helper used by CRUD operations within Communicate().
+ func (c *LocalXmlClient) isInitialized() bool {
+ 	return c.rootNode != nil
+ }
+ 
+>>>>>>> conflict 1 of 1 ends
 // detectDeviceType determines if this is a Panorama or Firewall config
 func (c *LocalXmlClient) detectDeviceType() error {
 	// Check for Panorama-specific node at /config/panorama
@@ -933,6 +1230,62 @@ func (c *LocalXmlClient) MultiConfig(ctx context.Context, mc *xmlapi.MultiConfig
 	return responseXml, c.mockHttpResponse(200), mcResp, nil
 }
 
+// ChunkedMultiConfig executes a multi-config operation in batches.
+// This method splits the operations into chunks based on mc.BatchSize and
+// executes each chunk sequentially via MultiConfig.
+//
+// Parameters:
+//   - ctx: Context for cancellation
+//   - mc: MultiConfig containing operations and BatchSize
+//   - strict: Unused in local mode (preserved for interface compatibility)
+//   - extras: Unused in local mode (preserved for interface compatibility)
+//
+// Returns:
+//   - Array of ChunkedMultiConfigResponse, one per batch executed
+//   - Error if any batch fails (subsequent batches will not execute)
+//
+// Note: Unlike API mode, local mode executes batches sequentially with full
+// atomicity per batch. Each batch either succeeds completely or fails completely.
+func (c *LocalXmlClient) ChunkedMultiConfig(ctx context.Context, mc *xmlapi.MultiConfig, strict bool, extras url.Values) ([]xmlapi.ChunkedMultiConfigResponse, error) {
+	if mc.BatchSize == 0 {
+		return nil, fmt.Errorf("cannot use ChunkedMultiConfig() with batchSize of 0")
+	}
+
+	if len(mc.Operations) == 0 {
+		return nil, nil
+	}
+
+	var chunked [][]xmlapi.MultiConfigOperation
+	for i := 0; i < len(mc.Operations); i += mc.BatchSize {
+		end := i + mc.BatchSize
+		if end > len(mc.Operations) {
+			end = len(mc.Operations)
+		}
+
+		chunked = append(chunked, mc.Operations[i:end])
+	}
+
+	var response []xmlapi.ChunkedMultiConfigResponse
+	for _, chunk := range chunked {
+		updates := &xmlapi.MultiConfig{
+			Operations: chunk,
+		}
+
+		data, resp, mcResp, err := c.MultiConfig(ctx, updates, strict, extras)
+		if err != nil {
+			return response, err
+		}
+
+		response = append(response, xmlapi.ChunkedMultiConfigResponse{
+			Data:                data,
+			HttpResponse:        resp,
+			MultiConfigResponse: mcResp,
+		})
+	}
+
+	return response, nil
+}
+
 // ImportFile returns an error (not supported in local mode)
 func (c *LocalXmlClient) ImportFile(ctx context.Context, cmd *xmlapi.Import, content []byte, filename, fp string, strip bool, ans any) ([]byte, *http.Response, error) {
 	return nil, nil, ErrUnsupportedOperation
@@ -956,6 +1309,12 @@ func (c *LocalXmlClient) RequestPasswordHash(ctx context.Context, v string) (str
 // GetTechSupportFile returns an error (not supported in local mode)
 func (c *LocalXmlClient) GetTechSupportFile(ctx context.Context) (string, []byte, error) {
 	return "", nil, ErrUnsupportedOperation
+}
+
+// RetrieveSystemInfo returns an error (not supported in local mode)
+// System information retrieval requires API connection to live PAN-OS device.
+func (c *LocalXmlClient) RetrieveSystemInfo(ctx context.Context) error {
+	return ErrUnsupportedOperation
 }
 
 // cloneDocument creates a deep copy of the XML document tree.

@@ -58,6 +58,10 @@
         "experimental_cache_enabled": {
           "type": "boolean",
           "description": "Enable caching for this resource type when provider cache_strategy is enabled"
+        },
+        "supports_local_xml": {
+          "description": "Tri-state field indicating local XML mode support. The FinalLocalXmlSupported() normalization function is the ONLY code generation path for checking local XML support and follows this priority logic: (1) If supports_local_xml is explicitly set (not nil), return that value. (2) If nil (or omitted), apply auto-detection: return true if resource type is NOT Custom AND resource has NO hashed fields/attributes. Templates must NEVER check supports_local_xml directly - always use FinalLocalXmlSupported().",
+          "type": ["boolean", "null"]
         }
       }
     },

@@ -202,6 +202,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 		"resourceSDKName":       func() string { return names.PackageName },
 		"HasPosition":           func() bool { return hasPosition },
 		"HasCustomValidation":   func() bool { return spec.TerraformProviderConfig.CustomValidation },
+		"SupportsLocalXml":      func() bool { return spec.FinalLocalXmlSupported() },
 		"metaName":              func() string { return names.MetaName },
 		"structName":            func() string { return names.StructName },
 		"dataSourceStructName":  func() string { return names.DataSourceStructName },
@@ -268,7 +269,10 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 	if !spec.TerraformProviderConfig.SkipResource {
 		terraformProvider.ImportManager.AddStandardImport("context", "")
 
-		terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "")
+		// Add pango import for local XML client type assertion (only for resources that don't support local XML)
+		if !spec.FinalLocalXmlSupported() {
+			terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "")
+		}
 
 		switch spec.TerraformProviderConfig.ResourceType {
 		case properties.TerraformResourceEntry, properties.TerraformResourceUuid:
@@ -279,6 +283,7 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 		case properties.TerraformResourceConfig:
 			terraformProvider.ImportManager.AddOtherImport("github.com/PaloAltoNetworks/terraform-provider-panos/internal/manager", "sdkmanager")
 		case properties.TerraformResourceCustom:
+			terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "pangoutil")
 		}
 
 		// entry or uuid style resource
@@ -407,7 +412,7 @@ func (o *GenerateTerraformProvider) GenerateTerraformAction(spec *properties.Nor
 		provider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types", "")
 	}
 
-	provider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "")
+	provider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "pangoutil")
 
 	resourceTyp := properties.ResourceEntry
 	names := NewNameProvider(spec, resourceTyp)
@@ -440,7 +445,6 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 			terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "pangoutil")
 		}
 
-		terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "")
 		if !spec.GoSdkSkip {
 			terraformProvider.ImportManager.AddSdkImport(sdkPkgPath(spec), "")
 		}
@@ -450,13 +454,6 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource/schema", "dsschema")
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types", "")
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/datasource", "")
-
-		terraformProvider.ImportManager.AddStandardImport("context", "")
-		terraformProvider.ImportManager.AddStandardImport("fmt", "")
-		terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "")
-		if spec.TerraformProviderConfig.ResourceType != properties.TerraformResourceCustom {
-			terraformProvider.ImportManager.AddOtherImport("github.com/PaloAltoNetworks/terraform-provider-panos/internal/manager", "sdkmanager")
-		}
 
 		conditionallyAddValidators(terraformProvider.ImportManager, spec)
 		conditionallyAddModifiers(terraformProvider.ImportManager, spec)

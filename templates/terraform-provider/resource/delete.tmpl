@@ -16,12 +16,6 @@
 {{- end }}
 	})
 
-	// Verify mode.
-	if o.client.Hostname == "" {
-		resp.Diagnostics.AddError("Invalid mode error", InspectionModeError)
-		return
-	}
-
 	var location {{ .resourceSDKName }}.Location
 	{{ RenderLocationsStateToPango "state.Location" "location" }}
 
@@ -48,6 +42,19 @@
 		resp.Diagnostics.AddError("Error in delete", err.Error())
 		return
 	}
+
+	// Signal write needed for deferred/periodic modes
+	if o.writeMode == WriteModeDeferred || o.writeMode == WriteModePeriodic {
+		SetDirty()
+	}
+
+	// Check for background writer errors before returning
+	if o.writeMode == WriteModeDeferred || o.writeMode == WriteModePeriodic {
+		if err := CheckError(); err != nil {
+			resp.Diagnostics.AddError("Background write error", err.Error())
+			return
+		}
+	}
 {{- else }}
 	components, err := state.resourceXpathParentComponents()
 	if err != nil {
@@ -68,5 +75,18 @@
 	if err != nil && !errors.Is(err, sdkmanager.ErrObjectNotFound) {
 		resp.Diagnostics.AddError("Error in delete", err.Error())
 		return
+	}
+
+	// Signal write needed for deferred/periodic modes
+	if o.writeMode == WriteModeDeferred || o.writeMode == WriteModePeriodic {
+		SetDirty()
+	}
+
+	// Check for background writer errors before returning
+	if o.writeMode == WriteModeDeferred || o.writeMode == WriteModePeriodic {
+		if err := CheckError(); err != nil {
+			resp.Diagnostics.AddError("Background write error", err.Error())
+			return
+		}
 	}
 {{- end }}

@@ -53,6 +53,7 @@ type TerraformConfig struct {
 	PluralType               TerraformPluralType        `yaml:"plural_type"`
 	PluralDescription        string                     `yaml:"plural_description"`
 	ExperimentalCacheEnabled bool                       `yaml:"experimental_cache_enabled,omitempty"`
+	SupportsLocalXml         *bool                      `yaml:"supports_local_xml,omitempty"`
 }
 
 type GoSdkMethod string

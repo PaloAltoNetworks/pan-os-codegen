@@ -19,12 +19,6 @@
 		"function":      "Update",
 	})
 
-	// Verify mode.
-	if o.client.Hostname == "" {
-		resp.Diagnostics.AddError("Invalid mode error", InspectionModeError)
-		return
-	}
-
 	components, err := state.resourceXpathParentComponents()
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
@@ -75,6 +69,11 @@
 		return
 	}
 
+	// Signal write needed for deferred/periodic modes
+	if o.writeMode == WriteModeDeferred || o.writeMode == WriteModePeriodic {
+		SetDirty()
+	}
+
 	/*
 		// Keep the timeouts.
 		state.Timeouts = plan.Timeouts
@@ -90,3 +89,11 @@
 
 	// Done.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+
+	// Check for background writer errors before returning
+	if o.writeMode == WriteModeDeferred || o.writeMode == WriteModePeriodic {
+		if err := CheckError(); err != nil {
+			resp.Diagnostics.AddError("Background write error", err.Error())
+			return
+		}
+	}

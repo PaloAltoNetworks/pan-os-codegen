@@ -34,7 +34,8 @@ func New{{ resourceStructName }}() resource.Resource {
 {{- end }}
 
 type {{ resourceStructName }} struct {
-	client *pango.Client
+	client    pangoutil.PangoClient
+	writeMode XmlWriteMode // Write mode for conditional SetDirty/CheckError calls
 {{- if IsCustom }}
 	custom *{{ structName }}Custom
 {{- else if and IsEntry HasImports }}
@@ -61,6 +62,17 @@ func {{ resourceStructName }}LocationSchema() rsschema.Attribute {
 {{- end }}
 
 func (o *{{ resourceStructName }}) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+{{- if not SupportsLocalXml }}
+	// Check if local XML mode is supported for this resource
+	if localClient, ok := o.client.(*pango.LocalXmlClient); ok && localClient != nil {
+		resp.Diagnostics.AddError(
+			"Resource not supported in local XML mode",
+			"The resource 'panos{{ metaName }}' does not support local XML mode. "+
+				"Please use API mode (configure provider with hostname and api_key) or refer to the documentation for a list of supported resources.",
+		)
+		return
+	}
+{{- end }}
 
 {{ if HasCustomValidation }}
 	o.ValidateConfigCustom(ctx, req, resp)
@@ -157,6 +169,7 @@ func (o *{{ resourceStructName }}) Configure(ctx context.Context, req {{ tfresou
 
 	providerData := req.ProviderData.(*ProviderData)
 	o.client = providerData.Client
+	o.writeMode = providerData.WriteMode
 
 {{- if IsCustom }}
 	custom, err := New{{ structName }}Custom(providerData)

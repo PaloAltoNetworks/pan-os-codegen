@@ -13,6 +13,10 @@ var (
 // PanosProvider is the provider implementation.
 type PanosProvider struct {
 	version string
+
+	// Lifecycle coordination (passed from main.go)
+	wg           *sync.WaitGroup
+	shutdownChan chan struct{}
 }
 
 // PanosProviderModel maps provider schema data to a Go type.
@@ -41,9 +45,10 @@ func (p *PanosProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp
 }
 
 type ProviderData struct {
-	Client         *sdk.Client
+	Client         pangoutil.PangoClient
 	BatchingConfig sdkmanager.BatchingConfig
 	CacheEnabled   bool
+	WriteMode      XmlWriteMode // Write mode for runtime conditional calls
 
 	// Per-resource-type cache storage
 	// Key: resource type name (e.g., "address", "service")
@@ -89,9 +94,115 @@ func (p *PanosProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		return
 	}
 
-	var con *sdk.Client
+	// Validate mutual exclusivity between local XML mode and API mode
+	// This validation runs AFTER environment variable resolution
+	hasXmlFilePath := config.XmlFilePath.ValueStringPointer() != nil && config.XmlFilePath.ValueString() != ""
+	hasConfigFile := config.ConfigFile.ValueStringPointer() != nil && config.ConfigFile.ValueString() != ""
+	hasApiConfig := (config.Hostname.ValueString() != "" && config.ApiKey.ValueString() != "") ||
+		(config.Hostname.ValueString() != "" && config.Username.ValueString() != "" && config.Password.ValueString() != "")
 
-	if config.ConfigFile.ValueStringPointer() != nil {
+	if hasXmlFilePath && hasApiConfig {
+		resp.Diagnostics.AddError(
+			"Invalid provider configuration",
+			"Cannot configure both xml_file_path and API mode (hostname + api_key). These modes are mutually exclusive. "+
+				"Use xml_file_path for local XML mode OR use hostname + api_key for API mode.",
+		)
+		return
+	}
+
+	if hasXmlFilePath && hasConfigFile {
+		resp.Diagnostics.AddError(
+			"Invalid provider configuration",
+			"Cannot configure both xml_file_path and config_file. These are different modes for working with local files. "+
+				"Use xml_file_path for read/write local XML mode OR use config_file for read-only local inspection mode.",
+		)
+		return
+	}
+
+	if !hasXmlFilePath && !hasConfigFile && !hasApiConfig {
+		resp.Diagnostics.AddError(
+			"Invalid provider configuration",
+			"Must configure either xml_file_path (for local XML mode) OR hostname + api_key (for API mode) OR config_file (for local inspection mode). "+
+				"No valid provider configuration was found.",
+		)
+		return
+	}
+
+	var con pangoutil.PangoClient
+	var xmlWriteMode XmlWriteMode = WriteModeSafe // Default write mode
+
+	if hasXmlFilePath {
+		tflog.Info(ctx, "Configuring client for local XML mode")
+
+		// Parse write mode configuration
+		writerConfig := WriterConfig{
+			Mode:             WriteModeSafe, // default
+			CheckIntervalMs:  10,            // default for deferred mode
+			FlushIntervalSec: 30,            // default for periodic mode
+		}
+
+		if !config.XmlWriteMode.IsNull() {
+			writerConfig.Mode = XmlWriteMode(config.XmlWriteMode.ValueString())
+		}
+
+		if !config.XmlWriteCheckIntervalMs.IsNull() {
+			writerConfig.CheckIntervalMs = int(config.XmlWriteCheckIntervalMs.ValueInt64())
+		}
+
+		if !config.XmlWriteFlushIntervalSec.IsNull() {
+			writerConfig.FlushIntervalSec = int(config.XmlWriteFlushIntervalSec.ValueInt64())
+		}
+
+		// Store write mode for ProviderData
+		xmlWriteMode = writerConfig.Mode
+
+		// Configure LocalXmlClient auto-save based on write mode
+		// Safe mode: auto-save enabled
+		// Deferred/Periodic modes: auto-save disabled (DeferredWriter handles writes)
+		autoSave := writerConfig.Mode == WriteModeSafe
+
+		// Create LocalXmlClient with auto-save configuration
+		localClient, err := sdk.NewLocalXmlClient(
+			config.XmlFilePath.ValueString(),
+			sdk.WithAutoSave(autoSave),
+		)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Failed to create local XML client",
+				fmt.Sprintf("Error creating client for file %q: %s\n\n"+
+					"Please ensure the file path is correct and accessible. "+
+					"For write operations, the directory must exist and be writable.",
+					config.XmlFilePath.ValueString(), err.Error()),
+			)
+			return
+		}
+
+		// Setup/initialize the client (loads the XML file if it exists)
+		// This is deferred from constructor to allow explicit control over file loading
+		if err := localClient.Setup(); err != nil {
+			resp.Diagnostics.AddError(
+				"Failed to initialize local XML client",
+				fmt.Sprintf("Error loading XML file %q: %s\n\n"+
+					"If the file doesn't exist yet, it will be created on first write operation. "+
+					"If the file exists, please ensure it contains valid PAN-OS XML configuration.",
+					config.XmlFilePath.ValueString(), err.Error()),
+			)
+			return
+		}
+
+		// Assign LocalXmlClient directly - it implements PangoClient interface
+		// Both LocalXmlClient and sdk.Client implement PangoClient, allowing resources to use them identically
+		con = localClient
+
+		// Initialize DeferredWriter singleton
+		initDeferredWriter(writerConfig, localClient, p.wg, p.shutdownChan)
+
+		tflog.Info(ctx, "Local XML mode client configured successfully", map[string]any{
+			"file_path":  config.XmlFilePath.ValueString(),
+			"auto_save":  autoSave,
+			"write_mode": string(writerConfig.Mode),
+		})
+	} else if config.ConfigFile.ValueStringPointer() != nil {
 		tflog.Info(ctx, "Configuring client for local inspection mode")
 		con = &sdk.Client{}
 		if err := con.SetupLocalInspection(config.ConfigFile.ValueString(), config.PanosVersion.ValueString()); err != nil {
@@ -218,6 +329,7 @@ func (p *PanosProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		Client:         con,
 		BatchingConfig: batchingConfig,
 		CacheEnabled:   cacheStrategy == sdkmanager.CacheStrategyEnabled,
+		WriteMode:      xmlWriteMode, // Write mode from local XML configuration (safe mode for API mode)
 	}
 
 	resp.DataSourceData = providerData
@@ -271,10 +383,14 @@ func (p *PanosProvider) Functions(_ context.Context) []func() function.Function 
 }
 
 // New is a helper function to get the provider implementation.
-func New(version string) func() provider.Provider {
+// wg: WaitGroup for coordinating graceful shutdown with background writers
+// shutdownChan: Channel for signaling shutdown to background writers
+func New(version string, wg *sync.WaitGroup, shutdownChan chan struct{}) func() provider.Provider {
 	return func() provider.Provider {
 		return &PanosProvider{
-			version: version,
+			version:      version,
+			wg:           wg,
+			shutdownChan: shutdownChan,
 		}
 	}
 }

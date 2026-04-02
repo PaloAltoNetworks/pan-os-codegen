@@ -15,12 +15,6 @@
 {{- end }}
 	})
 
-	// Verify mode.
-	if o.client.Hostname == "" {
-		resp.Diagnostics.AddError("Invalid mode error", InspectionModeError)
-		return
-	}
-
 	{{ RenderEncryptedValuesInitialization }}
 
 	// Determine the location.
@@ -78,6 +72,10 @@
 	}
 {{- end }}
 
+	// Signal write needed for deferred/periodic modes
+	if o.writeMode == WriteModeDeferred || o.writeMode == WriteModePeriodic {
+		SetDirty()
+	}
 
 	resp.Diagnostics.Append(state.CopyFromPango(ctx, o.client, nil, created, ev)...)
 	if resp.Diagnostics.HasError() {
@@ -87,5 +85,13 @@
 	{{ RenderEncryptedValuesFinalizer }}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+
+	// Check for background writer errors before returning
+	if o.writeMode == WriteModeDeferred || o.writeMode == WriteModePeriodic {
+		if err := CheckError(); err != nil {
+			resp.Diagnostics.AddError("Background write error", err.Error())
+			return
+		}
+	}
 
 {{- /* Done */ -}}

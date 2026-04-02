@@ -8,7 +8,7 @@ func New{{ structName }}() action.Action {
 }
 
 type {{ structName }} struct {
-	client *pango.Client
+	client pangoutil.PangoClient
 }
 
 {{ RenderStructs }}

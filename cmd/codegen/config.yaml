@@ -91,6 +91,11 @@ terraform_provider_config:
       description: "(Local inspection mode) The PAN-OS config file to load read in using `file()`"
       optional: true
       type: string
+    xml_file_path:
+      description: "Path to local XML configuration file. When set, enables local XML mode for reading from and writing to local XML files instead of connecting to a live PAN-OS device. Mutually exclusive with API mode configuration (hostname/api_key)."
+      env_name: "PANOS_XML_FILE_PATH"
+      optional: true
+      type: string
     sdk_log_categories:
       description: "Log categories to configure for the PAN-OS SDK library"
       env_name: "PANOS_LOG_CATEGORIES"
