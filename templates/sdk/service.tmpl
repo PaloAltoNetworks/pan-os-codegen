@@ -354,7 +354,7 @@ func (s *Service) read(ctx context.Context, loc Location, action string) (*Confi
     {{- if $.Spec.Params.uuid}}
 	path, err = loc.XpathWithComponents(vn, value)
     {{- else}}
-	path, err = loc.XpathWithComponents(vn, value)
+	path, err = loc.XpathWithComponents(vn, util.AsEntryXpath(value))
     {{- end}}
   {{- else}}
 	path, err := loc.XpathWithComponents(vn)
@@ -377,7 +377,7 @@ func (s *Service) Update(ctx context.Context, loc Location, entry *{{ $object }}
 		return nil, errors.NameNotSpecifiedError
 	}
 
-	xpath, err := loc.XpathWithComponents(s.client.Versioning(), entry.Name)
+	xpath, err := loc.XpathWithComponents(s.client.Versioning(), util.AsEntryXpath(entry.Name))
         if err != nil {
         	return nil, err
 	}

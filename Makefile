@@ -69,6 +69,15 @@ test/pango-example:
 	cd $(GENERATED_OUT_PATH)/pango && \
 	go build example/main.go
 
+.PHONY: fetch-panorama-config
+fetch-panorama-config:
+	@echo "Fetching running config from Panorama $(PANOS_HOSTNAME)..."
+	@curl -k -s -X GET "https://$(PANOS_HOSTNAME)/api/?type=export&category=configuration" \
+		-u "$(PANOS_USERNAME):$(PANOS_PASSWORD)" \
+		-o assets/pango/testdata/panorama-running-config.xml
+	@echo "Config saved to assets/pango/testdata/panorama-running-config.xml"
+	@ls -lh assets/pango/testdata/panorama-running-config.xml
+
 .PHONY: test/terraform
 test/terraform: test/terraform-manager
 

@@ -5,7 +5,7 @@
   {{- if .AllowEmpty }}
 	if component != "entry" {
   {{- end }}
-	if !strings.HasPrefix(component, "entry[@name=\"]") && !strings.HasPrefix(component, "entry[@name='") {
+	if !strings.HasPrefix(component, "entry[@name=\"") && !strings.HasPrefix(component, "entry[@name='") {
 		return nil, errors.NewInvalidXpathComponentError(fmt.Sprintf("{{ .Name.CamelCase }} must be formatted as entry: %s", component))
 	}
 
