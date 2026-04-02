@@ -47,17 +47,17 @@ var _ = Describe("BatchReader Helper Functions", func() {
 
 	Describe("BuildBatchXpath", func() {
 		It("should build xpath with single name", func() {
-			xpath := manager.BuildBatchXpath("/test/path", []string{"name1"})
+			xpath := manager.BuildBatchXpath("/test/path/entry", []string{"name1"})
 			Expect(xpath).To(Equal("/test/path/entry[@name='name1']"))
 		})
 
 		It("should build xpath with multiple names", func() {
-			xpath := manager.BuildBatchXpath("/test/path", []string{"name1", "name2", "name3"})
+			xpath := manager.BuildBatchXpath("/test/path/entry", []string{"name1", "name2", "name3"})
 			Expect(xpath).To(Equal("/test/path/entry[@name='name1' or @name='name2' or @name='name3']"))
 		})
 
 		It("should handle empty names list", func() {
-			xpath := manager.BuildBatchXpath("/test/path", []string{})
+			xpath := manager.BuildBatchXpath("/test/path/entry", []string{})
 			Expect(xpath).To(Equal("/test/path/entry[]"))
 		})
 	})
@@ -65,18 +65,20 @@ var _ = Describe("BatchReader Helper Functions", func() {
 	Describe("FilterEntriesByLocation", func() {
 		Context("when location has no filter", func() {
 			It("should return all entries", func() {
+				ctx := context.Background()
 				location := MockLocation{Filter: ""}
 				entries := []*MockEntryObject{
 					{Name: "entry1"},
 					{Name: "entry2"},
 				}
-				filtered := manager.FilterEntriesByLocation(location, entries)
+				filtered := manager.FilterEntriesByLocation(ctx, location, entries)
 				Expect(filtered).To(Equal(entries))
 			})
 		})
 
 		Context("when location has a filter", func() {
 			It("should return entries matching the filter", func() {
+				ctx := context.Background()
 				location := MockLocation{Filter: "vsys1"}
 				entries := []*MockEntryObject{
 					{
@@ -92,13 +94,14 @@ var _ = Describe("BatchReader Helper Functions", func() {
 						Location: "vsys1",
 					},
 				}
-				filtered := manager.FilterEntriesByLocation(location, entries)
+				filtered := manager.FilterEntriesByLocation(ctx, location, entries)
 				Expect(filtered).To(HaveLen(2))
 				Expect(filtered[0].Name).To(Equal("entry1"))
 				Expect(filtered[1].Name).To(Equal("entry3"))
 			})
 
 			It("should return entries with no loc attribute", func() {
+				ctx := context.Background()
 				location := MockLocation{Filter: "vsys1"}
 				entries := []*MockEntryObject{
 					{
@@ -110,7 +113,7 @@ var _ = Describe("BatchReader Helper Functions", func() {
 						Location: "vsys2",
 					},
 				}
-				filtered := manager.FilterEntriesByLocation(location, entries)
+				filtered := manager.FilterEntriesByLocation(ctx, location, entries)
 				Expect(filtered).To(HaveLen(1))
 				Expect(filtered[0].Name).To(Equal("entry1"))
 			})
@@ -334,7 +337,7 @@ var _ = Describe("BatchReader with MockEntryService", func() {
 
 			// Filter by location
 			location := MockLocation{Filter: "vsys1"}
-			filtered := manager.FilterEntriesByLocation(location, allEntries)
+			filtered := manager.FilterEntriesByLocation(ctx, location, allEntries)
 			Expect(filtered).To(HaveLen(2))
 			Expect(filtered[0].Name).To(Equal("entry1"))
 			Expect(filtered[1].Name).To(Equal("entry3"))

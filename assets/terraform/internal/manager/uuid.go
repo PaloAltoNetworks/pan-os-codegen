@@ -2,7 +2,6 @@ package manager
 
 import (
 	"context"
-	"encoding/xml"
 	"errors"
 	"fmt"
 
@@ -23,14 +22,6 @@ const (
 	NonExhaustive ExhaustiveType = iota
 )
 
-type UuidObject interface {
-	EntryName() string
-	SetEntryName(name string)
-	EntryUuid() *string
-	SetEntryUuid(value *string)
-	GetMiscAttributes() []xml.Attr
-}
-
 type UuidLocation interface {
 	LocationFilter() *string
 	XpathWithComponents(version.Number, ...string) ([]string, error)
@@ -42,13 +33,6 @@ type SDKUuidService[E UuidObject, L UuidLocation] interface {
 	ListWithXpath(context.Context, string, string, string, string) ([]E, error)
 	Delete(context.Context, L, ...string) error
 	MoveGroup(context.Context, L, movement.Position, []E, int) error
-}
-
-type uuidObjectWithState[E EntryObject] struct {
-	Entry    E
-	State    entryState
-	StateIdx int
-	NewName  string
 }
 
 type TFUuidObject[E any] interface {
@@ -67,7 +51,14 @@ type UuidObjectManager[E UuidObject, L UuidLocation, S SDKUuidService[E, L]] str
 	batchReader    *BatchReader[E, S]
 }
 
-func NewUuidObjectManager[E UuidObject, L UuidLocation, S SDKUuidService[E, L]](client SDKClient, service S, batchingConfig BatchingConfig, specifier func(E) (any, error), matcher func(E, E) bool) *UuidObjectManager[E, L, S] {
+func NewUuidObjectManager[E UuidObject, L UuidLocation, S SDKUuidService[E, L]](
+	client SDKClient,
+	service S,
+	batchingConfig BatchingConfig,
+	cache CacheManager[E],
+	specifier func(E) (any, error),
+	matcher func(E, E) bool,
+) *UuidObjectManager[E, L, S] {
 	mgr := &UuidObjectManager[E, L, S]{
 		batchingConfig: batchingConfig,
 		service:        service,
@@ -76,13 +67,15 @@ func NewUuidObjectManager[E UuidObject, L UuidLocation, S SDKUuidService[E, L]](
 		matcher:        matcher,
 	}
 	mgr.batchReader = NewBatchReader[E, S](service, batchingConfig)
+	// Note: cache parameter accepted for API compatibility but not used yet by UuidObjectManager
+	_ = cache
 	return mgr
 }
 
-func (o *UuidObjectManager[E, L, S]) entriesByName(entries []E, initialState entryState) map[string]uuidObjectWithState[E] {
-	entriesByName := make(map[string]uuidObjectWithState[E], len(entries))
+func (o *UuidObjectManager[E, L, S]) entriesByName(entries []E, initialState entryState) map[string]entryWithState[E] {
+	entriesByName := make(map[string]entryWithState[E], len(entries))
 	for idx, elt := range entries {
-		entriesByName[elt.EntryName()] = uuidObjectWithState[E]{
+		entriesByName[elt.EntryName()] = entryWithState[E]{
 			Entry:    elt,
 			StateIdx: idx,
 			State:    initialState,
@@ -92,17 +85,17 @@ func (o *UuidObjectManager[E, L, S]) entriesByName(entries []E, initialState ent
 	return entriesByName
 }
 
-func (o *UuidObjectManager[E, L, S]) entriesProperlySorted(existing []E, planEntriesByName map[string]uuidObjectWithState[E]) (bool, error) {
+func (o *UuidObjectManager[E, L, S]) entriesProperlySorted(existing []E, planEntriesByName map[string]entryWithState[E]) (bool, error) {
 	// All entries returned from the server are filtered out, to gain a list
 	// of entries that are part of the plan. For every entry, we calculate its
 	// actual index in the plan so we can compare it with the expected one.
-	existingEntriesByName := make(map[string]uuidObjectWithState[E], len(existing))
-	managedEntriesByName := make(map[string]uuidObjectWithState[E], len(planEntriesByName))
+	existingEntriesByName := make(map[string]entryWithState[E], len(existing))
+	managedEntriesByName := make(map[string]entryWithState[E], len(planEntriesByName))
 	idx := 0
 
 	for existingIdx, elt := range existing {
 		name := elt.EntryName()
-		existingEntriesByName[name] = uuidObjectWithState[E]{
+		existingEntriesByName[name] = entryWithState[E]{
 			Entry:    existing[idx],
 			StateIdx: existingIdx,
 		}
@@ -115,7 +108,7 @@ func (o *UuidObjectManager[E, L, S]) entriesProperlySorted(existing []E, planEnt
 			// moveNonExhausitve is called just after we've executed MultiConfig which could have created
 			// some new entries on the server. If so, we want to make sure new UUIDs are stored in the state.
 			planEntry.Entry = elt
-			managedEntriesByName[name] = uuidObjectWithState[E]{
+			managedEntriesByName[name] = entryWithState[E]{
 				Entry: existing[idx],
 				// managedEntriesByName StateIdx reflects index of the entry on the server.
 				StateIdx: idx,
@@ -126,7 +119,7 @@ func (o *UuidObjectManager[E, L, S]) entriesProperlySorted(existing []E, planEnt
 
 	var movementRequired bool
 
-	var previousManagedEntry, previousPlanEntry *uuidObjectWithState[E]
+	var previousManagedEntry, previousPlanEntry *entryWithState[E]
 	// First step is to check whether any of the elements from the plan are out
 	// of order on the server.
 	for _, elt := range managedEntriesByName {
@@ -166,11 +159,11 @@ func (o *UuidObjectManager[E, L, S]) entriesProperlySorted(existing []E, planEnt
 	return movementRequired, nil
 }
 
-func (o *UuidObjectManager[E, L, S]) filterEntriesByLocation(location L, entries []E) []E {
-	return FilterEntriesByLocation(location, entries)
+func (o *UuidObjectManager[E, L, S]) filterEntriesByLocation(ctx context.Context, location L, entries []E) []E {
+	return FilterEntriesByLocation(ctx, location, entries)
 }
 
-func (o *UuidObjectManager[E, L, S]) moveExhaustive(ctx context.Context, location L, entriesByName map[string]uuidObjectWithState[E], position movement.Position) error {
+func (o *UuidObjectManager[E, L, S]) moveExhaustive(ctx context.Context, location L, entriesByName map[string]entryWithState[E], position movement.Position) error {
 	if position == nil {
 		return nil
 	}
@@ -180,7 +173,7 @@ func (o *UuidObjectManager[E, L, S]) moveExhaustive(ctx context.Context, locatio
 		return &Error{err: err, message: "Failed to list existing entries"}
 	}
 
-	existing = o.filterEntriesByLocation(location, existing)
+	existing = o.filterEntriesByLocation(ctx, location, existing)
 
 	movementRequired, err := o.entriesProperlySorted(existing, entriesByName)
 	if err != nil {
@@ -222,7 +215,7 @@ type position struct {
 // When moveNonExhaustive is called, the given list is not entirely managed by the Terraform resource.
 // In that case a care has to be taken to only execute movement on a subset of entries, those that
 // are under Terraform control.
-func (o *UuidObjectManager[E, L, S]) moveNonExhaustive(ctx context.Context, location L, planEntries []E, planEntriesByName map[string]uuidObjectWithState[E], sdkPosition movement.Position) error {
+func (o *UuidObjectManager[E, L, S]) moveNonExhaustive(ctx context.Context, location L, planEntries []E, planEntriesByName map[string]entryWithState[E], sdkPosition movement.Position) error {
 	if sdkPosition == nil {
 		return nil
 	}
@@ -253,7 +246,7 @@ func (o *UuidObjectManager[E, L, S]) CreateMany(ctx context.Context, location L,
 		return nil, fmt.Errorf("Failed to list remote entries: %w", err)
 	}
 
-	existing = o.filterEntriesByLocation(location, existing)
+	existing = o.filterEntriesByLocation(ctx, location, existing)
 
 	updates := xmlapi.NewChunkedMultiConfig(len(planEntries), o.batchingConfig.MultiConfigBatchSize)
 
@@ -330,7 +323,7 @@ func (o *UuidObjectManager[E, L, S]) CreateMany(ctx context.Context, location L,
 		return nil, fmt.Errorf("Failed to list remote entries: %w", err)
 	}
 
-	existing = o.filterEntriesByLocation(location, existing)
+	existing = o.filterEntriesByLocation(ctx, location, existing)
 
 	entries := make([]E, len(planEntries))
 	for _, elt := range existing {
@@ -374,11 +367,11 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 	}
 
 	renamedEntries := make(map[string]struct{})
-	processedStateEntries := make(map[string]uuidObjectWithState[E])
+	processedStateEntries := make(map[string]entryWithState[E])
 	// First, we compare plan with the state to create a map of all entries with their
 	// state.
 	for idx, elt := range planEntries {
-		var processedEntry uuidObjectWithState[E]
+		var processedEntry entryWithState[E]
 
 		if stateEntry, found := stateEntriesByName[elt.EntryName()]; !found {
 			// If any given entry from the plan is not found in the state, check if there
@@ -386,7 +379,7 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 			// this is renamed entry: reuse index from the state and set its entryState to
 			// entryRenamed.
 			if renamedStateEntry, found := findMatchingStateEntry(elt); found {
-				processedEntry = uuidObjectWithState[E]{
+				processedEntry = entryWithState[E]{
 					Entry:    renamedStateEntry,
 					State:    entryRenamed,
 					StateIdx: stateEntriesByName[renamedStateEntry.EntryName()].StateIdx,
@@ -394,7 +387,7 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 				}
 				renamedEntries[elt.EntryName()] = struct{}{}
 			} else {
-				processedEntry = uuidObjectWithState[E]{
+				processedEntry = entryWithState[E]{
 					Entry:    elt,
 					State:    entryMissing,
 					StateIdx: idx,
@@ -418,7 +411,7 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 			// If entry from the plan was found in the state check if they match and set the
 			// processedEntry State accordingly.
 			elt.SetEntryUuid(stateEntry.Entry.EntryUuid())
-			processedEntry = uuidObjectWithState[E]{
+			processedEntry = entryWithState[E]{
 				Entry:    elt,
 				StateIdx: idx,
 			}
@@ -438,7 +431,7 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 		return nil, &Error{err: err, message: "sdk error while listing resources"}
 	}
 
-	existing = o.filterEntriesByLocation(location, existing)
+	existing = o.filterEntriesByLocation(ctx, location, existing)
 
 	updates := xmlapi.NewChunkedMultiConfig(len(existing), o.batchingConfig.MultiConfigBatchSize)
 
@@ -603,7 +596,7 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 		return nil, fmt.Errorf("Failed to list remote entries: %w", err)
 	}
 
-	existing = o.filterEntriesByLocation(location, existing)
+	existing = o.filterEntriesByLocation(ctx, location, existing)
 
 	entries := make([]E, len(planEntries))
 	for _, elt := range existing {
@@ -624,7 +617,7 @@ func (o *UuidObjectManager[E, L, S]) ReadMany(ctx context.Context, location L, s
 		return nil, false, &Error{err: err, message: "failed to list remote entries"}
 	}
 
-	existing = o.filterEntriesByLocation(location, existing)
+	existing = o.filterEntriesByLocation(ctx, location, existing)
 
 	if exhaustive == Exhaustive {
 		// For resources that take sole ownership of a given list, Read()
@@ -634,9 +627,9 @@ func (o *UuidObjectManager[E, L, S]) ReadMany(ctx context.Context, location L, s
 
 	// For resources that only manage a subset of items, Read() must
 	// only return entries that are already part of the state.
-	stateEntriesByName := make(map[string]uuidObjectWithState[E], len(stateEntries))
+	stateEntriesByName := make(map[string]entryWithState[E], len(stateEntries))
 	for idx, elt := range stateEntries {
-		stateEntriesByName[elt.EntryName()] = uuidObjectWithState[E]{
+		stateEntriesByName[elt.EntryName()] = entryWithState[E]{
 			Entry:    elt,
 			State:    entryMissing,
 			StateIdx: idx,
@@ -720,7 +713,7 @@ func (o *UuidObjectManager[E, L, S]) Delete(ctx context.Context, location L, par
 	return nil
 }
 
-func (o *UuidObjectManager[E, L, S]) cleanUpIncompleteUpdate(ctx context.Context, location L, parentComponents []string, entries map[string]uuidObjectWithState[E], exhaustive ExhaustiveType) error {
+func (o *UuidObjectManager[E, L, S]) cleanUpIncompleteUpdate(ctx context.Context, location L, parentComponents []string, entries map[string]entryWithState[E], exhaustive ExhaustiveType) error {
 	var names []string
 	for _, elt := range entries {
 		if elt.State == entryMissing {

@@ -28,10 +28,12 @@ var _ = Describe("Entry", func() {
 			ReadBatchSize:        50,
 			ListStrategy:         manager.StrategyEager,
 			ShardingStrategy:     manager.ShardingDisabled,
+			CacheStrategy:        manager.CacheStrategyDisabled,
 		}
 		client = NewMockEntryClient(existing)
 		service = NewMockEntryService[*MockEntryObject, MockLocation](client)
-		sdk = manager.NewEntryObjectManager[*MockEntryObject, MockLocation, *MockEntryService[*MockEntryObject, MockLocation]](client, service, batchingConfig, MockEntrySpecifier, MockEntryMatcher)
+		cache := manager.NewNoOpCacheManager[*MockEntryObject]()
+		sdk = manager.NewEntryObjectManager[*MockEntryObject, MockLocation, *MockEntryService[*MockEntryObject, MockLocation]](client, service, batchingConfig, cache, MockEntrySpecifier, MockEntryMatcher)
 	})
 
 	BeforeEach(func() {
