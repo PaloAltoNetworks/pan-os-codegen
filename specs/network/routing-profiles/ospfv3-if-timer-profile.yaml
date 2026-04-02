@@ -1,0 +1,195 @@
+name: ospfv3-if-timer-routing-profile
+terraform_provider_config:
+  description: OSPFv3 Interface Timer Routing Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: ospfv3_if_timer_routing_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+  custom_validation: false
+go_sdk_config:
+  skip: false
+  package:
+  - network
+  - routing-profile
+  - ospfv3
+  - iftimer
+panos_xpath:
+  path:
+  - network
+  - routing-profile
+  - ospfv3
+  - if-timer-profile
+  vars: []
+locations:
+- name: ngfw
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific NGFW device
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+spec:
+  params:
+  - name: dead-counts
+    type: int64
+    profiles:
+    - xpath:
+      - dead-counts
+    validators:
+    - type: length
+      spec:
+        min: 3
+        max: 20
+    spec:
+      default: 4
+    description: number of lost hello packets to declare router down
+    required: false
+  - name: gr-delay
+    type: int64
+    profiles:
+    - xpath:
+      - gr-delay
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 10
+    spec:
+      default: 10
+    description: Period (in seconds) used to send grace LSAs before first hello is
+      sent when graceful restart starts
+    required: false
+  - name: hello-interval
+    type: int64
+    profiles:
+    - xpath:
+      - hello-interval
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 3600
+    spec:
+      default: 10
+    description: Interval (in seconds) to send Hello packets
+    required: false
+  - name: retransmit-interval
+    type: int64
+    profiles:
+    - xpath:
+      - retransmit-interval
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 1800
+    spec:
+      default: 5
+    description: Interval (in seconds) to retransmit LSAs
+    required: false
+  - name: transit-delay
+    type: int64
+    profiles:
+    - xpath:
+      - transit-delay
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 1800
+    spec:
+      default: 1
+    description: Estimated delay (in seconds) to transmit LSAs
+    required: false
+  variants: []
