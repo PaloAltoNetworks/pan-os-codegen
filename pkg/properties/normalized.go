@@ -395,14 +395,19 @@ func (o *SpecParam) DefaultType() string {
 }
 
 func (o *SpecParam) ValidatorType() string {
-	if o.Type == "" {
+	typ := o.FinalType()
+	if typ == "" {
 		return "object"
-	} else if o.Type == "list" && o.Items.Type == "entry" {
+	} else if typ == "list" && o.Items.Type == "entry" {
 		return "object"
-	} else if o.Type == "list" {
+	} else if typ == "set" && o.Items != nil && o.Items.Type == "entry" {
+		return "object"
+	} else if typ == "list" {
 		return "list"
+	} else if typ == "set" {
+		return "set"
 	} else {
-		return o.Type
+		return typ
 	}
 }
 

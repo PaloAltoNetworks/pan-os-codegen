@@ -1,0 +1,661 @@
+name: Policy Based Forwarding
+terraform_provider_config:
+  description: Policy Based Forwarding rule
+  skip_resource: false
+  skip_datasource: false
+  resource_type: uuid
+  resource_variants:
+  - singular
+  - plural
+  suffix: pbf_policy
+  plural_suffix: pbf_policy_rules
+  plural_name: rules
+  plural_description: ''
+  custom_validation: false
+go_sdk_config:
+  skip: false
+  package:
+  - policies
+  - rules
+  - pbf
+panos_xpath:
+  path:
+  - pbf
+  - rules
+  vars: []
+locations:
+- name: shared
+  xpath:
+    path:
+    - config
+    - shared
+    - $rulebase
+    vars:
+    - name: rulebase
+      description: Rulebase name
+      required: false
+      default: pre-rulebase
+      validators:
+      - type: values
+        spec:
+          values:
+          - pre-rulebase
+          - post-rulebase
+      type: object
+  description: Located in a shared rulebase
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    - rulebase
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys name
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared". Use the "shared" location instead.
+      type: entry
+  description: Located in a specific vsys rulebase
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: device-group
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - device-group
+    - $device_group
+    - $rulebase
+    vars:
+    - name: panorama_device
+      description: The panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: device_group
+      description: The device group name
+      required: true
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The device group cannot be "shared". Use the "shared" location
+              instead.
+      type: entry
+      location_filter: true
+    - name: rulebase
+      description: The rulebase
+      required: false
+      default: pre-rulebase
+      validators:
+      - type: values
+        spec:
+          values:
+          - pre-rulebase
+          - post-rulebase
+      type: object
+  description: Located in a specific device group rulebase
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+spec:
+  params:
+  - name: action
+    type: object
+    profiles:
+    - xpath:
+      - action
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: discard
+        type: object
+        profiles:
+        - xpath:
+          - discard
+        validators: []
+        spec:
+          params: []
+          variants: []
+        description: Discard packets
+        required: false
+        variant_group_id: 0
+      - name: forward
+        type: object
+        profiles:
+        - xpath:
+          - forward
+        validators: []
+        spec:
+          params:
+          - name: egress-interface
+            type: string
+            profiles:
+            - xpath:
+              - egress-interface
+            validators: []
+            spec: {}
+            description: Interface to route packet to
+            required: false
+          - name: monitor
+            type: object
+            profiles:
+            - xpath:
+              - monitor
+            validators: []
+            spec:
+              params:
+              - name: disable-if-unreachable
+                type: bool
+                profiles:
+                - xpath:
+                  - disable-if-unreachable
+                validators: []
+                spec: {}
+                description: Disable this rule if nexthop/monitor ip is unreachable
+                required: false
+              - name: ip-address
+                type: string
+                profiles:
+                - xpath:
+                  - ip-address
+                validators: []
+                spec: {}
+                description: Monitor IP address
+                required: false
+              - name: profile
+                type: string
+                profiles:
+                - xpath:
+                  - profile
+                validators: []
+                spec: {}
+                description: Monitoring profile associated with this rule
+                required: false
+              variants: []
+            description: Parameters for monitoring
+            required: false
+          - name: nexthop
+            type: object
+            profiles:
+            - xpath:
+              - nexthop
+            validators: []
+            spec:
+              params: []
+              variants:
+              - name: fqdn
+                type: string
+                profiles:
+                - xpath:
+                  - fqdn
+                validators:
+                - type: length
+                  spec:
+                    max: 255
+                spec: {}
+                description: nexthop address FQDN name configuration
+                required: false
+                variant_group_id: 0
+              - name: ip-address
+                type: string
+                profiles:
+                - xpath:
+                  - ip-address
+                validators: []
+                spec: {}
+                description: Next hop IP address
+                required: false
+                variant_group_id: 0
+            description: Next hop IP address
+            required: false
+          variants: []
+        description: Forward
+        required: false
+        variant_group_id: 0
+      - name: forward-to-vsys
+        type: string
+        profiles:
+        - xpath:
+          - forward-to-vsys
+        validators: []
+        spec: {}
+        description: Virtual system/Shared gateway to route packet to
+        required: false
+        variant_group_id: 0
+      - name: no-pbf
+        type: object
+        profiles:
+        - xpath:
+          - no-pbf
+        validators: []
+        spec:
+          params: []
+          variants: []
+        description: Don't forward by PBF
+        required: false
+        variant_group_id: 0
+    description: Policy-based-forwarding action
+    required: false
+  - name: active-active-device-binding
+    type: enum
+    profiles:
+    - xpath:
+      - active-active-device-binding
+    validators:
+    - type: values
+      spec:
+        values:
+        - both
+        - '0'
+        - '1'
+    spec:
+      values:
+      - value: both
+      - value: '0'
+      - value: '1'
+    description: Device binding configuration in HA Active-Active mode
+    required: false
+  - name: application
+    type: list
+    profiles:
+    - xpath:
+      - application
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+    codegen_overrides:
+      terraform:
+        type: set
+        name: applications
+  - name: audit-comment-version
+    type: string
+    description: Version trigger for audit comments. Change this value to send the
+      audit_comment_wo to PAN-OS. This attribute is not sent to PAN-OS itself, but
+      serves as a trigger to detect when the audit comment should be updated.
+    required: false
+    profiles:
+    - xpath: []
+    validators:
+    - type: length
+      spec:
+        max: 64
+    codegen_overrides:
+      gosdk:
+        skip: true
+      terraform:
+        also_requires: audit-comment-wo
+  - name: audit-comment-wo
+    type: string
+    description: Write-only audit comment for this rule. This value is sent to PAN-OS
+      but not read back. Changes are only sent when audit_comment_version is modified.
+      Each time audit_comment_version changes, this comment is added to the audit
+      history with a timestamp.
+    required: false
+    profiles:
+    - xpath: []
+    validators:
+    - type: length
+      spec:
+        max: 256
+    codegen_overrides:
+      gosdk:
+        skip: true
+      terraform:
+        type: audit-comment-wo
+        write_only: true
+        also_requires: audit-comment-version
+        trigger_on_change_of: audit-comment-version
+  - name: description
+    type: string
+    profiles:
+    - xpath:
+      - description
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 1024
+    spec: {}
+    description: ''
+    required: false
+  - name: destination
+    type: list
+    profiles:
+    - xpath:
+      - destination
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+    codegen_overrides:
+      terraform:
+        type: set
+        name: destination-addresses
+  - name: disabled
+    type: bool
+    profiles:
+    - xpath:
+      - disabled
+    validators: []
+    spec: {}
+    description: Disable the rule
+    required: false
+  - name: enforce-symmetric-return
+    type: object
+    profiles:
+    - xpath:
+      - enforce-symmetric-return
+    validators: []
+    spec:
+      params:
+      - name: enabled
+        type: bool
+        profiles:
+        - xpath:
+          - enabled
+        validators: []
+        spec: {}
+        description: Enable symmetric return
+        required: false
+      - name: nexthop-address-list
+        type: list
+        profiles:
+        - xpath:
+          - nexthop-address-list
+          - entry
+          type: entry
+        validators: []
+        spec:
+          type: object
+          items:
+            type: object
+            spec:
+              params: []
+              variants: []
+        description: ''
+        required: false
+      variants: []
+    description: Configure symmetric return
+    required: false
+  - name: from
+    type: object
+    profiles:
+    - xpath:
+      - from
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: interface
+        type: list
+        profiles:
+        - xpath:
+          - interface
+          type: member
+        validators: []
+        spec:
+          type: string
+          items:
+            type: string
+        description: ''
+        required: false
+        codegen_overrides:
+          terraform:
+            type: set
+        variant_group_id: 0
+      - name: zone
+        type: list
+        profiles:
+        - xpath:
+          - zone
+          type: member
+        validators: []
+        spec:
+          type: string
+          items:
+            type: string
+        description: ''
+        required: false
+        codegen_overrides:
+          terraform:
+            type: set
+        variant_group_id: 0
+    description: Source zone or interface
+    required: false
+  - name: group-tag
+    type: string
+    profiles:
+    - xpath:
+      - group-tag
+    validators:
+    - type: length
+      spec:
+        max: 127
+    spec: {}
+    description: ''
+    required: false
+  - name: negate-destination
+    type: bool
+    profiles:
+    - xpath:
+      - negate-destination
+    validators: []
+    spec: {}
+    description: ''
+    required: false
+  - name: negate-source
+    type: bool
+    profiles:
+    - xpath:
+      - negate-source
+    validators: []
+    spec: {}
+    description: ''
+    required: false
+  - name: schedule
+    type: string
+    profiles:
+    - xpath:
+      - schedule
+    validators: []
+    spec: {}
+    description: ''
+    required: false
+  - name: service
+    type: list
+    profiles:
+    - xpath:
+      - service
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+    codegen_overrides:
+      terraform:
+        type: set
+        name: services
+  - name: source
+    type: list
+    profiles:
+    - xpath:
+      - source
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+    codegen_overrides:
+      terraform:
+        type: set
+        name: source-addresses
+  - name: source-user
+    type: list
+    profiles:
+    - xpath:
+      - source-user
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+    codegen_overrides:
+      terraform:
+        type: set
+        name: source-users
+  - name: tag
+    type: list
+    profiles:
+    - xpath:
+      - tag
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: ''
+    required: false
+    codegen_overrides:
+      terraform:
+        type: set
+        name: tags
+  - name: target
+    type: object
+    profiles:
+    - xpath:
+      - target
+    validators: []
+    spec:
+      params:
+      - name: devices
+        type: list
+        profiles:
+        - xpath:
+          - devices
+          - entry
+          type: entry
+        validators: []
+        spec:
+          type: object
+          items:
+            type: object
+            spec:
+              params:
+              - name: vsys
+                type: list
+                profiles:
+                - xpath:
+                  - vsys
+                  - entry
+                  type: entry
+                validators: []
+                spec:
+                  type: object
+                  items:
+                    type: object
+                    spec:
+                      params: []
+                      variants: []
+                description: ''
+                required: false
+              variants: []
+        description: ''
+        required: false
+      - name: negate
+        type: bool
+        profiles:
+        - xpath:
+          - negate
+        validators: []
+        spec: {}
+        description: Target to all but these specified devices and tags
+        required: false
+      - name: tags
+        type: list
+        profiles:
+        - xpath:
+          - tags
+          type: member
+        validators: []
+        spec:
+          type: string
+          items:
+            type: string
+        description: ''
+        required: false
+      variants: []
+    description: Target devices
+    required: false
+  - name: uuid
+    type: string
+    profiles:
+    - xpath:
+      - uuid
+    validators:
+    - type: regexp
+      spec:
+        expr: '[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}'
+    - type: length
+      spec:
+        min: 36
+        max: 36
+    description: Entry UUID value
+    required: false
+    codegen_overrides:
+      terraform:
+        private: true
+  variants: []
