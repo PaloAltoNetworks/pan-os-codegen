@@ -1,0 +1,25 @@
+{{- if .ParametersWithTriggerOnChangeOf }}
+triggeredParams := make(map[string]string)
+
+var configPlan, configState {{ .StructName }}Model
+resp.Diagnostics.Append(req.Config.Get(ctx, &configPlan)...)
+resp.Diagnostics.Append(req.State.Get(ctx, &configState)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+{{- range $pair := .ParametersWithTriggerOnChangeOf }}
+{
+	triggerChanged := false
+	if !configPlan.{{ $pair.Trigger.TerraformNameVariant.CamelCase }}.Equal(configState.{{ $pair.Trigger.TerraformNameVariant.CamelCase }}) &&
+	   !configPlan.{{ $pair.Trigger.TerraformNameVariant.CamelCase }}.IsNull() &&
+	   !configPlan.{{ $pair.Trigger.TerraformNameVariant.CamelCase }}.IsUnknown() {
+		triggerChanged = true
+	}
+	if triggerChanged && !configPlan.{{ $pair.Param.TerraformNameVariant.CamelCase }}.IsNull() &&
+	   !configPlan.{{ $pair.Param.TerraformNameVariant.CamelCase }}.IsUnknown() {
+		triggeredParams["{{ $pair.Param.Name.Underscore }}"] = configPlan.{{ $pair.Param.TerraformNameVariant.CamelCase }}.ValueString()
+	}
+}
+{{- end }}
+{{- end }}

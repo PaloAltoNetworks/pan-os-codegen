@@ -135,11 +135,19 @@ func dataSourceStructContextForParam(structPrefix string, param *properties.Spec
 			if elt.IsPrivateParameter() {
 				continue
 			}
+			// Skip write-only parameters in datasources
+			if elt.FinalWriteOnly() {
+				continue
+			}
 			fields = append(fields, structFieldSpec(elt, structName, hackStructsAsTypeObjects))
 		}
 
 		for _, elt := range param.Spec.SortedOneOf() {
 			if elt.IsPrivateParameter() {
+				continue
+			}
+			// Skip write-only parameters in datasources
+			if elt.FinalWriteOnly() {
 				continue
 			}
 			fields = append(fields, structFieldSpec(elt, structName, hackStructsAsTypeObjects))
@@ -162,6 +170,10 @@ func dataSourceStructContextForParam(structPrefix string, param *properties.Spec
 		if elt.IsPrivateParameter() {
 			continue
 		}
+		// Skip write-only parameters in datasources
+		if elt.FinalWriteOnly() {
+			continue
+		}
 		if elt.Type == "" || (elt.Type == "list" && elt.Items.Type == "entry") {
 			structs = append(structs, dataSourceStructContextForParam(structName, elt, hackStructsAsTypeObjects)...)
 		}
@@ -169,6 +181,10 @@ func dataSourceStructContextForParam(structPrefix string, param *properties.Spec
 
 	for _, elt := range param.Spec.SortedOneOf() {
 		if elt.IsPrivateParameter() {
+			continue
+		}
+		// Skip write-only parameters in datasources
+		if elt.FinalWriteOnly() {
 			continue
 		}
 
@@ -238,7 +254,7 @@ func createStructSpecForUuidModel(resourceTyp properties.ResourceType, schemaTyp
 	})
 
 	structName = fmt.Sprintf("%s%s", structName, listName.CamelCase)
-	fields, normalizationStructs := createStructSpecForNormalization(resourceTyp, structName, spec, hackStructsAsTypeObjects)
+	fields, normalizationStructs := createStructSpecForNormalization(resourceTyp, schemaTyp, structName, spec, hackStructsAsTypeObjects)
 
 	structs = append(structs, datasourceStructSpec{
 		AncestorName:  listName.Original,
@@ -325,7 +341,7 @@ func createStructSpecForEntryListModel(resourceTyp properties.ResourceType, sche
 	})
 
 	structName = fmt.Sprintf("%s%s", structName, listName.CamelCase)
-	fields, normalizationStructs := createStructSpecForNormalization(resourceTyp, structName, spec, hackStructsAsTypeObjects)
+	fields, normalizationStructs := createStructSpecForNormalization(resourceTyp, schemaTyp, structName, spec, hackStructsAsTypeObjects)
 
 	structs = append(structs, datasourceStructSpec{
 		AncestorName:        listName.Original,
@@ -371,7 +387,7 @@ func createStructSpecForEntryModel(resourceTyp properties.ResourceType, schemaTy
 		panic(fmt.Sprintf("unsupported schemaTyp: '%s'", schemaTyp))
 	}
 
-	normalizationFields, normalizationStructs := createStructSpecForNormalization(resourceTyp, structName, spec, hackStructAsTypeObjects)
+	normalizationFields, normalizationStructs := createStructSpecForNormalization(resourceTyp, schemaTyp, structName, spec, hackStructAsTypeObjects)
 	fields = append(fields, normalizationFields...)
 
 	structs = append(structs, datasourceStructSpec{
@@ -404,7 +420,7 @@ func createStructSpecForModel(resourceTyp properties.ResourceType, schemaTyp pro
 }
 
 // createStructSpecForNormalization creates struct fields and nested structs for a normalization.
-func createStructSpecForNormalization(resourceTyp properties.ResourceType, structName string, spec *properties.Normalization, hackStructAsTypeObjects bool) ([]datasourceStructFieldSpec, []datasourceStructSpec) {
+func createStructSpecForNormalization(resourceTyp properties.ResourceType, schemaTyp properties.SchemaType, structName string, spec *properties.Normalization, hackStructAsTypeObjects bool) ([]datasourceStructFieldSpec, []datasourceStructSpec) {
 	var fields []datasourceStructFieldSpec
 	var structs []datasourceStructSpec
 
@@ -433,6 +449,10 @@ func createStructSpecForNormalization(resourceTyp properties.ResourceType, struc
 		if elt.IsPrivateParameter() {
 			continue
 		}
+		// Skip write-only parameters in datasources (but not in resources)
+		if schemaTyp == properties.SchemaDataSource && elt.FinalWriteOnly() {
+			continue
+		}
 
 		if resourceTyp == properties.ResourceEntryPlural && elt.TerraformProviderConfig != nil && elt.TerraformProviderConfig.XpathVariable != nil {
 			continue
@@ -446,6 +466,10 @@ func createStructSpecForNormalization(resourceTyp properties.ResourceType, struc
 
 	for _, elt := range spec.Spec.SortedOneOf() {
 		if elt.IsPrivateParameter() {
+			continue
+		}
+		// Skip write-only parameters in datasources (but not in resources)
+		if schemaTyp == properties.SchemaDataSource && elt.FinalWriteOnly() {
 			continue
 		}
 

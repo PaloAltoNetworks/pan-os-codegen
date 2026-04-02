@@ -37,6 +37,9 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 		"RenderLocationsStateToPango": func(source string, dest string) (string, error) {
 			return RenderLocationsStateToPango(names, paramSpec, source, dest)
 		},
+		"RenderTriggeredParamsExtractCreate": func() (string, error) {
+			return RenderTriggeredParamsExtractCreate(resourceTyp, paramSpec)
+		},
 	}
 
 	if strings.Contains(serviceName, "group") && serviceName != "Device group" {
@@ -73,18 +76,20 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 	listAttributeVariant := properties.NewNameVariant(listAttribute)
 
 	data := map[string]interface{}{
-		"PluralType":            paramSpec.TerraformProviderConfig.PluralType,
-		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
-		"HasImports":            len(paramSpec.Imports.Variants) > 0,
-		"Exhaustive":            exhaustive,
-		"ListAttribute":         listAttributeVariant,
-		"EntryOrConfig":         paramSpec.EntryOrConfig(),
-		"HasEntryName":          paramSpec.HasEntryName(),
-		"structName":            names.ResourceStructName,
-		"serviceName":           naming.CamelCase("", serviceName, "", false),
-		"paramSpec":             paramSpec.Spec,
-		"resourceSDKName":       resourceSDKName,
-		"locations":             paramSpec.OrderedLocations(),
+		"PluralType":                       paramSpec.TerraformProviderConfig.PluralType,
+		"HasEncryptedResources":            paramSpec.HasEncryptedResources(),
+		"HasImports":                       len(paramSpec.Imports.Variants) > 0,
+		"HasAuditComment":                  paramSpec.HasAuditComment(),
+		"Exhaustive":                       exhaustive,
+		"ListAttribute":                    listAttributeVariant,
+		"EntryOrConfig":                    paramSpec.EntryOrConfig(),
+		"HasEntryName":                     paramSpec.HasEntryName(),
+		"structName":                       names.ResourceStructName,
+		"serviceName":                      naming.CamelCase("", serviceName, "", false),
+		"paramSpec":                        paramSpec.Spec,
+		"resourceSDKName":                  resourceSDKName,
+		"locations":                        paramSpec.OrderedLocations(),
+		"ParametersWithTriggerOnChangeOf":  paramSpec.GetParametersWithTriggerOnChangeOf(),
 	}
 
 	return processTemplate(tmpl, "resource-create-function", data, funcMap)
@@ -259,15 +264,17 @@ func ResourceUpdateFunction(resourceTyp properties.ResourceType, names *NameProv
 	listAttributeVariant := properties.NewNameVariant(listAttribute)
 
 	data := map[string]interface{}{
-		"PluralType":            paramSpec.TerraformProviderConfig.PluralType,
-		"HasEncryptedResources": paramSpec.HasEncryptedResources(),
-		"ListAttribute":         listAttributeVariant,
-		"Exhaustive":            exhaustive,
-		"EntryOrConfig":         paramSpec.EntryOrConfig(),
-		"HasEntryName":          paramSpec.HasEntryName(),
-		"structName":            names.ResourceStructName,
-		"serviceName":           naming.CamelCase("", serviceName, "", false),
-		"resourceSDKName":       resourceSDKName,
+		"PluralType":                       paramSpec.TerraformProviderConfig.PluralType,
+		"HasEncryptedResources":            paramSpec.HasEncryptedResources(),
+		"HasAuditComment":                  paramSpec.HasAuditComment(),
+		"ListAttribute":                    listAttributeVariant,
+		"Exhaustive":                       exhaustive,
+		"EntryOrConfig":                    paramSpec.EntryOrConfig(),
+		"HasEntryName":                     paramSpec.HasEntryName(),
+		"structName":                       names.ResourceStructName,
+		"serviceName":                      naming.CamelCase("", serviceName, "", false),
+		"resourceSDKName":                  resourceSDKName,
+		"ParametersWithTriggerOnChangeOf":  paramSpec.GetParametersWithTriggerOnChangeOf(),
 	}
 
 	funcMap := template.FuncMap{
@@ -285,6 +292,9 @@ func ResourceUpdateFunction(resourceTyp properties.ResourceType, names *NameProv
 		},
 		"RenderLocationsPangoToState": func(source string, dest string) (string, error) {
 			return RenderLocationsPangoToState(names, paramSpec, source, dest)
+		},
+		"RenderTriggeredParamsExtractUpdate": func() (string, error) {
+			return RenderTriggeredParamsExtractUpdate(resourceTyp, paramSpec)
 		},
 	}
 

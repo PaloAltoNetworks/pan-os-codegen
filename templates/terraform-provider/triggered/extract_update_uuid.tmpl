@@ -1,0 +1,47 @@
+{{- if .ParametersWithTriggerOnChangeOf }}
+auditComments := make(map[string]string)
+
+var configPlan, configState {{ .StructName }}Model
+resp.Diagnostics.Append(req.Config.Get(ctx, &configPlan)...)
+resp.Diagnostics.Append(req.State.Get(ctx, &configState)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+var configPlanElements, configStateElements []{{ .ResourceTFStructName }}
+resp.Diagnostics.Append(configPlan.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &configPlanElements, false)...)
+resp.Diagnostics.Append(configState.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &configStateElements, false)...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+stateElementsByName := make(map[string]{{ .ResourceTFStructName }})
+for _, elt := range configStateElements {
+	stateElementsByName[elt.Name.ValueString()] = elt
+}
+
+for _, planElt := range configPlanElements {
+	stateElt, existsInState := stateElementsByName[planElt.Name.ValueString()]
+	{{- range $pair := .ParametersWithTriggerOnChangeOf }}
+	{
+		triggerChanged := false
+		if !existsInState {
+			triggerChanged = !planElt.{{ $pair.Trigger.TerraformNameVariant.CamelCase }}.IsNull() &&
+			                 !planElt.{{ $pair.Trigger.TerraformNameVariant.CamelCase }}.IsUnknown()
+		} else {
+			planTrigger := planElt.{{ $pair.Trigger.TerraformNameVariant.CamelCase }}.ValueString()
+			stateTrigger := stateElt.{{ $pair.Trigger.TerraformNameVariant.CamelCase }}.ValueString()
+			triggerChanged = planTrigger != stateTrigger &&
+			                 !planElt.{{ $pair.Trigger.TerraformNameVariant.CamelCase }}.IsNull() &&
+			                 !planElt.{{ $pair.Trigger.TerraformNameVariant.CamelCase }}.IsUnknown()
+		}
+		if triggerChanged && !planElt.{{ $pair.Param.TerraformNameVariant.CamelCase }}.IsNull() &&
+		   !planElt.{{ $pair.Param.TerraformNameVariant.CamelCase }}.IsUnknown() {
+			auditComments[planElt.Name.ValueString()] = planElt.{{ $pair.Param.TerraformNameVariant.CamelCase }}.ValueString()
+		}
+	}
+	{{- end }}
+}
+{{- else }}
+auditComments := make(map[string]string)
+{{- end }}

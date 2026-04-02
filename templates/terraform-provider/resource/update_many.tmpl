@@ -62,6 +62,8 @@ for _, elt := range existing {
 	existingEntriesByName[elt.Name] = elt
 }
 
+{{ RenderTriggeredParamsExtractUpdate }}
+
 resp.Diagnostics.Append(plan.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
 if resp.Diagnostics.HasError() {
 	return
@@ -83,14 +85,14 @@ if err != nil {
 	return
 }
 
-processed, err := o.manager.UpdateMany(ctx, location, components, stateEntries, planEntries, {{ $exhaustive }}, position)
+processed, err := o.manager.UpdateMany(ctx, location, components, stateEntries, planEntries, {{ $exhaustive }}, position, auditComments)
 if err != nil {
 	resp.Diagnostics.AddError("Failed to udpate entries", err.Error())
 }
 
 objects := make([]*{{ $resourceTFStructName }}, len(processed))
 for idx, elt := range processed {
-	var object {{ $resourceTFStructName }}
+	object := elements[idx]
 	copy_diags := object.CopyFromPango(ctx, o.client, nil, elt, ev)
 	resp.Diagnostics.Append(copy_diags...)
 	if resp.Diagnostics.HasError() {

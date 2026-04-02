@@ -99,7 +99,10 @@ for _, elt := range readEntries {
 		continue
 	}
 
-	var object {{ $resourceTFStructName }}
+	object, found := elements[elt.Name]
+	if !found {
+		object = {{ $resourceTFStructName }}{}
+	}
 	object.name = elt.Name
 	resp.Diagnostics.Append(object.CopyFromPango(ctx, o.client, nil, elt, ev)...)
 	if resp.Diagnostics.HasError() {
@@ -108,9 +111,14 @@ for _, elt := range readEntries {
 	objects[elt.Name] = object
 }
 {{- else if or (eq .PluralType "list") (eq .PluralType "set") }}
+stateElementsByName := make(map[string]{{ $resourceTFStructName }})
+for _, elt := range elements {
+	stateElementsByName[elt.Name.ValueString()] = elt
+}
+
 objects := make([]{{ $resourceTFStructName }}, len(readEntries))
 for idx, elt := range readEntries {
-	var object {{ $resourceTFStructName }}
+	object := stateElementsByName[elt.Name]
 	resp.Diagnostics.Append(object.CopyFromPango(ctx, o.client, nil, elt, ev)...)
 	if resp.Diagnostics.HasError() {
 		return

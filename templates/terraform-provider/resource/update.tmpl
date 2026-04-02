@@ -13,6 +13,8 @@
 	var location {{ .resourceSDKName }}.Location
 	{{ RenderLocationsStateToPango "state.Location" "location" }}
 
+	{{ RenderTriggeredParamsExtractUpdate }}
+
 	// Basic logging.
 	tflog.Info(ctx, "performing resource update", map[string]any{
 		"resource_name": "panos_{{ UnderscoreName .structName }}",
