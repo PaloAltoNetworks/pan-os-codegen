@@ -18,7 +18,7 @@ func TestAccEphemeralVmAuthKey_Sanity(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: ephemeralVmAuthKey_Sanity_Tmpl,

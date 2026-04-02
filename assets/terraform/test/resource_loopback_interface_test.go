@@ -21,7 +21,7 @@ func TestAccLoopbackInterface(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: loopbackInterfaceResource1,

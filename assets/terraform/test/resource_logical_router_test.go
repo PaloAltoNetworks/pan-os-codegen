@@ -29,7 +29,7 @@ func TestAccPanosLogicalRouter_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: panosLogicalRouterBasic,
@@ -415,7 +415,7 @@ func TestAccPanosLogicalRouter_StaticRoute_NexthopDiscard(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: panosLogicalRouterStaticRouteNexthopDiscard,
@@ -467,7 +467,7 @@ func TestAccPanosLogicalRouter_Ecmp_IpModulo(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: panosLogicalRouterEcmpIpModulo,
@@ -516,7 +516,7 @@ func TestAccPanosLogicalRouter_Ecmp_WeightedRoundRobin(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: panosLogicalRouterEcmpWeightedRoundRobin,
@@ -596,7 +596,7 @@ func TestAccPanosLogicalRouter_Ecmp_BalancedRoundRobin(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: panosLogicalRouterEcmpBalancedRoundRobin,
@@ -645,7 +645,7 @@ func TestAccPanosLogicalRouter_Ospf_Area_Stub(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: panosLogicalRouterOspfAreaStub,
@@ -732,7 +732,7 @@ func TestAccPanosLogicalRouter_Ospf_Area_Nssa(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: panosLogicalRouterOspfAreaNssa,
@@ -831,7 +831,7 @@ func TestAccPanosLogicalRouter_Ospf_Interface_LinkType_P2mp(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: panosLogicalRouterOspfInterfaceLinkTypeP2mp,
@@ -913,7 +913,7 @@ func TestAccPanosLogicalRouter_Ospfv3_Area_Stub(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: panosLogicalRouterOspfv3AreaStub,
@@ -1001,7 +1001,7 @@ func TestAccPanosLogicalRouter_Multicast_Pim_LocalRp_CandidateRp(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: panosLogicalRouterMulticastPimLocalRpCandidateRp,
@@ -1084,7 +1084,7 @@ func TestAccPanosLogicalRouter_Multicast_Msdp_PeerAddress_Fqdn(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: panosLogicalRouterMulticastMsdpPeerAddressFqdn,
@@ -1166,7 +1166,7 @@ func TestAccPanosLogicalRouter_Bgp_AggregateRoutes_Ipv6(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: panosLogicalRouterBgpAggregateRoutesIpv6,

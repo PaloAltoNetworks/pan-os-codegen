@@ -27,7 +27,7 @@ func TestAccAntivirusSecurityProfile_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: antivirusSecurityProfile_Basic_Tmpl,
@@ -125,7 +125,7 @@ func TestAccAntivirusSecurityProfile_ApplicationExceptions(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: antivirusSecurityProfile_ApplicationExceptions_Tmpl,
@@ -188,7 +188,7 @@ func TestAccAntivirusSecurityProfile_Decoders(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: antivirusSecurityProfile_Decoders_Tmpl,
@@ -261,7 +261,7 @@ func TestAccAntivirusSecurityProfile_MachineLearningModels(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: antivirusSecurityProfile_MachineLearningModels_Tmpl,
@@ -331,7 +331,7 @@ func TestAccAntivirusSecurityProfile_MachineLearningExceptions(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: antivirusSecurityProfile_MachineLearningExceptions_Tmpl,
@@ -392,7 +392,7 @@ func TestAccAntivirusSecurityProfile_ThreatExceptions(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: antivirusSecurityProfile_ThreatExceptions_Tmpl,

@@ -19,7 +19,7 @@ func TestAccAdminRoleDevice(t *testing.T) {
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: adminRoleResource1,
@@ -3203,7 +3203,7 @@ func TestAccAdminRoleVsys(t *testing.T) {
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: adminRoleResource2,

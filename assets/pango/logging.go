@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log/slog"
 	"math/bits"
+	"os"
+	"strings"
 )
 
 // LogCategory is a bitmask describing what categories of logging to enable.
@@ -20,6 +22,7 @@ import (
 //     is explicitly added to the mask
 //   - LogCategoryCurl: When used along with LogCategorySend, an equivalent curl
 //     command will be logged
+//   - LogCategoryTimings: Logging of operation timing information (duration of handle* functions)
 //   - LogCategoryAll: A meta-category, enabling all above categories at once
 //   - LogCategorySensitive: Logging of sensitive data like hostnames, logins,
 //     passwords or API keys of any sort
@@ -31,8 +34,9 @@ const (
 	LogCategorySend
 	LogCategoryReceive
 	LogCategoryCurl
+	LogCategoryTimings
 	LogCategoryAll = LogCategoryPango | LogCategoryOp | LogCategorySend |
-		LogCategoryReceive | LogCategoryCurl
+		LogCategoryReceive | LogCategoryCurl | LogCategoryTimings
 	// Make sure that LogCategorySensitive is always last, explicitly set to 1 << 16
 	LogCategorySensitive LogCategory = 1 << 16
 )
@@ -43,6 +47,7 @@ var logCategoryToString = map[LogCategory]string{
 	LogCategorySend:      "send",
 	LogCategoryReceive:   "receive",
 	LogCategoryCurl:      "curl",
+	LogCategoryTimings:   "timings",
 	LogCategoryAll:       "all",
 	LogCategorySensitive: "sensitive",
 }
@@ -58,6 +63,67 @@ func createStringToCategoryMap(categories map[LogCategory]string) map[string]Log
 	}
 
 	return stringsMap
+}
+
+func SetupLogger(logging LoggingInfo, checkEnvironment bool) (*categoryLogger, error) {
+	var logger *slog.Logger
+
+	var logLevel slog.Level
+	var levelStr string
+	if levelStr = os.Getenv("PANOS_LOG_LEVEL"); checkEnvironment && levelStr != "" {
+		err := logLevel.UnmarshalText([]byte(levelStr))
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		logLevel = logging.LogLevel
+	}
+
+	if logging.SLogHandler == nil {
+		logger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel}))
+		logger.Info("No slog handler provided, creating default os.Stderr handler.", "LogLevel", logging.LogLevel.Level())
+	} else {
+		logger = slog.New(logging.SLogHandler)
+		if logging.LogLevel != 0 {
+			logger.Warn("LogLevel is ignored when using custom SLog handler.")
+		}
+	}
+
+	// 1. logging.LogCategories has the highest priority
+	// 2. If logging.LogCategories is not set, we check logging.LogSymbols
+	// 3. If logging.LogSymbols is empty and c.CheckEnvironment is true we consult
+	//    PANOS_LOG_CATEGORIES environment variable.
+	// 4. If no logging categories have been selected, default to basic library logging
+	//    (i.e. "pango" category)
+	logMask := logging.LogCategories
+	var err error
+	if logMask == 0 {
+		logMask, err = LogCategoryFromStrings(logging.LogSymbols)
+		if err != nil {
+			return nil, err
+		}
+
+		if logMask == 0 {
+			if val := os.Getenv("PANOS_LOG_CATEGORIES"); checkEnvironment && val != "" {
+				symbols := strings.Split(val, ",")
+				logMask, err = LogCategoryFromStrings(symbols)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
+
+	// To disable logging completely, use custom SLog handler that discards all logs,
+	// e.g. https://github.com/golang/go/issues/62005 for the example of such handler.
+	if logMask == 0 {
+		logMask = LogCategoryPango
+	}
+
+	enabledLogging, _ := LogCategoryAsStrings(logMask)
+	logger.Info("Pango logging configured", "symbols", enabledLogging, "level", logLevel)
+
+	return newCategoryLogger(logger, logMask), nil
 }
 
 // LogCategoryFromStrings transforms list with categories into its bitmask equivalent.

@@ -13,38 +13,37 @@ import (
 
 // PangoClient interface.
 type PangoClient interface {
- 	// Setup initializes the client and establishes necessary connections or loads
- 	// required data. This method should be called after client creation and before
- 	// performing any CRUD operations.
- 	//
- 	// For LocalXmlClient: loads the XML file from the filepath specified in constructor
- 	// For ApiClient: establishes connection to PAN-OS device and retrieves system info
- 	//
- 	// Example:
- 	//
- 	//	client, err := pango.NewLocalXmlClient("/path/to/config.xml")
- 	//	if err != nil {
- 	//	    return err
- 	//	}
- 	//
- 	//	if err := client.Setup(); err != nil {
- 	//	    return fmt.Errorf("setup failed: %w", err)
- 	//	}
- 	//
- 	//	// Client ready for operations
- 	Setup() error
- 
-+	// Initialize performs post-Setup initialization (API mode: retrieves system info).
-+	// For LocalXmlClient: no-op (all initialization done in Setup)
-+	// For ApiClient: retrieves system information and performs authentication
-+	Initialize(context.Context) error
-+
-+	// SetupLocalInspection configures client for local inspection mode (API client only).
-+	// For LocalXmlClient: returns unsupported operation error
-+	// For ApiClient: loads PAN-OS config and version information from provided schema
-+	SetupLocalInspection(schema, panosVersion string) error
-+
->>>>>>> conflict 1 of 1 ends
+	// Setup initializes the client and establishes necessary connections or loads
+	// required data. This method should be called after client creation and before
+	// performing any CRUD operations.
+	//
+	// For LocalXmlClient: loads the XML file from the filepath specified in constructor
+	// For ApiClient: establishes connection to PAN-OS device and retrieves system info
+	//
+	// Example:
+	//
+	//	client, err := pango.NewLocalXmlClient("/path/to/config.xml")
+	//	if err != nil {
+	//	    return err
+	//	}
+	//
+	//	if err := client.Setup(); err != nil {
+	//	    return fmt.Errorf("setup failed: %w", err)
+	//	}
+	//
+	//	// Client ready for operations
+	Setup() error
+
+	// Initialize performs post-Setup initialization (API mode: retrieves system info).
+	// For LocalXmlClient: no-op (all initialization done in Setup)
+	// For ApiClient: retrieves system information and performs authentication
+	Initialize(context.Context) error
+
+	// SetupLocalInspection configures client for local inspection mode (API client only).
+	// For LocalXmlClient: returns unsupported operation error
+	// For ApiClient: loads PAN-OS config and version information from provided schema
+	SetupLocalInspection(schema, panosVersion string) error
+
 	// Basics.
 	Versioning() version.Number
 	Plugins(context.Context) ([]plugin.Info, error)

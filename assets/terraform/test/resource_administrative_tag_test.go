@@ -26,7 +26,7 @@ func TestAccAdministrativeTag(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: makeAdministrativeTagConfig(resourceName),
@@ -48,7 +48,7 @@ func TestAccAdministrativeTag(t *testing.T) {
 	colorValue := "color1"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: makeAdministrativeTagConfig(resourceName),

@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<config version="11.2.0" urldb="paloaltonetworks" detail-version="11.2.3">
+  <mgt-config>
+    <devices/>
+  </mgt-config>
+  <devices>
+    <entry name="localhost.localdomain">
+      <device-group>
+        <entry name="dg1-renamed">
+          <address>
+            <entry name="addr-1-renamed">
+              <ip-netmask>1.1.1.1</ip-netmask>
+            </entry>
+          </address>
+        </entry>
+        <entry name="e2e-test-SxQAwm-dg">
+          <description>E2E Test - Device Group</description>
+          <address>
+            <entry name="e2e-test-SxQAwm-web-server-1">
+              <description>E2E Test - Web Server 1</description>
+              <ip-netmask>10.1.1.10/32</ip-netmask>
+            </entry>
+            <entry name="e2e-test-SxQAwm-web-server-2">
+              <description>E2E Test - Web Server 2</description>
+              <ip-netmask>10.1.1.20/32</ip-netmask>
+            </entry>
+            <entry name="e2e-test-SxQAwm-web-server-3">
+              <description>E2E Test - Web Server 3</description>
+              <ip-netmask>10.1.1.30/32</ip-netmask>
+            </entry>
+          </address>
+        </entry>
+        <entry name="e2e-test-vMoxgj-dg">
+          <description>E2E Test - Device Group</description>
+          <address>
+            <entry name="e2e-test-vMoxgj-web-server-1">
+              <description>E2E Test - Web Server 1</description>
+              <ip-netmask>10.1.1.10/32</ip-netmask>
+            </entry>
+            <entry name="e2e-test-vMoxgj-web-server-2">
+              <description>E2E Test - Web Server 2</description>
+              <ip-netmask>10.1.1.20/32</ip-netmask>
+            </entry>
+            <entry name="e2e-test-vMoxgj-web-server-3">
+              <description>E2E Test - Web Server 3</description>
+              <ip-netmask>10.1.1.30/32</ip-netmask>
+            </entry>
+          </address>
+        </entry>
+      </device-group>
+    </entry>
+  </devices>
+  <panorama>
+    <server-profile/>
+  </panorama>
+</config>

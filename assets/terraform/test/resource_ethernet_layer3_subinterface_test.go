@@ -21,7 +21,7 @@ func TestAccEthernetLayer3Subinterface_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: ethernetLayer3Subinterface_1,
@@ -202,7 +202,7 @@ func TestAccEthernetLayer3Subinterface_DHCP_Client(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: ethernetLayer3Subinterface_DHCP_Client,
@@ -278,7 +278,7 @@ func TestAccEthernetLayer3Subinterface_PPPoE(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: ethernetLayer3Subinterface_PPPoE,
@@ -342,7 +342,7 @@ func TestAccEthernetLayer3Subinterface_IPv6_DHCP_Client(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: ethernetLayer3Subinterface_IPv6_DHCP_Client,
@@ -428,7 +428,7 @@ func TestAccEthernetLayer3Subinterface_IPv6_Neighbor_Discovery(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: ethernetLayer3Subinterface_IPv6_Neighbor_Discovery,
@@ -503,7 +503,7 @@ func TestAccEthernetLayer3Subinterface_IPv6_GUA(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: ethernetLayer3Subinterface_IPv6_GUA,
@@ -541,7 +541,7 @@ func TestAccEthernetLayer3Subinterface_IPv6_ULA(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: ethernetLayer3Subinterface_IPv6_ULA,
@@ -581,7 +581,7 @@ func TestAccEthernetLayer3Subinterface_SDWAN_DDNS(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: ethernetLayer3Subinterface_SDWAN_DDNS,
@@ -616,7 +616,7 @@ func TestAccEthernetLayer3Subinterface_SDWAN_StaticIP_FQDN(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: ethernetLayer3Subinterface_SDWAN_StaticIP_FQDN,
@@ -647,7 +647,7 @@ func TestAccEthernetLayer3Subinterface_SDWAN_StaticIP_IPAddress(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: ethernetLayer3Subinterface_SDWAN_StaticIP_IPAddress,

@@ -78,6 +78,9 @@ type Client struct {
 	authFileContent []byte
 }
 
+// Compile-time check that Client implements PangoClient interface
+var _ util.PangoClient = (*Client)(nil)
+
 // Versioning returns the version number of PAN-OS.
 func (c *Client) Versioning() version.Number {
 	return c.Version
@@ -278,10 +281,12 @@ func (c *Client) Setup() error {
 		}
 	}
 
-	err = c.setupLogging(c.Logging)
+	logger, err := SetupLogger(c.Logging, c.CheckEnvironment)
 	if err != nil {
 		return err
 	}
+
+	c.logger = logger
 
 	// Setup the client.
 	if c.Transport == nil {
@@ -1129,7 +1134,6 @@ func (c *Client) GetTechSupportFile(ctx context.Context) (string, []byte, error)
 	return filename, b, err
 }
 
-//
 // Internal functions.
 //
 
@@ -1195,7 +1199,6 @@ func (c *Client) setupLogging(logging LoggingInfo) error {
 
 	return nil
 }
-
 func (c *Client) sendRequest(ctx context.Context, req *http.Request, strip bool, ans any) ([]byte, *http.Response, error) {
 	// Optionally, set Authorization or X-PAN-KEY headers based on authentication type
 	if c.shouldUseCredentials() && c.Username != "" && c.Password != "" {

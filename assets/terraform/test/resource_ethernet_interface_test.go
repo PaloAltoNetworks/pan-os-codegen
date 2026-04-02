@@ -2,11 +2,13 @@ package provider_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
 	"testing"
 
+	pangoerrors "github.com/PaloAltoNetworks/pango/errors"
 	"github.com/hashicorp/terraform-plugin-testing/config"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -47,10 +49,13 @@ func TestAccEthernetInterface_Basic(t *testing.T) {
 	var location config.Variable
 	var createTemplate config.Variable
 
+	// RetrieveSystemInfo is not supported in local XML mode, but that's fine
+	// The LocalXmlClient can still determine device type from XML structure
 	err := sdkClient.RetrieveSystemInfo(context.Background())
-	if err != nil {
+	if err != nil && !errors.Is(err, pangoerrors.ErrUnsupportedOperation) {
 		panic(err)
 	}
+
 	firewall, err := sdkClient.IsFirewall()
 	if err != nil {
 		panic(err)
@@ -72,7 +77,7 @@ func TestAccEthernetInterface_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: ethernetInterface_Basic,
@@ -107,7 +112,7 @@ func TestAccEthernetInterface_Concurrent(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: ethernetInterface_Concurrent_Tmpl,
@@ -189,7 +194,7 @@ func TestAccPanosEthernetInterface_Layer3(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: makePanosEthernetInterface_Layer3(resName),

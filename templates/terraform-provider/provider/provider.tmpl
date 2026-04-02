@@ -94,6 +94,71 @@ func (p *PanosProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		return
 	}
 
+	// Read environment variables for provider configuration
+	// Only override config values if they are null/empty
+	if config.Hostname.IsNull() {
+		if v := os.Getenv("PANOS_HOSTNAME"); v != "" {
+			config.Hostname = types.StringValue(v)
+		}
+	}
+	if config.Username.IsNull() {
+		if v := os.Getenv("PANOS_USERNAME"); v != "" {
+			config.Username = types.StringValue(v)
+		}
+	}
+	if config.Password.IsNull() {
+		if v := os.Getenv("PANOS_PASSWORD"); v != "" {
+			config.Password = types.StringValue(v)
+		}
+	}
+	if config.ApiKey.IsNull() {
+		if v := os.Getenv("PANOS_API_KEY"); v != "" {
+			config.ApiKey = types.StringValue(v)
+		}
+	}
+	if config.ApiKeyInRequest.IsNull() {
+		if v := os.Getenv("PANOS_API_KEY_IN_REQUEST"); v != "" {
+			if v == "true" || v == "1" {
+				config.ApiKeyInRequest = types.BoolValue(true)
+			} else if v == "false" || v == "0" {
+				config.ApiKeyInRequest = types.BoolValue(false)
+			}
+		}
+	}
+	if config.SkipVerifyCertificate.IsNull() {
+		if v := os.Getenv("PANOS_SKIP_VERIFY_CERTIFICATE"); v != "" {
+			if v == "true" || v == "1" {
+				config.SkipVerifyCertificate = types.BoolValue(true)
+			} else if v == "false" || v == "0" {
+				config.SkipVerifyCertificate = types.BoolValue(false)
+			}
+		}
+	}
+	if config.XmlFilePath.IsNull() {
+		if v := os.Getenv("PANOS_XML_FILE_PATH"); v != "" {
+			config.XmlFilePath = types.StringValue(v)
+		}
+	}
+	if config.XmlWriteMode.IsNull() {
+		if v := os.Getenv("PANOS_XML_WRITE_MODE"); v != "" {
+			config.XmlWriteMode = types.StringValue(v)
+		}
+	}
+	if config.XmlWriteCheckIntervalMs.IsNull() {
+		if v := os.Getenv("PANOS_XML_WRITE_CHECK_INTERVAL_MS"); v != "" {
+			if val, err := strconv.ParseInt(v, 10, 64); err == nil {
+				config.XmlWriteCheckIntervalMs = types.Int64Value(val)
+			}
+		}
+	}
+	if config.XmlWriteFlushIntervalSec.IsNull() {
+		if v := os.Getenv("PANOS_XML_WRITE_FLUSH_INTERVAL_SEC"); v != "" {
+			if val, err := strconv.ParseInt(v, 10, 64); err == nil {
+				config.XmlWriteFlushIntervalSec = types.Int64Value(val)
+			}
+		}
+	}
+
 	// Validate mutual exclusivity between local XML mode and API mode
 	// This validation runs AFTER environment variable resolution
 	hasXmlFilePath := config.XmlFilePath.ValueStringPointer() != nil && config.XmlFilePath.ValueString() != ""
@@ -131,6 +196,33 @@ func (p *PanosProvider) Configure(ctx context.Context, req provider.ConfigureReq
 	var con pangoutil.PangoClient
 	var xmlWriteMode XmlWriteMode = WriteModeSafe // Default write mode
 
+        var logCategories sdk.LogCategory
+        if !config.SdkLogCategories.IsNull() {
+                categories := strings.Split(config.SdkLogCategories.ValueString(), ",")
+                var err error
+                logCategories, err = sdk.LogCategoryFromStrings(categories)
+                if err != nil {
+                        resp.Diagnostics.AddError("Failed to configure Terraform provider", err.Error())
+                        return
+                }
+        }
+
+        var logLevel slog.Level
+        if !config.SdkLogLevel.IsNull() {
+                levelStr := config.SdkLogLevel.ValueString()
+                err := logLevel.UnmarshalText([]byte(levelStr))
+                if err != nil {
+                        resp.Diagnostics.AddError("Failed to configure Terraform provider", fmt.Sprintf("Invalid Log Level: %s", levelStr))
+                }
+        } else {
+                logLevel = slog.LevelInfo
+        }
+
+	loggingInfo := sdk.LoggingInfo{
+        	LogLevel: logLevel,
+		LogCategories: logCategories,
+	}
+
 	if hasXmlFilePath {
 		tflog.Info(ctx, "Configuring client for local XML mode")
 
@@ -165,6 +257,8 @@ func (p *PanosProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		localClient, err := sdk.NewLocalXmlClient(
 			config.XmlFilePath.ValueString(),
 			sdk.WithAutoSave(autoSave),
+                        sdk.WithLoggingInfo(loggingInfo),
+                        sdk.WithCheckEnvironment(true),
 		)
 		if err != nil {
 			resp.Diagnostics.AddError(
@@ -195,7 +289,7 @@ func (p *PanosProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		con = localClient
 
 		// Initialize DeferredWriter singleton
-		initDeferredWriter(writerConfig, localClient, p.wg, p.shutdownChan)
+		InitDeferredWriter(writerConfig, localClient, p.wg, p.shutdownChan)
 
 		tflog.Info(ctx, "Local XML mode client configured successfully", map[string]any{
 			"file_path":  config.XmlFilePath.ValueString(),
@@ -210,29 +304,7 @@ func (p *PanosProvider) Configure(ctx context.Context, req provider.ConfigureReq
 			return
 		}
 	} else {
-		tflog.Info(ctx, "Configuring client for API mode")
-		var logCategories sdk.LogCategory
-		if !config.SdkLogCategories.IsNull() {
-			categories := strings.Split(config.SdkLogCategories.ValueString(), ",")
-			var err error
-			logCategories, err = sdk.LogCategoryFromStrings(categories)
-			if err != nil {
-				resp.Diagnostics.AddError("Failed to configure Terraform provider", err.Error())
-				return
-			}
-		}
-
-		var logLevel slog.Level
-		if !config.SdkLogLevel.IsNull() {
-			levelStr := config.SdkLogLevel.ValueString()
-			err := logLevel.UnmarshalText([]byte(levelStr))
-			if err != nil {
-				resp.Diagnostics.AddError("Failed to configure Terraform provider", fmt.Sprintf("Invalid Log Level: %s", levelStr))
-			}
-		} else {
-			logLevel = slog.LevelInfo
-		}
-
+		tflog.Info(ctx, "Configuring client for API mode")        
 		con = &sdk.Client{
 			Hostname:        config.Hostname.ValueString(),
 			Username:        config.Username.ValueString(),
@@ -246,10 +318,7 @@ func (p *PanosProvider) Configure(ctx context.Context, req provider.ConfigureReq
 			SkipVerifyCertificate: config.SkipVerifyCertificate.ValueBool(),
 			AuthFile:              config.AuthFile.ValueString(),
 			CheckEnvironment:      true,
-			Logging: sdk.LoggingInfo{
-				LogLevel: logLevel,
-				LogCategories: logCategories,
-			},
+			Logging: loggingInfo,
 			//Agent:            fmt.Sprintf("Terraform/%s Provider/scm Version/%s", req.TerraformVersion, p.version),
 		}
 

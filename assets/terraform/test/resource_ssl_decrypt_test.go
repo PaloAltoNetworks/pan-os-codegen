@@ -26,7 +26,7 @@ func TestAccSslDecrypt_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: sslDecrypt_Basic_Tmpl,
@@ -80,7 +80,7 @@ func TestAccSslDecrypt_ForwardCertificates(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: sslDecrypt_ForwardCertificates_Tmpl,
@@ -169,7 +169,7 @@ func TestAccSslDecrypt_SslExcludeCert(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: sslDecrypt_SslExcludeCert_Tmpl,
@@ -242,7 +242,7 @@ func TestAccSslDecrypt_TrustedRootCa(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: sslDecrypt_TrustedRootCa_Tmpl,
@@ -332,7 +332,7 @@ func TestAccSslDecrypt_RootCaExcludeList(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: sslDecrypt_RootCaExcludeList_Tmpl,

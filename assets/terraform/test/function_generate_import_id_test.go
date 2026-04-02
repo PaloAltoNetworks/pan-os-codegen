@@ -23,7 +23,7 @@ func TestAccFunction_GenerateImportId_Address_DeviceGroup(t *testing.T) {
 			tfversion.SkipBelow(tfversion.Version1_8_0),
 		},
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFunctionGenerateImportIdAddressDeviceGroup_Tmpl,
@@ -67,7 +67,7 @@ func TestAccFunction_GenerateImportId_EthernetInterface_Template(t *testing.T) {
 			tfversion.SkipBelow(tfversion.Version1_8_0),
 		},
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFunctionGenerateImportIdEthernetTemplate_Tmpl,
@@ -135,7 +135,7 @@ func TestAccFunction_GenerateImportId_EthernetInterface_TemplateStack(t *testing
 			tfversion.SkipBelow(tfversion.Version1_8_0),
 		},
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFunctionGenerateImportIdEthernetTemplateStack_Tmpl,
@@ -186,7 +186,7 @@ func TestAccFunction_GenerateImportId_EthernetInterface_VirtualWire_Template(t *
 			tfversion.SkipBelow(tfversion.Version1_8_0),
 		},
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFunctionGenerateImportIdEthernetVirtualWireTemplate_Tmpl,
@@ -252,7 +252,7 @@ func TestAccFunction_GenerateImportId_Address_Shared(t *testing.T) {
 			tfversion.SkipBelow(tfversion.Version1_8_0),
 		},
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFunctionGenerateImportIdAddressShared_Tmpl,
@@ -291,7 +291,7 @@ func TestAccFunction_GenerateImportId_UnsupportedResource(t *testing.T) {
 			tfversion.SkipBelow(tfversion.Version1_8_0),
 		},
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFunctionGenerateImportIdUnsupportedResource_Tmpl,
@@ -329,7 +329,7 @@ func TestAccFunction_GenerateImportId_MissingName(t *testing.T) {
 			tfversion.SkipBelow(tfversion.Version1_8_0),
 		},
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccFunctionGenerateImportIdMissingName_Tmpl,
@@ -359,7 +359,7 @@ func TestAccFunction_GenerateImportId_MissingLocation(t *testing.T) {
 			tfversion.SkipBelow(tfversion.Version1_8_0),
 		},
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFunctionGenerateImportIdMissingLocation_Tmpl,
@@ -394,7 +394,7 @@ func TestAccFunction_GenerateImportId_MultipleResourceTypes(t *testing.T) {
 			tfversion.SkipBelow(tfversion.Version1_8_0),
 		},
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFunctionGenerateImportIdMultipleTypes_Tmpl,
@@ -456,7 +456,7 @@ func TestAccFunction_GenerateImportId_Inline_Address_Shared(t *testing.T) {
 			tfversion.SkipBelow(tfversion.Version1_8_0),
 		},
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFunctionGenerateImportIdInlineAddressShared_Tmpl,
@@ -484,7 +484,7 @@ func TestAccFunction_GenerateImportId_Inline_Address_DeviceGroup(t *testing.T) {
 			tfversion.SkipBelow(tfversion.Version1_8_0),
 		},
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFunctionGenerateImportIdInlineAddressDeviceGroup_Tmpl,
@@ -512,7 +512,7 @@ func TestAccFunction_GenerateImportId_Inline_EthernetInterface_Template(t *testi
 			tfversion.SkipBelow(tfversion.Version1_8_0),
 		},
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFunctionGenerateImportIdInlineEthernetTemplate_Tmpl,
@@ -540,7 +540,7 @@ func TestAccFunction_GenerateImportId_Inline_Service_DeviceGroup(t *testing.T) {
 			tfversion.SkipBelow(tfversion.Version1_8_0),
 		},
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFunctionGenerateImportIdInlineServiceDeviceGroup_Tmpl,
@@ -568,7 +568,7 @@ func TestAccFunction_GenerateImportId_Inline_AddressGroup_DeviceGroup(t *testing
 			tfversion.SkipBelow(tfversion.Version1_8_0),
 		},
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFunctionGenerateImportIdInlineAddressGroupDeviceGroup_Tmpl,
@@ -596,7 +596,7 @@ func TestAccFunction_GenerateImportId_Inline_Zone_Template(t *testing.T) {
 			tfversion.SkipBelow(tfversion.Version1_8_0),
 		},
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFunctionGenerateImportIdInlineZoneTemplate_Tmpl,
@@ -630,7 +630,7 @@ func TestAccFunction_GenerateImportId_Inline_MultipleResources(t *testing.T) {
 			tfversion.SkipBelow(tfversion.Version1_8_0),
 		},
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccFunctionGenerateImportIdInlineMultipleResources_Tmpl,
@@ -672,7 +672,7 @@ func TestAccFunction_GenerateImportId_Inline_InvalidLocation(t *testing.T) {
 			tfversion.SkipBelow(tfversion.Version1_8_0),
 		},
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccFunctionGenerateImportIdInlineInvalidLocation_Tmpl,

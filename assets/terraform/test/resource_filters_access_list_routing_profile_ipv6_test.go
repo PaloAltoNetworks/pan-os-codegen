@@ -26,7 +26,7 @@ func TestAccFiltersAccessListRoutingProfile_Ipv6_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersAccessListRoutingProfile_Ipv6_Basic_Tmpl,
@@ -105,7 +105,7 @@ func TestAccFiltersAccessListRoutingProfile_Ipv6_SourceAddress_Any(t *testing.T)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersAccessListRoutingProfile_Ipv6_SourceAddress_Any_Tmpl,
@@ -173,7 +173,7 @@ func TestAccFiltersAccessListRoutingProfile_Ipv6_SourceAddress_Entry(t *testing.
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersAccessListRoutingProfile_Ipv6_SourceAddress_Entry_Tmpl,
@@ -246,7 +246,7 @@ func TestAccFiltersAccessListRoutingProfile_Ipv6_SourceAddress_Entry_ExactMatch(
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersAccessListRoutingProfile_Ipv6_SourceAddress_Entry_ExactMatch_Tmpl,
@@ -320,7 +320,7 @@ func TestAccFiltersAccessListRoutingProfile_Ipv6_Action_Permit(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersAccessListRoutingProfile_Ipv6_Action_Permit_Tmpl,
@@ -382,7 +382,7 @@ func TestAccFiltersAccessListRoutingProfile_Ipv6_MultipleEntries(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersAccessListRoutingProfile_Ipv6_MultipleEntries_Tmpl,

@@ -26,7 +26,7 @@ func TestAccPanosVirtualRouter_BgpExport_AsPath_Remove(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: panosVirtualRouter_BgpExport_AsPath_Remove_Tmpl,
@@ -79,7 +79,7 @@ func TestAccPanosVirtualRouter_BgpExport_AsPath_Remove_ExplicitNull(t *testing.T
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: panosVirtualRouter_BgpExport_AsPath_Remove_ExplicitNull_Tmpl,
@@ -130,7 +130,7 @@ func TestAccPanosVirtualRouter_BgpExport_AsPath_Prepend_ExplicitNull(t *testing.
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: panosVirtualRouter_BgpExport_AsPath_Prepend_ExplicitNull_Tmpl,
@@ -176,7 +176,7 @@ func TestAccPanosVirtualRouter_BgpExport_AsPath_Prepend_Only(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: panosVirtualRouter_BgpExport_AsPath_Prepend_Only_Tmpl,
@@ -222,7 +222,7 @@ func TestAccPanosVirtualRouter_BgpExport_AsPath_MultipleVariants(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: panosVirtualRouter_BgpExport_AsPath_MultipleVariants_Tmpl,
@@ -249,7 +249,7 @@ func TestAccPanosVirtualRouter_BgpExport_AsPath_Prepend(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: panosVirtualRouter_BgpExport_AsPath_Prepend_Tmpl,

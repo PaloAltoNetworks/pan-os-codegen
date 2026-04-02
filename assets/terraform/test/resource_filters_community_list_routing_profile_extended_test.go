@@ -26,7 +26,7 @@ func TestAccFiltersCommunityListRoutingProfile_Extended_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersCommunityListRoutingProfile_Extended_Basic_Tmpl,
@@ -114,7 +114,7 @@ func TestAccFiltersCommunityListRoutingProfile_Extended_Action_Permit(t *testing
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersCommunityListRoutingProfile_Extended_Action_Permit_Tmpl,
@@ -177,7 +177,7 @@ func TestAccFiltersCommunityListRoutingProfile_Extended_MultipleEntries(t *testi
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersCommunityListRoutingProfile_Extended_MultipleEntries_Tmpl,

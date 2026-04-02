@@ -26,7 +26,7 @@ func TestAccSslTlsServiceProfile_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: sslTlsServiceProfile_Basic_Tmpl,
@@ -106,7 +106,7 @@ func TestAccSslTlsServiceProfile_ProtocolSettings_EncryptionAlgorithms(t *testin
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: sslTlsServiceProfile_ProtocolSettings_EncryptionAlgorithms_Tmpl,
@@ -199,7 +199,7 @@ func TestAccSslTlsServiceProfile_ProtocolSettings_KeyExchangeAlgorithms(t *testi
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: sslTlsServiceProfile_ProtocolSettings_KeyExchangeAlgorithms_Tmpl,
@@ -291,7 +291,7 @@ func TestAccSslTlsServiceProfile_ProtocolSettings_AuthenticationAlgorithms(t *te
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: sslTlsServiceProfile_ProtocolSettings_AuthenticationAlgorithms_Tmpl,
@@ -383,7 +383,7 @@ func TestAccSslTlsServiceProfile_ProtocolSettings_TlsVersions(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: sslTlsServiceProfile_ProtocolSettings_TlsVersions_Tmpl,
@@ -473,7 +473,7 @@ func TestAccSslTlsServiceProfile_ProtocolSettings_Complete(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: sslTlsServiceProfile_ProtocolSettings_Complete_Tmpl,

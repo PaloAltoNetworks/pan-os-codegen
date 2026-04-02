@@ -142,7 +142,7 @@ func (s *Service) ImportToLocation(ctx context.Context, loc Location, vsys strin
 	}
 	xpath = append(xpath, []string{"vsys", util.AsEntryXpath(vsys), "import", "network", "{{ .Imports.Target }}"}...)
 
-	mutex := locking.GetMutex(locking.XpathLockCategory, util.AsXpath(xpath))
+	mutex := locking.GetRWMutex(locking.XpathLockCategory, util.AsXpath(xpath))
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -204,7 +204,7 @@ func (s *Service) UnimportFromLocation(ctx context.Context, loc Location, vsys s
 	}
 	xpath = append(xpath, []string{"vsys", util.AsEntryXpath(vsys), "import", "network", "{{ .Imports.Target }}"}...)
 
-	mutex := locking.GetMutex(locking.XpathLockCategory, util.AsXpath(xpath))
+	mutex := locking.GetRWMutex(locking.XpathLockCategory, util.AsXpath(xpath))
 	mutex.Lock()
 	defer mutex.Unlock()
 

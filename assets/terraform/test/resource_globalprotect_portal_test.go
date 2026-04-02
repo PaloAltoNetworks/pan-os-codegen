@@ -26,7 +26,7 @@ func TestAccGlobalProtectPortal_ExternalGateway_Fqdn(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: globalProtectPortal_ExternalGateway_Fqdn_Tmpl,
@@ -383,7 +383,7 @@ func TestAccGlobalProtectPortal_ExternalGateway_Ip(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: globalProtectPortal_ExternalGateway_Ip_Tmpl,
@@ -498,7 +498,7 @@ func TestAccGlobalProtectPortal_CookieLifetime_Days(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: globalProtectPortal_CookieLifetime_Days_Tmpl,
@@ -569,7 +569,7 @@ func TestAccGlobalProtectPortal_CookieLifetime_Minutes(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: globalProtectPortal_CookieLifetime_Minutes_Tmpl,
@@ -635,7 +635,7 @@ func TestAccGlobalProtectPortal_MachineAccount_Yes(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: globalProtectPortal_MachineAccount_Yes_Tmpl,
@@ -701,7 +701,7 @@ func TestAccGlobalProtectPortal_ClientCertificateLocal(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: globalProtectPortal_ClientCertificateLocal_Tmpl,
@@ -766,7 +766,7 @@ func TestAccGlobalProtectPortal_ClientCertificateScep(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: globalProtectPortal_ClientCertificateScep_Tmpl,
@@ -883,7 +883,7 @@ func TestAccGlobalProtectPortal_ClientlessVpn_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: globalProtectPortal_ClientlessVpn_Basic_Tmpl,
@@ -1000,7 +1000,7 @@ func TestAccGlobalProtectPortal_ClientlessVpn_LogoutLoginVariants(t *testing.T) 
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: globalProtectPortal_ClientlessVpn_LogoutLoginVariants_Tmpl,
@@ -1119,7 +1119,7 @@ func TestAccGlobalProtectPortal_ClientlessVpn_AppsToUserMapping(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: globalProtectPortal_ClientlessVpn_AppsToUserMapping_Tmpl,
@@ -1248,7 +1248,7 @@ func TestAccGlobalProtectPortal_PortalConfig_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: globalProtectPortal_PortalConfig_Basic_Tmpl,
@@ -1372,7 +1372,7 @@ func TestAccGlobalProtectPortal_PortalConfig_FloatingIp(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: globalProtectPortal_PortalConfig_FloatingIp_Tmpl,
@@ -1448,7 +1448,7 @@ func TestAccGlobalProtectPortal_SatelliteConfig_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: globalProtectPortal_SatelliteConfig_Basic_Tmpl,
@@ -1528,7 +1528,7 @@ func TestAccGlobalProtectPortal_SatelliteConfig_ClientCertificateLocal(t *testin
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: globalProtectPortal_SatelliteConfig_ClientCertificateLocal_Tmpl,
@@ -1593,7 +1593,7 @@ func TestAccGlobalProtectPortal_SatelliteConfig_ClientCertificateScep(t *testing
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: globalProtectPortal_SatelliteConfig_ClientCertificateScep_Tmpl,

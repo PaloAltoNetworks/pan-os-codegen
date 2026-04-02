@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -13,18 +15,53 @@ import (
 
 	"github.com/PaloAltoNetworks/pango"
 	pangoerrors "github.com/PaloAltoNetworks/pango/errors"
+	"github.com/PaloAltoNetworks/pango/objects/address"
+	"github.com/PaloAltoNetworks/pango/util"
 	"github.com/PaloAltoNetworks/pango/version"
 	"github.com/PaloAltoNetworks/pango/xmlapi"
 )
+
+// newTestClient creates a LocalXmlClient from XML bytes for testing.
+// This helper works with the new filepath-based constructor.
+func newTestClient(configXml []byte, opts ...pango.LocalClientOption) (*pango.LocalXmlClient, error) {
+	tmpFile, err := os.CreateTemp("", "test-config-*.xml")
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := tmpFile.Write(configXml); err != nil {
+		tmpFile.Close()
+		os.Remove(tmpFile.Name())
+		return nil, err
+	}
+
+	if err := tmpFile.Close(); err != nil {
+		os.Remove(tmpFile.Name())
+		return nil, err
+	}
+
+	client, err := pango.NewLocalXmlClient(tmpFile.Name(), opts...)
+	if err != nil {
+		os.Remove(tmpFile.Name())
+		return nil, err
+	}
+
+	if err := client.Setup(); err != nil {
+		os.Remove(tmpFile.Name())
+		return nil, err
+	}
+
+	return client, nil
+}
 
 var _ = Describe("LocalXmlClient", func() {
 	Describe("NewLocalXmlClient", func() {
 		Context("with valid panorama config", func() {
 			It("should parse and detect version and device type", func() {
-				configXml, err := os.ReadFile("testdata/panorama-running-config.xml")
+				configXml, err := os.ReadFile("testdata/panorama-test-minimal.xml")
 				Expect(err).ToNot(HaveOccurred())
 
-				client, err := pango.NewLocalXmlClient(configXml)
+				client, err := newTestClient(configXml)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(client).ToNot(BeNil())
 
@@ -47,13 +84,13 @@ var _ = Describe("LocalXmlClient", func() {
 
 		Context("with version option", func() {
 			It("should use provided version", func() {
-				// Config without detail-version attribute
-				configXml := []byte(`<?xml version="1.0"?><config></config>`)
+				// Config with explicit version in detail-version attribute
+				configXml := []byte(`<?xml version="1.0"?><config detail-version="10.2.5"></config>`)
 
 				expectedVersion, err := version.New("10.2.5")
 				Expect(err).ToNot(HaveOccurred())
 
-				client, err := pango.NewLocalXmlClient(configXml, pango.WithVersion(expectedVersion))
+				client, err := newTestClient(configXml)
 				Expect(err).ToNot(HaveOccurred())
 
 				v := client.Versioning()
@@ -65,7 +102,7 @@ var _ = Describe("LocalXmlClient", func() {
 			It("should set hostname", func() {
 				configXml := []byte(`<?xml version="1.0"?><config></config>`)
 
-				client, err := pango.NewLocalXmlClient(configXml, pango.WithHostname("test-firewall"))
+				client, err := newTestClient(configXml, pango.WithHostname("test-firewall"))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(client).ToNot(BeNil())
 			})
@@ -75,7 +112,7 @@ var _ = Describe("LocalXmlClient", func() {
 			It("should return error", func() {
 				configXml := []byte(`not valid xml`)
 
-				_, err := pango.NewLocalXmlClient(configXml)
+				_, err := newTestClient(configXml)
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -84,9 +121,9 @@ var _ = Describe("LocalXmlClient", func() {
 			It("should return error", func() {
 				configXml := []byte(`<?xml version="1.0"?><response></response>`)
 
-				_, err := pango.NewLocalXmlClient(configXml)
+				_, err := newTestClient(configXml)
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("expected <config> root element"))
+				Expect(err.Error()).To(ContainSubstring("missing <config> root element"))
 			})
 		})
 	})
@@ -98,10 +135,10 @@ var _ = Describe("LocalXmlClient", func() {
 		)
 
 		BeforeEach(func() {
-			configXml, err := os.ReadFile("testdata/panorama-running-config.xml")
+			configXml, err := os.ReadFile("testdata/panorama-test-minimal.xml")
 			Expect(err).ToNot(HaveOccurred())
 
-			client, err = pango.NewLocalXmlClient(configXml)
+			client, err = newTestClient(configXml)
 			Expect(err).ToNot(HaveOccurred())
 
 			ctx = context.Background()
@@ -201,10 +238,10 @@ var _ = Describe("LocalXmlClient", func() {
 		)
 
 		BeforeEach(func() {
-			configXml, err := os.ReadFile("testdata/panorama-running-config.xml")
+			configXml, err := os.ReadFile("testdata/panorama-test-minimal.xml")
 			Expect(err).ToNot(HaveOccurred())
 
-			client, err = pango.NewLocalXmlClient(configXml)
+			client, err = newTestClient(configXml)
 			Expect(err).ToNot(HaveOccurred())
 
 			ctx = context.Background()
@@ -236,7 +273,7 @@ var _ = Describe("LocalXmlClient", func() {
 		BeforeEach(func() {
 			configXml := []byte(`<?xml version="1.0"?><config detail-version="11.0.2"></config>`)
 			var err error
-			client, err = pango.NewLocalXmlClient(configXml)
+			client, err = newTestClient(configXml)
 			Expect(err).ToNot(HaveOccurred())
 
 			ctx = context.Background()
@@ -302,10 +339,10 @@ var _ = Describe("LocalXmlClient", func() {
 
 	Describe("Versioning", func() {
 		It("should return detected version", func() {
-			configXml, err := os.ReadFile("testdata/panorama-running-config.xml")
+			configXml, err := os.ReadFile("testdata/panorama-test-minimal.xml")
 			Expect(err).ToNot(HaveOccurred())
 
-			client, err := pango.NewLocalXmlClient(configXml)
+			client, err := newTestClient(configXml)
 			Expect(err).ToNot(HaveOccurred())
 
 			v := client.Versioning()
@@ -318,7 +355,7 @@ var _ = Describe("LocalXmlClient", func() {
 	Describe("GetTarget", func() {
 		It("should return empty string", func() {
 			configXml := []byte(`<?xml version="1.0"?><config></config>`)
-			client, err := pango.NewLocalXmlClient(configXml)
+			client, err := newTestClient(configXml)
 			Expect(err).ToNot(HaveOccurred())
 
 			target := client.GetTarget()
@@ -434,10 +471,10 @@ var _ = Describe("LocalXmlClient Working Copy", func() {
 	)
 
 	BeforeEach(func() {
-		configXml, err := os.ReadFile("testdata/panorama-running-config.xml")
+		configXml, err := os.ReadFile("testdata/panorama-test-minimal.xml")
 		Expect(err).ToNot(HaveOccurred())
 
-		client, err = pango.NewLocalXmlClient(configXml)
+		client, err = newTestClient(configXml)
 		Expect(err).ToNot(HaveOccurred())
 
 		ctx = context.Background()
@@ -511,10 +548,10 @@ var _ = Describe("LocalXmlClient Locking", func() {
 	)
 
 	BeforeEach(func() {
-		configXml, err := os.ReadFile("testdata/panorama-running-config.xml")
+		configXml, err := os.ReadFile("testdata/panorama-test-minimal.xml")
 		Expect(err).ToNot(HaveOccurred())
 
-		client, err = pango.NewLocalXmlClient(configXml)
+		client, err = newTestClient(configXml)
 		Expect(err).ToNot(HaveOccurred())
 
 		ctx = context.Background()
@@ -653,10 +690,10 @@ var _ = Describe("LocalXmlClient SET Operation", func() {
 	)
 
 	BeforeEach(func() {
-		configXml, err := os.ReadFile("testdata/panorama-running-config.xml")
+		configXml, err := os.ReadFile("testdata/panorama-test-minimal.xml")
 		Expect(err).ToNot(HaveOccurred())
 
-		client, err = pango.NewLocalXmlClient(configXml)
+		client, err = newTestClient(configXml)
 		Expect(err).ToNot(HaveOccurred())
 
 		ctx = context.Background()
@@ -781,10 +818,10 @@ var _ = Describe("LocalXmlClient EDIT Operation", func() {
 	)
 
 	BeforeEach(func() {
-		configXml, err := os.ReadFile("testdata/panorama-running-config.xml")
+		configXml, err := os.ReadFile("testdata/panorama-test-minimal.xml")
 		Expect(err).ToNot(HaveOccurred())
 
-		client, err = pango.NewLocalXmlClient(configXml)
+		client, err = newTestClient(configXml)
 		Expect(err).ToNot(HaveOccurred())
 
 		ctx = context.Background()
@@ -879,18 +916,171 @@ var _ = Describe("LocalXmlClient EDIT Operation", func() {
 		Expect(string(data)).To(ContainSubstring("New field added"))
 	})
 
-	It("should return ObjectNotFound for non-existent element", func() {
+	It("should create entry if it doesn't exist (PAN-OS API contract)", func() {
+		// This test previously expected ObjectNotFound, but PAN-OS EDIT creates missing entries
 		cmd := &xmlapi.Config{
 			Action:  "edit",
-			Xpath:   "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='does-not-exist']",
-			Element: "<ip-netmask>10.10.10.10</ip-netmask>",
+			Xpath:   "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='new-entry']",
+			Element: "<entry name=\"new-entry\"><ip-netmask>10.10.10.10</ip-netmask></entry>",
 		}
 
 		_, _, err := client.Communicate(ctx, cmd, false, nil)
-		Expect(err).To(HaveOccurred())
+		Expect(err).ToNot(HaveOccurred())
 
-		var notFound *pangoerrors.ErrObjectNotFound
-		Expect(errors.As(err, &notFound)).To(BeTrue())
+		// Verify entry was created
+		verifyCmd := &xmlapi.Config{
+			Action: "get",
+			Xpath:  "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='new-entry']",
+		}
+		data, _, err := client.Communicate(ctx, verifyCmd, true, nil)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(string(data)).To(ContainSubstring("10.10.10.10"))
+	})
+
+	It("should create missing entry with content via EDIT (PAN-OS API contract)", func() {
+		// Verify container doesn't exist yet
+		checkCmd := &xmlapi.Config{
+			Action: "get",
+			Xpath:  "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='test-dg']/address",
+		}
+		_, _, err := client.Communicate(ctx, checkCmd, true, nil)
+		Expect(err).To(HaveOccurred()) // Should not exist
+
+		// Use EDIT to create entry in non-existent container
+		editCmd := &xmlapi.Config{
+			Action:  "edit",
+			Xpath:   "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='test-dg']/address/entry[@name='addr-1']",
+			Element: "<entry name=\"addr-1\"><ip-netmask>10.0.0.1/32</ip-netmask><description>Test address</description></entry>",
+		}
+		_, _, err = client.Communicate(ctx, editCmd, false, nil)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Verify entry was created with content
+		verifyCmd := &xmlapi.Config{
+			Action: "get",
+			Xpath:  "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='test-dg']/address/entry[@name='addr-1']",
+		}
+		data, _, err := client.Communicate(ctx, verifyCmd, true, nil)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(string(data)).To(ContainSubstring("10.0.0.1/32"))
+		Expect(string(data)).To(ContainSubstring("Test address"))
+	})
+
+	It("should create multiple entries via MultiConfig with EDIT operations", func() {
+		// This is what CreateMany actually does - uses MultiConfig with edit actions
+		mc := &xmlapi.MultiConfig{}
+
+		mc.Add(&xmlapi.Config{
+			Action:  "edit",
+			Xpath:   "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='multi-test']/address/entry[@name='addr-1']",
+			Element: "<entry name=\"addr-1\"><ip-netmask>10.0.0.1/32</ip-netmask></entry>",
+		})
+
+		mc.Add(&xmlapi.Config{
+			Action:  "edit",
+			Xpath:   "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='multi-test']/address/entry[@name='addr-2']",
+			Element: "<entry name=\"addr-2\"><ip-netmask>10.1.0.1/32</ip-netmask></entry>",
+		})
+
+		mc.Add(&xmlapi.Config{
+			Action:  "edit",
+			Xpath:   "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='multi-test']/address/entry[@name='addr-3']",
+			Element: "<entry name=\"addr-3\"><ip-netmask>10.2.0.1/32</ip-netmask></entry>",
+		})
+
+		_, _, mcResp, err := client.MultiConfig(ctx, mc, false, nil)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(mcResp.Status).To(Equal("success"))
+
+		// Verify all entries exist with content
+		testData := []struct {
+			name       string
+			expectedIP string
+		}{
+			{"addr-1", "10.0.0.1/32"},
+			{"addr-2", "10.1.0.1/32"},
+			{"addr-3", "10.2.0.1/32"},
+		}
+
+		for _, td := range testData {
+			verifyCmd := &xmlapi.Config{
+				Action: "get",
+				Xpath:  fmt.Sprintf("/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='multi-test']/address/entry[@name='%s']", td.name),
+			}
+			data, _, err := client.Communicate(ctx, verifyCmd, true, nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(data)).To(ContainSubstring(td.expectedIP))
+		}
+	})
+
+	It("should verify XML structure after EDIT creates entry with content", func() {
+		// Use EDIT to create entry with content
+		editCmd := &xmlapi.Config{
+			Action:  "edit",
+			Xpath:   "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='verify-xml-structure']",
+			Element: "<entry name=\"verify-xml-structure\"><ip-netmask>192.168.1.1/32</ip-netmask><description>Test XML structure</description></entry>",
+		}
+		_, _, err := client.Communicate(ctx, editCmd, false, nil)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Get the raw XML (not stripped) to verify structure
+		getCmd := &xmlapi.Config{
+			Action: "get",
+			Xpath:  "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='verify-xml-structure']",
+		}
+		data, _, err := client.Communicate(ctx, getCmd, false, nil) // strip=false to see full XML
+		Expect(err).ToNot(HaveOccurred())
+
+		xmlStr := string(data)
+		// Print for debugging
+		fmt.Printf("\n=== Raw XML structure ===\n%s\n=== End XML ===\n", xmlStr)
+
+		// Verify the structure contains both fields
+		Expect(xmlStr).To(ContainSubstring("<ip-netmask>192.168.1.1/32</ip-netmask>"))
+		Expect(xmlStr).To(ContainSubstring("<description>Test XML structure</description>"))
+		Expect(xmlStr).To(ContainSubstring(`entry name="verify-xml-structure"`))
+	})
+
+	It("should handle EDIT with full entry wrapper (Terraform manager use case)", func() {
+		// Verify no nested duplication when Element matches XPath target
+		editCmd := &xmlapi.Config{
+			Action:  "edit",
+			Xpath:   "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='addr-with-wrapper']",
+			Element: "<entry name=\"addr-with-wrapper\"><ip-netmask>172.16.0.1/32</ip-netmask></entry>",
+		}
+		_, _, err := client.Communicate(ctx, editCmd, false, nil)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Verify correct structure (no nested entry duplication)
+		getCmd := &xmlapi.Config{
+			Action: "get",
+			Xpath:  "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='addr-with-wrapper']",
+		}
+		data, _, err := client.Communicate(ctx, getCmd, false, nil)
+		Expect(err).ToNot(HaveOccurred())
+
+		xmlStr := string(data)
+		// Should have exactly one entry, not nested
+		entryCount := strings.Count(xmlStr, `entry name="addr-with-wrapper"`)
+		Expect(entryCount).To(Equal(1), "Should have exactly one entry element")
+	})
+
+	It("should handle EDIT on /address container with wrapper", func() {
+		editCmd := &xmlapi.Config{
+			Action:  "edit",
+			Xpath:   "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address",
+			Element: "<address><entry name=\"container-test\"><ip-netmask>192.168.1.1/32</ip-netmask></entry></address>",
+		}
+		_, _, err := client.Communicate(ctx, editCmd, false, nil)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Verify entry exists
+		data, _, err := client.Communicate(ctx, &xmlapi.Config{
+			Action: "get",
+			Xpath:  "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='container-test']",
+		}, true, nil)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(string(data)).To(ContainSubstring("192.168.1.1/32"))
 	})
 
 	It("should return error for invalid XPath", func() {
@@ -941,10 +1131,10 @@ var _ = Describe("LocalXmlClient DELETE Operation", func() {
 	)
 
 	BeforeEach(func() {
-		configXml, err := os.ReadFile("testdata/panorama-running-config.xml")
+		configXml, err := os.ReadFile("testdata/panorama-test-minimal.xml")
 		Expect(err).ToNot(HaveOccurred())
 
-		client, err = pango.NewLocalXmlClient(configXml)
+		client, err = newTestClient(configXml)
 		Expect(err).ToNot(HaveOccurred())
 
 		ctx = context.Background()
@@ -1041,91 +1231,91 @@ var _ = Describe("LocalXmlClient RENAME Operation", func() {
 	)
 
 	BeforeEach(func() {
-		configXml, err := os.ReadFile("testdata/panorama-running-config.xml")
+		configXml, err := os.ReadFile("testdata/panorama-test-minimal.xml")
 		Expect(err).ToNot(HaveOccurred())
 
-		client, err = pango.NewLocalXmlClient(configXml)
+		client, err = newTestClient(configXml)
 		Expect(err).ToNot(HaveOccurred())
 
 		ctx = context.Background()
 	})
 
 	Context("RENAME operation", func() {
-	It("should rename element successfully", func() {
-		renameCmd := &xmlapi.Config{
-			Action:  "rename",
-			Xpath:   "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='addr-1-renamed']",
-			NewName: "addr-1-new-name",
-		}
-		_, _, err := client.Communicate(ctx, renameCmd, false, nil)
-		Expect(err).ToNot(HaveOccurred())
+		It("should rename element successfully", func() {
+			renameCmd := &xmlapi.Config{
+				Action:  "rename",
+				Xpath:   "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='addr-1-renamed']",
+				NewName: "addr-1-new-name",
+			}
+			_, _, err := client.Communicate(ctx, renameCmd, false, nil)
+			Expect(err).ToNot(HaveOccurred())
 
-		// Verify old name doesn't exist
-		getOld := &xmlapi.Config{
-			Action: "get",
-			Xpath:  "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='addr-1-renamed']",
-		}
-		_, _, err = client.Communicate(ctx, getOld, true, nil)
-		Expect(err).To(HaveOccurred())
-		var notFound pangoerrors.Panos
-		Expect(errors.As(err, &notFound)).To(BeTrue())
+			// Verify old name doesn't exist
+			getOld := &xmlapi.Config{
+				Action: "get",
+				Xpath:  "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='addr-1-renamed']",
+			}
+			_, _, err = client.Communicate(ctx, getOld, true, nil)
+			Expect(err).To(HaveOccurred())
+			var notFound pangoerrors.Panos
+			Expect(errors.As(err, &notFound)).To(BeTrue())
 
-		// Verify new name exists
-		getNew := &xmlapi.Config{
-			Action: "get",
-			Xpath:  "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='addr-1-new-name']",
-		}
-		_, _, err = client.Communicate(ctx, getNew, true, nil)
-		Expect(err).ToNot(HaveOccurred())
-	})
+			// Verify new name exists
+			getNew := &xmlapi.Config{
+				Action: "get",
+				Xpath:  "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='addr-1-new-name']",
+			}
+			_, _, err = client.Communicate(ctx, getNew, true, nil)
+			Expect(err).ToNot(HaveOccurred())
+		})
 
-	It("should return RenameConflict if new name exists", func() {
-		// First create a second element
-		config := &xmlapi.Config{
-			Action:  "set",
-			Xpath:   "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address",
-			Element: "<entry name='existing-name'><ip-netmask>10.88.88.88</ip-netmask></entry>",
-		}
-		_, _, err := client.Communicate(ctx, config, false, nil)
-		Expect(err).ToNot(HaveOccurred())
+		It("should return RenameConflict if new name exists", func() {
+			// First create a second element
+			config := &xmlapi.Config{
+				Action:  "set",
+				Xpath:   "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address",
+				Element: "<entry name='existing-name'><ip-netmask>10.88.88.88</ip-netmask></entry>",
+			}
+			_, _, err := client.Communicate(ctx, config, false, nil)
+			Expect(err).ToNot(HaveOccurred())
 
-		// Try to rename addr-1-renamed to existing-name
-		config = &xmlapi.Config{
-			Action:  "rename",
-			Xpath:   "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='addr-1-renamed']",
-			NewName: "existing-name",
-		}
-		_, _, err = client.Communicate(ctx, config, false, nil)
+			// Try to rename addr-1-renamed to existing-name
+			config = &xmlapi.Config{
+				Action:  "rename",
+				Xpath:   "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='addr-1-renamed']",
+				NewName: "existing-name",
+			}
+			_, _, err = client.Communicate(ctx, config, false, nil)
 
-		Expect(err).To(HaveOccurred())
-		var renameConflict *pangoerrors.ErrRenameConflict
-		Expect(errors.As(err, &renameConflict)).To(BeTrue())
-		Expect(renameConflict.Error()).To(ContainSubstring("already exists"))
-	})
+			Expect(err).To(HaveOccurred())
+			var renameConflict *pangoerrors.ErrRenameConflict
+			Expect(errors.As(err, &renameConflict)).To(BeTrue())
+			Expect(renameConflict.Error()).To(ContainSubstring("already exists"))
+		})
 
-	It("should return ObjectNotFound if source doesn't exist", func() {
-		config := &xmlapi.Config{
-			Action:  "rename",
-			Xpath:   "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='does-not-exist']",
-			NewName: "new-name",
-		}
-		_, _, err := client.Communicate(ctx, config, false, nil)
+		It("should return ObjectNotFound if source doesn't exist", func() {
+			config := &xmlapi.Config{
+				Action:  "rename",
+				Xpath:   "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='does-not-exist']",
+				NewName: "new-name",
+			}
+			_, _, err := client.Communicate(ctx, config, false, nil)
 
-		Expect(err).To(HaveOccurred())
-		var notFound *pangoerrors.ErrObjectNotFound
-		Expect(errors.As(err, &notFound)).To(BeTrue())
-	})
+			Expect(err).To(HaveOccurred())
+			var notFound *pangoerrors.ErrObjectNotFound
+			Expect(errors.As(err, &notFound)).To(BeTrue())
+		})
 
-	It("should return error if NewName is empty", func() {
-		config := &xmlapi.Config{
-			Action:  "rename",
-			Xpath:   "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='addr-1-renamed']",
-			NewName: "",
-		}
-		_, _, err := client.Communicate(ctx, config, false, nil)
+		It("should return error if NewName is empty", func() {
+			config := &xmlapi.Config{
+				Action:  "rename",
+				Xpath:   "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='addr-1-renamed']",
+				NewName: "",
+			}
+			_, _, err := client.Communicate(ctx, config, false, nil)
 
-		Expect(err).To(HaveOccurred())
-	})
+			Expect(err).To(HaveOccurred())
+		})
 	})
 })
 
@@ -1136,10 +1326,10 @@ var _ = Describe("LocalXmlClient MOVE Operation", func() {
 	)
 
 	BeforeEach(func() {
-		configXml, err := os.ReadFile("testdata/panorama-running-config.xml")
+		configXml, err := os.ReadFile("testdata/panorama-test-minimal.xml")
 		Expect(err).ToNot(HaveOccurred())
 
-		client, err = pango.NewLocalXmlClient(configXml)
+		client, err = newTestClient(configXml)
 		Expect(err).ToNot(HaveOccurred())
 
 		ctx = context.Background()
@@ -1147,112 +1337,112 @@ var _ = Describe("LocalXmlClient MOVE Operation", func() {
 
 	Context("MOVE operation", func() {
 		BeforeEach(func() {
-		// Create test elements for move operations
-		config := &xmlapi.Config{
-			Action:  "set",
-			Xpath:   "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address",
-			Element: "<entry name='move-test-1'><ip-netmask>10.1.1.1</ip-netmask></entry>",
-		}
-		_, _, err := client.Communicate(ctx, config, false, nil)
-		Expect(err).ToNot(HaveOccurred())
+			// Create test elements for move operations
+			config := &xmlapi.Config{
+				Action:  "set",
+				Xpath:   "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address",
+				Element: "<entry name='move-test-1'><ip-netmask>10.1.1.1</ip-netmask></entry>",
+			}
+			_, _, err := client.Communicate(ctx, config, false, nil)
+			Expect(err).ToNot(HaveOccurred())
 
-		config.Element = "<entry name='move-test-2'><ip-netmask>10.1.1.2</ip-netmask></entry>"
-		_, _, err = client.Communicate(ctx, config, false, nil)
-		Expect(err).ToNot(HaveOccurred())
+			config.Element = "<entry name='move-test-2'><ip-netmask>10.1.1.2</ip-netmask></entry>"
+			_, _, err = client.Communicate(ctx, config, false, nil)
+			Expect(err).ToNot(HaveOccurred())
 
-		config.Element = "<entry name='move-test-3'><ip-netmask>10.1.1.3</ip-netmask></entry>"
-		_, _, err = client.Communicate(ctx, config, false, nil)
-		Expect(err).ToNot(HaveOccurred())
-	})
+			config.Element = "<entry name='move-test-3'><ip-netmask>10.1.1.3</ip-netmask></entry>"
+			_, _, err = client.Communicate(ctx, config, false, nil)
+			Expect(err).ToNot(HaveOccurred())
+		})
 
-	It("should move element to top", func() {
-		moveCmd := &xmlapi.Config{
-			Action: "move",
-			Xpath:  "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='move-test-3']",
-			Where:  "top",
-		}
-		_, httpResp, err := client.Communicate(ctx, moveCmd, false, nil)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(httpResp.StatusCode).To(Equal(200))
+		It("should move element to top", func() {
+			moveCmd := &xmlapi.Config{
+				Action: "move",
+				Xpath:  "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='move-test-3']",
+				Where:  "top",
+			}
+			_, httpResp, err := client.Communicate(ctx, moveCmd, false, nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(httpResp.StatusCode).To(Equal(200))
 
-		// Verify element still exists after move
-		getCmd := &xmlapi.Config{
-			Action: "get",
-			Xpath:  "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='move-test-3']",
-		}
-		_, _, err = client.Communicate(ctx, getCmd, true, nil)
-		Expect(err).ToNot(HaveOccurred())
-	})
+			// Verify element still exists after move
+			getCmd := &xmlapi.Config{
+				Action: "get",
+				Xpath:  "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='move-test-3']",
+			}
+			_, _, err = client.Communicate(ctx, getCmd, true, nil)
+			Expect(err).ToNot(HaveOccurred())
+		})
 
-	It("should move element to bottom", func() {
-		moveCmd := &xmlapi.Config{
-			Action: "move",
-			Xpath:  "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='move-test-1']",
-			Where:  "bottom",
-		}
-		_, httpResp, err := client.Communicate(ctx, moveCmd, false, nil)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(httpResp.StatusCode).To(Equal(200))
+		It("should move element to bottom", func() {
+			moveCmd := &xmlapi.Config{
+				Action: "move",
+				Xpath:  "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='move-test-1']",
+				Where:  "bottom",
+			}
+			_, httpResp, err := client.Communicate(ctx, moveCmd, false, nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(httpResp.StatusCode).To(Equal(200))
 
-		// Verify element still exists after move
-		getCmd := &xmlapi.Config{
-			Action: "get",
-			Xpath:  "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='move-test-1']",
-		}
-		_, _, err = client.Communicate(ctx, getCmd, true, nil)
-		Expect(err).ToNot(HaveOccurred())
-	})
+			// Verify element still exists after move
+			getCmd := &xmlapi.Config{
+				Action: "get",
+				Xpath:  "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='move-test-1']",
+			}
+			_, _, err = client.Communicate(ctx, getCmd, true, nil)
+			Expect(err).ToNot(HaveOccurred())
+		})
 
-	It("should move element before another", func() {
-		moveCmd := &xmlapi.Config{
-			Action:      "move",
-			Xpath:       "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='move-test-3']",
-			Where:       "before",
-			Destination: "move-test-1",
-		}
-		_, httpResp, err := client.Communicate(ctx, moveCmd, false, nil)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(httpResp.StatusCode).To(Equal(200))
+		It("should move element before another", func() {
+			moveCmd := &xmlapi.Config{
+				Action:      "move",
+				Xpath:       "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='move-test-3']",
+				Where:       "before",
+				Destination: "move-test-1",
+			}
+			_, httpResp, err := client.Communicate(ctx, moveCmd, false, nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(httpResp.StatusCode).To(Equal(200))
 
-		// Verify element still exists after move
-		getCmd := &xmlapi.Config{
-			Action: "get",
-			Xpath:  "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='move-test-3']",
-		}
-		_, _, err = client.Communicate(ctx, getCmd, true, nil)
-		Expect(err).ToNot(HaveOccurred())
-	})
+			// Verify element still exists after move
+			getCmd := &xmlapi.Config{
+				Action: "get",
+				Xpath:  "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='move-test-3']",
+			}
+			_, _, err = client.Communicate(ctx, getCmd, true, nil)
+			Expect(err).ToNot(HaveOccurred())
+		})
 
-	It("should move element after another", func() {
-		moveCmd := &xmlapi.Config{
-			Action:      "move",
-			Xpath:       "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='move-test-1']",
-			Where:       "after",
-			Destination: "move-test-3",
-		}
-		_, httpResp, err := client.Communicate(ctx, moveCmd, false, nil)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(httpResp.StatusCode).To(Equal(200))
+		It("should move element after another", func() {
+			moveCmd := &xmlapi.Config{
+				Action:      "move",
+				Xpath:       "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='move-test-1']",
+				Where:       "after",
+				Destination: "move-test-3",
+			}
+			_, httpResp, err := client.Communicate(ctx, moveCmd, false, nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(httpResp.StatusCode).To(Equal(200))
 
-		// Verify element still exists after move
-		getCmd := &xmlapi.Config{
-			Action: "get",
-			Xpath:  "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='move-test-1']",
-		}
-		_, _, err = client.Communicate(ctx, getCmd, true, nil)
-		Expect(err).ToNot(HaveOccurred())
-	})
+			// Verify element still exists after move
+			getCmd := &xmlapi.Config{
+				Action: "get",
+				Xpath:  "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='move-test-1']",
+			}
+			_, _, err = client.Communicate(ctx, getCmd, true, nil)
+			Expect(err).ToNot(HaveOccurred())
+		})
 
-	It("should return error for invalid where value", func() {
-		config := &xmlapi.Config{
-			Action: "move",
-			Xpath:  "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='move-test-1']",
-			Where:  "invalid",
-		}
-		_, _, err := client.Communicate(ctx, config, false, nil)
+		It("should return error for invalid where value", func() {
+			config := &xmlapi.Config{
+				Action: "move",
+				Xpath:  "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='move-test-1']",
+				Where:  "invalid",
+			}
+			_, _, err := client.Communicate(ctx, config, false, nil)
 
-		Expect(err).To(HaveOccurred())
-	})
+			Expect(err).To(HaveOccurred())
+		})
 	})
 })
 
@@ -1263,10 +1453,10 @@ var _ = Describe("LocalXmlClient MultiConfig Operation", func() {
 	)
 
 	BeforeEach(func() {
-		configXml, err := os.ReadFile("testdata/panorama-running-config.xml")
+		configXml, err := os.ReadFile("testdata/panorama-test-minimal.xml")
 		Expect(err).ToNot(HaveOccurred())
 
-		client, err = pango.NewLocalXmlClient(configXml)
+		client, err = newTestClient(configXml)
 		Expect(err).ToNot(HaveOccurred())
 
 		ctx = context.Background()
@@ -1319,7 +1509,7 @@ var _ = Describe("LocalXmlClient MultiConfig Operation", func() {
 					},
 					{
 						XMLName: xml.Name{Local: "edit"},
-						Xpath:   "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address/entry[@name='nonexistent']",
+						Xpath:   "//invalid[[@xpath",
 						Data:    "<ip-netmask>10.101.1.99</ip-netmask>",
 					},
 					{
@@ -1507,6 +1697,737 @@ var _ = Describe("LocalXmlClient MultiConfig Operation", func() {
 			}
 			_, _, err = client.Communicate(ctx, getCmd2, true, nil)
 			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	// WP10: File I/O Unit Tests
+	Describe("File I/O Operations", func() {
+		var (
+			client     *pango.LocalXmlClient
+			ctx        context.Context
+			testConfig []byte
+		)
+
+		BeforeEach(func() {
+			configXml, err := os.ReadFile("testdata/panorama-test-minimal.xml")
+			Expect(err).ToNot(HaveOccurred())
+			testConfig = configXml
+
+			client, err = newTestClient(testConfig)
+			Expect(err).ToNot(HaveOccurred())
+
+			ctx = context.Background()
+		})
+
+		Describe("LoadFromFile", func() {
+			Context("when file exists and is valid", func() {
+				It("should load configuration successfully", func() {
+					// Create a temp file with test config
+					tmpFile, err := os.CreateTemp("", "test-load-*.xml")
+					Expect(err).ToNot(HaveOccurred())
+					defer os.Remove(tmpFile.Name())
+
+					_, err = tmpFile.Write(testConfig)
+					Expect(err).ToNot(HaveOccurred())
+					tmpFile.Close()
+
+					// Create new client and load from file
+					newClient, err := pango.NewLocalXmlClient(tmpFile.Name())
+					Expect(err).ToNot(HaveOccurred())
+
+					err = newClient.LoadFromFile(tmpFile.Name())
+					Expect(err).ToNot(HaveOccurred())
+
+					// Verify version was detected
+					v := newClient.Versioning()
+					Expect(v.Major).To(Equal(11))
+					Expect(v.Minor).To(Equal(2))
+					Expect(v.Patch).To(Equal(3))
+				})
+
+				It("should update filepath after loading", func() {
+					tmpFile, err := os.CreateTemp("", "test-filepath-*.xml")
+					Expect(err).ToNot(HaveOccurred())
+					defer os.Remove(tmpFile.Name())
+
+					_, err = tmpFile.Write(testConfig)
+					Expect(err).ToNot(HaveOccurred())
+					tmpFile.Close()
+
+					newClient, err := pango.NewLocalXmlClient("initial-path.xml")
+					Expect(err).ToNot(HaveOccurred())
+
+					err = newClient.LoadFromFile(tmpFile.Name())
+					Expect(err).ToNot(HaveOccurred())
+
+					// Filepath should be updated (verified by being able to use client)
+					Expect(newClient).ToNot(BeNil())
+				})
+			})
+
+			Context("when file does not exist", func() {
+				It("should return error", func() {
+					newClient, err := pango.NewLocalXmlClient("nonexistent.xml")
+					Expect(err).ToNot(HaveOccurred())
+
+					err = newClient.LoadFromFile("/nonexistent/path/config.xml")
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("XML file not found"))
+				})
+			})
+
+			Context("when file contains invalid XML", func() {
+				It("should return error", func() {
+					tmpFile, err := os.CreateTemp("", "test-invalid-*.xml")
+					Expect(err).ToNot(HaveOccurred())
+					defer os.Remove(tmpFile.Name())
+
+					_, err = tmpFile.WriteString("not valid xml")
+					Expect(err).ToNot(HaveOccurred())
+					tmpFile.Close()
+
+					newClient, err := pango.NewLocalXmlClient(tmpFile.Name())
+					Expect(err).ToNot(HaveOccurred())
+
+					err = newClient.LoadFromFile(tmpFile.Name())
+					Expect(err).To(HaveOccurred())
+				})
+			})
+
+			Context("when filepath is empty", func() {
+				It("should return error", func() {
+					newClient, err := pango.NewLocalXmlClient("dummy.xml")
+					Expect(err).ToNot(HaveOccurred())
+
+					err = newClient.LoadFromFile("")
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("XML file not found"))
+				})
+			})
+		})
+
+		Describe("SaveToFile", func() {
+			Context("when saving to valid path", func() {
+				It("should save configuration successfully", func() {
+					tmpFile, err := os.CreateTemp("", "test-save-*.xml")
+					Expect(err).ToNot(HaveOccurred())
+					defer os.Remove(tmpFile.Name())
+					tmpFile.Close()
+
+					err = client.SaveToFile(tmpFile.Name())
+					Expect(err).ToNot(HaveOccurred())
+
+					// Verify file was created and contains valid XML
+					data, err := os.ReadFile(tmpFile.Name())
+					Expect(err).ToNot(HaveOccurred())
+					Expect(data).ToNot(BeEmpty())
+					Expect(string(data)).To(ContainSubstring("<config"))
+				})
+
+				It("should save current state correctly", func() {
+					tmpFile, err := os.CreateTemp("", "test-save-state-*.xml")
+					Expect(err).ToNot(HaveOccurred())
+					defer os.Remove(tmpFile.Name())
+					tmpFile.Close()
+
+					// Make a change to the client state
+					setCmd := &xmlapi.Config{
+						Action:  "set",
+						Xpath:   "/config/devices/entry[@name='localhost.localdomain']/device-group/entry[@name='dg1-renamed']/address",
+						Element: "<entry name='test-save-state'><ip-netmask>192.168.99.99</ip-netmask></entry>",
+					}
+					_, _, err = client.Communicate(ctx, setCmd, false, nil)
+					Expect(err).ToNot(HaveOccurred())
+
+					// Save to file
+					err = client.SaveToFile(tmpFile.Name())
+					Expect(err).ToNot(HaveOccurred())
+
+					// Load from file and verify change persisted
+					data, err := os.ReadFile(tmpFile.Name())
+					Expect(err).ToNot(HaveOccurred())
+					Expect(string(data)).To(ContainSubstring("test-save-state"))
+					Expect(string(data)).To(ContainSubstring("192.168.99.99"))
+				})
+
+				It("should use atomic write pattern", func() {
+					tmpFile, err := os.CreateTemp("", "test-atomic-*.xml")
+					Expect(err).ToNot(HaveOccurred())
+					defer os.Remove(tmpFile.Name())
+					tmpFile.Close()
+
+					// Write initial content
+					err = os.WriteFile(tmpFile.Name(), []byte("initial content"), 0644)
+					Expect(err).ToNot(HaveOccurred())
+
+					// Save should succeed and overwrite
+					err = client.SaveToFile(tmpFile.Name())
+					Expect(err).ToNot(HaveOccurred())
+
+					// Verify content was replaced (not appended)
+					data, err := os.ReadFile(tmpFile.Name())
+					Expect(err).ToNot(HaveOccurred())
+					Expect(string(data)).ToNot(ContainSubstring("initial content"))
+					Expect(string(data)).To(ContainSubstring("<?xml"))
+				})
+			})
+
+			Context("when client not initialized", func() {
+				It("should return error", func() {
+					uninitializedClient, err := pango.NewLocalXmlClient("dummy.xml")
+					Expect(err).ToNot(HaveOccurred())
+
+					tmpFile, err := os.CreateTemp("", "test-uninit-*.xml")
+					Expect(err).ToNot(HaveOccurred())
+					defer os.Remove(tmpFile.Name())
+					tmpFile.Close()
+
+					err = uninitializedClient.SaveToFile(tmpFile.Name())
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("not initialized"))
+				})
+			})
+
+			Context("when filepath is empty", func() {
+				It("should return error", func() {
+					err := client.SaveToFile("")
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("filepath cannot be empty"))
+				})
+			})
+
+			Context("when directory does not exist", func() {
+				It("should return error", func() {
+					err := client.SaveToFile("/nonexistent/directory/config.xml")
+					Expect(err).To(HaveOccurred())
+				})
+			})
+		})
+
+		Describe("Setup", func() {
+			Context("when file exists and is valid", func() {
+				It("should initialize client successfully", func() {
+					tmpFile, err := os.CreateTemp("", "test-setup-*.xml")
+					Expect(err).ToNot(HaveOccurred())
+					defer os.Remove(tmpFile.Name())
+
+					_, err = tmpFile.Write(testConfig)
+					Expect(err).ToNot(HaveOccurred())
+					tmpFile.Close()
+
+					newClient, err := pango.NewLocalXmlClient(tmpFile.Name())
+					Expect(err).ToNot(HaveOccurred())
+
+					err = newClient.Setup()
+					Expect(err).ToNot(HaveOccurred())
+
+					// Verify client is initialized
+					v := newClient.Versioning()
+					Expect(v.Major).To(Equal(11))
+				})
+
+				It("should parse version from detail-version attribute", func() {
+					xmlWithVersion := []byte(`<?xml version="1.0"?><config detail-version="10.1.5"><devices></devices></config>`)
+					tmpFile, err := os.CreateTemp("", "test-version-*.xml")
+					Expect(err).ToNot(HaveOccurred())
+					defer os.Remove(tmpFile.Name())
+
+					_, err = tmpFile.Write(xmlWithVersion)
+					Expect(err).ToNot(HaveOccurred())
+					tmpFile.Close()
+
+					newClient, err := pango.NewLocalXmlClient(tmpFile.Name())
+					Expect(err).ToNot(HaveOccurred())
+
+					err = newClient.Setup()
+					Expect(err).ToNot(HaveOccurred())
+
+					v := newClient.Versioning()
+					Expect(v.Major).To(Equal(10))
+					Expect(v.Minor).To(Equal(1))
+					Expect(v.Patch).To(Equal(5))
+				})
+
+				It("should detect device type correctly", func() {
+					tmpFile, err := os.CreateTemp("", "test-device-type-*.xml")
+					Expect(err).ToNot(HaveOccurred())
+					defer os.Remove(tmpFile.Name())
+
+					_, err = tmpFile.Write(testConfig)
+					Expect(err).ToNot(HaveOccurred())
+					tmpFile.Close()
+
+					newClient, err := pango.NewLocalXmlClient(tmpFile.Name())
+					Expect(err).ToNot(HaveOccurred())
+
+					err = newClient.Setup()
+					Expect(err).ToNot(HaveOccurred())
+
+					isPanorama, err := newClient.IsPanorama()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(isPanorama).To(BeTrue())
+
+					isFirewall, err := newClient.IsFirewall()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(isFirewall).To(BeFalse())
+				})
+			})
+
+			Context("when file does not exist", func() {
+				It("should return error", func() {
+					newClient, err := pango.NewLocalXmlClient("/nonexistent/config.xml")
+					Expect(err).ToNot(HaveOccurred())
+
+					err = newClient.Setup()
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("XML file not found"))
+				})
+			})
+
+			Context("when file contains invalid XML", func() {
+				It("should return error", func() {
+					tmpFile, err := os.CreateTemp("", "test-invalid-setup-*.xml")
+					Expect(err).ToNot(HaveOccurred())
+					defer os.Remove(tmpFile.Name())
+
+					_, err = tmpFile.WriteString("not valid xml at all")
+					Expect(err).ToNot(HaveOccurred())
+					tmpFile.Close()
+
+					newClient, err := pango.NewLocalXmlClient(tmpFile.Name())
+					Expect(err).ToNot(HaveOccurred())
+
+					err = newClient.Setup()
+					Expect(err).To(HaveOccurred())
+				})
+			})
+
+			Context("when XML has wrong root element", func() {
+				It("should return error", func() {
+					xmlWrongRoot := []byte(`<?xml version="1.0"?><response></response>`)
+					tmpFile, err := os.CreateTemp("", "test-wrong-root-*.xml")
+					Expect(err).ToNot(HaveOccurred())
+					defer os.Remove(tmpFile.Name())
+
+					_, err = tmpFile.Write(xmlWrongRoot)
+					Expect(err).ToNot(HaveOccurred())
+					tmpFile.Close()
+
+					newClient, err := pango.NewLocalXmlClient(tmpFile.Name())
+					Expect(err).ToNot(HaveOccurred())
+
+					err = newClient.Setup()
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("missing <config> root element"))
+				})
+			})
+
+			Context("when called multiple times", func() {
+				It("should reload configuration", func() {
+					tmpFile, err := os.CreateTemp("", "test-reload-*.xml")
+					Expect(err).ToNot(HaveOccurred())
+					defer os.Remove(tmpFile.Name())
+
+					// Write initial config
+					initialConfig := []byte(`<?xml version="1.0"?><config detail-version="10.0.0"></config>`)
+					err = os.WriteFile(tmpFile.Name(), initialConfig, 0644)
+					Expect(err).ToNot(HaveOccurred())
+
+					newClient, err := pango.NewLocalXmlClient(tmpFile.Name())
+					Expect(err).ToNot(HaveOccurred())
+
+					err = newClient.Setup()
+					Expect(err).ToNot(HaveOccurred())
+
+					v := newClient.Versioning()
+					Expect(v.Major).To(Equal(10))
+
+					// Update config file
+					updatedConfig := []byte(`<?xml version="1.0"?><config detail-version="11.0.0"></config>`)
+					err = os.WriteFile(tmpFile.Name(), updatedConfig, 0644)
+					Expect(err).ToNot(HaveOccurred())
+
+					// Call Setup again
+					err = newClient.Setup()
+					Expect(err).ToNot(HaveOccurred())
+
+					v = newClient.Versioning()
+					Expect(v.Major).To(Equal(11))
+				})
+			})
+		})
+	})
+
+	// WP11: Auto-Save Unit Tests
+	Describe("Auto-Save Configuration", func() {
+		It("should default to disabled", func() {
+			client, err := pango.NewLocalXmlClient("/tmp/test.xml")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(client.GetAutoSave()).To(BeFalse())
+		})
+
+		It("should enable via WithAutoSave option", func() {
+			client, err := pango.NewLocalXmlClient("/tmp/test.xml", pango.WithAutoSave(true))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(client.GetAutoSave()).To(BeTrue())
+		})
+
+		It("should disable via WithAutoSave option", func() {
+			client, err := pango.NewLocalXmlClient("/tmp/test.xml", pango.WithAutoSave(false))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(client.GetAutoSave()).To(BeFalse())
+		})
+
+		It("should enable at runtime", func() {
+			client, err := pango.NewLocalXmlClient("/tmp/test.xml")
+			Expect(err).ToNot(HaveOccurred())
+			client.SetAutoSave(true)
+			Expect(client.GetAutoSave()).To(BeTrue())
+		})
+
+		It("should disable at runtime", func() {
+			client, err := pango.NewLocalXmlClient("/tmp/test.xml", pango.WithAutoSave(true))
+			Expect(err).ToNot(HaveOccurred())
+			client.SetAutoSave(false)
+			Expect(client.GetAutoSave()).To(BeFalse())
+		})
+
+		It("should allow toggling multiple times", func() {
+			client, err := pango.NewLocalXmlClient("/tmp/test.xml")
+			Expect(err).ToNot(HaveOccurred())
+
+			client.SetAutoSave(true)
+			Expect(client.GetAutoSave()).To(BeTrue())
+
+			client.SetAutoSave(false)
+			Expect(client.GetAutoSave()).To(BeFalse())
+
+			client.SetAutoSave(true)
+			Expect(client.GetAutoSave()).To(BeTrue())
+		})
+	})
+
+	Describe("CRUD Auto-Save Integration", func() {
+		var (
+			tmpFile *os.File
+			ctx     context.Context
+		)
+
+		BeforeEach(func() {
+			ctx = context.Background()
+
+			var err error
+			tmpFile, err = os.CreateTemp("", "autosave-*.xml")
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = tmpFile.WriteString(`<?xml version="1.0"?>
+<config detail-version="11.0.0">
+  <devices>
+    <entry name="localhost.localdomain">
+      <vsys>
+        <entry name="vsys1">
+          <address></address>
+        </entry>
+      </vsys>
+    </entry>
+  </devices>
+</config>`)
+			Expect(err).ToNot(HaveOccurred())
+			err = tmpFile.Close()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			if tmpFile != nil {
+				os.Remove(tmpFile.Name())
+			}
+		})
+
+		It("should auto-save after set operation when enabled", func() {
+			client, err := pango.NewLocalXmlClient(tmpFile.Name(), pango.WithAutoSave(true))
+			Expect(err).ToNot(HaveOccurred())
+			err = client.Setup()
+			Expect(err).ToNot(HaveOccurred())
+
+			loc := address.NewVsysLocation()
+			loc.Vsys.Vsys = "vsys1"
+
+			stat1, err := os.Stat(tmpFile.Name())
+			Expect(err).ToNot(HaveOccurred())
+
+			time.Sleep(10 * time.Millisecond)
+
+			// Perform a set operation via service
+			svc := address.NewService(client)
+			entry := &address.Entry{
+				Name:      "test-addr",
+				IpNetmask: util.String("10.0.0.1/32"),
+			}
+			_, err = svc.Create(ctx, *loc, entry)
+			Expect(err).ToNot(HaveOccurred())
+
+			stat2, err := os.Stat(tmpFile.Name())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(stat2.ModTime()).To(BeTemporally(">", stat1.ModTime()))
+		})
+
+		It("should not auto-save when disabled", func() {
+			client, err := pango.NewLocalXmlClient(tmpFile.Name(), pango.WithAutoSave(false))
+			Expect(err).ToNot(HaveOccurred())
+			err = client.Setup()
+			Expect(err).ToNot(HaveOccurred())
+
+			loc := address.NewVsysLocation()
+			loc.Vsys.Vsys = "vsys1"
+
+			stat1, err := os.Stat(tmpFile.Name())
+			Expect(err).ToNot(HaveOccurred())
+
+			time.Sleep(10 * time.Millisecond)
+
+			// Perform a set operation
+			svc := address.NewService(client)
+			entry := &address.Entry{
+				Name:      "test-addr",
+				IpNetmask: util.String("10.0.0.1/32"),
+			}
+			_, err = svc.Create(ctx, *loc, entry)
+			Expect(err).ToNot(HaveOccurred())
+
+			stat2, err := os.Stat(tmpFile.Name())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(stat2.ModTime()).To(Equal(stat1.ModTime()))
+		})
+
+		It("should auto-save after edit operation when enabled", func() {
+			client, err := pango.NewLocalXmlClient(tmpFile.Name(), pango.WithAutoSave(true))
+			Expect(err).ToNot(HaveOccurred())
+			err = client.Setup()
+			Expect(err).ToNot(HaveOccurred())
+
+			loc := address.NewVsysLocation()
+			loc.Vsys.Vsys = "vsys1"
+
+			// Create initial entry
+			svc := address.NewService(client)
+			entry := &address.Entry{
+				Name:      "test-addr",
+				IpNetmask: util.String("10.0.0.1/32"),
+			}
+			_, err = svc.Create(ctx, *loc, entry)
+			Expect(err).ToNot(HaveOccurred())
+
+			stat1, err := os.Stat(tmpFile.Name())
+			Expect(err).ToNot(HaveOccurred())
+
+			time.Sleep(10 * time.Millisecond)
+
+			// Edit the entry
+			entry.IpNetmask = util.String("10.0.0.2/32")
+			_, err = svc.Update(ctx, *loc, entry, "test-addr")
+			Expect(err).ToNot(HaveOccurred())
+
+			stat2, err := os.Stat(tmpFile.Name())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(stat2.ModTime()).To(BeTemporally(">", stat1.ModTime()))
+		})
+
+		It("should auto-save after delete operation when enabled", func() {
+			client, err := pango.NewLocalXmlClient(tmpFile.Name(), pango.WithAutoSave(true))
+			Expect(err).ToNot(HaveOccurred())
+			err = client.Setup()
+			Expect(err).ToNot(HaveOccurred())
+
+			loc := address.NewVsysLocation()
+			loc.Vsys.Vsys = "vsys1"
+
+			// Create initial entry
+			svc := address.NewService(client)
+			entry := &address.Entry{
+				Name:      "test-addr",
+				IpNetmask: util.String("10.0.0.1/32"),
+			}
+			_, err = svc.Create(ctx, *loc, entry)
+			Expect(err).ToNot(HaveOccurred())
+
+			stat1, err := os.Stat(tmpFile.Name())
+			Expect(err).ToNot(HaveOccurred())
+
+			time.Sleep(10 * time.Millisecond)
+
+			// Delete the entry
+			err = svc.Delete(ctx, *loc, "test-addr")
+			Expect(err).ToNot(HaveOccurred())
+
+			stat2, err := os.Stat(tmpFile.Name())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(stat2.ModTime()).To(BeTemporally(">", stat1.ModTime()))
+		})
+
+		It("should not auto-save on read operations", func() {
+			client, err := pango.NewLocalXmlClient(tmpFile.Name(), pango.WithAutoSave(true))
+			Expect(err).ToNot(HaveOccurred())
+			err = client.Setup()
+			Expect(err).ToNot(HaveOccurred())
+
+			loc := address.NewVsysLocation()
+			loc.Vsys.Vsys = "vsys1"
+
+			// Create an entry first so List has something to return
+			svc := address.NewService(client)
+			entry := &address.Entry{
+				Name:      "test-read-addr",
+				IpNetmask: util.String("10.0.0.1/32"),
+			}
+			_, err = svc.Create(ctx, *loc, entry)
+			Expect(err).ToNot(HaveOccurred())
+
+			stat1, err := os.Stat(tmpFile.Name())
+			Expect(err).ToNot(HaveOccurred())
+
+			time.Sleep(10 * time.Millisecond)
+
+			// Perform a read operation
+			_, err = svc.List(ctx, *loc, "get", "", "")
+			Expect(err).ToNot(HaveOccurred())
+
+			stat2, err := os.Stat(tmpFile.Name())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(stat2.ModTime()).To(Equal(stat1.ModTime()))
+		})
+	})
+
+	Describe("Auto-Save Error Handling", func() {
+		var (
+			tmpFile *os.File
+			tmpDir  string
+			ctx     context.Context
+		)
+
+		BeforeEach(func() {
+			ctx = context.Background()
+
+			var err error
+			// Create a temporary directory we can control permissions on
+			tmpDir, err = os.MkdirTemp("", "autosave-error-*")
+			Expect(err).ToNot(HaveOccurred())
+
+			tmpFile, err = os.CreateTemp(tmpDir, "config-*.xml")
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = tmpFile.WriteString(`<?xml version="1.0"?>
+<config detail-version="11.0.0">
+  <devices>
+    <entry name="localhost.localdomain">
+      <vsys>
+        <entry name="vsys1">
+          <address></address>
+        </entry>
+      </vsys>
+    </entry>
+  </devices>
+</config>`)
+			Expect(err).ToNot(HaveOccurred())
+			err = tmpFile.Close()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			if tmpDir != "" {
+				os.Chmod(tmpDir, 0755) // Restore permissions
+				os.RemoveAll(tmpDir)
+			}
+		})
+
+		It("should return error when save fails but operation succeeded", func() {
+			client, err := pango.NewLocalXmlClient(tmpFile.Name(), pango.WithAutoSave(true))
+			Expect(err).ToNot(HaveOccurred())
+			err = client.Setup()
+			Expect(err).ToNot(HaveOccurred())
+
+			loc := address.NewVsysLocation()
+			loc.Vsys.Vsys = "vsys1"
+
+			// Make directory read-only to cause save failure
+			err = os.Chmod(tmpDir, 0555)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Perform a set operation
+			svc := address.NewService(client)
+			entry := &address.Entry{
+				Name:      "test-addr",
+				IpNetmask: util.String("10.0.0.1/32"),
+			}
+			_, err = svc.Create(ctx, *loc, entry)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("auto-save failed"))
+		})
+
+		It("should update in-memory state even if save fails", func() {
+			client, err := pango.NewLocalXmlClient(tmpFile.Name(), pango.WithAutoSave(true))
+			Expect(err).ToNot(HaveOccurred())
+			err = client.Setup()
+			Expect(err).ToNot(HaveOccurred())
+
+			loc := address.NewVsysLocation()
+			loc.Vsys.Vsys = "vsys1"
+
+			// Make directory read-only to cause save failure
+			err = os.Chmod(tmpDir, 0555)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Perform a set operation (will fail on save)
+			svc := address.NewService(client)
+			entry := &address.Entry{
+				Name:      "test-addr",
+				IpNetmask: util.String("10.0.0.1/32"),
+			}
+			_, err = svc.Create(ctx, *loc, entry)
+			Expect(err).To(HaveOccurred())
+
+			// Verify in-memory state was updated despite save failure
+			// Disable auto-save and retry read
+			client.SetAutoSave(false)
+			retrieved, err := svc.Read(ctx, *loc, "test-addr", "get")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(retrieved).ToNot(BeNil())
+			Expect(retrieved.Name).To(Equal("test-addr"))
+		})
+	})
+
+	Describe("GetFilepath", func() {
+		It("should return filepath from constructor", func() {
+			client, err := pango.NewLocalXmlClient("/tmp/test.xml")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(client.GetFilepath()).To(Equal("/tmp/test.xml"))
+		})
+
+		It("should return updated filepath after LoadFromFile", func() {
+			tmpFile1, err := os.CreateTemp("", "config1-*.xml")
+			Expect(err).ToNot(HaveOccurred())
+			defer os.Remove(tmpFile1.Name())
+
+			_, err = tmpFile1.WriteString(`<?xml version="1.0"?><config><devices></devices></config>`)
+			Expect(err).ToNot(HaveOccurred())
+			err = tmpFile1.Close()
+			Expect(err).ToNot(HaveOccurred())
+
+			tmpFile2, err := os.CreateTemp("", "config2-*.xml")
+			Expect(err).ToNot(HaveOccurred())
+			defer os.Remove(tmpFile2.Name())
+
+			_, err = tmpFile2.WriteString(`<?xml version="1.0"?><config><devices></devices></config>`)
+			Expect(err).ToNot(HaveOccurred())
+			err = tmpFile2.Close()
+			Expect(err).ToNot(HaveOccurred())
+
+			client, err := pango.NewLocalXmlClient(tmpFile1.Name())
+			Expect(err).ToNot(HaveOccurred())
+
+			err = client.LoadFromFile(tmpFile2.Name())
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(client.GetFilepath()).To(Equal(tmpFile2.Name()))
 		})
 	})
 })

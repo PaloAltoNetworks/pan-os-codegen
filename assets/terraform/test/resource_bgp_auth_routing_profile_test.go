@@ -26,7 +26,7 @@ func TestAccBgpAuthRoutingProfile_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpAuthRoutingProfile_Basic_Tmpl,
@@ -83,7 +83,7 @@ func TestAccBgpAuthRoutingProfile_NoSecret(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpAuthRoutingProfile_NoSecret_Tmpl,
@@ -142,7 +142,7 @@ func TestAccBgpAuthRoutingProfile_MaxLengthSecret(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpAuthRoutingProfile_MaxLengthSecret_Tmpl,

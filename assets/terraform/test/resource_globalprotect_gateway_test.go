@@ -26,7 +26,7 @@ func TestAccGlobalProtectGateway_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: globalProtectGatewayConfig,
@@ -196,7 +196,7 @@ func TestAccGlobalProtectGateway_RemoteUserTunnelConfigs(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: globalProtectGateway_RemoteUserTunnelConfigs_Tmpl,
@@ -342,7 +342,7 @@ func TestAccGlobalProtectGateway_RemoteUserTunnelConfigs_CookieLifetime(t *testi
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: globalProtectGateway_RemoteUserTunnelConfigs_CookieLifetimeDays_Tmpl,
@@ -448,7 +448,7 @@ func TestAccGlobalProtectGateway_Roles(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: globalProtectGateway_Roles_Tmpl,
@@ -529,7 +529,7 @@ func TestAccGlobalProtectGateway_Roles_LoginLifetime(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: globalProtectGateway_Roles_LoginLifetimeHours_Tmpl,
@@ -625,7 +625,7 @@ func TestAccGlobalProtectGateway_SecurityRestrictions(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: globalProtectGateway_SecurityRestrictions_Tmpl,
@@ -695,7 +695,7 @@ func TestAccGlobalProtectGateway_SecurityRestrictions_SourceIpEnforcement(t *tes
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: globalProtectGateway_SecurityRestrictions_SourceIpEnforcementDefault_Tmpl,
@@ -751,7 +751,7 @@ func TestAccGlobalProtectGateway_LocalAddress_Ip_Ipv4(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: globalProtectGateway_LocalAddress_Ip_Ipv4_Config,
@@ -793,7 +793,7 @@ func TestAccGlobalProtectGateway_LocalAddress_Ip_Ipv6(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: globalProtectGateway_LocalAddress_Ip_Ipv6_Config,
@@ -835,7 +835,7 @@ func TestAccGlobalProtectGateway_LocalAddress_Ip_Ipv4_Ipv6(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: globalProtectGateway_LocalAddress_Ip_Ipv4_Ipv6_Config,

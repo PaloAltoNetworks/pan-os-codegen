@@ -26,7 +26,7 @@ func TestAccFiltersAsPathAccessListRoutingProfile_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersAsPathAccessListRoutingProfile_Basic_Tmpl,
@@ -102,7 +102,7 @@ func TestAccFiltersAsPathAccessListRoutingProfile_Action_Permit(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersAsPathAccessListRoutingProfile_Action_Permit_Tmpl,
@@ -161,7 +161,7 @@ func TestAccFiltersAsPathAccessListRoutingProfile_MultipleEntries(t *testing.T) 
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersAsPathAccessListRoutingProfile_MultipleEntries_Tmpl,

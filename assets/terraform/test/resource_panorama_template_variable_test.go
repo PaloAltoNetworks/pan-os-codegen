@@ -71,7 +71,7 @@ func TestAccPanosPanoramaTemplateVariable_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps:                    templateVariableTypeEntries,
 	})
 }
@@ -84,7 +84,7 @@ func TestAccPanosPanoramaTemplateVariable_Override(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: templateVariable_Stack_Override_Tmpl,

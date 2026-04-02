@@ -26,7 +26,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Basic_Tmpl,
@@ -103,7 +103,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_RouteMap_ActionPermit(t *testing.T)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_RouteMap_ActionPermit_Tmpl,
@@ -161,7 +161,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Match_BasicStrings(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Match_BasicStrings_Tmpl,
@@ -238,7 +238,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Match_Enums(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Match_Enums_Tmpl,
@@ -313,7 +313,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Set_BasicValues(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Set_BasicValues_Tmpl,
@@ -397,7 +397,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Set_BooleanFlags(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Set_BooleanFlags_Tmpl,
@@ -474,7 +474,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Set_Metric(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Set_Metric_Tmpl,
@@ -539,7 +539,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Set_Aggregator(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Set_Aggregator_Tmpl,
@@ -605,7 +605,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Set_Ipv4(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Set_Ipv4_Tmpl,
@@ -682,7 +682,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Set_Ipv6(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Set_Ipv6_Tmpl,
@@ -760,7 +760,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Set_AspathPrepend(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Set_AspathPrepend_Tmpl,
@@ -830,7 +830,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_MultipleRouteMaps(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_MultipleRouteMaps_Tmpl,
@@ -913,7 +913,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Set_RegularCommunity(t *testing.T) 
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Set_RegularCommunity_Tmpl,
@@ -975,7 +975,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Set_LargeCommunity(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Set_LargeCommunity_Tmpl,
@@ -1038,7 +1038,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Set_ExtendedCommunity(t *testing.T)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Set_ExtendedCommunity_Tmpl,
@@ -1101,7 +1101,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Set_RemoveCommunities(t *testing.T)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Set_RemoveCommunities_Tmpl,
@@ -1166,7 +1166,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Set_Metric_ActionSet(t *testing.T) 
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Set_Metric_ActionSet_Tmpl,
@@ -1231,7 +1231,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Set_Metric_ActionSubtract(t *testin
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Set_Metric_ActionSubtract_Tmpl,
@@ -1296,7 +1296,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Match_Origin_Variants(t *testing.T)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Match_Origin_Variants_Tmpl,
@@ -1377,7 +1377,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Set_Origin_Variants(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Set_Origin_Variants_Tmpl,
@@ -1458,7 +1458,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Match_Ipv4_Address_AccessList(t *te
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Match_Ipv4_Address_AccessList_Tmpl,
@@ -1541,7 +1541,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Match_Ipv4_Address_PrefixList(t *te
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Match_Ipv4_Address_PrefixList_Tmpl,
@@ -1626,7 +1626,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Match_Ipv4_NextHop_AccessList(t *te
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Match_Ipv4_NextHop_AccessList_Tmpl,
@@ -1709,7 +1709,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Match_Ipv4_NextHop_PrefixList(t *te
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Match_Ipv4_NextHop_PrefixList_Tmpl,
@@ -1794,7 +1794,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Match_Ipv4_RouteSource_AccessList(t
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Match_Ipv4_RouteSource_AccessList_Tmpl,
@@ -1877,7 +1877,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Match_Ipv4_RouteSource_PrefixList(t
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Match_Ipv4_RouteSource_PrefixList_Tmpl,
@@ -1962,7 +1962,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Match_Ipv6_Address_AccessList(t *te
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Match_Ipv6_Address_AccessList_Tmpl,
@@ -2045,7 +2045,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Match_Ipv6_Address_PrefixList(t *te
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Match_Ipv6_Address_PrefixList_Tmpl,
@@ -2130,7 +2130,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Match_Ipv6_NextHop_AccessList(t *te
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Match_Ipv6_NextHop_AccessList_Tmpl,
@@ -2213,7 +2213,7 @@ func TestAccFiltersBgpRouteMapRoutingProfile_Match_Ipv6_NextHop_PrefixList(t *te
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: filtersBgpRouteMapRoutingProfile_Match_Ipv6_NextHop_PrefixList_Tmpl,

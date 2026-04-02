@@ -26,7 +26,7 @@ func TestAccBgpRedistributionRoutingProfile_Ipv4_Unicast_Connected(t *testing.T)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpRedistributionRoutingProfile_Ipv4_Unicast_Connected_Tmpl,
@@ -102,7 +102,7 @@ func TestAccBgpRedistributionRoutingProfile_Ipv4_Unicast_Ospf(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpRedistributionRoutingProfile_Ipv4_Unicast_Ospf_Tmpl,
@@ -178,7 +178,7 @@ func TestAccBgpRedistributionRoutingProfile_Ipv4_Unicast_Rip(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpRedistributionRoutingProfile_Ipv4_Unicast_Rip_Tmpl,
@@ -254,7 +254,7 @@ func TestAccBgpRedistributionRoutingProfile_Ipv4_Unicast_Static(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpRedistributionRoutingProfile_Ipv4_Unicast_Static_Tmpl,
@@ -330,7 +330,7 @@ func TestAccBgpRedistributionRoutingProfile_Ipv4_Unicast_Multiple(t *testing.T) 
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpRedistributionRoutingProfile_Ipv4_Unicast_Multiple_Tmpl,

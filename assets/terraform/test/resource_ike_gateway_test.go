@@ -19,7 +19,7 @@ func TestAccIkeGateway_Basic(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: ikeGatewayConfig_Basic,
@@ -99,7 +99,7 @@ func TestAccIkeGateway_PresharedKey(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: ikeGatewayConfig_PresharedKey,
@@ -124,7 +124,7 @@ func TestAccIkeGateway_PeerAddressFqdn(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: ikeGatewayConfig_PeerAddressFqdn,
@@ -149,7 +149,7 @@ func TestAccIkeGateway_PeerAddressDynamic(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: ikeGatewayConfig_PeerAddressDynamic,
@@ -174,7 +174,7 @@ func TestAccIkeGateway_PeerAddressDynamic(t *testing.T) {
 
 // 	resource.ParallelTest(t, resource.TestCase{
 // 		PreCheck:                 func() { testAccPreCheck(t) },
-// 		ProtoV6ProviderFactories: testAccProviders,
+// 		ProtoV6ProviderFactories: testAccProviderFactories(t),
 // 		Steps: []resource.TestStep{
 // 			{
 // 				Config: ikeGatewayConfig_LocalAddressFloatingIp,
@@ -199,7 +199,7 @@ func TestAccIkeGateway_Protocol(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: ikeGatewayConfig_Protocol,
@@ -229,7 +229,7 @@ func TestAccIkeGateway_AuthCertProfile(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: ikeGatewayConfig_AuthCertProfile,
@@ -254,7 +254,7 @@ func TestAccIkeGateway_AuthLocalCert(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: ikeGatewayConfig_AuthLocalCert,
@@ -279,7 +279,7 @@ func TestAccIkeGateway_ProtocolIkev1(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: ikeGatewayConfig_ProtocolIkev1,
@@ -304,7 +304,7 @@ func TestAccIkeGateway_ProtocolIkev2(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: ikeGatewayConfig_ProtocolIkev2,
@@ -329,7 +329,7 @@ func TestAccIkeGateway_PlaintextValueMissingRejected(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: ikeGatewayConfig_PlaintextValueMissing,

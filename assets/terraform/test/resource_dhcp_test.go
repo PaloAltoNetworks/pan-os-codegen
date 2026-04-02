@@ -26,7 +26,7 @@ func TestAccDhcp_Relay_Ip(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dhcp_Relay_Ip_Tmpl,
@@ -102,7 +102,7 @@ func TestAccDhcp_Relay_Ipv6(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dhcp_Relay_Ipv6_Tmpl,
@@ -199,7 +199,7 @@ func TestAccDhcp_Server_Option_Lease_Timeout(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dhcp_Server_Option_Lease_Timeout_Tmpl,
@@ -281,7 +281,7 @@ func TestAccDhcp_Server_Option_Lease_Unlimited(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dhcp_Server_Option_Lease_Unlimited_Tmpl,
@@ -363,7 +363,7 @@ func TestAccDhcp_Server_Option_Dns(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dhcp_Server_Option_Dns_Tmpl,
@@ -446,7 +446,7 @@ func TestAccDhcp_Server_Option_DnsSuffix(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dhcp_Server_Option_DnsSuffix_Tmpl,
@@ -523,7 +523,7 @@ func TestAccDhcp_Server_Option_Gateway(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dhcp_Server_Option_Gateway_Tmpl,
@@ -600,7 +600,7 @@ func TestAccDhcp_Server_Option_Inheritance(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dhcp_Server_Option_Inheritance_Tmpl,
@@ -686,7 +686,7 @@ func TestAccDhcp_Server_Option_Nis(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dhcp_Server_Option_Nis_Tmpl,
@@ -769,7 +769,7 @@ func TestAccDhcp_Server_Option_Ntp(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dhcp_Server_Option_Ntp_Tmpl,
@@ -852,7 +852,7 @@ func TestAccDhcp_Server_Option_Pop3Server(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dhcp_Server_Option_Pop3Server_Tmpl,
@@ -929,7 +929,7 @@ func TestAccDhcp_Server_Option_SmtpServer(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dhcp_Server_Option_SmtpServer_Tmpl,
@@ -1018,7 +1018,7 @@ func TestAccDhcp_Server_Option_SubnetMask(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dhcp_Server_Option_SubnetMask_Tmpl,
@@ -1113,7 +1113,7 @@ func TestAccDhcp_Server_Option_UserDefined_Ip(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dhcp_Server_Option_UserDefined_Ip_Tmpl,
@@ -1209,7 +1209,7 @@ func TestAccDhcp_Server_Option_UserDefined_Ascii(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dhcp_Server_Option_UserDefined_Ascii_Tmpl,
@@ -1303,7 +1303,7 @@ func TestAccDhcp_Server_Option_UserDefined_Hex(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dhcp_Server_Option_UserDefined_Hex_Tmpl,
@@ -1397,7 +1397,7 @@ func TestAccDhcp_Server_Option_Wins(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dhcp_Server_Option_Wins_Tmpl,
@@ -1480,7 +1480,7 @@ func TestAccDhcp_Server_Mode_Disabled(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dhcp_Server_Mode_Disabled_Tmpl,
@@ -1543,7 +1543,7 @@ func TestAccDhcp_Server_Mode_Auto(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dhcp_Server_Mode_Auto_Tmpl,
@@ -1606,7 +1606,7 @@ func TestAccDhcp_Server_ProbeIp_False(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dhcp_Server_ProbeIp_False_Tmpl,
@@ -1669,7 +1669,7 @@ func TestAccDhcp_Server_Option_UserDefined_Inherited(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dhcp_Server_Option_UserDefined_Inherited_Tmpl,
@@ -1752,7 +1752,7 @@ func TestAccDhcp_Server_Option_UserDefined_Ascii_Vci(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dhcp_Server_Option_UserDefined_Ascii_Vci_Tmpl,
@@ -1835,7 +1835,7 @@ func TestAccDhcp_Server_Option_UserDefined_Hex_Vci(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dhcp_Server_Option_UserDefined_Hex_Vci_Tmpl,

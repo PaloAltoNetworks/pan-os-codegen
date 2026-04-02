@@ -1,0 +1,11 @@
+# mise configuration for pan-os-codegen project
+# https://mise.jdx.dev/
+
+[tools]
+# Go is expected to be installed system-wide or via mise
+# golangci-lint for code quality checks
+golangci-lint = "1.60.3"
+
+[env]
+# Set Go module mode
+_.path = ["./bin"]

@@ -27,7 +27,7 @@ func TestAccWildfireAnalysisSecurityProfile_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: wildfireAnalysisSecurityProfile_Basic_Tmpl,
@@ -88,7 +88,7 @@ func TestAccWildfireAnalysisSecurityProfile_Rules(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: wildfireAnalysisSecurityProfile_Rules_Tmpl,

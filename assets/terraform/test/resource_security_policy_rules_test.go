@@ -87,7 +87,7 @@ func TestAccSecurityPolicyRulesImport(t *testing.T) {
 		PreCheck: func() {
 			testAccPreCheck(t)
 		},
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: securityPolicyRulesImportInitial,
@@ -329,7 +329,7 @@ func TestAccSecurityPolicyRulesPositioning(t *testing.T) {
 			securityPolicyRulesPreCheck(prefix)
 
 		},
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: securityPolicyRulesPositionFirst,
@@ -604,7 +604,7 @@ func TestAccSecurityPolicyRulesOrderingDependant(t *testing.T) {
 			testAccPreCheck(t)
 
 		},
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: configStep1,
@@ -698,7 +698,7 @@ func TestAccSecurityPolicyRules_PositionAsVariable(t *testing.T) {
 			securityPolicyRulesPreCheck(prefix)
 
 		},
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: securityPolicyRules_PositionAsVariable_Tmpl,
@@ -773,7 +773,7 @@ func TestAccSecurityPolicyRules_WithLifecycle_IgnoredChanges(t *testing.T) {
 			securityPolicyRulesPreCheck(prefix)
 
 		},
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: securityPolicyRules_WithLifecycle_IgnoredChanges_Initial_Tmpl,
@@ -1074,7 +1074,7 @@ func testAccSecurityPolicyRules_Hierarchy(t *testing.T, parent config.Variable, 
 			securityPolicyPreCheck(prefix)
 
 		},
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: configStep1,
@@ -1145,7 +1145,7 @@ func TestAccSecurityPolicyRules_UpdateMissing(t *testing.T) {
 			testAccPreCheck(t)
 
 		},
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: securityPolicyRules_UpdateMissing_Tmpl,

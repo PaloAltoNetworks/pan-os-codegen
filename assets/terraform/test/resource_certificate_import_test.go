@@ -27,7 +27,7 @@ func TestAccCertificateImport_Local_PEM_Certificate(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: certificateImport_Local_PEM_Certificate_Tmpl,
@@ -95,7 +95,7 @@ func TestAccCertificateImport_Local_PEM_CertificateWithKey(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: certificateImport_Local_PEM_CertificateWithKey_Tmpl,
@@ -242,7 +242,7 @@ func TestAccCertificateImport_Local_PKCS12_Certificate(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: certificateImport_Local_PKCS12_Certificate_Tmpl,
@@ -298,7 +298,7 @@ func TestAccCertificateImport_Local_PKCS12_Certificate(t *testing.T) {
 //
 // 	resource.Test(t, resource.TestCase{
 // 		PreCheck:                 func() { testAccPreCheck(t) },
-// 		ProtoV6ProviderFactories: testAccProviders,
+// 		ProtoV6ProviderFactories: testAccProviderFactories(t),
 // 		Steps: []resource.TestStep{
 // 			{
 // 				Config: certificateImport_Vsys_Local_PEM_Certificate_Tmpl,
@@ -338,7 +338,7 @@ func TestAccCertificateImport_Local_PKCS12_CertificateWithKey(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: certificateImport_Local_PKCS12_CertificateWithKey_Tmpl,

@@ -17,24 +17,31 @@ import (
 )
 
 type VirtualRouterInterfaceCustom struct {
-	specifier vrouter.Specifier
-	manager   *sdkmanager.EntryObjectManager[*vrouter.Entry, vrouter.Location, *vrouter.Service]
+	marshaller vrouter.XmlMarshaller
+	manager    *sdkmanager.EntryObjectManager[*vrouter.Entry, vrouter.Location, *vrouter.Service]
 }
 
 func NewVirtualRouterInterfaceCustom(provider *ProviderData) (*VirtualRouterInterfaceCustom, error) {
 	client := provider.Client
 
-	specifier, _, err := vrouter.Versioning(client.Versioning())
+	marshaller, err := vrouter.Versioning(client.Versioning())
 	if err != nil {
 		return nil, err
 	}
 
+	cache := GetOrCreateCache[*vrouter.Entry](
+		provider,
+		"_virtual_router_interface",
+		marshaller,
+		false,
+	)
+
 	manager := sdkmanager.NewEntryObjectManager[*vrouter.Entry, vrouter.Location, *vrouter.Service](
-		client, vrouter.NewService(client), provider.MultiConfigBatchSize, specifier, vrouter.SpecMatches)
+		client, vrouter.NewService(client), provider.BatchingConfig, cache, marshaller, vrouter.SpecMatches)
 
 	return &VirtualRouterInterfaceCustom{
-		specifier: specifier,
-		manager:   manager,
+		marshaller: marshaller,
+		manager:    manager,
 	}, nil
 }
 
@@ -155,7 +162,7 @@ func (o *VirtualRouterInterfaceResource) CreateCustom(ctx context.Context, req r
 		return
 	}
 
-	mutex := locking.GetMutex(locking.XpathLockCategory, util.AsXpath(xpath))
+	mutex := locking.GetRWMutex(locking.XpathLockCategory, util.AsXpath(xpath))
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -252,7 +259,7 @@ func (o *VirtualRouterInterfaceResource) UpdateCustom(ctx context.Context, req r
 			return
 		}
 
-		mutex := locking.GetMutex(locking.XpathLockCategory, util.AsXpath(xpath))
+		mutex := locking.GetRWMutex(locking.XpathLockCategory, util.AsXpath(xpath))
 		mutex.Lock()
 		defer mutex.Unlock()
 
@@ -266,7 +273,7 @@ func (o *VirtualRouterInterfaceResource) UpdateCustom(ctx context.Context, req r
 
 		if object != nil {
 			object.Interface = o.removeInterface(object.Interface, state.Interface.ValueString())
-			xmlEntry, err := o.custom.specifier(object)
+			xmlEntry, err := o.custom.marshaller.Specify(object)
 			if err != nil {
 				resp.Diagnostics.AddError("Error while creating XML document for parent resource", err.Error())
 				return
@@ -289,7 +296,7 @@ func (o *VirtualRouterInterfaceResource) UpdateCustom(ctx context.Context, req r
 		return
 	}
 
-	mutex := locking.GetMutex(locking.XpathLockCategory, util.AsXpath(xpath))
+	mutex := locking.GetRWMutex(locking.XpathLockCategory, util.AsXpath(xpath))
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -301,7 +308,7 @@ func (o *VirtualRouterInterfaceResource) UpdateCustom(ctx context.Context, req r
 
 	object.Interface = o.removeInterface(object.Interface, state.Interface.ValueString())
 	object.Interface = o.addInterface(object.Interface, plan.Interface.ValueString())
-	xmlEntry, err := o.custom.specifier(object)
+	xmlEntry, err := o.custom.marshaller.Specify(object)
 	if err != nil {
 		resp.Diagnostics.AddError("Error while creating XML document for parent resource", err.Error())
 		return
@@ -346,7 +353,7 @@ func (o *VirtualRouterInterfaceResource) DeleteCustom(ctx context.Context, req r
 		return
 	}
 
-	mutex := locking.GetMutex(locking.XpathLockCategory, util.AsXpath(xpath))
+	mutex := locking.GetRWMutex(locking.XpathLockCategory, util.AsXpath(xpath))
 	mutex.Lock()
 	defer mutex.Unlock()
 

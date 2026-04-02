@@ -30,6 +30,8 @@ func (g *GenerateTerraformProvider) GenerateTerraformProvider(terraformProvider 
 	terraformProvider.ImportManager.AddStandardImport("strings", "")
 	terraformProvider.ImportManager.AddStandardImport("fmt", "")
 	terraformProvider.ImportManager.AddStandardImport("log/slog", "")
+	terraformProvider.ImportManager.AddStandardImport("os", "")
+	terraformProvider.ImportManager.AddStandardImport("strconv", "")
 	terraformProvider.ImportManager.AddStandardImport("sync", "")
 	terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango", "sdk")
 	terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "pangoutil")

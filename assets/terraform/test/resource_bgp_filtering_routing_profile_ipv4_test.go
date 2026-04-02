@@ -26,7 +26,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv4_Multicast_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpFilteringRoutingProfile_Ipv4_Multicast_Basic_Tmpl,
@@ -81,7 +81,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv4_Multicast_ConditionalAdvertisement_E
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpFilteringRoutingProfile_Ipv4_Multicast_ConditionalAdvertisement_Exist_Tmpl,
@@ -121,7 +121,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv4_Multicast_ConditionalAdvertisement_N
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpFilteringRoutingProfile_Ipv4_Multicast_ConditionalAdvertisement_NonExist_Tmpl,
@@ -161,7 +161,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv4_Multicast_FilterList(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpFilteringRoutingProfile_Ipv4_Multicast_FilterList_Tmpl,
@@ -198,7 +198,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv4_Multicast_InboundNetworkFilters_Dist
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpFilteringRoutingProfile_Ipv4_Multicast_InboundNetworkFilters_DistributeList_Tmpl,
@@ -235,7 +235,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv4_Multicast_InboundNetworkFilters_Pref
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpFilteringRoutingProfile_Ipv4_Multicast_InboundNetworkFilters_PrefixList_Tmpl,
@@ -272,7 +272,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv4_Multicast_OutboundNetworkFilters_Dis
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpFilteringRoutingProfile_Ipv4_Multicast_OutboundNetworkFilters_DistributeList_Tmpl,
@@ -309,7 +309,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv4_Multicast_OutboundNetworkFilters_Pre
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpFilteringRoutingProfile_Ipv4_Multicast_OutboundNetworkFilters_PrefixList_Tmpl,
@@ -346,7 +346,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv4_Multicast_RouteMaps(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpFilteringRoutingProfile_Ipv4_Multicast_RouteMaps_Tmpl,
@@ -383,7 +383,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv4_Multicast_UnsuppressMap(t *testing.T
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpFilteringRoutingProfile_Ipv4_Multicast_UnsuppressMap_Tmpl,
@@ -418,7 +418,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv4_Unicast_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpFilteringRoutingProfile_Ipv4_Unicast_Basic_Tmpl,
@@ -462,7 +462,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv4_Unicast_ConditionalAdvertisement_Exi
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpFilteringRoutingProfile_Ipv4_Unicast_ConditionalAdvertisement_Exist_Tmpl,
@@ -502,7 +502,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv4_Unicast_ConditionalAdvertisement_Non
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpFilteringRoutingProfile_Ipv4_Unicast_ConditionalAdvertisement_NonExist_Tmpl,
@@ -542,7 +542,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv4_Unicast_FilterList(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpFilteringRoutingProfile_Ipv4_Unicast_FilterList_Tmpl,
@@ -579,7 +579,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv4_Unicast_InboundNetworkFilters_Distri
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpFilteringRoutingProfile_Ipv4_Unicast_InboundNetworkFilters_DistributeList_Tmpl,
@@ -616,7 +616,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv4_Unicast_InboundNetworkFilters_Prefix
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpFilteringRoutingProfile_Ipv4_Unicast_InboundNetworkFilters_PrefixList_Tmpl,
@@ -653,7 +653,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv4_Unicast_OutboundNetworkFilters_Distr
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpFilteringRoutingProfile_Ipv4_Unicast_OutboundNetworkFilters_DistributeList_Tmpl,
@@ -690,7 +690,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv4_Unicast_OutboundNetworkFilters_Prefi
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpFilteringRoutingProfile_Ipv4_Unicast_OutboundNetworkFilters_PrefixList_Tmpl,
@@ -727,7 +727,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv4_Unicast_RouteMaps(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpFilteringRoutingProfile_Ipv4_Unicast_RouteMaps_Tmpl,
@@ -764,7 +764,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv4_Unicast_UnsuppressMap(t *testing.T) 
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpFilteringRoutingProfile_Ipv4_Unicast_UnsuppressMap_Tmpl,

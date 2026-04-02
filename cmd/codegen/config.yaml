@@ -137,3 +137,24 @@ terraform_provider_config:
       optional: true
       type: string
       default_value: "disabled"
+    xml_write_mode:
+      description: "XML write strategy for local XML mode: 'safe' (default, immediate writes), 'deferred' (async with dirty flag), or 'periodic' (timer-based batching). Only applies when xml_file_path is configured."
+      optional: true
+      type: string
+      default_value: "safe"
+      validators:
+        - "OneOf(\"safe\", \"deferred\", \"periodic\")"
+    xml_write_check_interval_ms:
+      description: "Milliseconds between dirty flag checks in deferred mode (range: 5-20, default: 10). Only applies when xml_write_mode is 'deferred'."
+      optional: true
+      type: int64
+      default_value: "10"
+      validators:
+        - "Between(5, 20)"
+    xml_write_flush_interval_sec:
+      description: "Seconds between writes in periodic mode (range: 1-3600, default: 30). Only applies when xml_write_mode is 'periodic'."
+      optional: true
+      type: int64
+      default_value: "30"
+      validators:
+        - "Between(1, 3600)"

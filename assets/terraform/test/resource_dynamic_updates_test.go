@@ -19,7 +19,7 @@ func TestAccDynamicUpdates_1(t *testing.T) {
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dynamicUpdatesConfig1,
@@ -312,7 +312,7 @@ func TestAccDynamicUpdates_2(t *testing.T) {
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dynamicUpdatesConfig2,
@@ -523,7 +523,7 @@ func TestAccDynamicUpdates_3(t *testing.T) {
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dynamicUpdatesConfig3,
@@ -655,7 +655,7 @@ func TestAccDynamicUpdates_4(t *testing.T) {
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dynamicUpdatesConfig4,
@@ -826,7 +826,7 @@ func TestAccDynamicUpdates_5(t *testing.T) {
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dynamicUpdatesConfig5,
@@ -869,7 +869,7 @@ func TestAccDynamicUpdates_6(t *testing.T) {
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: dynamicUpdatesConfig6,

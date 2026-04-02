@@ -128,10 +128,14 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/PaloAltoNetworks/pango"
+	pangoutil "github.com/PaloAltoNetworks/pango/util"
 )
 
 // XmlWriteMode defines the XML write strategy
@@ -174,16 +178,16 @@ type deferredWriter struct {
 	flushIntervalSec int
 
 	// Concurrency control
-	dirtyFlag    atomic.Bool      // True when write needed (deferred mode only)
-	mu           sync.RWMutex     // Protects buffer copy (<1ms hold time)
-	wg           *sync.WaitGroup  // Coordinates graceful shutdown
-	shutdownChan chan struct{}    // Signals background goroutine to stop
+	dirtyFlag    atomic.Bool     // True when write needed (deferred mode only)
+	mu           sync.RWMutex    // Protects buffer copy (<1ms hold time)
+	wg           *sync.WaitGroup // Coordinates graceful shutdown
+	shutdownChan chan struct{}   // Signals background goroutine to stop
 
 	// Error propagation
 	errorChan chan error // Buffered (size 10) for fail-fast
 
 	// LocalXmlClient integration
-	client interface{} // Type will be *pango.LocalXmlClient
+	client *pango.LocalXmlClient
 
 	// Observability
 	logger *slog.Logger
@@ -211,12 +215,17 @@ func init() {
 	}))
 }
 
-// initDeferredWriter initializes the DeferredWriter singleton (called from Provider.Configure)
+// InitDeferredWriter initializes the DeferredWriter singleton (called from Provider.Configure)
 // config: Write mode configuration from provider schema
 // client: LocalXmlClient instance for SaveToFile() calls
 // wg: WaitGroup for coordinating shutdown with main.go
 // shutdownChan: Channel for receiving shutdown signal from main.go
-func initDeferredWriter(config WriterConfig, client interface{}, wg *sync.WaitGroup, shutdownChan chan struct{}) {
+func InitDeferredWriter(config WriterConfig, client pangoutil.PangoClient, wg *sync.WaitGroup, shutdownChan chan struct{}) {
+	localClient, ok := client.(*pango.LocalXmlClient)
+	if !ok {
+		panic("initDefferedWriter: expected *pango.LocaXmlClient instance")
+	}
+
 	writerOnce.Do(func() {
 		writerInstance = &deferredWriter{
 			mode:             config.Mode,
@@ -225,7 +234,7 @@ func initDeferredWriter(config WriterConfig, client interface{}, wg *sync.WaitGr
 			wg:               wg,
 			shutdownChan:     shutdownChan,
 			errorChan:        make(chan error, 10), // Buffered
-			client:           client,
+			client:           localClient,
 			logger:           writerLogger, // From init()
 		}
 
@@ -334,8 +343,8 @@ func (w *deferredWriter) performWrite() {
 
 	// Acquire write lock for buffer copy (<1ms target)
 	w.mu.Lock()
-	// TODO: Copy buffer from LocalXmlClient (exact mechanism depends on LocalXmlClient API)
-	// bufferCopy := ... deep copy of XML buffer ...
+	document := w.client.GetXmlDocument()
+	filepath := w.client.GetFilepath()
 	w.mu.Unlock()
 
 	lockDuration := time.Since(startTime)
@@ -345,50 +354,83 @@ func (w *deferredWriter) performWrite() {
 		w.dirtyFlag.Store(false)
 	}
 
-	// Perform I/O outside lock
-	err := w.callSaveToFile() // Wrapper for LocalXmlClient.SaveToFile()
+	writeLoggerHandler := func(err error) {
+		if err != nil {
+			w.logger.Error("write failed",
+				"error", err,
+				"duration_ms", time.Since(startTime).Milliseconds(),
+				"lock_duration_us", lockDuration.Microseconds())
+
+			// Send error to channel for fail-fast propagation
+			select {
+			case w.errorChan <- err:
+			default:
+				// Channel full - log but continue (will be caught by next CheckError)
+				w.logger.Error("error channel full, write error may be delayed")
+			}
+		} else {
+			// Log success at INFO level
+			w.logger.Info("write_success",
+				"mode", w.mode,
+				"duration_ms", time.Since(startTime).Milliseconds(),
+				"total_writes", w.totalWrites.Load())
+		}
+	}
+
+	dir := path.Dir(filepath)
+	tmpFile, err := os.CreateTemp(dir, ".tmp-*.xml")
+	writeLoggerHandler(err)
+	if err != nil {
+		return
+	}
+
+	tmpPath := tmpFile.Name()
+
+	defer func() {
+		if tmpFile != nil {
+			tmpFile.Close()
+			os.Remove(tmpPath)
+		}
+	}()
+
+	_, err = tmpFile.WriteString(document)
+	writeLoggerHandler(err)
+	if err != nil {
+		return
+	}
+
+	// Fsync before rename (ensure data on disk)
+	err = tmpFile.Sync()
+	writeLoggerHandler(err)
+	if err != nil {
+		return
+	}
+
+	err = tmpFile.Close()
+	writeLoggerHandler(err)
+	if err != nil {
+		return
+	}
+
+	tmpFile = nil
+
+	err = os.Rename(tmpPath, filepath)
+	writeLoggerHandler(err)
+	if err != nil {
+		os.Remove(tmpPath)
+		return
+	}
 
 	// Update statistics
 	w.totalWrites.Add(1)
 
 	// Handle errors
-	if err != nil {
-		w.logger.Error("write failed",
-			"error", err,
-			"duration_ms", time.Since(startTime).Milliseconds(),
-			"lock_duration_us", lockDuration.Microseconds())
 
-		// Send error to channel for fail-fast propagation
-		select {
-		case w.errorChan <- err:
-		default:
-			// Channel full - log but continue (will be caught by next CheckError)
-			w.logger.Error("error channel full, write error may be delayed")
-		}
-	} else {
-		// Log success at INFO level
-		w.logger.Info("write_success",
-			"mode", w.mode,
-			"duration_ms", time.Since(startTime).Milliseconds(),
-			"total_writes", w.totalWrites.Load())
-		// Note: bytes_written requires LocalXmlClient API integration (future enhancement)
-	}
 }
 
 // xmlSaver interface for testing
 type xmlSaver interface {
 	SaveToFile() error
-}
-
-// callSaveToFile wraps LocalXmlClient.SaveToFile() call
-func (w *deferredWriter) callSaveToFile() error {
-	// Try to cast to xmlSaver interface for testing
-	if saver, ok := w.client.(xmlSaver); ok {
-		return saver.SaveToFile()
-	}
-	// TODO: Cast w.client to *pango.LocalXmlClient and call SaveToFile()
-	// This will be implemented when LocalXmlClient integration is complete
-	return nil // Stub for now (safe mode uses auto-save, deferred/periodic will use this)
 }
 
 // shutdown performs final flush and signals completion (called from run() on shutdown signal)

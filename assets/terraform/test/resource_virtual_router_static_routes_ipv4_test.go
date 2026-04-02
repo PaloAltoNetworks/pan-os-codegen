@@ -25,7 +25,7 @@ func TestAccVirtualRouterStaticRoutesIpv4(t *testing.T) {
 
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: virtualRouterStaticRoutesIpv4Tmpl1,

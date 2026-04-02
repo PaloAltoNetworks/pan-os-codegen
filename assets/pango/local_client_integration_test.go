@@ -20,10 +20,10 @@ var _ = Describe("LocalXmlClient Integration", func() {
 	)
 
 	BeforeEach(func() {
-		configXml, err := os.ReadFile("testdata/panorama-running-config.xml")
+		configXml, err := os.ReadFile("testdata/panorama-test-minimal.xml")
 		Expect(err).ToNot(HaveOccurred())
 
-		client, err = pango.NewLocalXmlClient(configXml)
+		client, err = newTestClient(configXml)
 		Expect(err).ToNot(HaveOccurred())
 
 		ctx = context.Background()
@@ -44,7 +44,7 @@ var _ = Describe("LocalXmlClient Integration", func() {
 		It("service Versioning() should return correct version (11.2.3)", func() {
 			version := client.Versioning()
 			Expect(version).ToNot(BeNil())
-			// Version should be 11.2.3 from panorama-running-config.xml
+			// Version should be 11.2.3 from panorama-test-minimal.xml
 			Expect(version.Major).To(Equal(11))
 			Expect(version.Minor).To(Equal(2))
 			Expect(version.Patch).To(Equal(3))

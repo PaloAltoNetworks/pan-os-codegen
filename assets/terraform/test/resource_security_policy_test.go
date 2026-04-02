@@ -321,7 +321,7 @@ func TestAccSecurityPolicyDuplicatedPlan(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: securityPolicyDuplicatedTmpl,
@@ -342,7 +342,7 @@ func TestAccSecurityPolicyExtended(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: securityPolicyExtendedResource1Tmpl,
@@ -595,7 +595,7 @@ func TestAccSecurityPolicyOrdering(t *testing.T) {
 			securityPolicyPreCheck(prefix)
 
 		},
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: securityPolicyOrderingTmpl,
@@ -721,7 +721,7 @@ func TestAccSecurityPolicy_UpdateMissing(t *testing.T) {
 			testAccPreCheck(t)
 
 		},
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: securityPolicyRules_UpdateMissing_Tmpl,

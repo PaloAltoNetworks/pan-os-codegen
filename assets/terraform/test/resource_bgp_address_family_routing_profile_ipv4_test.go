@@ -26,7 +26,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Multicast_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpAddressFamilyRoutingProfile_Ipv4_Multicast_Basic_Tmpl,
@@ -87,7 +87,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Multicast_AllowasIn_Occurrence(t
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpAddressFamilyRoutingProfile_Ipv4_Multicast_AllowasIn_Occurrence_Tmpl,
@@ -159,7 +159,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Multicast_AllowasIn_Origin(t *te
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpAddressFamilyRoutingProfile_Ipv4_Multicast_AllowasIn_Origin_Tmpl,
@@ -229,7 +229,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Multicast_SendCommunity_Extended
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpAddressFamilyRoutingProfile_Ipv4_Multicast_SendCommunity_Extended_Tmpl,
@@ -269,7 +269,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Multicast_SendCommunity_Large(t 
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpAddressFamilyRoutingProfile_Ipv4_Multicast_SendCommunity_Large_Tmpl,
@@ -309,7 +309,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Multicast_SendCommunity_Standard
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpAddressFamilyRoutingProfile_Ipv4_Multicast_SendCommunity_Standard_Tmpl,
@@ -508,7 +508,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Unicast_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpAddressFamilyRoutingProfile_Ipv4_Unicast_Basic_Tmpl,
@@ -564,7 +564,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Unicast_AllowasIn_Occurrence(t *
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpAddressFamilyRoutingProfile_Ipv4_Unicast_AllowasIn_Occurrence_Tmpl,
@@ -601,7 +601,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Unicast_AllowasIn_Origin(t *test
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpAddressFamilyRoutingProfile_Ipv4_Unicast_AllowasIn_Origin_Tmpl,
@@ -638,7 +638,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Unicast_SendCommunity_Extended(t
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpAddressFamilyRoutingProfile_Ipv4_Unicast_SendCommunity_Extended_Tmpl,
@@ -678,7 +678,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Unicast_SendCommunity_Large(t *t
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpAddressFamilyRoutingProfile_Ipv4_Unicast_SendCommunity_Large_Tmpl,
@@ -718,7 +718,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Unicast_SendCommunity_Standard(t
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: bgpAddressFamilyRoutingProfile_Ipv4_Unicast_SendCommunity_Standard_Tmpl,

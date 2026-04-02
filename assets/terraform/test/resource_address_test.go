@@ -19,14 +19,14 @@ import (
 	"github.com/PaloAltoNetworks/pango/objects/address"
 )
 
-func TestAccPanosAddress(t *testing.T) {
+func TestAccPanosAddress_Basic(t *testing.T) {
 	t.Parallel()
 
 	prefix := fmt.Sprintf("test-acc-%s", acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: panosAddress_Tmpl,
@@ -87,7 +87,7 @@ func TestAccPanosAddress_Rename_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: panosAddress_Rename_Initial_Tmpl,
@@ -136,7 +136,7 @@ func TestAccPanosAddress_Rename_Missing_Source(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: panosAddress_Rename_Initial_Tmpl,
@@ -188,7 +188,7 @@ func TestAccPanosAddress_Rename_Existing_Target(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: panosAddress_Rename_Initial_Tmpl,

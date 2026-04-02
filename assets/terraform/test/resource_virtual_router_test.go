@@ -24,7 +24,7 @@ func TestAccPanosVirtualRouter_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: makePanosVirtualRouterConfig(resName),
@@ -64,7 +64,7 @@ func TestAccPanosVirtualRouter_WithEthernetInterface(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: makePanosVirtualRouterConfig(resName),
@@ -107,7 +107,7 @@ func TestAccPanosVirtualRouter_AdministrativeDistances(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterAdministrativeDistances,
@@ -182,7 +182,7 @@ func TestAccPanosVirtualRouter_Ecmp_BalancedRoundRobin(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterEcmpBalancedRoundRobin,
@@ -237,7 +237,7 @@ func TestAccPanosVirtualRouter_Ecmp_IpModulo(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterEcmpIpModulo,
@@ -390,7 +390,7 @@ func TestAccPanosVirtualRouter_Multicast(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterMulticast,
@@ -493,7 +493,7 @@ func TestAccPanosVirtualRouter_Bgp_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterBgpBasic,
@@ -602,7 +602,7 @@ func TestAccPanosVirtualRouter_Bgp_Dampening(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterBgpDampening,
@@ -717,7 +717,7 @@ func TestAccPanosVirtualRouter_Bgp_AuthProfile(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterBgpAuthProfile,
@@ -797,7 +797,7 @@ func TestAccPanosVirtualRouter_Bgp_AuthProfile_NoSecret(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterBgpAuthProfileNoSecret,
@@ -878,7 +878,7 @@ func TestAccPanosVirtualRouter_Bgp_AuthProfile_MaxLength(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterBgpAuthProfileMaxLength,
@@ -962,7 +962,7 @@ func TestAccPanosVirtualRouter_Bgp_AuthProfile_SecretUpdate(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterBgpAuthProfileSecretUpdate,
@@ -1142,7 +1142,7 @@ func TestAccPanosVirtualRouter_BgpExport_AsPath_None(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccPanosVirtualRouterBgpExportAsPathNone,
@@ -1255,7 +1255,7 @@ func TestAccPanosVirtualRouter_BgpExport_AsPath_RemoveAndPrepend(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccPanosVirtualRouterBgpExportAsPathRemoveAndPrepend,
@@ -1370,7 +1370,7 @@ func TestAccPanosVirtualRouter_BgpAggregation_AsPath_None(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccPanosVirtualRouterBgpAggregationAsPathNone,
@@ -1452,7 +1452,7 @@ func TestAccPanosVirtualRouter_BgpAggregation_AsPath_Prepend(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccPanosVirtualRouterBgpAggregationAsPathPrepend,
@@ -1536,7 +1536,7 @@ func TestAccPanosVirtualRouter_BgpExport_Community_RemoveAll(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccPanosVirtualRouterBgpExportCommunityRemoveAll,
@@ -1650,7 +1650,7 @@ func TestAccPanosVirtualRouter_BgpExport_Community_Append(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccPanosVirtualRouterBgpExportCommunityAppend,
@@ -1768,7 +1768,7 @@ func TestAccPanosVirtualRouter_Ecmp_Algorithm_IpHash(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccPanosVirtualRouterEcmpAlgorithmIpHash,
@@ -1829,7 +1829,7 @@ func TestAccPanosVirtualRouter_Ecmp_Algorithm_WeightedRoundRobin(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccPanosVirtualRouterEcmpAlgorithmWeightedRoundRobin,
@@ -1948,7 +1948,7 @@ func TestAccPanosVirtualRouter_Ospf_Area_Normal(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterOspfAreaNormal,
@@ -2053,7 +2053,7 @@ func TestAccPanosVirtualRouter_Ospf_Area_Stub(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterOspfAreaStub,
@@ -2122,7 +2122,7 @@ func TestAccPanosVirtualRouter_Ospf_Area_Nssa(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterOspfAreaNssa,
@@ -2192,7 +2192,7 @@ func TestAccPanosVirtualRouter_Ospf_ExportRules(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterOspfExportRules,
@@ -2251,7 +2251,7 @@ func TestAccPanosVirtualRouter_Ospf_AuthProfile(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterOspfAuthProfile,
@@ -2318,7 +2318,7 @@ func TestAccPanosVirtualRouter_Ospfv3_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterOspfv3Basic,
@@ -2429,7 +2429,7 @@ func TestAccPanosVirtualRouter_Ospfv3_Areas(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterOspfv3Areas,
@@ -2504,7 +2504,7 @@ func TestAccPanosVirtualRouter_Rip_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterRipBasic,
@@ -2592,7 +2592,7 @@ func TestAccPanosVirtualRouter_Rip_AuthProfile_Md5(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterRipAuthProfileMd5,
@@ -2666,7 +2666,7 @@ func TestAccPanosVirtualRouter_Rip_AuthProfile_Text(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterRipAuthProfileText,
@@ -2735,7 +2735,7 @@ func TestAccPanosVirtualRouter_Rip_ExportRules(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterRipExportRules,
@@ -2805,7 +2805,7 @@ func TestAccPanosVirtualRouter_Bgp_PeerGroup_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterBgpPeerGroupBasic,
@@ -2884,7 +2884,7 @@ func TestAccPanosVirtualRouter_Bgp_PeerGroup_Advanced(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterBgpPeerGroupAdvanced,
@@ -2956,7 +2956,7 @@ func TestAccPanosVirtualRouter_Bgp_Import(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterBgpImport,
@@ -3033,7 +3033,7 @@ func TestAccPanosVirtualRouter_Bgp_Redist(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterBgpRedist,
@@ -3113,7 +3113,7 @@ func TestAccPanosVirtualRouter_Bgp_Community_RemoveRegex(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterBgpCommunityRemoveRegex,
@@ -3203,7 +3203,7 @@ func TestAccPanosVirtualRouter_Bgp_Community_Overwrite(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterBgpCommunityOverwrite,
@@ -3293,7 +3293,7 @@ func TestAccPanosVirtualRouter_Bgp_ExtendedCommunity(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterBgpExtendedCommunity,
@@ -3383,7 +3383,7 @@ func TestAccPanosVirtualRouter_Bgp_AggregationComplete(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterBgpAggregationComplete,
@@ -3459,7 +3459,7 @@ func TestAccPanosVirtualRouter_Bgp_ExportComplete(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterBgpExportComplete,
@@ -3557,7 +3557,7 @@ func TestAccPanosVirtualRouter_Bgp_Complete(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterBgpComplete,
@@ -3721,7 +3721,7 @@ func TestAccPanosVirtualRouter_Multicast_Complete(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterMulticastComplete,
@@ -3832,7 +3832,7 @@ func TestAccPanosVirtualRouter_Ecmp_Complete(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterEcmpComplete,
@@ -3907,7 +3907,7 @@ func TestAccPanosVirtualRouter_TemplateStack(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccVirtualRouterTemplateStack,

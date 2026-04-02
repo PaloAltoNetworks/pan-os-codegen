@@ -405,7 +405,7 @@ func TestAccNatPolicy_Extended(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: natPolicyExtendedResource1Tmpl,
@@ -499,7 +499,7 @@ func TestAccNatPolicy_Extended(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: natPolicyExtendedResource2Tmpl,
@@ -581,7 +581,7 @@ func TestAccNatPolicy_Extended(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: natPolicyExtendedResource3Tmpl,
@@ -627,7 +627,7 @@ func TestAccNatPolicy_Extended(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: natPolicyExtendedResource4Tmpl,
@@ -683,7 +683,7 @@ func TestAccNatPolicy_Extended(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: natPolicyExtendedResource5Tmpl,
@@ -821,7 +821,7 @@ func TestAccPanosNatPolicyOrdering(t *testing.T) {
 			testAccPreCheck(t)
 			natPolicyPreCheck(prefix, sdkLocation)
 		},
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: makeNatPolicyConfig(prefix),

@@ -20,7 +20,7 @@ func TestAccAggregateLayer3Subinterface_Basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: aggregateLayer3Subinterface_Basic,
@@ -212,7 +212,7 @@ func TestAccAggregateLayer3Subinterface_DhcpClient(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: aggregateLayer3Subinterface_DhcpClient,
@@ -394,7 +394,7 @@ func TestAccAggregateLayer3Subinterface_Ipv6_Address(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: aggregateLayer3Subinterface_Ipv6_Address,
@@ -654,7 +654,7 @@ func TestAccAggregateLayer3Subinterface_Ipv6_Inherited(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: aggregateLayer3Subinterface_Ipv6_Inherited,
@@ -936,7 +936,7 @@ func TestAccAggregateLayer3Subinterface_Ipv6_Inherited_NeighborDiscovery_DnsServ
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: aggregateLayer3Subinterface_Ipv6_Inherited_NeighborDiscovery_DnsServer_Manual,
@@ -1109,7 +1109,7 @@ func TestAccAggregateLayer3Subinterface_Ipv6_NeighborDiscovery(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: aggregateLayer3Subinterface_Ipv6_NeighborDiscovery,
@@ -1262,7 +1262,7 @@ func TestAccAggregateLayer3Subinterface_SdwanLinkSettings_UpstreamNat_Ddns(t *te
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: aggregateLayer3Subinterface_SdwanLinkSettings_UpstreamNat_Ddns,
@@ -1428,7 +1428,7 @@ func TestAccAggregateLayer3Subinterface_SdwanLinkSettings_UpstreamNat_StaticIp_F
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: aggregateLayer3Subinterface_SdwanLinkSettings_UpstreamNat_StaticIp_Fqdn,
@@ -1603,7 +1603,7 @@ func TestAccAggregateLayer3Subinterface_SdwanLinkSettings_UpstreamNat_StaticIp_A
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
+		ProtoV6ProviderFactories: testAccProviderFactories(t),
 		Steps: []resource.TestStep{
 			{
 				Config: aggregateLayer3Subinterface_SdwanLinkSettings_UpstreamNat_StaticIp_IpAddress,
