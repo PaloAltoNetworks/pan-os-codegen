@@ -1,0 +1,98 @@
+// FieldMode specifies whether fields should be included or excluded.
+type FieldMode int
+
+const (
+	// FieldModeInclude indicates that only specified fields should be processed.
+	FieldModeInclude FieldMode = iota
+	// FieldModeExclude indicates that all fields except specified ones should be processed.
+	FieldModeExclude
+)
+
+// FieldOption contains field selection configuration for partial field operations.
+type FieldOption struct {
+	fields map[string]bool // Field names to include/exclude
+	mode   FieldMode       // Include or Exclude mode
+}
+
+// CRUDOption is a functional option for configuring Create/Read/Update operations.
+type CRUDOption func(*CRUDOptions)
+
+// CRUDOptions contains options for Create/Read/Update operations.
+type CRUDOptions struct {
+	fields             *FieldOption
+	strictVersionCheck bool // Error on unsupported fields instead of filtering
+}
+
+// WithFields creates a CRUDOption that selects only the specified top-level fields.
+//
+// Only top-level fields of the Entry struct are supported. You cannot select nested
+// object fields or fields within child structures. Field names must match the XML
+// element names from the PAN-OS schema (e.g., "ip-netmask", "description").
+//
+// Example:
+//   entry, err := svc.ReadWithOptions(ctx, loc, "web-server", "get",
+//       address.WithFields("description", "ip-netmask"))
+func WithFields(fields ...string) CRUDOption {
+	return func(opts *CRUDOptions) {
+		if opts.fields == nil {
+			opts.fields = &FieldOption{
+				fields: make(map[string]bool),
+				mode:   FieldModeInclude,
+			}
+		}
+		for _, field := range fields {
+			opts.fields.fields[field] = true
+		}
+	}
+}
+
+// WithoutFields creates a CRUDOption that excludes the specified top-level fields.
+//
+// Only top-level fields of the Entry struct are supported. You cannot exclude nested
+// object fields or fields within child structures. Field names must match the XML
+// element names from the PAN-OS schema (e.g., "ip-netmask", "description").
+//
+// Example:
+//   entry, err := svc.UpdateWithOptions(ctx, loc, addr, "",
+//       address.WithoutFields("tag", "disable-override"))
+func WithoutFields(fields ...string) CRUDOption {
+	return func(opts *CRUDOptions) {
+		if opts.fields == nil {
+			opts.fields = &FieldOption{
+				fields: make(map[string]bool),
+				mode:   FieldModeExclude,
+			}
+		}
+		for _, field := range fields {
+			opts.fields.fields[field] = true
+		}
+	}
+}
+
+// WithStrictVersionCheck enables strict version validation.
+// By default, unsupported fields are silently filtered. With this option,
+// an error is returned if any requested field is not supported by the PAN-OS version.
+//
+// Example:
+//   entry, err := svc.UpdateWithOptions(ctx, loc, addr, "",
+//       address.WithFields("description", "cloud_inline_analysis"),
+//       address.WithStrictVersionCheck())
+func WithStrictVersionCheck() CRUDOption {
+	return func(opts *CRUDOptions) {
+		opts.strictVersionCheck = true
+	}
+}
+
+// shouldMarshalField determines if a field should be marshalled based on field selection options.
+// Only checks for exact top-level field matches.
+func shouldMarshalField(fieldName string, fieldOpt *FieldOption) bool {
+	if fieldOpt == nil {
+		return true
+	}
+
+	if _, exists := fieldOpt.fields[fieldName]; exists {
+		return fieldOpt.mode == FieldModeInclude
+	}
+
+	return fieldOpt.mode == FieldModeExclude
+}

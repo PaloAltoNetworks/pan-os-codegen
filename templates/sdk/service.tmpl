@@ -89,15 +89,15 @@ func (s *Service) {{ $funcDef }} {
 	return errors.UnsupportedMethodError
   {{- else }}
 	vn := s.client.Versioning()
-	specifier, _, err := Versioning(vn)
+	marshaller, err := Versioning(vn)
 	if err != nil {
 		return err
 	}
 
-  {{- if .Entry}}
-	createSpec, err := specifier(entry)
-  {{- else}}
-	createSpec, err := specifier(config)
+  {{- if .Entry }}
+	createSpec, err := marshaller.Specify(entry)
+  {{- else }}
+	createSpec, err := marshaller.Specify(config)
   {{- end}}
 	if err != nil {
 		return err
@@ -296,10 +296,12 @@ func (s *Service) {{ $funcDef }} {
 	return errors.UnsupportedMethodError
 {{- else }}
 	vn := s.client.Versioning()
-	_, normalizer, err := Versioning(vn)
+	marshaller, err := Versioning(vn)
 	if err != nil {
 		return nil, err
 	}
+
+	normalizer := marshaller.NewNormalizer().(Normalizer)
 
 	cmd := &xmlapi.Config{
 		Action: action,
@@ -413,7 +415,7 @@ func (s *Service) UpdateWithXpath(ctx context.Context, xpath string, entry *{{ $
 {{- else }}
 	vn := s.client.Versioning()
 	updates := xmlapi.NewMultiConfig(2)
-	specifier, _, err := Versioning(vn)
+	marshaller, err := Versioning(vn)
 	if err != nil {
 		return err
 	}
@@ -452,7 +454,7 @@ func (s *Service) UpdateWithXpath(ctx context.Context, xpath string, entry *{{ $
         		return nil
 		}
 
-			updateSpec, err := specifier(entry)
+		updateSpec, err := marshaller.Specify(entry)
 		if err != nil {
 			return err
 		}
@@ -474,7 +476,7 @@ func (s *Service) UpdateWithXpath(ctx context.Context, xpath string, entry *{{ $
         	return nil
 	}
 
-	updateSpec, err := specifier(entry)
+	updateSpec, err := marshaller.Specify(entry)
 	if err != nil {
 		return err
 	}
@@ -676,6 +678,305 @@ return err
 {{- end }}
 }
 
+{{- if .Entry}}
+// ========================================
+// PARTIAL FIELD OPERATIONS METHODS
+// ========================================
+
+// CreateWithOptions creates a new entry with selective field marshalling.
+// Use WithFields() to specify which top-level fields to include in the request.
+// Reduces payload size and bandwidth usage for large entry types.
+func (s *Service) CreateWithOptions(ctx context.Context, loc Location, entry *Entry, opts ...CRUDOption) (*Entry, error) {
+	if entry.Name == "" {
+		return nil, errors.NameNotSpecifiedError
+	}
+
+	options := &CRUDOptions{}
+	for _, opt := range opts {
+		opt(options)
+	}
+
+	vn := s.client.Versioning()
+	path, err := loc.XpathWithComponents(vn, util.AsEntryXpath(entry.Name))
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.CreateWithXpathAndOptions(ctx, util.AsXpath(path[:len(path)-1]), entry, options)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.ReadWithXpath(ctx, util.AsXpath(path), "get")
+}
+
+func (s *Service) CreateWithXpathAndOptions(ctx context.Context, xpath string, entry *Entry, options *CRUDOptions) error {
+{{- if not (SupportedMethod "create") }}
+	return errors.UnsupportedMethodError
+{{- else }}
+	vn := s.client.Versioning()
+	marshaller, err := Versioning(vn)
+	if err != nil {
+		return err
+	}
+
+	// Apply version filtering if field selection is enabled
+	if options != nil && options.fields != nil {
+		filtered, err := marshaller.FilterFields(options.fields.fields, options.strictVersionCheck)
+		if err != nil {
+			return err
+		}
+		options.fields.fields = filtered
+	}
+
+	// Use dual-mode specification based on field selection
+	var createSpec any
+	if options != nil && options.fields != nil && len(options.fields.fields) > 0 {
+		// Partial field create - use SpecifyWithFields for partial XML
+		createSpec, err = marshaller.SpecifyWithFields(entry, options.fields)
+	} else {
+		// Full create - use Specify for complete XML
+		createSpec, err = marshaller.Specify(entry)
+	}
+	if err != nil {
+		return err
+	}
+
+	cmd := &xmlapi.Config{
+		Action:  "set",
+		Xpath:   xpath,
+		Element: createSpec,
+		Target:  s.client.GetTarget(),
+	}
+
+	if _, _, err = s.client.Communicate(ctx, cmd, false, nil); err != nil {
+		return err
+	}
+
+	return nil
+{{- end }}
+}
+
+// ReadWithOptions retrieves an entry with selective field filtering using XPath wildcards.
+// Use WithFields() to specify which top-level fields to retrieve from PAN-OS.
+// Server-side filtering significantly reduces payload size for entries with large nested configurations.
+func (s *Service) ReadWithOptions(ctx context.Context, loc Location, name, action string, opts ...CRUDOption) (*Entry, error) {
+	if name == "" {
+		return nil, errors.NameNotSpecifiedError
+	}
+
+	options := &CRUDOptions{}
+	for _, opt := range opts {
+		opt(options)
+	}
+
+	vn := s.client.Versioning()
+	path, err := loc.XpathWithComponents(vn, util.AsEntryXpath(name))
+	if err != nil {
+		return nil, err
+	}
+
+	{{ if .Entry }}entry{{ else }}config{{ end }}, err := s.ReadWithXpathAndOptions(ctx, util.AsXpath(path), action, options)
+	if err != nil {
+		return nil, err
+	}
+	{{ if .Entry }}
+	// Set name manually (not present in partial field read response)
+	if options != nil && options.fields != nil && options.fields.mode == FieldModeInclude && len(options.fields.fields) > 0 {
+		entry.Name = name
+	}
+	{{ end }}
+	return {{ if .Entry }}entry{{ else }}config{{ end }}, nil
+}
+
+func (s *Service) ReadWithXpathAndOptions(ctx context.Context, xpath string, action string, options *CRUDOptions) (*Entry, error) {
+{{- if not (SupportedMethod "read") }}
+	return nil, errors.UnsupportedMethodError
+{{- else }}
+	vn := s.client.Versioning()
+	marshaller, err := Versioning(vn)
+	if err != nil {
+		return nil, err
+	}
+
+	// Apply version filtering via marshaller
+	if options != nil && options.fields != nil {
+		filtered, err := marshaller.FilterFields(options.fields.fields, options.strictVersionCheck)
+		if err != nil {
+			return nil, err
+		}
+		options.fields.fields = filtered
+	}
+
+	// Build XPath with wildcard predicate for field selection
+	queryXpath := xpath
+	if options != nil && options.fields != nil && options.fields.mode == FieldModeInclude && len(options.fields.fields) > 0 {
+		queryXpath = buildFieldPartialXpath(xpath, options.fields)
+	}
+
+	// Create normalizer container for Communicate
+	normalizer := marshaller.NewNormalizer().(Normalizer)
+
+	cmd := &xmlapi.Config{
+		Action: action,
+		Xpath:  queryXpath,
+		Target: s.client.GetTarget(),
+	}
+
+	if _, _, err = s.client.Communicate(ctx, cmd, true, normalizer); err != nil {
+		if err.Error() == "No such node" && action == "show" {
+			return nil, errors.ObjectNotFound()
+		}
+		return nil, err
+	}
+
+	// Use dual-mode normalization based on whether this is a partial field read
+	if options != nil && options.fields != nil && options.fields.mode == FieldModeInclude && len(options.fields.fields) > 0 {
+		// Partial field read with XPath wildcards - response has unwrapped fields
+		// Name will be zero value - caller must set it if needed
+		return normalizer.NormalizeWithFields(options.fields)
+	}
+
+	// Full read - response has entry wrapper
+	list, err := normalizer.Normalize()
+	if err != nil {
+		return nil, err
+	} else if len(list) != 1 {
+		return nil, fmt.Errorf("expected to %q 1 entry, got %d", action, len(list))
+	}
+
+	return list[0], nil
+{{- end }}
+}
+
+// UpdateWithOptions updates an entry with selective field modifications.
+// Use WithFields() to specify which top-level fields to update.
+// Uses "set" action for non-nil fields and "delete" action for nil fields.
+func (s *Service) UpdateWithOptions(ctx context.Context, loc Location, entry *Entry, name string, opts ...CRUDOption) (*Entry, error) {
+	if entry.Name == "" {
+		return nil, errors.NameNotSpecifiedError
+	}
+
+	options := &CRUDOptions{}
+	for _, opt := range opts {
+		opt(options)
+	}
+
+	vn := s.client.Versioning()
+	xpath, err := loc.XpathWithComponents(vn, util.AsEntryXpath(entry.Name))
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.UpdateWithXpathAndOptions(ctx, util.AsXpath(xpath), entry, name, options)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.ReadWithXpath(ctx, util.AsXpath(xpath), "get")
+}
+
+func (s *Service) UpdateWithXpathAndOptions(ctx context.Context, xpath string, entry *Entry, name string, options *CRUDOptions) error {
+{{- if not (SupportedMethod "update") }}
+	return errors.UnsupportedMethodError
+{{- else }}
+	if options == nil || options.fields == nil || len(options.fields.fields) == 0 {
+		return fmt.Errorf("field selection required for UpdateWithOptions")
+	}
+
+	vn := s.client.Versioning()
+	marshaller, err := Versioning(vn)
+	if err != nil {
+		return err
+	}
+
+	// Apply version filtering via marshaller
+	filtered, err := marshaller.FilterFields(options.fields.fields, options.strictVersionCheck)
+	if err != nil {
+		return err
+	}
+	options.fields.fields = filtered
+
+	// Separate fields into SET and DELETE operations
+	var setFields []string
+	var deleteFields []string
+
+	for fieldName := range options.fields.fields {
+		if entry.IsFieldNilOrEmpty(fieldName) {
+			deleteFields = append(deleteFields, fieldName)
+		} else {
+			setFields = append(setFields, fieldName)
+		}
+	}
+
+	// Build multi-config request
+	updates := xmlapi.NewMultiConfig(2)
+
+	// Add SET operation for non-nil fields
+	if len(setFields) > 0 {
+		setFieldOpt := &FieldOption{
+			fields: make(map[string]bool),
+			mode:   FieldModeInclude,
+		}
+		for _, f := range setFields {
+			setFieldOpt.fields[f] = true
+		}
+
+		// Use SpecifyWithFields for partial field marshalling (partial XML without entry wrapper)
+		partialSpec, err := marshaller.SpecifyWithFields(entry, setFieldOpt)
+		if err != nil {
+			return err
+		}
+
+		updates.Add(&xmlapi.Config{
+			Action:  "set",
+			Xpath:   xpath,
+			Element: partialSpec,
+			Target:  s.client.GetTarget(),
+		})
+	}
+
+	// Add DELETE operations for nil/empty fields
+	for _, fieldName := range deleteFields {
+		// fieldName is already the XML element name (no translation needed)
+		deleteXpath := fmt.Sprintf("%s/%s", xpath, fieldName)
+		updates.Add(&xmlapi.Config{
+			Action:  "delete",
+			Xpath:   deleteXpath,
+			Target:  s.client.GetTarget(),
+		})
+	}
+
+	// Execute multi-config if we have operations
+	if len(updates.Operations) > 0 {
+		if _, _, _, err = s.client.MultiConfig(ctx, updates, false, nil); err != nil {
+			return err
+		}
+	}
+
+	return nil
+{{- end }}
+}
+
+// buildFieldPartialXpath builds an XPath with wildcard predicate for partial field reads.
+// Example: /config/.../entry[@name='test']/*[name()='description' or name()='tag']
+func buildFieldPartialXpath(baseXpath string, fieldOpt *FieldOption) string {
+	if fieldOpt == nil || len(fieldOpt.fields) == 0 {
+		return baseXpath
+	}
+
+	var conditions []string
+	for fieldName := range fieldOpt.fields {
+		// fieldName is already the XML element name (no translation needed)
+		conditions = append(conditions, fmt.Sprintf("name()='%s'", fieldName))
+	}
+
+	predicate := strings.Join(conditions, " or ")
+	return fmt.Sprintf("%s/*[%s]", baseXpath, predicate)
+}
+
+{{- end}}
+
 {{- if false }}
 // RemoveFromImport removes the given config object from import
 func (s *Service) RemoveFromImport(ctx context.Context, loc Location, entry Entry) error {
@@ -733,10 +1034,12 @@ func (s *Service) ListWithXpath(ctx context.Context, xpath string, action, filte
 
 	vn := s.client.Versioning()
 
-   	_, normalizer, err := Versioning(vn)
+	marshaller, err := Versioning(vn)
 	if err != nil {
 		return nil, err
 	}
+
+	normalizer := marshaller.NewNormalizer().(Normalizer)
 
 	cmd := &xmlapi.Config{
 		Action: action,

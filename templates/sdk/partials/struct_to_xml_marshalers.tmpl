@@ -1,38 +1,197 @@
 {{- range .Specs }}
   {{- if .IsXmlContainer }}{{ continue }}{{ end }}
+  {{- if .TopLevel }}
+// marshalFields contains the shared marshalling logic for all fields (used by both full and partial structs).
+func (o *{{ .XmlFieldsStructName }}) marshalFields(s {{ .StructName }}, fieldOpt *FieldOption) {
+  {{- range .Fields }}
+    {{- if .IsInternal }}{{ continue }}{{- end }}
+    {{- if eq .Name.CamelCase "Name" }}{{ continue }}{{ end }}
+    {{- if eq .Name.CamelCase "Misc" }}{{ continue }}{{ end }}
+    {{- if eq .Name.CamelCase "MiscAttributes" }}{{ continue }}{{ end }}
+	if shouldMarshalField("{{ .Name.Original }}", fieldOpt) {
+    {{- if eq .FieldType "object" }}
+		if s.{{ .Name.CamelCase }} != nil {
+			var obj {{ .XmlType }}
+			obj.MarshalFromObject(*s.{{ .Name.CamelCase }})
+			o.{{ .Name.CamelCase }} = &obj
+		}
+    {{-  else if eq .FieldType "list-member" }}
+      {{- if eq .ItemsType "[]string" }}
+		if s.{{ .Name.CamelCase }} != nil {
+			o.{{ .Name.CamelCase }} = util.StrToMem(s.{{ .Name.CamelCase }})
+		}
+      {{- else if eq .ItemsType "[]int64" }}
+		if s.{{ .Name.CamelCase }} != nil {
+			o.{{ .Name.CamelCase }} = util.Int64ToMem(s.{{ .Name.CamelCase }})
+		}
+      {{- end }}
+    {{- else if eq .FieldType "list-entry" }}
+		if s.{{ .Name.CamelCase }} != nil {
+			var objs {{ .ItemsXmlType }}
+			for _, elt := range s.{{ .Name.CamelCase }} {
+				var obj {{ .XmlType }}
+				obj.MarshalFromObject(elt)
+				objs = append(objs, obj)
+			}
+			o.{{ .Name.CamelCase }} = &{{ .XmlContainerType }}{ Entries: objs }
+		}
+    {{- else if and (eq .FieldType "simple") (eq .Type "bool") }}
+		o.{{ .Name.CamelCase }} = util.YesNo(s.{{ .Name.CamelCase }}, nil)
+    {{- else }}
+		o.{{ .Name.CamelCase }} = s.{{ .Name.CamelCase }}
+    {{- end }}
+	}
+  {{- end }}
+}
+
+// MarshalFromObject marshals all fields from the Entry struct (standard full operation).
+func (o *{{ .XmlStructName }}) MarshalFromObject(s {{ .StructName }}) {
+  {{- if and .TopLevel (eq $.EntryOrConfig "Entry") }}
+	o.Name = s.Name
+  {{- end }}
+	o.{{ .XmlFieldsStructName }}.marshalFields(s, nil)
+	o.Misc = s.Misc
+	o.MiscAttributes = s.MiscAttributes
+}
+
+// MarshalFromObjectWithFields marshals only selected fields from the Entry struct (for partial field operations).
+// Used by the partial XML struct for partial field create/update operations with the "set" action.
+func (o *{{ .XmlPartialStructName }}) MarshalFromObjectWithFields(s {{ .StructName }}, fieldOpt *FieldOption) {
+	o.{{ .XmlFieldsStructName }}.marshalFields(s, fieldOpt)
+}
+
+// MarshalXML implements custom XML marshalling for partial struct to output fields without wrapper.
+// This is required for PAN-OS "set" action which expects raw field elements, not wrapped in <entry>.
+func (o {{ .XmlPartialStructName }}) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	// Marshal each field directly without any wrapper element
+  {{- range .Fields }}
+    {{- if .IsInternal }}{{ continue }}{{- end }}
+    {{- if eq .Name.CamelCase "Name" }}{{ continue }}{{ end }}
+    {{- if eq .Name.CamelCase "Misc" }}{{ continue }}{{ end }}
+    {{- if eq .Name.CamelCase "MiscAttributes" }}{{ continue }}{{ end }}
+	if o.{{ .Name.CamelCase }} != nil {
+		if err := e.EncodeElement(o.{{ .Name.CamelCase }}, xml.StartElement{Name: xml.Name{Local: "{{ .Name.Original }}"}}); err != nil {
+			return err
+		}
+	}
+  {{- end }}
+	return nil
+}
+
+// UnmarshalToObject unmarshals all fields from XML to Entry struct (standard full operation).
+func (o {{ .XmlStructName }}) UnmarshalToObject() (*{{ .StructName }}, error) {
+	return o.UnmarshalToObjectWithFields(nil)
+}
+
+// UnmarshalToObjectWithFields unmarshals only selected fields from XML to Entry struct.
+// Used for partial field READ operations where only certain fields were requested via XPath wildcards.
+// When fieldOpt is nil, all fields are unmarshalled (same as UnmarshalToObject).
+func (o {{ .XmlStructName }}) UnmarshalToObjectWithFields(fieldOpt *FieldOption) (*{{ .StructName }}, error) {
+  {{- range .Fields }}
+    {{- if .IsInternal }}{{ continue }}{{- end }}
+    {{- if eq .Name.CamelCase "Name" }}{{ continue }}{{ end }}
+    {{- if eq .Name.CamelCase "Misc" }}{{ continue }}{{ end }}
+    {{- if eq .Name.CamelCase "MiscAttributes" }}{{ continue }}{{ end }}
+    {{- if eq .FieldType "object" }}
+	var {{ .Name.LowerCamelCase }}Val {{ .FinalType }}
+	if shouldMarshalField("{{ .Name.Original }}", fieldOpt) && o.{{ .Name.CamelCase }} != nil {
+		obj, err := o.{{ .Name.CamelCase }}.UnmarshalToObject()
+		if err != nil {
+			return nil, err
+		}
+		{{ .Name.LowerCamelCase }}Val = obj
+	}
+    {{- else if eq .FieldType "list-member" }}
+	var {{ .Name.LowerCamelCase }}Val {{ .FinalType }}
+	if shouldMarshalField("{{ .Name.Original }}", fieldOpt) {
+      {{- if eq .ItemsType "[]string" }}
+		if o.{{ .Name.CamelCase }} != nil {
+			{{ .Name.LowerCamelCase }}Val = util.MemToStr(o.{{ .Name.CamelCase }})
+		}
+      {{- else if eq .ItemsType "[]int64" }}
+		if o.{{ .Name.CamelCase }} != nil {
+			var err error
+			{{ .Name.LowerCamelCase }}Val, err = util.MemToInt64(o.{{ .Name.CamelCase }})
+			if err != nil && !errors.Is(err, util.ErrEmptyMemberList) {
+				return nil, err
+			}
+		}
+      {{- end }}
+	}
+    {{- else if eq .FieldType "list-entry" }}
+	var {{ .Name.LowerCamelCase }}Val {{ .FinalType }}
+	if shouldMarshalField("{{ .Name.Original }}", fieldOpt) && o.{{ .Name.CamelCase }} != nil {
+		for _, elt := range o.{{ .Name.CamelCase }}.Entries {
+			obj, err := elt.UnmarshalToObject()
+			if err != nil {
+				return nil, err
+			}
+			{{ .Name.LowerCamelCase }}Val = append({{ .Name.LowerCamelCase }}Val, *obj)
+		}
+	}
+    {{- else }}
+	var {{ .Name.LowerCamelCase }}Val {{ .FinalType }}
+	if shouldMarshalField("{{ .Name.Original }}", fieldOpt) {
+      {{- if and (eq .FieldType "simple") (eq .Type "bool") }}
+		{{ .Name.LowerCamelCase }}Val = util.AsBool(o.{{ .Name.CamelCase }}, nil)
+      {{- else }}
+		{{ .Name.LowerCamelCase }}Val = o.{{ .Name.CamelCase }}
+      {{- end }}
+	}
+    {{- end }}
+  {{- end }}
+
+	result := &{{ .StructName }}{
+  {{- if and .TopLevel (eq $.EntryOrConfig "Entry") }}
+		Name: o.Name,
+  {{- end }}
+  {{- range .Fields }}
+    {{- if .IsInternal }}{{- continue }}{{- end }}
+    {{- if eq .Name.CamelCase "Name" }}{{ continue }}{{ end }}
+    {{- if eq .Name.CamelCase "Misc" }}{{ continue }}{{ end }}
+    {{- if eq .Name.CamelCase "MiscAttributes" }}{{ continue }}{{ end }}
+		{{ .Name.CamelCase }}: {{ .Name.LowerCamelCase }}Val,
+  {{- end }}
+		Misc: o.Misc,
+		MiscAttributes: o.MiscAttributes,
+	}
+	return result, nil
+}
+  {{- else }}
+// Non-top-level struct marshalling (no embedded fields pattern)
 func (o *{{ .XmlStructName }}) MarshalFromObject(s {{ .StructName }}) {
   {{- range .Fields }}
     {{- if .IsInternal }}{{ continue }}{{- end }}
     {{- if eq .FieldType "object" }}
-	if s.{{ .Name.CamelCase }} != nil {
-		var obj {{ .XmlType }}
-		obj.MarshalFromObject(*s.{{ .Name.CamelCase }})
-		o.{{ .Name.CamelCase }} = &obj
-	}
+		if s.{{ .Name.CamelCase }} != nil {
+			var obj {{ .XmlType }}
+			obj.MarshalFromObject(*s.{{ .Name.CamelCase }})
+			o.{{ .Name.CamelCase }} = &obj
+		}
     {{-  else if eq .FieldType "list-member" }}
       {{- if eq .ItemsType "[]string" }}
-	if s.{{ .Name.CamelCase }} != nil {
-		o.{{ .Name.CamelCase }} = util.StrToMem(s.{{ .Name.CamelCase }})
-	}
+		if s.{{ .Name.CamelCase }} != nil {
+			o.{{ .Name.CamelCase }} = util.StrToMem(s.{{ .Name.CamelCase }})
+		}
       {{- else if eq .ItemsType "[]int64" }}
-	if s.{{ .Name.CamelCase }} != nil {
-		o.{{ .Name.CamelCase }} = util.Int64ToMem(s.{{ .Name.CamelCase }})
-	}
+		if s.{{ .Name.CamelCase }} != nil {
+			o.{{ .Name.CamelCase }} = util.Int64ToMem(s.{{ .Name.CamelCase }})
+		}
       {{- end }}
     {{- else if eq .FieldType "list-entry" }}
-	if s.{{ .Name.CamelCase }} != nil {
-		var objs {{ .ItemsXmlType }}
-		for _, elt := range s.{{ .Name.CamelCase }} {
-			var obj {{ .XmlType }}
-			obj.MarshalFromObject(elt)
-			objs = append(objs, obj)
+		if s.{{ .Name.CamelCase }} != nil {
+			var objs {{ .ItemsXmlType }}
+			for _, elt := range s.{{ .Name.CamelCase }} {
+				var obj {{ .XmlType }}
+				obj.MarshalFromObject(elt)
+				objs = append(objs, obj)
+			}
+			o.{{ .Name.CamelCase }} = &{{ .XmlContainerType }}{ Entries: objs }
 		}
-		o.{{ .Name.CamelCase }} = &{{ .XmlContainerType }}{ Entries: objs }
-	}
     {{- else if and (eq .FieldType "simple") (eq .Type "bool") }}
-	o.{{ .Name.CamelCase }} = util.YesNo(s.{{ .Name.CamelCase }}, nil)
+		o.{{ .Name.CamelCase }} = util.YesNo(s.{{ .Name.CamelCase }}, nil)
     {{- else }}
-	o.{{ .Name.CamelCase }} = s.{{ .Name.CamelCase }}
+		o.{{ .Name.CamelCase }} = s.{{ .Name.CamelCase }}
     {{- end }}
   {{- end }}
 }
@@ -92,4 +251,5 @@ func (o {{ .XmlStructName }}) UnmarshalToObject() (*{{ .StructName }}, error) {
 	}
 	return result, nil
 }
+  {{- end }}
 {{- end }}

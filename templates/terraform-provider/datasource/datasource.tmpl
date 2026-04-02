@@ -75,78 +75,57 @@ func (d *{{ dataSourceStructName }}) Configure(_ context.Context, req datasource
 	}
 	d.custom = custom
 {{- else if and IsEntry HasImports }}
-	specifier, _, err := {{ resourceSDKName }}.Versioning(d.client.Versioning())
+	marshaller, err := {{ resourceSDKName }}.Versioning(d.client.Versioning())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
 		return
 	}
 
-	// Create normalizer factory that returns fresh instances for thread-safe deep copies
-	normalizerFactory := func() sdkmanager.Normalizer[*{{ resourceSDKName }}.Entry] {
-		_, normalizer, _ := {{ resourceSDKName }}.Versioning(d.client.Versioning())
-		return normalizer
-	}
-
 	cache := GetOrCreateCache[*{{ resourceSDKName }}.Entry](
 		providerData,
 		"{{ metaName }}",
-		normalizerFactory,
-		specifier,
+		marshaller,
 		{{ .TerraformProviderConfig.ExperimentalCacheEnabled }},
 	)
 
-	d.manager =  sdkmanager.NewImportableEntryObjectManager(d.client, {{ resourceSDKName }}.NewService(d.client), providerData.BatchingConfig, cache, specifier, {{ resourceSDKName }}.SpecMatches)
+	d.manager =  sdkmanager.NewImportableEntryObjectManager(d.client, {{ resourceSDKName }}.NewService(d.client), providerData.BatchingConfig, cache, marshaller, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsEntry }}
-	specifier, _, err := {{ resourceSDKName }}.Versioning(d.client.Versioning())
+	marshaller, err := {{ resourceSDKName }}.Versioning(d.client.Versioning())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
 		return
 	}
 
-	// Create normalizer factory that returns fresh instances for thread-safe deep copies
-	normalizerFactory := func() sdkmanager.Normalizer[*{{ resourceSDKName }}.Entry] {
-		_, normalizer, _ := {{ resourceSDKName }}.Versioning(d.client.Versioning())
-		return normalizer
-	}
-
 	cache := GetOrCreateCache[*{{ resourceSDKName }}.Entry](
 		providerData,
 		"{{ metaName }}",
-		normalizerFactory,
-		specifier,
+		marshaller,
 		{{ .TerraformProviderConfig.ExperimentalCacheEnabled }},
 	)
 
-	d.manager =  sdkmanager.NewEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](d.client, {{ resourceSDKName }}.NewService(d.client), providerData.BatchingConfig, cache, specifier, {{ resourceSDKName }}.SpecMatches)
+	d.manager =  sdkmanager.NewEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](d.client, {{ resourceSDKName }}.NewService(d.client), providerData.BatchingConfig, cache, marshaller, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsUuid }}
-	specifier, _, err := {{ resourceSDKName }}.Versioning(d.client.Versioning())
+	marshaller, err := {{ resourceSDKName }}.Versioning(d.client.Versioning())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
 		return
-	}
-
-	// Create normalizer factory that returns fresh instances for thread-safe deep copies
-	normalizerFactory := func() sdkmanager.Normalizer[*{{ resourceSDKName }}.Entry] {
-		_, normalizer, _ := {{ resourceSDKName }}.Versioning(d.client.Versioning())
-		return normalizer
 	}
 
 	cache := GetOrCreateCache[*{{ resourceSDKName }}.Entry](
 		providerData,
 		"{{ metaName }}",
-		normalizerFactory,
-		specifier,
+		marshaller,
 		{{ .TerraformProviderConfig.ExperimentalCacheEnabled }},
 	)
 
-	d.manager =  sdkmanager.NewUuidObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](d.client, {{ resourceSDKName }}.NewService(d.client), providerData.BatchingConfig, cache, specifier, {{ resourceSDKName }}.SpecMatches)
+	d.manager =  sdkmanager.NewUuidObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service](d.client, {{ resourceSDKName }}.NewService(d.client), providerData.BatchingConfig, cache, marshaller, {{ resourceSDKName }}.SpecMatches)
 {{- else if IsConfig }}
-	specifier, _, err := {{ resourceSDKName }}.Versioning(d.client.Versioning())
+	marshaller, err := {{ resourceSDKName }}.Versioning(d.client.Versioning())
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
 		return
 	}
-	d.manager =  sdkmanager.NewConfigObjectManager(d.client, {{ resourceSDKName }}.NewService(d.client), specifier)
+	d.manager =  sdkmanager.NewConfigObjectManager(d.client, {{ resourceSDKName }}.NewService(d.client), marshaller)
 {{- end }}
 }
 

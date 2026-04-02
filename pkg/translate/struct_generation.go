@@ -74,6 +74,7 @@ type entryStructContext struct {
 	TopLevel       bool
 	IsXmlContainer bool
 	Fields         []entryStructFieldContext
+	XmlTag         string  // XML tag for container unmarshalling (e.g., "entry", "system")
 
 	version *version.Version
 	name    *properties.NameVariant
@@ -93,6 +94,14 @@ func (o entryStructContext) StructName() string {
 
 func (o entryStructContext) XmlStructName() string {
 	return o.name.LowerCamelCase + "Xml" + o.versionSuffix()
+}
+
+func (o entryStructContext) XmlFieldsStructName() string {
+	return o.name.LowerCamelCase + "XmlFields" + o.versionSuffix()
+}
+
+func (o entryStructContext) XmlPartialStructName() string {
+	return o.name.LowerCamelCase + "XmlPartial" + o.versionSuffix()
 }
 
 func (o entryStructContext) XmlContainerStructName() string {
@@ -281,6 +290,23 @@ func creasteStructSpecsForNormalization(structTyp structType, parentPrefix *prop
 	var entries []entryStructContext
 	var fields []entryStructFieldContext
 
+	// Determine XML tag for container unmarshalling
+	var xmlTag string
+	if spec.TerraformProviderConfig.XmlNode != nil {
+		xmlTag = *spec.TerraformProviderConfig.XmlNode
+	} else {
+		switch spec.TerraformProviderConfig.ResourceType {
+		case properties.TerraformResourceEntry, properties.TerraformResourceUuid:
+			xmlTag = "entry"
+		case properties.TerraformResourceConfig:
+			xmlTag = "system"
+		case properties.TerraformResourceCustom:
+			fallthrough
+		default:
+			panic(fmt.Sprintf("unreachable resource type: '%s'", spec.TerraformProviderConfig.ResourceType))
+		}
+	}
+
 	if structTyp == structXmlType {
 		var xmlTags string
 		if spec.TerraformProviderConfig.XmlNode != nil {
@@ -401,6 +427,7 @@ func creasteStructSpecsForNormalization(structTyp structType, parentPrefix *prop
 	entries = append([]entryStructContext{{
 		TopLevel: true,
 		Fields:   fields,
+		XmlTag:   xmlTag,
 		name:     name,
 		version:  version,
 	}}, entries...)
@@ -464,6 +491,59 @@ func RenderEntryXmlStructs(spec *properties.Normalization) (string, error) {
 
 	var builder strings.Builder
 	if err := tmpl.Execute(&builder, data); err != nil {
+		return "", err
+	}
+
+	return builder.String(), nil
+}
+
+// RenderFieldOptions generates field selection types and helper functions.
+func RenderFieldOptions() (string, error) {
+	tmplContent, err := loadTemplate("partials/field_options.tmpl")
+	if err != nil {
+		return "", err
+	}
+
+	return tmplContent, nil
+}
+
+func RenderXmlMarshaller(spec *properties.Normalization) (string, error) {
+	tmplContent, err := loadTemplate("partials/xml_marshaller.tmpl")
+	if err != nil {
+		return "", err
+	}
+
+	tmpl, err := template.New("render-xml-marshaller").Parse(tmplContent)
+	if err != nil {
+		return "", err
+	}
+
+	var builder strings.Builder
+	if err := tmpl.Execute(&builder, spec); err != nil {
+		return "", err
+	}
+
+	return builder.String(), nil
+}
+
+// RenderEntryFieldHelpers generates field introspection helpers for Entry struct.
+func RenderEntryFieldHelpers(spec *properties.Normalization) (string, error) {
+	tmplContent, err := loadTemplate("partials/entry_field_helpers.tmpl")
+	if err != nil {
+		return "", err
+	}
+
+	funcMap := template.FuncMap{
+		"paramNotSkipped": ParamNotSkippedTmpl,
+	}
+
+	tmpl, err := template.New("render-entry-field-helpers").Funcs(funcMap).Parse(tmplContent)
+	if err != nil {
+		return "", err
+	}
+
+	var builder strings.Builder
+	if err := tmpl.Execute(&builder, spec); err != nil {
 		return "", err
 	}
 

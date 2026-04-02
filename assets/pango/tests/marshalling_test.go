@@ -14,16 +14,16 @@ import (
 
 var _ = Describe("XML Marshalling and Unmarshalling tests", func() {
 	version, _ := version.New("11.0.0")
-	var specifier application.Specifier
-	var normalizer application.Normalizer
+	var marshaller application.XmlMarshaller
 
 	JustBeforeEach(func() {
-		specifier, normalizer, _ = application.Versioning(version)
+		marshaller, _ = application.Versioning(version)
 	})
 	Context("When unmarshalling XML document with no unknown nodes", func() {
 		Context("within top-level object", func() {
 			It("should return an Entry object with empty Misc field", func() {
 				data := []byte(`<result><entry name="app-1"></entry></result>`)
+				normalizer := marshaller.NewNormalizer().(application.Normalizer)
 				err := xml.Unmarshal(data, &normalizer)
 				Expect(err).To(Not(HaveOccurred()))
 
@@ -40,6 +40,7 @@ var _ = Describe("XML Marshalling and Unmarshalling tests", func() {
 				data := []byte(`<entry name="app-1"><default><ident-by-ip-protocol>test-protocol</ident-by-ip-protocol></default></entry>`)
 
 				marshalled := []byte(fmt.Sprintf("<result>%s</result>", string(data)))
+				normalizer := marshaller.NewNormalizer().(application.Normalizer)
 				err := xml.Unmarshal(marshalled, &normalizer)
 				Expect(err).To(Not(HaveOccurred()))
 
@@ -54,7 +55,7 @@ var _ = Describe("XML Marshalling and Unmarshalling tests", func() {
 				Expect(*entries[0].Default.IdentByIpProtocol).To(Equal("test-protocol"))
 				Expect(entries[0].Default.Misc).To(HaveLen(0))
 
-				specified, err := specifier(entries[0])
+				specified, err := marshaller.Specify(entries[0])
 				Expect(err).To(Not(HaveOccurred()))
 
 				marshalled, err = xml.Marshal(specified)
@@ -67,6 +68,7 @@ var _ = Describe("XML Marshalling and Unmarshalling tests", func() {
 				data := []byte(`<entry name="app-1"><signature><entry name="signature-1"><order-free>yes</order-free></entry></signature></entry>`)
 
 				marshalled := []byte(fmt.Sprintf("<result>%s</result>", string(data)))
+				normalizer := marshaller.NewNormalizer().(application.Normalizer)
 				err := xml.Unmarshal(marshalled, &normalizer)
 				Expect(err).To(Not(HaveOccurred()))
 
@@ -82,7 +84,7 @@ var _ = Describe("XML Marshalling and Unmarshalling tests", func() {
 				Expect(*entries[0].Signature[0].OrderFree).To(BeTrue())
 				Expect(entries[0].Signature[0].Misc).To(HaveLen(0))
 
-				specified, err := specifier(entries[0])
+				specified, err := marshaller.Specify(entries[0])
 				Expect(err).To(Not(HaveOccurred()))
 
 				marshalled, err = xml.Marshal(specified)
@@ -107,6 +109,7 @@ var _ = Describe("XML Marshalling and Unmarshalling tests", func() {
 		Context("within top-level object", func() {
 			It("should return an Entry object with a non-empty Misc field", func() {
 				data := []byte(`<result><entry name="address-1"><fake-node>fake-text</fake-node></entry></result>`)
+				normalizer := marshaller.NewNormalizer().(application.Normalizer)
 				err := xml.Unmarshal(data, &normalizer)
 				Expect(err).To(Not(HaveOccurred()))
 
@@ -123,6 +126,7 @@ var _ = Describe("XML Marshalling and Unmarshalling tests", func() {
 				data := []byte(`<entry name="app-1"><default><ident-by-ip-protocol>test-protocol</ident-by-ip-protocol><fake-node>fake-text</fake-node></default></entry>`)
 
 				marshalled := []byte(fmt.Sprintf("<result>%s</result>", string(data)))
+				normalizer := marshaller.NewNormalizer().(application.Normalizer)
 				err := xml.Unmarshal(marshalled, &normalizer)
 				Expect(err).To(Not(HaveOccurred()))
 
@@ -137,7 +141,7 @@ var _ = Describe("XML Marshalling and Unmarshalling tests", func() {
 				Expect(*entries[0].Default.IdentByIpProtocol).To(Equal("test-protocol"))
 				Expect(entries[0].Default.Misc).To(HaveExactElements(expectedXmlNodes))
 
-				specified, err := specifier(entries[0])
+				specified, err := marshaller.Specify(entries[0])
 				Expect(err).To(Not(HaveOccurred()))
 
 				marshalled, err = xml.Marshal(specified)
@@ -150,6 +154,7 @@ var _ = Describe("XML Marshalling and Unmarshalling tests", func() {
 				data := []byte(`<entry name="app-1"><signature><entry name="signature-1"><order-free>yes</order-free><fake-node>fake-text1</fake-node></entry><entry name="signature-2"><order-free>no</order-free><fake-node>fake-text2</fake-node></entry></signature></entry>`)
 
 				marshalled := []byte(fmt.Sprintf("<result>%s</result>", string(data)))
+				normalizer := marshaller.NewNormalizer().(application.Normalizer)
 				err := xml.Unmarshal(marshalled, &normalizer)
 				Expect(err).To(Not(HaveOccurred()))
 
@@ -184,7 +189,7 @@ var _ = Describe("XML Marshalling and Unmarshalling tests", func() {
 				}
 				Expect(entries[0].Signature[1].Misc).To(HaveExactElements())
 
-				specified, err := specifier(entries[0])
+				specified, err := marshaller.Specify(entries[0])
 				Expect(err).To(Not(HaveOccurred()))
 
 				marshalled, err = xml.Marshal(specified)

@@ -46,24 +46,24 @@ type UuidObjectManager[E UuidObject, L UuidLocation, S SDKUuidService[E, L]] str
 	batchingConfig BatchingConfig
 	service        S
 	client         SDKClient
-	specifier      func(E) (any, error)
+	marshaller     Marshaller[E]
 	matcher        func(E, E) bool
 	batchReader    *BatchReader[E, S]
 }
 
-func NewUuidObjectManager[E UuidObject, L UuidLocation, S SDKUuidService[E, L]](
+func NewUuidObjectManager[E UuidObject, L UuidLocation, S SDKUuidService[E, L], M Marshaller[E]](
 	client SDKClient,
 	service S,
 	batchingConfig BatchingConfig,
 	cache CacheManager[E],
-	specifier func(E) (any, error),
+	marshaller M,
 	matcher func(E, E) bool,
 ) *UuidObjectManager[E, L, S] {
 	mgr := &UuidObjectManager[E, L, S]{
 		batchingConfig: batchingConfig,
 		service:        service,
 		client:         client,
-		specifier:      specifier,
+		marshaller:     marshaller,
 		matcher:        matcher,
 	}
 	mgr.batchReader = NewBatchReader[E, S](service, batchingConfig)
@@ -279,7 +279,7 @@ func (o *UuidObjectManager[E, L, S]) CreateMany(ctx context.Context, location L,
 			return nil, err
 		}
 
-		xmlEntry, err := o.specifier(elt)
+		xmlEntry, err := o.marshaller.Specify(elt)
 		if err != nil {
 			diags.AddError("Failed to transform entry into XML document", err.Error())
 			return nil, ErrMarshaling
@@ -517,7 +517,7 @@ func (o *UuidObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L,
 			return nil, &Error{err: err, message: "failed to create xpath for an existing entry"}
 		}
 
-		xmlEntry, err := o.specifier(elt.Entry)
+		xmlEntry, err := o.marshaller.Specify(elt.Entry)
 		if err != nil {
 			return nil, &Error{err: err, message: "failed to transform entry into xml document"}
 		}

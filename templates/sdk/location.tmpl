@@ -55,6 +55,19 @@ return nil
 
 {{ RenderLocationFilter }}
 
+// SupportsPartialOps returns true if this location type supports partial field operations.
+// Only device-group and template locations support partial field operations.
+func (o Location) SupportsPartialOps() bool {
+{{- range $location := .OrderedLocations}}
+    {{- if or (eq $location.Name.Underscore "device_group") (eq $location.Name.Underscore "template")}}
+    if o.{{$location.Name.CamelCase}} != nil {
+        return true
+    }
+    {{- end}}
+{{- end}}
+    return false
+}
+
 func (o Location) XpathPrefix(vn version.Number) ([]string, error) {
 
 var ans []string

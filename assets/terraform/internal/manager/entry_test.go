@@ -33,7 +33,8 @@ var _ = Describe("Entry", func() {
 		client = NewMockEntryClient(existing)
 		service = NewMockEntryService[*MockEntryObject, MockLocation](client)
 		cache := manager.NewNoOpCacheManager[*MockEntryObject]()
-		sdk = manager.NewEntryObjectManager[*MockEntryObject, MockLocation, *MockEntryService[*MockEntryObject, MockLocation]](client, service, batchingConfig, cache, MockEntrySpecifier, MockEntryMatcher)
+		marshaller := NewMockEntryMarshaller()
+		sdk = manager.NewEntryObjectManager[*MockEntryObject, MockLocation, *MockEntryService[*MockEntryObject, MockLocation]](client, service, batchingConfig, cache, marshaller, MockEntryMatcher)
 	})
 
 	BeforeEach(func() {

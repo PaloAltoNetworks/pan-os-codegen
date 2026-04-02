@@ -198,22 +198,17 @@ type CacheManager[E Entry] interface {
 // ResourceCache provides two-level caching: location XPath → entry name → entry.
 // All methods are NOT thread-safe - caller must handle locking.
 type ResourceCache[E Entry] struct {
-	locations         map[string]*LocationCacheEntry[E]
-	normalizerFactory func() Normalizer[E]
-	specifier         func(E) (any, error)
+	locations  map[string]*LocationCacheEntry[E]
+	marshaller Marshaller[E]
 }
 
 // NewResourceCache creates a new resource cache instance.
-// normalizerFactory: function that creates fresh Normalizer instances for deep copy
-// specifier: used for deep copy (XML marshal)
-func NewResourceCache[E Entry](
-	normalizerFactory func() Normalizer[E],
-	specifier func(E) (any, error),
+func NewResourceCache[E Entry, M Marshaller[E]](
+	marshaller M,
 ) *ResourceCache[E] {
 	return &ResourceCache[E]{
-		locations:         make(map[string]*LocationCacheEntry[E]),
-		normalizerFactory: normalizerFactory,
-		specifier:         specifier,
+		locations:  make(map[string]*LocationCacheEntry[E]),
+		marshaller: marshaller,
 	}
 }
 
@@ -406,8 +401,8 @@ func (c *ResourceCache[E]) Clear() {
 func (c *ResourceCache[E]) deepCopy(ctx context.Context, entry E) (E, error) {
 	tflog.Debug(ctx, "cache: starting deep copy")
 
-	// Phase 1: Marshal entry to XML via Specifier
-	xmlNode, err := c.specifier(entry)
+	// Phase 1: Marshal entry to XML via marshaller
+	xmlNode, err := c.marshaller.Specify(entry)
 	if err != nil {
 		tflog.Trace(ctx, "cache: specifier failed", map[string]any{
 			"error": err.Error(),
@@ -443,9 +438,10 @@ func (c *ResourceCache[E]) deepCopy(ctx context.Context, entry E) (E, error) {
 		"xml_preview": string(xmlBytes),
 	})
 
-	// Phase 2: Unmarshal XML via Normalizer
+	// Phase 2: Unmarshal XML via marshaller.NewNormalizer
 	// Create a fresh normalizer instance to avoid race conditions
-	normalizer := c.normalizerFactory()
+	// Type assert from any to Normalizer[E] - safe because SDK generates compatible types
+	normalizer := c.marshaller.NewNormalizer().(Normalizer[E])
 
 	err = xml.Unmarshal(xmlBytes, normalizer)
 	if err != nil {
@@ -486,11 +482,10 @@ type EnabledCacheManager[E Entry] struct {
 }
 
 // NewEnabledCacheManager creates a new enabled cache manager.
-func NewEnabledCacheManager[E Entry](
-	normalizerFactory func() Normalizer[E],
-	specifier func(E) (any, error),
+func NewEnabledCacheManager[E Entry, M Marshaller[E]](
+	marshaller M,
 ) *EnabledCacheManager[E] {
-	cache := NewResourceCache[E](normalizerFactory, specifier)
+	cache := NewResourceCache[E](marshaller)
 	return &EnabledCacheManager[E]{cache: cache}
 }
 

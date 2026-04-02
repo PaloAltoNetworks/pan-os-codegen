@@ -312,11 +312,20 @@ func (c *Creator) parseTemplate(templateName string) (*template.Template, error)
 		"RenderXmlContainerSpecifiers": func(spec *properties.Normalization) (string, error) {
 			return translate.RenderXmlContainerSpecifiers(spec)
 		},
-		"RenderToXmlMarshallers": func(spec *properties.Normalization) (string, error) {
-			return translate.RenderToXmlMarshalers(spec)
+		"RenderToXmlMarshallers": func() (string, error) {
+			return translate.RenderToXmlMarshalers(c.Spec)
 		},
 		"RenderSpecMatchers": func(spec *properties.Normalization) (string, error) {
 			return translate.RenderSpecMatchers(spec)
+		},
+		"RenderFieldOptions": func() (string, error) {
+			return translate.RenderFieldOptions()
+		},
+		"RenderXmlMarshaller": func() (string, error) {
+			return translate.RenderXmlMarshaller(c.Spec)
+		},
+		"RenderEntryFieldHelpers": func() (string, error) {
+			return translate.RenderEntryFieldHelpers(c.Spec)
 		},
 		"createGoSuffixFromVersion": translate.CreateGoSuffixFromVersionTmpl,
 		"paramNotSkipped":           translate.ParamNotSkippedTmpl,

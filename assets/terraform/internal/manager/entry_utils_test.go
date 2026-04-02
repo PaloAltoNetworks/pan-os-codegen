@@ -222,3 +222,20 @@ type MockEntryNormalizer struct {
 func (n *MockEntryNormalizer) Normalize() ([]*MockEntryObject, error) {
 	return n.Entries, nil
 }
+
+// MockEntryMarshaller combines Normalizer and Specify for testing
+type MockEntryMarshaller struct {
+	MockEntryNormalizer
+}
+
+func (m *MockEntryMarshaller) Specify(entry *MockEntryObject) (any, error) {
+	return MockEntrySpecifier(entry)
+}
+
+func (m *MockEntryMarshaller) NewNormalizer() any {
+	return &MockEntryNormalizer{}
+}
+
+func NewMockEntryMarshaller() *MockEntryMarshaller {
+	return &MockEntryMarshaller{}
+}

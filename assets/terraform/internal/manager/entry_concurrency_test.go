@@ -20,6 +20,7 @@ var _ = Describe("Entry Manager Concurrency", func() {
 	var apiCallCount *atomic.Int32
 	var cache manager.CacheManager[*MockEntryObject]
 	var location MockLocation
+	var marshaller *MockEntryMarshaller
 
 	ctx := context.Background()
 
@@ -43,10 +44,8 @@ var _ = Describe("Entry Manager Concurrency", func() {
 		service = NewMockEntryService[*MockEntryObject, MockLocation](client)
 
 		// Create enabled cache
-		cache = manager.NewEnabledCacheManager[*MockEntryObject](
-			func() manager.Normalizer[*MockEntryObject] { return &MockEntryNormalizer{} },
-			MockEntrySpecifier,
-		)
+		marshaller = NewMockEntryMarshaller()
+		cache = manager.NewEnabledCacheManager(marshaller)
 
 		// Track API calls
 		apiCallCount = &atomic.Int32{}
@@ -55,8 +54,9 @@ var _ = Describe("Entry Manager Concurrency", func() {
 			return client.list(), nil
 		}
 
+		marshaller = NewMockEntryMarshaller()
 		cachedSdk = manager.NewEntryObjectManager[*MockEntryObject, MockLocation, *MockEntryService[*MockEntryObject, MockLocation]](
-			client, service, batchingConfig, cache, MockEntrySpecifier, MockEntryMatcher,
+			client, service, batchingConfig, cache, marshaller, MockEntryMatcher,
 		)
 
 		location = MockLocation{}
@@ -72,10 +72,8 @@ var _ = Describe("Entry Manager Concurrency", func() {
 				client = NewMockEntryClient(existing)
 				service = NewMockEntryService[*MockEntryObject, MockLocation](client)
 
-				cache = manager.NewEnabledCacheManager[*MockEntryObject](
-					func() manager.Normalizer[*MockEntryObject] { return &MockEntryNormalizer{} },
-					MockEntrySpecifier,
-				)
+				marshaller := NewMockEntryMarshaller()
+				cache = manager.NewEnabledCacheManager(marshaller)
 
 				apiCallCount = &atomic.Int32{}
 				service.ListWithXpathFunc = func(ctx context.Context, xpath string, action string, filter string, quote string) ([]*MockEntryObject, error) {
@@ -91,8 +89,9 @@ var _ = Describe("Entry Manager Concurrency", func() {
 					CacheStrategy:        manager.CacheStrategyEnabled,
 				}
 
+				marshaller = NewMockEntryMarshaller()
 				cachedSdk = manager.NewEntryObjectManager[*MockEntryObject, MockLocation, *MockEntryService[*MockEntryObject, MockLocation]](
-					client, service, batchingConfig, cache, MockEntrySpecifier, MockEntryMatcher,
+					client, service, batchingConfig, cache, marshaller, MockEntryMatcher,
 				)
 			})
 
@@ -236,10 +235,8 @@ var _ = Describe("Entry Manager Concurrency", func() {
 				client = NewMockEntryClient(existing)
 				service = NewMockEntryService[*MockEntryObject, MockLocation](client)
 
-				cache = manager.NewEnabledCacheManager[*MockEntryObject](
-					func() manager.Normalizer[*MockEntryObject] { return &MockEntryNormalizer{} },
-					MockEntrySpecifier,
-				)
+				marshaller := NewMockEntryMarshaller()
+				cache = manager.NewEnabledCacheManager(marshaller)
 
 				apiCallCount = &atomic.Int32{}
 				service.ListWithXpathFunc = func(ctx context.Context, xpath string, action string, filter string, quote string) ([]*MockEntryObject, error) {
@@ -255,8 +252,9 @@ var _ = Describe("Entry Manager Concurrency", func() {
 					CacheStrategy:        manager.CacheStrategyEnabled,
 				}
 
+				marshaller = NewMockEntryMarshaller()
 				cachedSdk = manager.NewEntryObjectManager[*MockEntryObject, MockLocation, *MockEntryService[*MockEntryObject, MockLocation]](
-					client, service, batchingConfig, cache, MockEntrySpecifier, MockEntryMatcher,
+					client, service, batchingConfig, cache, marshaller, MockEntryMatcher,
 				)
 			})
 
@@ -301,10 +299,8 @@ var _ = Describe("Entry Manager Concurrency", func() {
 				client = NewMockEntryClient(existing)
 				service = NewMockEntryService[*MockEntryObject, MockLocation](client)
 
-				cache = manager.NewEnabledCacheManager[*MockEntryObject](
-					func() manager.Normalizer[*MockEntryObject] { return &MockEntryNormalizer{} },
-					MockEntrySpecifier,
-				)
+				marshaller := NewMockEntryMarshaller()
+				cache = manager.NewEnabledCacheManager(marshaller)
 
 				apiCallCount = &atomic.Int32{}
 				service.ListWithXpathFunc = func(ctx context.Context, xpath string, action string, filter string, quote string) ([]*MockEntryObject, error) {
@@ -320,8 +316,9 @@ var _ = Describe("Entry Manager Concurrency", func() {
 					CacheStrategy:        manager.CacheStrategyEnabled,
 				}
 
+				marshaller = NewMockEntryMarshaller()
 				cachedSdk = manager.NewEntryObjectManager[*MockEntryObject, MockLocation, *MockEntryService[*MockEntryObject, MockLocation]](
-					client, service, batchingConfig, cache, MockEntrySpecifier, MockEntryMatcher,
+					client, service, batchingConfig, cache, marshaller, MockEntryMatcher,
 				)
 			})
 

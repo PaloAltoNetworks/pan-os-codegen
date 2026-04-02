@@ -1,7 +1,6 @@
 {{- define "configXmlContainerStructTmpl" }}
 type configXmlContainer{{createGoSuffixFromVersion $.Version }} struct {
-	XMLName xml.Name `xml:"result"`
-	Answer []configXml{{createGoSuffixFromVersion $.Version }} `xml:"{{ $.XmlNode }}"`
+	rawData []byte
 }
 {{- end }}
 
@@ -11,6 +10,8 @@ type configXmlContainer{{createGoSuffixFromVersion $.Version }} struct {
     {{renderImports "config"}}
 
     {{- RenderApiStructs $ }}
+
+    {{ RenderFieldOptions }}
 
     {{- template "configXmlContainerStructTmpl" Map "Version" nil "XmlNode" .XmlNode }}
 
@@ -24,36 +25,55 @@ type configXmlContainer{{createGoSuffixFromVersion $.Version }} struct {
 
     {{- RenderXmlStructs $ }}
 
-    {{ RenderToXmlMarshallers $ }}
+    {{ RenderToXmlMarshallers }}
 
-    func Versioning(vn version.Number) (Specifier, Normalizer, error) {
-    {{- $numberOfVersions := len .SupportedVersions }}
-    {{- if gt $numberOfVersions 1}}
-        {{- range $index, $version := .SupportedVersions }}
-            {{- if ne $version ""}}
-                version{{createGoSuffixFromVersion $version}}, err := version.New("{{$version}}")
-                if err != nil {
-                return nil, nil, err
-                }
-            {{- end}}
-        {{- end}}
-        {{- range $index, $version := .SupportedVersions }}
-            {{- if ne $version ""}}
-                {{- if eq $index 1}}
-                    if vn.Gte(version{{createGoSuffixFromVersion $version}}) {
-                    return specifyConfig{{createGoSuffixFromVersion $version}}, &configXmlContainer{{createGoSuffixFromVersion $version}}{}, nil
-                {{- else}}
-                    } else if vn.Gte(version{{createGoSuffixFromVersion $version}}) {
-                    return specifyConfig{{createGoSuffixFromVersion $version}}, &configXmlContainer{{createGoSuffixFromVersion $version}}{}, nil
-                {{- end}}
-            {{- end}}
-        {{- end}}
-        } else {
-    {{- end}}
-    return specifyConfig, &configXmlContainer{}, nil
-    {{- if gt $numberOfVersions 1}}
-        }
-    {{- end}}
+    {{ RenderXmlMarshaller }}
+
+    {{ RenderEntryFieldHelpers }}
+
+    func Versioning(vn version.Number) (XmlMarshaller, error) {
+    {{- range $variable, $version := .SupportedVersionDefinitions }}
+        {{ $variable }}, _ := version.New("{{ $version }}")
+    {{- end }}
+
+	var specFunc func(*{{ .EntryOrConfig }}) (any, error)
+	var partialSpecFunc func(*{{ .EntryOrConfig }}, *FieldOption) (any, error)
+	var normFactory func() Normalizer
+
+    {{- if .SupportedVersionRanges }}
+      {{- range $index, $versionDef := .SupportedVersionRanges }}
+        {{- if eq $index 0 }}
+	if vn.Gte({{ $versionDef.MinimumVariable }}) && vn.Lt({{ $versionDef.MaximumVariable }}) {
+        {{- else }}
+	} else if vn.Gte({{ $versionDef.MinimumVariable }}) && vn.Lt({{ $versionDef.MaximumVariable }}) {
+        {{- end }}
+		specFunc = {{ $versionDef.SpecifierFunc }}
+		partialSpecFunc = {{ $versionDef.SpecifierFunc }}Partial
+		normFactory = func() Normalizer { return &{{ $versionDef.XmlContainer }}{} }
+      {{- end }}
+	} else {
+		specFunc = specifyConfig
+		partialSpecFunc = specifyConfigPartial
+		normFactory = func() Normalizer { return &configXmlContainer{} }
+	}
+    {{- else }}
+	specFunc = specifyConfig
+	partialSpecFunc = specifyConfigPartial
+	normFactory = func() Normalizer { return &configXmlContainer{} }
+    {{- end }}
+
+	return &xmlMarshaller{
+		specifierImpl: &specifierImpl{
+			version:          vn,
+			specifier:        specFunc,
+			partialSpecifier: partialSpecFunc,
+		},
+		normalizerImpl: &normalizerImpl{
+			version:           vn,
+			normalizerFactory: normFactory,
+		},
+		version: vn,
+	}, nil
     }
 
     {{- RenderSpecMatchers $ }}

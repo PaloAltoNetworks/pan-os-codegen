@@ -1,0 +1,83 @@
+// XmlMarshaller encapsulates all version-specific XML operations.
+// It provides methods for marshalling/unmarshalling and version-aware field filtering.
+type XmlMarshaller interface {
+	Specifier
+	Normalizer
+
+	// NewNormalizer creates a new version-specific normalizer container for XML unmarshalling.
+	// Safe for concurrent use - each call returns a fresh instance.
+	NewNormalizer() any
+
+	// GetVersion returns the target PAN-OS version for this marshaller.
+	GetVersion() version.Number
+
+	// SupportsField checks if the specified field is available in this PAN-OS version.
+	SupportsField(fieldName string) bool
+
+	// FilterFields filters the given field map to only include fields supported in this version.
+	// If strict is true, returns an error if any unsupported fields are found.
+	// If strict is false, silently filters out unsupported fields.
+	FilterFields(fields map[string]bool, strict bool) (map[string]bool, error)
+}
+
+// specifierImpl implements the Specifier interface.
+type specifierImpl struct {
+	version          version.Number
+	specifier        func(*{{ .EntryOrConfig }}) (any, error)
+	partialSpecifier func(*{{ .EntryOrConfig }}, *FieldOption) (any, error)
+}
+
+func (s *specifierImpl) Specify(obj *{{ .EntryOrConfig }}) (any, error) {
+	return s.specifier(obj)
+}
+
+func (s *specifierImpl) SpecifyWithFields(obj *{{ .EntryOrConfig }}, fieldOpt *FieldOption) (any, error) {
+	return s.partialSpecifier(obj, fieldOpt)
+}
+
+// normalizerImpl implements the Normalizer interface (placeholder for container).
+type normalizerImpl struct {
+	version           version.Number
+	normalizerFactory func() Normalizer
+}
+
+func (n *normalizerImpl) Normalize() ([]*{{ .EntryOrConfig }}, error) {
+	// This is never called - the actual container implements this
+	return nil, fmt.Errorf("normalizerImpl.Normalize() should not be called directly")
+}
+
+func (n *normalizerImpl) NormalizeWithFields(fieldOpt *FieldOption) (*{{ .EntryOrConfig }}, error) {
+	// This is never called - the actual container implements this
+	return nil, fmt.Errorf("normalizerImpl.NormalizeWithFields() should not be called directly")
+}
+
+// xmlMarshaller implements XmlMarshaller by embedding Specifier and Normalizer.
+type xmlMarshaller struct {
+	*specifierImpl
+	*normalizerImpl
+	version version.Number
+}
+
+func (m *xmlMarshaller) NewNormalizer() any {
+	return m.normalizerFactory()
+}
+
+func (m *xmlMarshaller) GetVersion() version.Number {
+	return m.version
+}
+
+func (m *xmlMarshaller) SupportsField(fieldName string) bool {
+	info, exists := FieldMetadata[fieldName]
+	if !exists {
+		return false
+	}
+	return isVersionSupported(m.version, info.Ranges)
+}
+
+func (m *xmlMarshaller) FilterFields(fields map[string]bool, strict bool) (map[string]bool, error) {
+	filtered, unsupported := filterFieldsForVersion(m.version, fields)
+	if strict && len(unsupported) > 0 {
+		return nil, fmt.Errorf("fields not supported in version %s: %v", m.version, unsupported)
+	}
+	return filtered, nil
+}

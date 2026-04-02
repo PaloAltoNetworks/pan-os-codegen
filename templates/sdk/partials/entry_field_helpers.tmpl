@@ -1,0 +1,213 @@
+// VersionRange specifies a version range where a field is supported.
+type VersionRange struct {
+	MinVersion *version.Number // Inclusive minimum version
+	MaxVersion *version.Number // Exclusive maximum version (nil means until next minor)
+}
+
+// FieldInfo contains version and XPath metadata for a field.
+type FieldInfo struct {
+	XPath  []string
+	Ranges []VersionRange
+}
+
+// FieldMetadata maps field names to their version constraints and XPath information.
+var FieldMetadata = map[string]FieldInfo{
+{{- range $_, $param := .Spec.SortedParams}}
+  {{- if not (paramNotSkipped $param) }}{{ continue }}{{- end }}
+  {{- if $param.Profiles }}
+	"{{ $param.Name.Original }}": {
+		XPath: []string{ {{- range $idx, $path := (index $param.Profiles 0).Xpath }}{{if $idx}}, {{end}}"{{ $path }}"{{- end }} },
+		Ranges: []VersionRange{
+    {{- $hasVersionConstraints := false }}
+    {{- range $_, $profile := $param.Profiles }}
+      {{- if or $profile.MinVersion $profile.MaxVersion }}
+        {{- $hasVersionConstraints = true }}
+      {{- end }}
+    {{- end }}
+    {{- if $hasVersionConstraints }}
+      {{- range $_, $profile := $param.Profiles }}
+			{
+        {{- if $profile.MinVersion }}
+				MinVersion: &version.Number{Major: {{ $profile.MinVersion.Major }}, Minor: {{ $profile.MinVersion.Minor }}, Patch: {{ $profile.MinVersion.Patch }}},
+        {{- else }}
+				MinVersion: nil,
+        {{- end }}
+        {{- if $profile.MaxVersion }}
+				MaxVersion: &version.Number{Major: {{ $profile.MaxVersion.Major }}, Minor: {{ $profile.MaxVersion.Minor }}, Patch: {{ $profile.MaxVersion.Patch }}},
+        {{- else }}
+				MaxVersion: nil,
+        {{- end }}
+			},
+      {{- end }}
+    {{- else }}
+			{MinVersion: nil, MaxVersion: nil},
+    {{- end }}
+		},
+	},
+  {{- end }}
+{{- end }}
+{{- range $_, $param := .Spec.SortedOneOf}}
+  {{- if $param.Profiles }}
+	"{{ $param.Name.Original }}": {
+		XPath: []string{ {{- range $idx, $path := (index $param.Profiles 0).Xpath }}{{if $idx}}, {{end}}"{{ $path }}"{{- end }} },
+		Ranges: []VersionRange{
+    {{- $hasVersionConstraints := false }}
+    {{- range $_, $profile := $param.Profiles }}
+      {{- if or $profile.MinVersion $profile.MaxVersion }}
+        {{- $hasVersionConstraints = true }}
+      {{- end }}
+    {{- end }}
+    {{- if $hasVersionConstraints }}
+      {{- range $_, $profile := $param.Profiles }}
+			{
+        {{- if $profile.MinVersion }}
+				MinVersion: &version.Number{Major: {{ $profile.MinVersion.Major }}, Minor: {{ $profile.MinVersion.Minor }}, Patch: {{ $profile.MinVersion.Patch }}},
+        {{- else }}
+				MinVersion: nil,
+        {{- end }}
+        {{- if $profile.MaxVersion }}
+				MaxVersion: &version.Number{Major: {{ $profile.MaxVersion.Major }}, Minor: {{ $profile.MaxVersion.Minor }}, Patch: {{ $profile.MaxVersion.Patch }}},
+        {{- else }}
+				MaxVersion: nil,
+        {{- end }}
+			},
+      {{- end }}
+    {{- else }}
+			{MinVersion: nil, MaxVersion: nil},
+    {{- end }}
+		},
+	},
+  {{- end }}
+{{- end }}
+}
+
+// isVersionSupported checks if the specified version falls within any of the supported ranges.
+func isVersionSupported(vn version.Number, ranges []VersionRange) bool {
+	for _, r := range ranges {
+		minOk := r.MinVersion == nil || vn.Gte(*r.MinVersion)
+
+		var maxOk bool
+		if r.MaxVersion == nil {
+			if r.MinVersion != nil {
+				nextMinor := version.Number{
+					Major: r.MinVersion.Major,
+					Minor: r.MinVersion.Minor + 1,
+					Patch: 0,
+				}
+				maxOk = vn.Lt(nextMinor)
+			} else {
+				maxOk = true
+			}
+		} else {
+			maxOk = vn.Lt(*r.MaxVersion)
+		}
+
+		if minOk && maxOk {
+			return true
+		}
+	}
+	return false
+}
+
+// filterFieldsForVersion filters out fields not supported by the given version.
+// Returns filtered field map and list of unsupported fields.
+func filterFieldsForVersion(vn version.Number, fields map[string]bool) (map[string]bool, []string) {
+	if len(fields) == 0 {
+		return fields, nil
+	}
+
+	filtered := make(map[string]bool)
+	var unsupported []string
+
+	for fieldName := range fields {
+		if info, exists := FieldMetadata[fieldName]; exists {
+			if isVersionSupported(vn, info.Ranges) {
+				filtered[fieldName] = true
+			} else {
+				unsupported = append(unsupported, fieldName)
+			}
+		} else {
+			filtered[fieldName] = true
+		}
+	}
+
+	return filtered, unsupported
+}
+
+// GetFieldValue returns the value of the specified field by name.
+func (o *{{ .EntryOrConfig }}) GetFieldValue(fieldName string) any {
+	switch fieldName {
+	{{- if .Entry }}
+	case "name":
+		return o.Name
+	{{- end }}
+  {{- range $_, $param := .Spec.SortedParams}}
+    {{- if not (paramNotSkipped $param) }}{{ continue }}{{- end }}
+	case "{{ $param.Name.Original }}":
+		return o.{{ $param.Name.CamelCase }}
+  {{- end }}
+  {{- range $_, $param := .Spec.SortedOneOf}}
+	case "{{ $param.Name.Original }}":
+		return o.{{ $param.Name.CamelCase }}
+  {{- end }}
+	default:
+		return nil
+	}
+}
+
+// IsFieldNilOrEmpty checks if the specified field is nil or empty.
+func (o *{{ .EntryOrConfig }}) IsFieldNilOrEmpty(fieldName string) bool {
+	switch fieldName {
+	{{- if .Entry }}
+	case "name":
+		return o.Name == ""
+	{{- end }}
+  {{- range $_, $param := .Spec.SortedParams}}
+    {{- if not (paramNotSkipped $param) }}{{ continue }}{{- end }}
+	case "{{ $param.Name.Original }}":
+      {{- if eq $param.Type "list" }}
+		return o.{{ $param.Name.CamelCase }} == nil || len(o.{{ $param.Name.CamelCase }}) == 0
+      {{- else if eq $param.Type "" }}
+		return o.{{ $param.Name.CamelCase }} == nil
+      {{- else }}
+		return o.{{ $param.Name.CamelCase }} == nil
+      {{- end }}
+  {{- end }}
+  {{- range $_, $param := .Spec.SortedOneOf}}
+	case "{{ $param.Name.Original }}":
+      {{- if eq $param.Type "list" }}
+		return o.{{ $param.Name.CamelCase }} == nil || len(o.{{ $param.Name.CamelCase }}) == 0
+      {{- else if eq $param.Type "" }}
+		return o.{{ $param.Name.CamelCase }} == nil
+      {{- else }}
+		return o.{{ $param.Name.CamelCase }} == nil
+      {{- end }}
+  {{- end }}
+	default:
+		return false
+	}
+}
+
+// getAllFieldNames returns a map of all field names in this {{ .EntryOrConfig }}.
+func getAllFieldNames() map[string]bool {
+	return map[string]bool{
+  {{- range $_, $param := .Spec.SortedParams}}
+    {{- if not (paramNotSkipped $param) }}{{ continue }}{{- end }}
+		"{{ $param.Name.Original }}": true,
+  {{- end }}
+  {{- range $_, $param := .Spec.SortedOneOf}}
+		"{{ $param.Name.Original }}": true,
+  {{- end }}
+	}
+}
+
+// WithAllFields creates a CRUDOption that selects all fields.
+// Useful for updates with automatic nil-field deletion.
+func WithAllFields() CRUDOption {
+	return func(opts *CRUDOptions) {
+		opts.fields = &FieldOption{
+			fields: getAllFieldNames(),
+			mode:   FieldModeInclude,
+		}
+	}
+}

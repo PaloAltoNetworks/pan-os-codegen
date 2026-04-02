@@ -65,6 +65,18 @@ type UuidObject interface {
 	SetEntryUuid(value *string)
 }
 
+// Marshaller provides XML marshalling and unmarshalling operations for entries.
+// SDK-generated XmlMarshaller types satisfy this interface through structural typing.
+// E can be any type - use Entry for entry-based resources, or any for config-based resources.
+type Marshaller[E any] interface {
+	// Specify converts entry to XML for create/update operations
+	Specify(E) (any, error)
+
+	// NewNormalizer creates a fresh normalizer instance for concurrent XML unmarshalling.
+	// Each call returns a new instance safe for independent use.
+	NewNormalizer() any
+}
+
 type entryState string
 
 const (

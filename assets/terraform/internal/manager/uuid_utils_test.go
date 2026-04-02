@@ -166,6 +166,23 @@ func (n *MockUuidNormalizer) UnmarshalXML(d *xml.Decoder, start xml.StartElement
 	return nil
 }
 
+// MockUuidMarshaller combines Normalizer and Specify for testing
+type MockUuidMarshaller struct {
+	MockUuidNormalizer
+}
+
+func (m *MockUuidMarshaller) Specify(entry *MockUuidObject) (any, error) {
+	return MockUuidSpecifier(entry)
+}
+
+func (m *MockUuidMarshaller) NewNormalizer() any {
+	return &MockUuidNormalizer{}
+}
+
+func NewMockUuidMarshaller() *MockUuidMarshaller {
+	return &MockUuidMarshaller{}
+}
+
 func NewMockUuidService[E manager.UuidObject, T any](client *MockUuidClient[E]) *MockUuidService[E, T] {
 	return &MockUuidService[E, T]{
 		client: client,

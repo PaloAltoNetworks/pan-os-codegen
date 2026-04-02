@@ -14,7 +14,7 @@ func RenderImports(spec *properties.Normalization, templateTypes ...string) (str
 		case "sync":
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/locking", "")
 		case "config":
-			//manager.AddStandardImport("fmt", "")
+			manager.AddStandardImport("fmt", "")
 			manager.AddStandardImport("encoding/xml", "")
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/generic", "")
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "")
@@ -41,6 +41,10 @@ func RenderImports(spec *properties.Normalization, templateTypes ...string) (str
 		case "service":
 			manager.AddStandardImport("context", "")
 			manager.AddStandardImport("fmt", "")
+			// strings needed for buildFieldSelectiveXpath (Entry types only)
+			if spec.Entry != nil {
+				manager.AddStandardImport("strings", "")
+			}
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/errors", "")
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "")
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/xmlapi", "")

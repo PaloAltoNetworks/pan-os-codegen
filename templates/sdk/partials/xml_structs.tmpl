@@ -1,8 +1,42 @@
 {{- range .Specs }}
 {{- $spec := . }}
+{{- if .TopLevel }}
+// {{ .XmlFieldsStructName }} contains the actual field elements (no wrapper, no name attribute).
+// This struct is embedded by both full and partial XML structs to avoid field duplication.
+type {{ .XmlFieldsStructName }} struct{
+  {{- range .Fields }}
+    {{- if not (or (eq .Name.CamelCase "XMLName") (eq .Name.CamelCase "Name") (eq .Name.CamelCase "Misc") (eq .Name.CamelCase "MiscAttributes")) }}
+	{{ .Name.CamelCase }} {{ .FinalXmlType }} {{ .Tags }}
+    {{- end }}
+  {{- end }}
+}
+
+// {{ .XmlStructName }} is the full XML struct with entry wrapper (for standard CRUD operations).
+type {{ .XmlStructName }} struct{
+  {{- range .Fields }}
+    {{- if or (eq .Name.CamelCase "XMLName") (eq .Name.CamelCase "Name") }}
+	{{ .Name.CamelCase }} {{ .FinalXmlType }} {{ .Tags }}
+    {{- end }}
+  {{- end }}
+	{{ .XmlFieldsStructName }}
+  {{- range .Fields }}
+    {{- if or (eq .Name.CamelCase "Misc") (eq .Name.CamelCase "MiscAttributes") }}
+	{{ .Name.CamelCase }} {{ .FinalXmlType }} {{ .Tags }}
+    {{- end }}
+  {{- end }}
+}
+
+// {{ .XmlPartialStructName }} is the partial XML struct without entry wrapper (for partial field operations).
+// Used with "set" action to update only selected fields while preserving others.
+type {{ .XmlPartialStructName }} struct{
+	{{ .XmlFieldsStructName }}
+}
+{{- else }}
+// Non-top-level struct (nested object or container)
 type {{ .XmlStructName }} struct{
   {{- range .Fields }}
 	{{ .Name.CamelCase }} {{ .FinalXmlType }} {{ .Tags }}
   {{- end }}
 }
+{{- end }}
 {{- end }}

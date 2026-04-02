@@ -1,9 +1,46 @@
 {{- range .Specs }}
 {{- if not .TopLevel }}{{ continue }}{{ end }}
+
+// UnmarshalXML captures raw XML bytes and wraps them in <result> for deferred unmarshalling.
+func (o *{{ .XmlContainerStructName }}) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	type result struct {
+		TotalCount string `xml:"total-count,attr"`
+		Count      string `xml:"count,attr"`
+		Content    []byte `xml:",innerxml"`
+	}
+	var r result
+	if err := d.DecodeElement(&r, &start); err != nil {
+		return err
+	}
+
+	// Rewrap the inner XML with <result> element including attributes if present
+	var wrapped []byte
+	if r.TotalCount != "" && r.Count != "" {
+		wrapped = append([]byte(fmt.Sprintf("<result total-count=\"%s\" count=\"%s\">", r.TotalCount, r.Count)), r.Content...)
+	} else {
+		// No attributes for partial field reads
+		wrapped = append([]byte("<result>"), r.Content...)
+	}
+	wrapped = append(wrapped, []byte("</result>")...)
+	o.rawData = wrapped
+	return nil
+}
+
+// Normalize unmarshals into []{{ .XmlStructName }} (expects wrapper tags).
+// Used for standard read/list operations that return full XML like:
+// <entry><description>value</description><ip-netmask>10.0.0.0/8</ip-netmask></entry>
 func (o *{{ .XmlContainerStructName }}) Normalize() ([]*{{ $.EntryOrConfig }}, error) {
-	entries := make([]*{{ $.EntryOrConfig }}, 0, len(o.Answer))
-	for _, elt := range o.Answer {
-		obj, err := elt.UnmarshalToObject()
+	var container struct {
+		Answer []{{ .XmlStructName }} `xml:"{{ .XmlTag }}"`
+	}
+	// rawData already wrapped in <result> by UnmarshalXML
+	if err := xml.Unmarshal(o.rawData, &container); err != nil {
+		return nil, err
+	}
+
+	entries := make([]*{{ $.EntryOrConfig }}, 0, len(container.Answer))
+	for _, elt := range container.Answer {
+		obj, err := elt.UnmarshalToObjectWithFields(nil)
 		if err != nil {
 			return nil, err
 		}
@@ -11,5 +48,24 @@ func (o *{{ .XmlContainerStructName }}) Normalize() ([]*{{ $.EntryOrConfig }}, e
 	}
 
 	return entries, nil
+}
+
+// NormalizeWithFields unmarshals unwrapped field XML from XPath wildcard predicates.
+// Used for partial field reads that return unwrapped fields like:
+// <description>value</description><ip-netmask>10.0.0.0/8</ip-netmask>
+// (no wrapper tag, no name)
+// The name field will be zero value - caller must set it if needed.
+func (o *{{ .XmlContainerStructName }}) NormalizeWithFields(fieldOpt *FieldOption) (*{{ $.EntryOrConfig }}, error) {
+	var fields {{ .XmlFieldsStructName }}
+	if err := xml.Unmarshal(o.rawData, &fields); err != nil {
+		return nil, err
+	}
+
+	// Build XML struct from fields (name will be zero value)
+	xmlEntry := {{ .XmlStructName }}{
+		{{ .XmlFieldsStructName }}: fields,
+	}
+
+	return xmlEntry.UnmarshalToObjectWithFields(fieldOpt)
 }
 {{- end }}

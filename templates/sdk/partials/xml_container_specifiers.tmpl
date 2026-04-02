@@ -5,4 +5,10 @@ func {{ .SpecifierFuncName $.EntryOrConfig }}(source *{{ $.EntryOrConfig }}) (an
 	obj.MarshalFromObject(*source)
 	return obj, nil
 }
+
+func {{ .SpecifierFuncName $.EntryOrConfig }}Partial(source *{{ $.EntryOrConfig }}, fieldOpt *FieldOption) (any, error) {
+	var obj {{ .XmlPartialStructName }}
+	obj.MarshalFromObjectWithFields(*source, fieldOpt)
+	return obj, nil
+}
 {{- end }}

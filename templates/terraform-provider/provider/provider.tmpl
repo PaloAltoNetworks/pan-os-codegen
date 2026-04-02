@@ -52,13 +52,12 @@ type ProviderData struct {
 }
 
 // GetOrCreateCache returns the cache for a given resource type, creating if needed.
-// The normalizerFactory and specifier are only used when creating a new cache.
+// The marshaller is only used when creating a new cache.
 // This is a package-level function because Go methods cannot have type parameters.
-func GetOrCreateCache[E sdkmanager.Entry](
+func GetOrCreateCache[E sdkmanager.Entry, M sdkmanager.Marshaller[E]](
 	providerData *ProviderData,
 	resourceType string,
-	normalizerFactory func() sdkmanager.Normalizer[E],
-	specifier func(E) (any, error),
+	marshaller M,
 	resourceCacheEnabled bool,
 ) sdkmanager.CacheManager[E] {
 	// Try to load existing cache
@@ -70,7 +69,7 @@ func GetOrCreateCache[E sdkmanager.Entry](
 	// Both must be enabled for caching to work
 	var cache sdkmanager.CacheManager[E]
 	if providerData.CacheEnabled && resourceCacheEnabled {
-		cache = sdkmanager.NewEnabledCacheManager[E](normalizerFactory, specifier)
+		cache = sdkmanager.NewEnabledCacheManager(marshaller)
 	} else {
 		cache = sdkmanager.NewNoOpCacheManager[E]()
 	}

@@ -29,16 +29,16 @@ type ConfigLocation interface {
 }
 
 type ConfigObjectManager[C any, L ConfigLocation, S SDKConfigService[C, L]] struct {
-	service   S
-	client    util.PangoClient
-	specifier func(C) (any, error)
+	service    S
+	client     util.PangoClient
+	marshaller Marshaller[C]
 }
 
-func NewConfigObjectManager[C any, L ConfigLocation, S SDKConfigService[C, L]](client util.PangoClient, service S, specifier func(C) (any, error)) *ConfigObjectManager[C, L, S] {
+func NewConfigObjectManager[C any, L ConfigLocation, S SDKConfigService[C, L], M Marshaller[C]](client util.PangoClient, service S, marshaller M) *ConfigObjectManager[C, L, S] {
 	return &ConfigObjectManager[C, L, S]{
-		service:   service,
-		client:    client,
-		specifier: specifier,
+		service:    service,
+		client:     client,
+		marshaller: marshaller,
 	}
 }
 

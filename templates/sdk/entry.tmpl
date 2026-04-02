@@ -1,4 +1,105 @@
 {{- if .Entry}}
+    // Package {{packageName .GoSdkPath}} provides SDK support for PAN-OS {{.Name}} objects.
+    //
+    // # Partial Field Operations
+    //
+    // This package supports partial field operations, allowing you to work with only a subset
+    // of resource fields for improved performance and reduced payload sizes.
+    //
+    // ## Benefits
+    //
+    // - Partial Field Read: Reduce network payload by 26-56% by fetching only needed fields
+    // - Partial Field Update: Update specific fields while preserving others
+    // - Nil Field Deletion: Automatically delete fields set to nil during updates
+    // - Version Compatibility: Automatic filtering ensures code works across PAN-OS versions
+    //
+    // ## Basic Usage
+    //
+    // Partial Field Read (fetch only specific top-level fields):
+    //
+    //	entry, err := svc.ReadWithOptions(ctx, loc, "web-server", "get",
+    //	    {{packageName .GoSdkPath}}.WithFields("description", "tag"))
+    //
+    // **Note:** WithFields() only works with top-level fields, not nested fields.
+    //
+    // Partial Field Update (update only specific top-level fields):
+    //
+    //	entry.Description = util.String("Updated")
+    //	updated, err := svc.UpdateWithOptions(ctx, loc, entry, "",
+    //	    {{packageName .GoSdkPath}}.WithFields("description"))
+    //
+    // Update with nil-field deletion:
+    //
+    //	entry.Description = nil  // Will be deleted
+    //	entry.Tag = []string{"new-tag"}  // Will be set
+    //	updated, err := svc.UpdateWithOptions(ctx, loc, entry, "",
+    //	    {{packageName .GoSdkPath}}.WithFields("description", "tag"))
+    //
+    // Update all fields with automatic nil-handling:
+    //
+    //	updated, err := svc.UpdateWithOptions(ctx, loc, entry, "",
+    //	    {{packageName .GoSdkPath}}.WithAllFields())
+    //
+    // ## Version Compatibility
+    //
+    // By default, fields not supported in the target PAN-OS version are automatically
+    // filtered, allowing your code to work across versions:
+    //
+    //	// Works on all PAN-OS versions
+    //	updated, err := svc.UpdateWithOptions(ctx, loc, entry, "",
+    //	    {{packageName .GoSdkPath}}.WithAllFields())
+    //
+    // Enable strict version checking to get errors for unsupported fields:
+    //
+    //	updated, err := svc.UpdateWithOptions(ctx, loc, entry, "",
+    //	    {{packageName .GoSdkPath}}.WithFields("description"),
+    //	    {{packageName .GoSdkPath}}.WithStrictVersionCheck())
+    //
+    // ## Field Selection Options
+    //
+    // - WithFields(...fields): Include only specified fields
+    // - WithoutFields(...fields): Exclude specified fields (include all others)
+    // - WithAllFields(): Include all fields (with automatic nil-field deletion)
+    // - WithStrictVersionCheck(): Enable strict version validation
+    //
+    // ## Performance Characteristics
+    //
+    // Partial field reads using XPath wildcard predicates:
+    //   - 26-56% payload reduction depending on fields selected
+    //   - Faster unmarshalling (only selected fields processed)
+    //   - Lower memory usage
+    //
+    // Partial field updates using "set" action with partial elements:
+    //   - Smaller request payloads (only updated fields sent)
+    //   - Atomic operations (all changes succeed or fail together)
+    //   - Field preservation (unspecified fields remain unchanged)
+    //
+    // ## Technical Details
+    //
+    // Read operations use XPath wildcard predicates to filter results at the server:
+    //   /config/.../entry[@name='test']/*[name()='description' or name()='tag']
+    //
+    // Update operations use the "set" action with partial XML elements:
+    //   <set xpath="/config/.../entry[@name='test']">
+    //     <description>Updated value</description>
+    //   </set>
+    //
+    // When updating with nil fields, both set and delete operations are sent atomically:
+    //   <multi-configure-request>
+    //     <set xpath="..."><field>value</field></set>
+    //     <delete xpath=".../nil-field"></delete>
+    //   </multi-configure-request>
+    //
+    // ## Limitations
+    //
+    // - **Only top-level fields supported**: Nested field selection is not available
+    // - Field names use underscore notation (e.g., "ip_netmask", not "IpNetmask")
+    // - Partial field operations only available on *WithOptions methods
+    //
+    // ## Standard Operations
+    //
+    // Standard CRUD operations (Create, Read, Update, Delete) continue to work unchanged
+    // and operate on all fields. Partial field operations are opt-in via *WithOptions methods.
     package {{packageName .GoSdkPath}}
 
     {{renderImports "entry"}}
@@ -17,13 +118,17 @@
 
     {{ RenderApiStructs $ }}
 
+    {{ RenderFieldOptions }}
+
+    {{ RenderXmlMarshaller }}
+
 	type entryXmlContainer{{createGoSuffixFromVersion nil}} struct {
-		        Answer []entryXml{{createGoSuffixFromVersion nil}} `xml:"entry"`
+		rawData []byte
 	}
 
     {{ range $version := .SupportedVersionRanges }}
         type entryXmlContainer{{createGoSuffixFromVersion $version.Minimum}} struct {
-        Answer []entryXml{{createGoSuffixFromVersion $version.Minimum}} `xml:"entry"`
+		rawData []byte
         }
     {{- end}}
 
@@ -33,7 +138,9 @@
 
     {{ RenderXmlStructs $ }}
 
-    {{ RenderToXmlMarshallers $ }}
+    {{ RenderToXmlMarshallers }}
+
+    {{ RenderEntryFieldHelpers }}
 
     {{ range $name, $const := .Const}}
         const (
@@ -68,6 +175,52 @@
     return nil, fmt.Errorf("unknown field")
     }
 
+  {{- if .Entry }}
+    func Versioning(vn version.Number) (XmlMarshaller, error) {
+    {{- range $variable, $version := .SupportedVersionDefinitions }}
+        {{ $variable }}, _ := version.New("{{ $version }}")
+    {{- end }}
+
+	var specFunc func(*Entry) (any, error)
+	var partialSpecFunc func(*Entry, *FieldOption) (any, error)
+	var normFactory func() Normalizer
+
+    {{- if .SupportedVersionRanges }}
+      {{- range $index, $versionDef := .SupportedVersionRanges }}
+        {{- if eq $index 0 }}
+	if vn.Gte({{ $versionDef.MinimumVariable }}) && vn.Lt({{ $versionDef.MaximumVariable }}) {
+        {{- else }}
+	} else if vn.Gte({{ $versionDef.MinimumVariable }}) && vn.Lt({{ $versionDef.MaximumVariable }}) {
+        {{- end }}
+		specFunc = {{ $versionDef.SpecifierFunc }}
+		partialSpecFunc = {{ $versionDef.SpecifierFunc }}Partial
+		normFactory = func() Normalizer { return &{{ $versionDef.EntryXmlContainer }}{} }
+      {{- end }}
+	} else {
+		specFunc = specifyEntry
+		partialSpecFunc = specifyEntryPartial
+		normFactory = func() Normalizer { return &entryXmlContainer{} }
+	}
+    {{- else }}
+	specFunc = specifyEntry
+	partialSpecFunc = specifyEntryPartial
+	normFactory = func() Normalizer { return &entryXmlContainer{} }
+    {{- end }}
+
+	return &xmlMarshaller{
+		specifierImpl: &specifierImpl{
+			version:          vn,
+			specifier:        specFunc,
+			partialSpecifier: partialSpecFunc,
+		},
+		normalizerImpl: &normalizerImpl{
+			version:           vn,
+			normalizerFactory: normFactory,
+		},
+		version: vn,
+	}, nil
+    }
+  {{- else }}
     func Versioning(vn version.Number) (Specifier, Normalizer, error) {
     {{- range $variable, $version := .SupportedVersionDefinitions }}
         {{ $variable }}, _ := version.New("{{ $version }}")
@@ -79,8 +232,9 @@
 	}
     {{- end }}
 
-    return specifyEntry, &entryXmlContainer{}, nil
+    return specifyConfig, &configXmlContainer{}, nil
     }
+  {{- end }}
 
     {{-  RenderSpecMatchers $ }}
 

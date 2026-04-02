@@ -59,7 +59,8 @@ var _ = Describe("Server", func() {
 			panic("failed to cast service to mockService")
 		}
 		cache := sdkmanager.NewNoOpCacheManager[*MockUuidObject]()
-		manager = sdkmanager.NewUuidObjectManager(client, service, batchingConfig, cache, MockUuidSpecifier, MockUuidMatcher)
+		marshaller := NewMockUuidMarshaller()
+		manager = sdkmanager.NewUuidObjectManager(client, service, batchingConfig, cache, marshaller, MockUuidMatcher)
 	})
 
 	Describe("Reading entries from the server", func() {
@@ -431,7 +432,8 @@ var _ = Describe("Server", func() {
 					panic("failed to cast service to mockService")
 				}
 				cache := sdkmanager.NewNoOpCacheManager[*MockUuidObject]()
-		manager = sdkmanager.NewUuidObjectManager(client, service, batchingConfig, cache, MockUuidSpecifier, MockUuidMatcher)
+		marshaller := NewMockUuidMarshaller()
+		manager = sdkmanager.NewUuidObjectManager(client, service, batchingConfig, cache, marshaller, MockUuidMatcher)
 
 			})
 

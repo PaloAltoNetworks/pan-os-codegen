@@ -44,6 +44,26 @@ func testSpecifier(entry *TestEntry) (any, error) {
 	return entry, nil
 }
 
+// Test marshaller - implements XmlMarshaller[E] interface
+type TestMarshaller struct {
+	SpecifyFunc       func(*TestEntry) (any, error)
+	NewNormalizerFunc func() any
+}
+
+func (m *TestMarshaller) Specify(e *TestEntry) (any, error) {
+	if m.SpecifyFunc != nil {
+		return m.SpecifyFunc(e)
+	}
+	return testSpecifier(e)
+}
+
+func (m *TestMarshaller) NewNormalizer() any {
+	if m.NewNormalizerFunc != nil {
+		return m.NewNormalizerFunc()
+	}
+	return &TestNormalizer{}
+}
+
 var _ = Describe("ResourceCache", func() {
 	var (
 		specifier func(*TestEntry) (any, error)
@@ -59,10 +79,11 @@ var _ = Describe("ResourceCache", func() {
 		var resourceCache manager.CacheManager[*TestEntry]
 
 		BeforeEach(func() {
-			resourceCache = manager.NewEnabledCacheManager[*TestEntry](
-			func() manager.Normalizer[*TestEntry] { return &TestNormalizer{} },
-			specifier,
-		)
+			marshaller := &TestMarshaller{
+				SpecifyFunc:       specifier,
+				NewNormalizerFunc: func() any { return &TestNormalizer{} },
+			}
+			resourceCache = manager.NewEnabledCacheManager(marshaller)
 		})
 
 		It("should store and retrieve entries", func() {
@@ -253,10 +274,11 @@ var _ = Describe("ResourceCache", func() {
 					failingSpecifier := func(entry *TestEntry) (any, error) {
 						return nil, fmt.Errorf("specifier error: failed to convert entry")
 					}
-					cache := manager.NewEnabledCacheManager[*TestEntry](
-						func() manager.Normalizer[*TestEntry] { return &TestNormalizer{} },
-						failingSpecifier,
-					)
+					marshaller := &TestMarshaller{
+						SpecifyFunc:       failingSpecifier,
+						NewNormalizerFunc: func() any { return &TestNormalizer{} },
+					}
+					cache := manager.NewEnabledCacheManager(marshaller)
 
 					// Initialize cache
 					entries := []*TestEntry{{Name: "test-1", IpNetmask: stringPtr("10.0.0.1")}}
@@ -276,10 +298,11 @@ var _ = Describe("ResourceCache", func() {
 					failingSpecifier := func(entry *TestEntry) (any, error) {
 						return nil, fmt.Errorf("specifier error: failed to convert entry")
 					}
-					cache := manager.NewEnabledCacheManager[*TestEntry](
-						func() manager.Normalizer[*TestEntry] { return &TestNormalizer{} },
-						failingSpecifier,
-					)
+					marshaller := &TestMarshaller{
+						SpecifyFunc:       failingSpecifier,
+						NewNormalizerFunc: func() any { return &TestNormalizer{} },
+					}
+					cache := manager.NewEnabledCacheManager(marshaller)
 
 					entries := []*TestEntry{{Name: "test-1", IpNetmask: stringPtr("10.0.0.1")}}
 					err := cache.SetInitialized(ctx, locationXpath, entries)
@@ -301,10 +324,11 @@ var _ = Describe("ResourceCache", func() {
 						// Return a type that xml.Marshal will reject
 						return make(chan int), nil
 					}
-					cache := manager.NewEnabledCacheManager[*TestEntry](
-						func() manager.Normalizer[*TestEntry] { return &TestNormalizer{} },
-						invalidSpecifier,
-					)
+					marshaller := &TestMarshaller{
+						SpecifyFunc:       invalidSpecifier,
+						NewNormalizerFunc: func() any { return &TestNormalizer{} },
+					}
+					cache := manager.NewEnabledCacheManager(marshaller)
 
 					entries := []*TestEntry{{Name: "test-1", IpNetmask: stringPtr("10.0.0.1")}}
 					err := cache.SetInitialized(ctx, locationXpath, entries)
@@ -324,10 +348,11 @@ var _ = Describe("ResourceCache", func() {
 				It("should verify error path exists in code", func() {
 					// Note: Creating actual unmarshal failures is complex with typed normalizers
 					// This test verifies that the error path exists and cache remains consistent
-					cache := manager.NewEnabledCacheManager[*TestEntry](
-			func() manager.Normalizer[*TestEntry] { return &TestNormalizer{} },
-			specifier,
-		)
+					marshaller := &TestMarshaller{
+						SpecifyFunc:       specifier,
+						NewNormalizerFunc: func() any { return &TestNormalizer{} },
+					}
+					cache := manager.NewEnabledCacheManager(marshaller)
 
 					entries := []*TestEntry{{Name: "test-1", IpNetmask: stringPtr("10.0.0.1")}}
 					err := cache.SetInitialized(ctx, locationXpath, entries)
@@ -346,10 +371,11 @@ var _ = Describe("ResourceCache", func() {
 				It("should verify error path exists and cache remains consistent", func() {
 					// Note: Testing Normalize() errors requires custom normalizer implementation
 					// This test verifies cache state consistency
-					cache := manager.NewEnabledCacheManager[*TestEntry](
-			func() manager.Normalizer[*TestEntry] { return &TestNormalizer{} },
-			specifier,
-		)
+					marshaller := &TestMarshaller{
+						SpecifyFunc:       specifier,
+						NewNormalizerFunc: func() any { return &TestNormalizer{} },
+					}
+					cache := manager.NewEnabledCacheManager(marshaller)
 
 					entries := []*TestEntry{{Name: "test-1", IpNetmask: stringPtr("10.0.0.1")}}
 					err := cache.SetInitialized(ctx, locationXpath, entries)
@@ -365,10 +391,11 @@ var _ = Describe("ResourceCache", func() {
 				It("should verify error path for entry count mismatch exists", func() {
 					// Note: Testing wrong entry count requires custom normalizer
 					// This test verifies normal path returns exactly 1 entry
-					cache := manager.NewEnabledCacheManager[*TestEntry](
-			func() manager.Normalizer[*TestEntry] { return &TestNormalizer{} },
-			specifier,
-		)
+					marshaller := &TestMarshaller{
+						SpecifyFunc:       specifier,
+						NewNormalizerFunc: func() any { return &TestNormalizer{} },
+					}
+					cache := manager.NewEnabledCacheManager(marshaller)
 
 					entries := []*TestEntry{{Name: "test-1", IpNetmask: stringPtr("10.0.0.1")}}
 					err := cache.SetInitialized(ctx, locationXpath, entries)
@@ -395,10 +422,11 @@ var _ = Describe("ResourceCache", func() {
 						return entry, nil
 					}
 
-					cache := manager.NewEnabledCacheManager[*TestEntry](
-						func() manager.Normalizer[*TestEntry] { return &TestNormalizer{} },
-						conditionalSpecifier,
-					)
+					marshaller := &TestMarshaller{
+						SpecifyFunc:       conditionalSpecifier,
+						NewNormalizerFunc: func() any { return &TestNormalizer{} },
+					}
+					cache := manager.NewEnabledCacheManager(marshaller)
 
 					entries := []*TestEntry{
 						{Name: "test-1", IpNetmask: stringPtr("10.0.0.1")},
@@ -434,10 +462,11 @@ var _ = Describe("ResourceCache", func() {
 						return entry, nil
 					}
 
-					cache := manager.NewEnabledCacheManager[*TestEntry](
-						func() manager.Normalizer[*TestEntry] { return &TestNormalizer{} },
-						conditionalSpecifier,
-					)
+					marshaller := &TestMarshaller{
+						SpecifyFunc:       conditionalSpecifier,
+						NewNormalizerFunc: func() any { return &TestNormalizer{} },
+					}
+					cache := manager.NewEnabledCacheManager(marshaller)
 
 					entries := []*TestEntry{
 						{Name: "test-1", IpNetmask: stringPtr("10.0.0.1")},

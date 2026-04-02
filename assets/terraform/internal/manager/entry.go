@@ -39,25 +39,25 @@ type EntryObjectManager[E EntryObject, L EntryLocation, S SDKEntryService[E, L]]
 	batchingConfig BatchingConfig
 	service        S
 	client         SDKClient
-	specifier      func(E) (any, error)
+	marshaller     Marshaller[E]
 	matcher        func(E, E) bool
 	batchReader    *BatchReader[E, S]
 	cache          CacheManager[E]
 }
 
-func NewEntryObjectManager[E EntryObject, L EntryLocation, S SDKEntryService[E, L]](
+func NewEntryObjectManager[E EntryObject, L EntryLocation, S SDKEntryService[E, L], M Marshaller[E]](
 	client SDKClient,
 	service S,
 	batchingConfig BatchingConfig,
 	cache CacheManager[E],
-	specifier func(E) (any, error),
+	marshaller M,
 	matcher func(E, E) bool,
 ) *EntryObjectManager[E, L, S] {
 	mgr := &EntryObjectManager[E, L, S]{
 		batchingConfig: batchingConfig,
 		service:        service,
 		client:         client,
-		specifier:      specifier,
+		marshaller:     marshaller,
 		matcher:        matcher,
 		cache:          cache,
 	}
@@ -433,7 +433,7 @@ func (o *EntryObjectManager[E, L, S]) CreateMany(ctx context.Context, location L
 			return nil, &Error{err: err, message: "failed to create xpath for an existing entry"}
 		}
 
-		xmlEntry, err := o.specifier(elt)
+		xmlEntry, err := o.marshaller.Specify(elt)
 		if err != nil {
 			return nil, &Error{err: err, message: "failed to marshal entry into XML document"}
 		}
@@ -536,7 +536,7 @@ func (o *EntryObjectManager[E, L, S]) Update(ctx context.Context, location L, co
 	var xpath, renamedXpath []string
 	var err error
 
-	spec, err := o.specifier(entry)
+	spec, err := o.marshaller.Specify(entry)
 	if err != nil {
 		return *new(E), err
 	}
@@ -752,7 +752,7 @@ func (o *EntryObjectManager[E, L, S]) UpdateMany(ctx context.Context, location L
 			return nil, &Error{err: err, message: "failed to create xpath for entry"}
 		}
 
-		xmlEntry, err := o.specifier(elt.Entry)
+		xmlEntry, err := o.marshaller.Specify(elt.Entry)
 		if err != nil {
 			return nil, &Error{err: err, message: "failed to marshal entry into XML document"}
 		}

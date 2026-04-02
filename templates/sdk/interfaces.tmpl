@@ -1,15 +1,22 @@
 package {{packageName .GoSdkPath}}
 
-{{- if .Entry}}
-    type Specifier func(*Entry) (any, error)
-{{- else}}
-    type Specifier func(*Config) (any, error)
-{{- end}}
+// Specifier handles conversion from structs to XML for create/update operations.
+type Specifier interface {
+	// Specify converts {{ .EntryOrConfig }} to version-specific full XML.
+	Specify(obj *{{ .EntryOrConfig }}) (any, error)
 
+	// SpecifyWithFields converts {{ .EntryOrConfig }} to version-specific partial XML (selected fields only).
+	SpecifyWithFields(obj *{{ .EntryOrConfig }}, fieldOpt *FieldOption) (any, error)
+}
+
+// Normalizer handles conversion from XML responses to structs.
 type Normalizer interface {
-{{- if .Entry}}
-    Normalize() ([]*Entry, error)
-{{- else}}
-    Normalize() ([]*Config, error)
-{{- end}}
+	// Normalize converts full XML response to {{ .EntryOrConfig }} structs.
+	// Used for standard read/list operations.
+	Normalize() ([]*{{ .EntryOrConfig }}, error)
+
+	// NormalizeWithFields converts unwrapped field XML response to a single {{ .EntryOrConfig }}.
+	// Used for partial field reads with XPath wildcard predicates.
+	// The name field will be zero value (empty string) - caller must set it if needed.
+	NormalizeWithFields(fieldOpt *FieldOption) (*{{ .EntryOrConfig }}, error)
 }
