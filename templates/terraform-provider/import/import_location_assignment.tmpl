@@ -1,0 +1,48 @@
+
+{
+var terraformLocation {{ .StructName }}Location
+resp.Diagnostics.Append({{ $.Source }}.Location.As(ctx, &terraformLocation, basetypes.ObjectAsOptions{})...)
+if resp.Diagnostics.HasError() {
+	return
+}
+
+{{- if .Variants }}
+var locationRequiresImport bool
+  {{- range .Variants }}
+if !{{ $.Source }}.{{ .CamelCase }}.IsNull() {
+	locationRequiresImport = true
+}
+  {{- end }}
+{{- else }}
+locationRequiresImport := true
+{{- end }}
+
+if !terraformLocation.Template.IsNull() {
+	var terraformInnerLocation {{ .StructName }}TemplateLocation
+	resp.Diagnostics.Append(terraformLocation.Template.As(ctx, &terraformInnerLocation, basetypes.ObjectAsOptions{})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// if the vsys value is not known at this stage, we must explicitly set it to null ourselves.
+	if terraformInnerLocation.Vsys.IsUnknown() {
+		terraformInnerLocation.Vsys = types.StringNull()
+		object, diags := types.ObjectValueFrom(ctx, terraformInnerLocation.AttributeTypes(), terraformInnerLocation)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		terraformLocation.Template = object
+
+		object, diags = types.ObjectValueFrom(ctx, terraformLocation.AttributeTypes(), terraformLocation)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		{{ $.Source }}.Location = object
+	} else if locationRequiresImport && !terraformInnerLocation.Vsys.IsNull() && terraformInnerLocation.Vsys.ValueString() != "" {
+		{{ $.Destination }} = terraformInnerLocation.Vsys.ValueString()
+	}
+}
+
+}

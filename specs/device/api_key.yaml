@@ -14,7 +14,6 @@ panos_xpath:
   path: ["api-key"]
 locations: []
 entries: []
-imports: []
 version: 11.0.2
 spec:
   params:
