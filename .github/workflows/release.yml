@@ -86,17 +86,28 @@ jobs:
 
       - name: Validate subcategories
         run: |
-          MISSING_VALUE=$(grep -rlE '^subcategory:\s*("")?\s*$' \
+          SKIP_FILE="target/terraform/.subcategory-skip"
+
+          # Find docs with empty or missing subcategory
+          MISSING=$(grep -rlE '^subcategory:\s*("")?\s*$' \
             target/terraform/docs/resources/ \
             target/terraform/docs/data-sources/ 2>/dev/null || true)
 
           MISSING_FIELD=$(find target/terraform/docs/resources target/terraform/docs/data-sources \
             -name "*.md" ! -exec grep -q "^subcategory:" {} \; -print 2>/dev/null || true)
 
-          PROBLEMS="${MISSING_VALUE}${MISSING_FIELD}"
-          if [ -n "$PROBLEMS" ]; then
+          MISSING="${MISSING}${MISSING_FIELD}"
+
+          # Filter out resources that explicitly opted out via skip_subcategory
+          if [ -f "$SKIP_FILE" ] && [ -n "$MISSING" ]; then
+            while IFS= read -r skip; do
+              MISSING=$(echo "$MISSING" | grep -v "/${skip}.md" || true)
+            done < "$SKIP_FILE"
+          fi
+
+          if [ -n "$MISSING" ]; then
             echo "::error::Resources missing subcategory:"
-            echo "$PROBLEMS"
+            echo "$MISSING"
             exit 1
           fi
           echo "All resources have valid subcategories"
@@ -220,10 +231,18 @@ jobs:
           go generate ./...
 
       - name: Validate subcategories in provider
-        working-directory: provider
         run: |
+          SKIP_FILE="generated/terraform/.subcategory-skip"
+
           MISSING=$(grep -rlE '^subcategory:\s*("")?\s*$' \
-            docs/resources/ docs/data-sources/ 2>/dev/null || true)
+            provider/docs/resources/ provider/docs/data-sources/ 2>/dev/null || true)
+
+          if [ -f "$SKIP_FILE" ] && [ -n "$MISSING" ]; then
+            while IFS= read -r skip; do
+              MISSING=$(echo "$MISSING" | grep -v "/${skip}.md" || true)
+            done < "$SKIP_FILE"
+          fi
+
           if [ -n "$MISSING" ]; then
             echo "::error::Resources missing subcategory after doc generation: $MISSING"
             exit 1

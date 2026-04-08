@@ -82,6 +82,7 @@ const (
 type TerraformProviderConfig struct {
 	Description           string                     `json:"description" yaml:"description"`
 	Subcategory           string                     `json:"subcategory" yaml:"subcategory"`
+	SkipSubcategory       bool                       `json:"skip_subcategory" yaml:"skip_subcategory"`
 	Ephemeral             bool                       `json:"ephemeral" yaml:"ephemeral"`
 	Action                bool                       `json:"action" yaml:"action"`
 	CustomValidation      bool                       `json:"custom_validation" yaml:"custom_validation"`
@@ -725,6 +726,7 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 			SkipResource:          object.TerraformConfig.SkipResource,
 			SkipDatasource:        object.TerraformConfig.SkipDatasource,
 			SkipDatasourceListing: object.TerraformConfig.SkipdatasourceListing,
+			SkipSubcategory:       object.TerraformConfig.SkipSubcategory,
 			ResourceType:          TerraformResourceType(object.TerraformConfig.ResourceType),
 			XmlNode:               object.TerraformConfig.XmlNode,
 			CustomFuncs:           object.TerraformConfig.CustomFunctions,

@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/generate"
@@ -106,9 +107,6 @@ func generateTfplugindocsTemplates(outputDir string, specMetadata map[string]pro
 		// Generate template for resources
 		if metadata.Flags&properties.TerraformSpecResource != 0 {
 			subcategory := metadata.Subcategory
-			if subcategory == "" {
-				subcategory = "Uncategorized"
-			}
 
 			resourceTemplate := fmt.Sprintf(`---
 page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
@@ -151,9 +149,6 @@ Import is supported using the following syntax:
 		// Generate template for data sources
 		if metadata.Flags&properties.TerraformSpecDatasource != 0 {
 			subcategory := metadata.Subcategory
-			if subcategory == "" {
-				subcategory = "Uncategorized"
-			}
 
 			dataSourceTemplate := fmt.Sprintf(`---
 page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
@@ -187,6 +182,24 @@ description: |-
 	}
 
 	slog.Info("Generated tfplugindocs templates", "resources", resourceCount, "dataSources", dataSourceCount, "templatesDir", templatesDir)
+
+	// Write skip-list of resources that intentionally have no subcategory
+	var skipList []string
+	for suffix, metadata := range specMetadata {
+		if metadata.Subcategory == "" {
+			templateName := strings.TrimPrefix(suffix, "_")
+			skipList = append(skipList, templateName)
+		}
+	}
+	if len(skipList) > 0 {
+		sort.Strings(skipList)
+		skipPath := filepath.Join(outputDir, ".subcategory-skip")
+		if err := os.WriteFile(skipPath, []byte(strings.Join(skipList, "\n")+"\n"), 0644); err != nil {
+			return fmt.Errorf("error writing subcategory skip list: %w", err)
+		}
+		slog.Info("Wrote subcategory skip list", "count", len(skipList), "path", skipPath)
+	}
+
 	return nil
 }
 
@@ -240,10 +253,17 @@ func (c *Command) Execute() error {
 			return fmt.Errorf("%s sanity failed: %s", specPath, err)
 		}
 
-		// Extract subcategory: use YAML override if present, otherwise derive from path
+		// Extract subcategory: use YAML override if present, otherwise derive from path.
+		// If skip_subcategory is set, leave it empty intentionally.
 		if c.commandType == properties.CommandTypeTerraform {
-			if spec.TerraformProviderConfig.Subcategory == "" {
-				spec.TerraformProviderConfig.Subcategory = deriveSubcategoryFromPath(specPath)
+			if spec.TerraformProviderConfig.SkipSubcategory {
+				spec.TerraformProviderConfig.Subcategory = ""
+			} else if spec.TerraformProviderConfig.Subcategory == "" {
+				subcategory := deriveSubcategoryFromPath(specPath)
+				if subcategory == "" {
+					return fmt.Errorf("%s: no subcategory found — set 'subcategory' in the spec or use 'skip_subcategory: true' if intentional", specPath)
+				}
+				spec.TerraformProviderConfig.Subcategory = subcategory
 			}
 		}
 

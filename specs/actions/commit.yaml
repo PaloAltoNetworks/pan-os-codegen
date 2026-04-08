@@ -1,6 +1,7 @@
 name: commit
 terraform_provider_config:
   description: Commit Action
+  skip_subcategory: true
   skip_resource: true
   skip_datasource: true
   resource_type: custom
