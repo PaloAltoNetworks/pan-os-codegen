@@ -234,7 +234,10 @@ jobs:
           # Fetch the latest pango from main (just pushed in previous job)
           go get github.com/PaloAltoNetworks/pango@main
 
-          # Generate terraform plugin documentation (before tidy, which removes tool deps)
+          # Add tfplugindocs tool dependency (not in generated go.mod, needed by go:generate)
+          go get github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+
+          # Generate terraform plugin documentation
           go generate ./...
 
           # Clean up after generation
