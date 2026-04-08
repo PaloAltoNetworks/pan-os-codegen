@@ -233,6 +233,7 @@ jobs:
 
           # Fetch the latest pango from main (just pushed in previous job)
           go get github.com/PaloAltoNetworks/pango@main
+          go get github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
           go mod tidy
 
           # Generate terraform plugin documentation
