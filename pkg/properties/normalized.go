@@ -194,15 +194,18 @@ type SpecParamGoSdkConfig struct {
 }
 
 type SpecParamTerraformProviderConfig struct {
-	Name          *string `json:"name" yaml:"name"`
-	Type          *string `json:"type" yaml:"type"`
-	Private       *bool   `json:"ignored" yaml:"private"`
-	Sensitive     *bool   `json:"sensitive" yaml:"sensitive"`
-	Optional      *bool   `json:"optional" yaml:"optional"`
-	Computed      *bool   `json:"computed" yaml:"computed"`
-	Required      *bool   `json:"required" yaml:"required"`
-	VariantCheck  *string `json:"variant_check" yaml:"variant_check"`
-	XpathVariable *string `json:"xpath_variable" yaml:"xpath_variable"`
+	Name              *string `json:"name" yaml:"name"`
+	Type              *string `json:"type" yaml:"type"`
+	Private           *bool   `json:"ignored" yaml:"private"`
+	Sensitive         *bool   `json:"sensitive" yaml:"sensitive"`
+	Optional          *bool   `json:"optional" yaml:"optional"`
+	Computed          *bool   `json:"computed" yaml:"computed"`
+	Required          *bool   `json:"required" yaml:"required"`
+	WriteOnly         *bool   `json:"write_only" yaml:"write_only"`
+	VariantCheck      *string `json:"variant_check" yaml:"variant_check"`
+	XpathVariable     *string `json:"xpath_variable" yaml:"xpath_variable"`
+	AlsoRequires      *NameVariant `json:"also_requires" yaml:"also_requires,omitempty"`
+	TriggerOnChangeOf *NameVariant `json:"trigger_on_change_of" yaml:"trigger_on_change_of,omitempty"`
 }
 
 type SpecParamLength struct {
@@ -347,6 +350,15 @@ func (o *SpecParam) FinalRequired() bool {
 	return o.Required
 }
 
+// FinalWriteOnly returns the final write-only state for this parameter.
+// Write-only parameters are sent to the device but never read back.
+func (o *SpecParam) FinalWriteOnly() bool {
+	if o.TerraformProviderConfig != nil && o.TerraformProviderConfig.WriteOnly != nil {
+		return *o.TerraformProviderConfig.WriteOnly
+	}
+	return false
+}
+
 func hasChildEncryptedResources(param *SpecParam) bool {
 	if param.Hashing != nil {
 		return true
@@ -453,6 +465,78 @@ func (o *SpecParam) IsPrivateParameter() bool {
 	}
 
 	return false
+}
+
+// HasTerraformType returns true if this parameter has the specified terraform type.
+func (o *SpecParam) HasTerraformType(typeName string) bool {
+	if o.TerraformProviderConfig == nil || o.TerraformProviderConfig.Type == nil {
+		return false
+	}
+	return *o.TerraformProviderConfig.Type == typeName
+}
+
+// IsAuditCommentParameter returns true if this parameter has terraform type "audit-comment-wo".
+// Audit comments are write-only parameters excluded from SDK but included in Terraform.
+func (o *SpecParam) IsAuditCommentParameter() bool {
+	return o.HasTerraformType("audit-comment-wo")
+}
+
+// HasAuditComment returns true if this spec has any audit comment parameters.
+func (o *Normalization) HasAuditComment() bool {
+	for _, param := range o.Spec.Params {
+		if param.IsAuditCommentParameter() {
+			return true
+		}
+	}
+	return false
+}
+
+// HasTriggerOnChangeOf returns true if this parameter has a trigger_on_change_of constraint.
+func (o *SpecParam) HasTriggerOnChangeOf() bool {
+	return o.TerraformProviderConfig != nil && o.TerraformProviderConfig.TriggerOnChangeOf != nil
+}
+
+// GetTriggerOnChangeOfParameterName returns the name of the parameter whose change triggers sending this param.
+func (o *SpecParam) GetTriggerOnChangeOfParameterName() *NameVariant {
+	if !o.HasTriggerOnChangeOf() {
+		return nil
+	}
+	return o.TerraformProviderConfig.TriggerOnChangeOf
+}
+
+// GetParametersWithTriggerOnChangeOf returns all parameters that have a trigger_on_change_of constraint.
+// Returns pairs of (parameter, trigger_parameter).
+func (o *Normalization) GetParametersWithTriggerOnChangeOf() []struct {
+	Param   *SpecParam
+	Trigger *SpecParam
+} {
+	var pairs []struct {
+		Param   *SpecParam
+		Trigger *SpecParam
+	}
+
+	// Find all parameters with TriggerOnChangeOf
+	for _, param := range o.Spec.Params {
+		if param.HasTriggerOnChangeOf() {
+			triggerName := param.GetTriggerOnChangeOfParameterName()
+			if triggerParam, exists := o.Spec.Params[triggerName.Original]; exists {
+				pairs = append(pairs, struct {
+					Param   *SpecParam
+					Trigger *SpecParam
+				}{
+					Param:   param,
+					Trigger: triggerParam,
+				})
+			}
+		}
+	}
+
+	return pairs
+}
+
+// HasParametersWithTriggerOnChangeOf returns true if this spec has any parameters with trigger_on_change_of.
+func (o *Normalization) HasParametersWithTriggerOnChangeOf() bool {
+	return len(o.GetParametersWithTriggerOnChangeOf()) > 0
 }
 
 // GetNormalizations get list of all specs (normalizations).
@@ -600,8 +684,16 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 			Sensitive:     schemaSpec.CodegenOverrides.Terraform.Sensitive,
 			Computed:      schemaSpec.CodegenOverrides.Terraform.Computed,
 			Required:      schemaSpec.CodegenOverrides.Terraform.Required,
+			WriteOnly:     schemaSpec.CodegenOverrides.Terraform.WriteOnly,
 			VariantCheck:  variantCheck,
 			XpathVariable: schemaSpec.CodegenOverrides.Terraform.XpathVariable,
+		}
+
+		if schemaSpec.CodegenOverrides.Terraform.AlsoRequires != nil {
+			terraformProviderConfig.AlsoRequires = NewNameVariant(*schemaSpec.CodegenOverrides.Terraform.AlsoRequires)
+		}
+		if schemaSpec.CodegenOverrides.Terraform.TriggerOnChangeOf != nil {
+			terraformProviderConfig.TriggerOnChangeOf = NewNameVariant(*schemaSpec.CodegenOverrides.Terraform.TriggerOnChangeOf)
 		}
 
 		goSdkConfig = &SpecParamGoSdkConfig{

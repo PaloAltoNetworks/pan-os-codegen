@@ -19,6 +19,8 @@ tflog.Info(ctx, "performing resource create", map[string]any{
 var location {{ .resourceSDKName }}.Location
 {{ RenderLocationsStateToPango "state.Location" "location" }}
 
+{{ RenderTriggeredParamsExtractCreate }}
+
 var elements []{{ $resourceTFStructName }}
 resp.Diagnostics.Append(state.{{ .ListAttribute.CamelCase }}.ElementsAs(ctx, &elements, false)...)
 if resp.Diagnostics.HasError() {
@@ -42,7 +44,7 @@ if err != nil {
 }
 
 {{- if .Exhaustive }}
-processed, err := o.manager.CreateMany(ctx, location, components, entries, sdkmanager.Exhaustive, movement.PositionFirst{})
+processed, err := o.manager.CreateMany(ctx, location, components, entries, sdkmanager.Exhaustive, movement.PositionFirst{}, auditComments)
 if err != nil {
 	resp.Diagnostics.AddError("Error during CreateMany() call", err.Error())
 	return
@@ -54,7 +56,7 @@ if resp.Diagnostics.HasError() {
 	return
 }
 position := positionAttribute.CopyToPango()
-processed, err := o.manager.CreateMany(ctx, location, components, entries, sdkmanager.NonExhaustive, position)
+processed, err := o.manager.CreateMany(ctx, location, components, entries, sdkmanager.NonExhaustive, position, auditComments)
 if err != nil {
 	resp.Diagnostics.AddError("Error during CreateMany() call", err.Error())
 	return
@@ -62,7 +64,7 @@ if err != nil {
 {{- end }}
 objects := make([]{{ $resourceTFStructName }}, len(processed))
 for idx, elt := range processed {
-	var object {{ $resourceTFStructName }}
+	object := elements[idx]
 	copy_diags := object.CopyFromPango(ctx, o.client, nil, elt, ev)
 	resp.Diagnostics.Append(copy_diags...)
 	if resp.Diagnostics.HasError() {

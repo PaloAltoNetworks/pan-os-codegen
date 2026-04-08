@@ -20,6 +20,8 @@ tflog.Info(ctx, "performing resource create", map[string]any{
 var location {{ .resourceSDKName }}.Location
 {{ RenderLocationsStateToPango "plan.Location" "location" }}
 
+{{ RenderTriggeredParamsExtractUpdate }}
+
 // Basic logging.
 tflog.Info(ctx, "performing resource update", map[string]any{
 	"resource_name": "panos_{{ UnderscoreName .structName }}",
@@ -133,7 +135,10 @@ if err != nil {
 {{- if eq .PluralType "map" }}
 objects := make(map[string]*{{ $resourceTFStructName }}, len(processed))
 for _, elt := range processed {
-	var object {{ $resourceTFStructName }}
+	object, found := elements[elt.Name]
+	if !found {
+		object = {{ $resourceTFStructName }}{}
+	}
 	object.name = elt.Name
 	copy_diags := object.CopyFromPango(ctx, o.client, nil, elt, ev)
 	resp.Diagnostics.Append(copy_diags...)
@@ -145,7 +150,7 @@ for _, elt := range processed {
 {{- else if or (eq .PluralType "list") (eq .PluralType "set") }}
 objects := make([]*{{ $resourceTFStructName }}, len(processed))
 for idx, elt := range processed {
-	var object {{ $resourceTFStructName }}
+	object := elements[idx]
 	resp.Diagnostics.Append(object.CopyFromPango(ctx, o.client, nil, elt, ev)...)
 	if resp.Diagnostics.HasError() {
 		return

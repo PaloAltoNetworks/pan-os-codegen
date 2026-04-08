@@ -80,9 +80,14 @@ if err != nil {
 	return
 }
 
+stateElementsByName := make(map[string]{{ $resourceTFStructName }})
+for _, elt := range elements {
+	stateElementsByName[elt.Name.ValueString()] = elt
+}
+
 var objects []{{ $resourceTFStructName }}
 for _, elt := range readEntries {
-	var object {{ $resourceTFStructName }}
+	object := stateElementsByName[elt.Name]
 	err := object.CopyFromPango(ctx, o.client, nil, elt, ev)
 	resp.Diagnostics.Append(err...)
 	if resp.Diagnostics.HasError() {
