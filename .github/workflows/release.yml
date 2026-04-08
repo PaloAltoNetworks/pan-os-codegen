@@ -233,13 +233,12 @@ jobs:
 
           # Fetch the latest pango from main (just pushed in previous job)
           go get github.com/PaloAltoNetworks/pango@main
-          go mod tidy
 
-          # Install tfplugindocs after tidy (tidy removes tool-only deps)
-          go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@latest
-
-          # Generate terraform plugin documentation
+          # Generate terraform plugin documentation (before tidy, which removes tool deps)
           go generate ./...
+
+          # Clean up after generation
+          go mod tidy
 
       - name: Validate subcategories in provider
         run: |
