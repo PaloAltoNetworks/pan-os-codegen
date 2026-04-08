@@ -30,6 +30,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       last_tag: ${{ steps.version.outputs.last_tag }}
       since_date: ${{ steps.version.outputs.since_date }}
+      existing_pr: ${{ steps.version.outputs.existing_pr }}
     steps:
       - name: Checkout pan-os-codegen
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -58,9 +59,22 @@ jobs:
           LAST_TAG=$(gh release view --repo PaloAltoNetworks/terraform-provider-panos --json tagName -q '.tagName' 2>/dev/null || echo "v0.0.0")
           SINCE_DATE=$(gh release view "$LAST_TAG" --repo PaloAltoNetworks/terraform-provider-panos --json publishedAt -q '.publishedAt' 2>/dev/null || echo "")
 
+          # Check for existing open auto-release PR (skip if version is manually overridden)
+          EXISTING_PR=""
+          if [ -z "${{ inputs.version_override }}" ]; then
+            EXISTING_PR=$(gh pr list --repo PaloAltoNetworks/terraform-provider-panos \
+              --state open --json number,headRefName \
+              --jq '[.[] | select(.headRefName | startswith("auto-release/"))][0].number // empty' 2>/dev/null || echo "")
+            if [ -n "$EXISTING_PR" ]; then
+              EXISTING_BRANCH=$(gh pr view "$EXISTING_PR" --repo PaloAltoNetworks/terraform-provider-panos --json headRefName -q '.headRefName')
+              VERSION="${EXISTING_BRANCH#auto-release/}"
+              echo "::notice::Found existing unmerged PR #${EXISTING_PR} for ${VERSION} - reusing version"
+            fi
+          fi
+
           if [ -n "${{ inputs.version_override }}" ]; then
             VERSION="${{ inputs.version_override }}"
-          else
+          elif [ -z "$EXISTING_PR" ]; then
             VERSION=$(bash scripts/determine-version.sh --last-tag "$LAST_TAG")
             if [ "$VERSION" = "NO_BUMP" ]; then
               echo "::error::No version-bumping commits found since $LAST_TAG"
@@ -71,15 +85,20 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "last_tag=$LAST_TAG" >> $GITHUB_OUTPUT
           echo "since_date=$SINCE_DATE" >> $GITHUB_OUTPUT
+          echo "existing_pr=$EXISTING_PR" >> $GITHUB_OUTPUT
           echo "## Version" >> $GITHUB_STEP_SUMMARY
           echo "- Current: $LAST_TAG" >> $GITHUB_STEP_SUMMARY
           echo "- Next: $VERSION" >> $GITHUB_STEP_SUMMARY
+          if [ -n "$EXISTING_PR" ]; then
+            echo "- Reusing existing PR: #$EXISTING_PR" >> $GITHUB_STEP_SUMMARY
+          fi
 
       - name: Generate release notes
         run: |
           bash scripts/generate-release-notes.sh \
             "${{ steps.version.outputs.version }}" \
-            "${{ steps.version.outputs.since_date }}" \
+            --since-tag "${{ steps.version.outputs.last_tag }}" \
+            --since-date "${{ steps.version.outputs.since_date }}" \
             > target/release-notes.md
           echo "## Release Notes" >> $GITHUB_STEP_SUMMARY
           cat target/release-notes.md >> $GITHUB_STEP_SUMMARY
@@ -261,11 +280,12 @@ jobs:
             exit 1
           fi
 
-      - name: Create PR
+      - name: Create or update PR
         id: create-pr
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           VERSION: ${{ needs.generate-and-test.outputs.version }}
+          EXISTING_PR: ${{ needs.generate-and-test.outputs.existing_pr }}
         working-directory: provider
         run: |
           BRANCH="auto-release/${VERSION}"
@@ -276,19 +296,23 @@ jobs:
           git add .
 
           if git diff --staged --quiet; then
+            if [ -n "$EXISTING_PR" ]; then
+              echo "::notice::No new changes; existing PR #${EXISTING_PR} is up to date"
+              PR_URL=$(gh pr view "$EXISTING_PR" --repo PaloAltoNetworks/terraform-provider-panos --json url -q '.url')
+              echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
+              echo "## Provider PR" >> $GITHUB_STEP_SUMMARY
+              echo "Up to date: $PR_URL" >> $GITHUB_STEP_SUMMARY
+              exit 0
+            fi
             echo "::error::No changes to commit in provider"
             exit 1
           fi
 
           git commit -m "chore(release): auto-generated ${VERSION}"
-          git push -u origin "$BRANCH"
 
           RELEASE_NOTES=$(cat ../generated/release-notes.md)
 
-          PR_URL=$(gh pr create \
-            --repo PaloAltoNetworks/terraform-provider-panos \
-            --title "chore(release): ${VERSION}" \
-            --body "$(cat <<PREOF
+          PR_BODY=$(cat <<PREOF
           ## Release ${VERSION}
 
           **Automated by pan-os-codegen release pipeline**
@@ -304,11 +328,27 @@ jobs:
           ${RELEASE_NOTES}
           <!-- RELEASE_NOTES_END -->
           PREOF
-          )")
+          )
+
+          if [ -n "$EXISTING_PR" ]; then
+            # Force push to update existing branch and PR body
+            git push --force origin "$BRANCH"
+            gh pr edit "$EXISTING_PR" \
+              --repo PaloAltoNetworks/terraform-provider-panos \
+              --body "$PR_BODY"
+            PR_URL=$(gh pr view "$EXISTING_PR" --repo PaloAltoNetworks/terraform-provider-panos --json url -q '.url')
+            echo "::notice::Updated existing PR: $PR_URL"
+          else
+            git push -u origin "$BRANCH"
+            PR_URL=$(gh pr create \
+              --repo PaloAltoNetworks/terraform-provider-panos \
+              --title "chore(release): ${VERSION}" \
+              --body "$PR_BODY")
+          fi
 
           echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
           echo "## Provider PR" >> $GITHUB_STEP_SUMMARY
-          echo "Created: $PR_URL" >> $GITHUB_STEP_SUMMARY
+          echo "${EXISTING_PR:+Updated}${EXISTING_PR:-Created}: $PR_URL" >> $GITHUB_STEP_SUMMARY
 
   tag-codegen:
     name: Tag Codegen
@@ -324,6 +364,7 @@ jobs:
         env:
           VERSION: ${{ needs.generate-and-test.outputs.version }}
         run: |
-          git tag "release/${VERSION}"
-          git push origin "release/${VERSION}"
-          echo "Tagged pan-os-codegen with release/${VERSION}"
+          TAG="release/${VERSION}"
+          git tag -f "$TAG"
+          git push origin "$TAG" --force
+          echo "Tagged pan-os-codegen with $TAG"
