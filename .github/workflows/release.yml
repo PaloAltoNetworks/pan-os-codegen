@@ -218,14 +218,12 @@ jobs:
             --exclude 'GNUmakefile' --exclude 'LICENSE' --exclude 'README.md' \
             --exclude 'SUPPORT.md' --exclude 'terraform-registry-manifest.json' \
             --exclude '.gitignore' --exclude 'scripts' \
+            --exclude 'go.mod' --exclude 'go.sum' \
             generated/terraform/ provider/
 
       - name: Update pango dependency and generate docs
         working-directory: provider
         run: |
-          # Remove local replace directive (used for local dev, not valid in CI)
-          go mod edit -dropreplace github.com/PaloAltoNetworks/pango
-
           # Fetch the latest pango from main (just pushed in previous job)
           go get github.com/PaloAltoNetworks/pango@main
           go mod tidy
