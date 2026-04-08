@@ -4,13 +4,13 @@ resource "panos_template" "tmpl" {
 }
 
 resource "panos_ethernet_interface" "iface1" {
-  location     = { template = { name = resource.panos_template.template.name, vsys = "vsys1" } }
+  location     = { template = { name = panos_template.tmpl.name, vsys = "vsys1" } }
   name         = var.interface1
   virtual_wire = {}
 }
 
 resource "panos_ethernet_interface" "iface2" {
-  location     = { template = { name = resource.panos_template.template.name, vsys = "vsys1" } }
+  location     = { template = { name = panos_template.tmpl.name, vsys = "vsys1" } }
   name         = var.interface2
   virtual_wire = {}
 }

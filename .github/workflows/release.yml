@@ -1,0 +1,316 @@
+# Release pipeline for PAN-OS Terraform provider and pango Go SDK.
+#
+# Generates code, runs tests, pushes pango to main, and creates a PR
+# in terraform-provider-panos. Merging that PR triggers GoReleaser
+# via the auto-release workflow in the provider repo.
+#
+# Prerequisites:
+#   - GitHub App configured with contents:write on pango and terraform-provider-panos
+#   - Repository secrets: CODEGEN_APP_ID, CODEGEN_PRIVATE_KEY, CODEGEN_INSTALLATION_ID
+
+name: Release
+run-name: "Release ${{ inputs.version_override || 'auto-detect' }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_override:
+        description: "Override auto-detected version (e.g. v2.1.0). Leave empty for auto-detection."
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  generate-and-test:
+    name: Generate & Test
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      last_tag: ${{ steps.version.outputs.last_tag }}
+      since_date: ${{ steps.version.outputs.since_date }}
+    steps:
+      - name: Checkout pan-os-codegen
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5
+        with:
+          go-version: "1.23"
+
+      - name: Generate code
+        run: make codegen
+
+      - name: Run codegen tests
+        run: make test/codegen
+
+      - name: Run pango SDK tests
+        run: make test/pango
+
+      - name: Determine version
+        id: version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          LAST_TAG=$(gh release view --repo PaloAltoNetworks/terraform-provider-panos --json tagName -q '.tagName' 2>/dev/null || echo "v0.0.0")
+          SINCE_DATE=$(gh release view "$LAST_TAG" --repo PaloAltoNetworks/terraform-provider-panos --json publishedAt -q '.publishedAt' 2>/dev/null || echo "")
+
+          if [ -n "${{ inputs.version_override }}" ]; then
+            VERSION="${{ inputs.version_override }}"
+          else
+            VERSION=$(bash scripts/determine-version.sh --last-tag "$LAST_TAG")
+            if [ "$VERSION" = "NO_BUMP" ]; then
+              echo "::error::No version-bumping commits found since $LAST_TAG"
+              exit 1
+            fi
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "last_tag=$LAST_TAG" >> $GITHUB_OUTPUT
+          echo "since_date=$SINCE_DATE" >> $GITHUB_OUTPUT
+          echo "## Version" >> $GITHUB_STEP_SUMMARY
+          echo "- Current: $LAST_TAG" >> $GITHUB_STEP_SUMMARY
+          echo "- Next: $VERSION" >> $GITHUB_STEP_SUMMARY
+
+      - name: Generate release notes
+        run: |
+          bash scripts/generate-release-notes.sh \
+            "${{ steps.version.outputs.version }}" \
+            "${{ steps.version.outputs.since_date }}" \
+            > target/release-notes.md
+          echo "## Release Notes" >> $GITHUB_STEP_SUMMARY
+          cat target/release-notes.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Validate subcategories
+        run: |
+          SKIP_FILE="target/terraform/.subcategory-skip"
+
+          # Find docs with empty or missing subcategory
+          MISSING=$(grep -rlE '^subcategory:\s*("")?\s*$' \
+            target/terraform/docs/resources/ \
+            target/terraform/docs/data-sources/ 2>/dev/null || true)
+
+          MISSING_FIELD=$(find target/terraform/docs/resources target/terraform/docs/data-sources \
+            -name "*.md" ! -exec grep -q "^subcategory:" {} \; -print 2>/dev/null || true)
+
+          MISSING="${MISSING}${MISSING_FIELD}"
+
+          # Filter out resources that explicitly opted out via skip_subcategory
+          if [ -f "$SKIP_FILE" ] && [ -n "$MISSING" ]; then
+            while IFS= read -r skip; do
+              MISSING=$(echo "$MISSING" | grep -v "/${skip}.md" || true)
+            done < "$SKIP_FILE"
+          fi
+
+          if [ -n "$MISSING" ]; then
+            echo "::error::Resources missing subcategory:"
+            echo "$MISSING"
+            exit 1
+          fi
+          echo "All resources have valid subcategories"
+
+      - name: Upload generated code
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: generated-code
+          path: |
+            target/pango/
+            target/terraform/
+            target/release-notes.md
+          retention-days: 3
+          if-no-files-found: error
+
+  push-pango:
+    name: Push Pango SDK
+    needs: generate-and-test
+    runs-on: ubuntu-latest
+    outputs:
+      has_changes: ${{ steps.push.outputs.has_changes }}
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        with:
+          app-id: ${{ secrets.CODEGEN_APP_ID }}
+          private-key: ${{ secrets.CODEGEN_PRIVATE_KEY }}
+          installation-id: ${{ secrets.CODEGEN_INSTALLATION_ID }}
+          owner: PaloAltoNetworks
+          repositories: pango
+
+      - name: Checkout pango
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          repository: PaloAltoNetworks/pango
+          token: ${{ steps.app-token.outputs.token }}
+          path: pango
+
+      - name: Download generated code
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: generated-code
+          path: generated
+
+      - name: Sync and push pango
+        id: push
+        run: |
+          # Copy generated SDK over (preserving non-generated files like .git)
+          rsync -av --exclude '.git' generated/pango/ pango/
+
+          cd pango
+
+          if git diff --quiet && [ -z "$(git status --porcelain)" ]; then
+            echo "No changes in pango SDK"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "chore: auto-generated pango SDK"
+          git push
+
+          echo "has_changes=true" >> $GITHUB_OUTPUT
+          echo "Pango SDK pushed to main"
+
+  create-provider-pr:
+    name: Create Provider PR
+    needs: [generate-and-test, push-pango]
+    runs-on: ubuntu-latest
+    outputs:
+      pr_url: ${{ steps.create-pr.outputs.pr_url }}
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        with:
+          app-id: ${{ secrets.CODEGEN_APP_ID }}
+          private-key: ${{ secrets.CODEGEN_PRIVATE_KEY }}
+          installation-id: ${{ secrets.CODEGEN_INSTALLATION_ID }}
+          owner: PaloAltoNetworks
+          repositories: terraform-provider-panos
+
+      - name: Set up Go
+        uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5
+        with:
+          go-version: "1.23"
+
+      - name: Checkout provider
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          repository: PaloAltoNetworks/terraform-provider-panos
+          token: ${{ steps.app-token.outputs.token }}
+          path: provider
+
+      - name: Download generated code
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: generated-code
+          path: generated
+
+      - name: Sync generated code to provider
+        run: |
+          # Copy generated terraform code over, excluding repo-specific files
+          rsync -av --exclude '.git' --exclude '.github' --exclude '.goreleaser.yml' \
+            --exclude 'GNUmakefile' --exclude 'LICENSE' --exclude 'README.md' \
+            --exclude 'SUPPORT.md' --exclude 'terraform-registry-manifest.json' \
+            --exclude '.gitignore' --exclude 'scripts' \
+            generated/terraform/ provider/
+
+      - name: Update pango dependency and generate docs
+        working-directory: provider
+        run: |
+          # Fetch the latest pango from main (just pushed in previous job)
+          go get github.com/PaloAltoNetworks/pango@main
+          go mod tidy
+
+          # Generate terraform plugin documentation
+          go generate ./...
+
+      - name: Validate subcategories in provider
+        run: |
+          SKIP_FILE="generated/terraform/.subcategory-skip"
+
+          MISSING=$(grep -rlE '^subcategory:\s*("")?\s*$' \
+            provider/docs/resources/ provider/docs/data-sources/ 2>/dev/null || true)
+
+          if [ -f "$SKIP_FILE" ] && [ -n "$MISSING" ]; then
+            while IFS= read -r skip; do
+              MISSING=$(echo "$MISSING" | grep -v "/${skip}.md" || true)
+            done < "$SKIP_FILE"
+          fi
+
+          if [ -n "$MISSING" ]; then
+            echo "::error::Resources missing subcategory after doc generation: $MISSING"
+            exit 1
+          fi
+
+      - name: Create PR
+        id: create-pr
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          VERSION: ${{ needs.generate-and-test.outputs.version }}
+        working-directory: provider
+        run: |
+          BRANCH="auto-release/${VERSION}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add .
+
+          if git diff --staged --quiet; then
+            echo "::error::No changes to commit in provider"
+            exit 1
+          fi
+
+          git commit -m "chore(release): auto-generated ${VERSION}"
+          git push -u origin "$BRANCH"
+
+          RELEASE_NOTES=$(cat ../generated/release-notes.md)
+
+          PR_URL=$(gh pr create \
+            --repo PaloAltoNetworks/terraform-provider-panos \
+            --title "chore(release): ${VERSION}" \
+            --body "$(cat <<PREOF
+          ## Release ${VERSION}
+
+          **Automated by pan-os-codegen release pipeline**
+
+          Review the changes below. You can edit the release notes section before merging.
+          Merging this PR will automatically:
+          1. Create tag \`${VERSION}\`
+          2. Trigger GoReleaser to build and publish binaries
+          3. Attach the release notes to the GitHub release
+
+          ### Release Notes
+          <!-- RELEASE_NOTES_START -->
+          ${RELEASE_NOTES}
+          <!-- RELEASE_NOTES_END -->
+          PREOF
+          )")
+
+          echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
+          echo "## Provider PR" >> $GITHUB_STEP_SUMMARY
+          echo "Created: $PR_URL" >> $GITHUB_STEP_SUMMARY
+
+  tag-codegen:
+    name: Tag Codegen
+    needs: [generate-and-test, create-provider-pr]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pan-os-codegen
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Tag release
+        env:
+          VERSION: ${{ needs.generate-and-test.outputs.version }}
+        run: |
+          git tag "release/${VERSION}"
+          git push origin "release/${VERSION}"
+          echo "Tagged pan-os-codegen with release/${VERSION}"
