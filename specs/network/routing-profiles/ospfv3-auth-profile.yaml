@@ -1,0 +1,489 @@
+name: ospfv3-auth-routing-profile
+terraform_provider_config:
+  description: OSPFv3 Auth Routing Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: ospfv3_auth_routing_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+  custom_validation: false
+go_sdk_config:
+  skip: false
+  package:
+  - network
+  - routing-profile
+  - ospfv3
+  - authprofile
+panos_xpath:
+  path:
+  - network
+  - routing-profile
+  - ospfv3
+  - auth-profile
+  vars: []
+locations:
+- name: ngfw
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific NGFW device
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+spec:
+  params:
+  - name: spi
+    type: string
+    profiles:
+    - xpath:
+      - spi
+    validators: []
+    spec: {}
+    description: SPI for both inbound and outbound SA, hex format xxxxxxxx.
+    required: false
+  variants:
+  - name: ah
+    type: object
+    profiles:
+    - xpath:
+      - ah
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: md5
+        type: object
+        profiles:
+        - xpath:
+          - md5
+        validators: []
+        spec:
+          params:
+          - name: key
+            type: string
+            profiles:
+            - xpath:
+              - key
+            validators:
+            - type: length
+              spec:
+                max: 255
+            spec: {}
+            description: hex format xxxxxxxx[-xxxxxxxx]... total 4 sections
+            required: false
+            hashing:
+              type: solo
+          variants: []
+        description: key is 128 bit
+        required: false
+        variant_group_id: 0
+      - name: sha1
+        type: object
+        profiles:
+        - xpath:
+          - sha1
+        validators: []
+        spec:
+          params:
+          - name: key
+            type: string
+            profiles:
+            - xpath:
+              - key
+            validators:
+            - type: length
+              spec:
+                max: 255
+            spec: {}
+            description: hex format xxxxxxxx[-xxxxxxxx]... total 5 sections
+            required: false
+            hashing:
+              type: solo
+          variants: []
+        description: key is 160 bit
+        required: false
+        variant_group_id: 0
+      - name: sha256
+        type: object
+        profiles:
+        - xpath:
+          - sha256
+        validators: []
+        spec:
+          params:
+          - name: key
+            type: string
+            profiles:
+            - xpath:
+              - key
+            validators:
+            - type: length
+              spec:
+                max: 255
+            spec: {}
+            description: hex format xxxxxxxx[-xxxxxxxx]... total 8 sections
+            required: false
+            hashing:
+              type: solo
+          variants: []
+        description: key is 256 bit
+        required: false
+        variant_group_id: 0
+      - name: sha384
+        type: object
+        profiles:
+        - xpath:
+          - sha384
+        validators: []
+        spec:
+          params:
+          - name: key
+            type: string
+            profiles:
+            - xpath:
+              - key
+            validators:
+            - type: length
+              spec:
+                max: 255
+            spec: {}
+            description: hex format xxxxxxxx[-xxxxxxxx]... total 12 sections
+            required: false
+            hashing:
+              type: solo
+          variants: []
+        description: key is 384 bit
+        required: false
+        variant_group_id: 0
+      - name: sha512
+        type: object
+        profiles:
+        - xpath:
+          - sha512
+        validators: []
+        spec:
+          params:
+          - name: key
+            type: string
+            profiles:
+            - xpath:
+              - key
+            validators:
+            - type: length
+              spec:
+                max: 255
+            spec: {}
+            description: hex format xxxxxxxx[-xxxxxxxx]... total 16 sections
+            required: false
+            hashing:
+              type: solo
+          variants: []
+        description: key is 512 bit
+        required: false
+        variant_group_id: 0
+    description: AH options
+    required: false
+    variant_group_id: 0
+  - name: esp
+    type: object
+    profiles:
+    - xpath:
+      - esp
+    validators: []
+    spec:
+      params:
+      - name: authentication
+        type: object
+        profiles:
+        - xpath:
+          - authentication
+        validators: []
+        spec:
+          params: []
+          variants:
+          - name: md5
+            type: object
+            profiles:
+            - xpath:
+              - md5
+            validators: []
+            spec:
+              params:
+              - name: key
+                type: string
+                profiles:
+                - xpath:
+                  - key
+                validators:
+                - type: length
+                  spec:
+                    max: 255
+                spec: {}
+                description: hex format xxxxxxxx[-xxxxxxxx]... total 4 sections
+                required: false
+                hashing:
+                  type: solo
+              variants: []
+            description: key is 128 bit
+            required: false
+            variant_group_id: 0
+          - name: none
+            type: object
+            profiles:
+            - xpath:
+              - none
+            validators: []
+            spec:
+              params: []
+              variants: []
+            description: no authentication
+            required: false
+            variant_group_id: 0
+          - name: sha1
+            type: object
+            profiles:
+            - xpath:
+              - sha1
+            validators: []
+            spec:
+              params:
+              - name: key
+                type: string
+                profiles:
+                - xpath:
+                  - key
+                validators:
+                - type: length
+                  spec:
+                    max: 255
+                spec: {}
+                description: hex format xxxxxxxx[-xxxxxxxx]... total 5 sections
+                required: false
+                hashing:
+                  type: solo
+              variants: []
+            description: key is 160 bit
+            required: false
+            variant_group_id: 0
+          - name: sha256
+            type: object
+            profiles:
+            - xpath:
+              - sha256
+            validators: []
+            spec:
+              params:
+              - name: key
+                type: string
+                profiles:
+                - xpath:
+                  - key
+                validators:
+                - type: length
+                  spec:
+                    max: 255
+                spec: {}
+                description: hex format xxxxxxxx[-xxxxxxxx]... total 8 sections
+                required: false
+                hashing:
+                  type: solo
+              variants: []
+            description: key is 256 bit
+            required: false
+            variant_group_id: 0
+          - name: sha384
+            type: object
+            profiles:
+            - xpath:
+              - sha384
+            validators: []
+            spec:
+              params:
+              - name: key
+                type: string
+                profiles:
+                - xpath:
+                  - key
+                validators:
+                - type: length
+                  spec:
+                    max: 255
+                spec: {}
+                description: hex format xxxxxxxx[-xxxxxxxx]... total 12 sections
+                required: false
+                hashing:
+                  type: solo
+              variants: []
+            description: key is 384 bit
+            required: false
+            variant_group_id: 0
+          - name: sha512
+            type: object
+            profiles:
+            - xpath:
+              - sha512
+            validators: []
+            spec:
+              params:
+              - name: key
+                type: string
+                profiles:
+                - xpath:
+                  - key
+                validators:
+                - type: length
+                  spec:
+                    max: 255
+                spec: {}
+                description: hex format xxxxxxxx[-xxxxxxxx]... total 16 sections
+                required: false
+                hashing:
+                  type: solo
+              variants: []
+            description: key is 512 bit
+            required: false
+            variant_group_id: 0
+        description: authentication algorithm
+        required: false
+      - name: encryption
+        type: object
+        profiles:
+        - xpath:
+          - encryption
+        validators: []
+        spec:
+          params:
+          - name: algorithm
+            type: enum
+            profiles:
+            - xpath:
+              - algorithm
+            validators:
+            - type: values
+              spec:
+                values:
+                - 3des
+                - aes-128-cbc
+                - aes-192-cbc
+                - aes-256-cbc
+                - 'null'
+            spec:
+              values:
+              - value: 3des
+              - value: aes-128-cbc
+              - value: aes-192-cbc
+              - value: aes-256-cbc
+              - value: 'null'
+            description: ''
+            required: false
+          - name: key
+            type: string
+            profiles:
+            - xpath:
+              - key
+            validators:
+            - type: length
+              spec:
+                max: 255
+            spec: {}
+            description: 'hex format xxxxxxxx[-xxxxxxxx]... total number of sections:
+              3des: 6, aes128: 4, aes192: 6, aes256: 8'
+            required: false
+            hashing:
+              type: solo
+          variants: []
+        description: encryption algorithm
+        required: false
+      variants: []
+    description: ESP options
+    required: false
+    variant_group_id: 0
