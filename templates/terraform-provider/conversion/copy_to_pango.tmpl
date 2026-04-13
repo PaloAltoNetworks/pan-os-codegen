@@ -34,6 +34,7 @@
     {{- $terraformType := printf "%s%sObject" $.Spec.TerraformType .TerraformName.CamelCase }}
     {{- $pangoEntries := printf "%s_pango_entries" .TerraformName.LowerCamelCase }}
     {{- $tfEntries := printf "%s_tf_entries" .TerraformName.LowerCamelCase }}
+    {{- $existingEntries := printf "%s_existing_entries" .TerraformName.LowerCamelCase }}
     {{- if eq .ItemsType "entry" }}
 		var {{ $tfEntries }} []{{ $terraformType }}
 		var {{ $pangoEntries }} []{{ $pangoType }}
@@ -43,8 +44,14 @@
 		if diags.HasError() {
 			return diags
 		}
+		{{ $existingEntries }} := make(map[string]*{{ $pangoType }})
+		if *obj != nil {
+			for idx := range (*obj).{{ .PangoName.CamelCase }} {
+				{{ $existingEntries }}[(*obj).{{ .PangoName.CamelCase }}[idx].Name] = &(*obj).{{ .PangoName.CamelCase }}[idx]
+			}
+		}
 		for _, elt := range {{ $tfEntries }} {
-			var entry *{{ $pangoType }}
+			entry := {{ $existingEntries }}[elt.Name.ValueString()]
 			diags.Append(elt.CopyToPango(ctx, client, append(ancestors, elt), &entry, ev)...)
 			if diags.HasError() {
 				return diags
