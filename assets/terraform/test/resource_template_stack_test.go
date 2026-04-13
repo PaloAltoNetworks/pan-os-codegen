@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/PaloAltoNetworks/pango/generic"
@@ -171,6 +172,10 @@ resource "panos_template_stack" "example" {
 }
 `
 
+// TestAccTemplateStack_DefaultVsys verifies that default_vsys can be set
+// during the initial create step. The template is created with default_vsys
+// first (which triggers its hooks to create the vsys), then the template-stack
+// references that template and sets its own default_vsys.
 func TestAccTemplateStack_DefaultVsys(t *testing.T) {
 	t.Parallel()
 
@@ -181,16 +186,18 @@ func TestAccTemplateStack_DefaultVsys(t *testing.T) {
 		"panorama": config.ObjectVariable(map[string]config.Variable{}),
 	})
 
+	configVars := map[string]config.Variable{
+		"prefix":   config.StringVariable(prefix),
+		"location": location,
+	}
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: templateStack_DefaultVsys_Tmpl,
-				ConfigVariables: map[string]config.Variable{
-					"prefix":   config.StringVariable(prefix),
-					"location": location,
-				},
+				Config:          templateStack_DefaultVsys_Tmpl,
+				ConfigVariables: configVars,
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
 						"panos_template_stack.example",
@@ -212,23 +219,70 @@ const templateStack_DefaultVsys_Tmpl = `
 variable "prefix" { type = string }
 variable "location" { type = any }
 
-data "panos_template" "existing" {
-  location = {
-    panorama = {
-      panorama_device = "localhost.localdomain"
-    }
-  }
-  name = "test-acc-tmpl"
+resource "panos_template" "test" {
+  location = var.location
+  name = "${var.prefix}-template"
+  default_vsys = "vsys1"
 }
 
 resource "panos_template_stack" "example" {
   location = var.location
   name = var.prefix
   default_vsys = "vsys1"
-  templates = [data.panos_template.existing.name]
+  templates = [panos_template.test.name]
 }
 `
 
+// TestAccTemplateStack_DefaultVsysNoTemplateVsys verifies that setting
+// default_vsys on a template-stack fails when the referenced template does not
+// have the vsys created (i.e. template is created without default_vsys).
+func TestAccTemplateStack_DefaultVsysNoTemplateVsys(t *testing.T) {
+	t.Parallel()
+
+	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
+	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
+
+	location := config.ObjectVariable(map[string]config.Variable{
+		"panorama": config.ObjectVariable(map[string]config.Variable{}),
+	})
+
+	configVars := map[string]config.Variable{
+		"prefix":   config.StringVariable(prefix),
+		"location": location,
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config:          templateStack_DefaultVsysNoTemplateVsys_Tmpl,
+				ConfigVariables: configVars,
+				ExpectError: regexp.MustCompile(`Error in create`),
+			},
+		},
+	})
+}
+
+const templateStack_DefaultVsysNoTemplateVsys_Tmpl = `
+variable "prefix" { type = string }
+variable "location" { type = any }
+
+resource "panos_template" "test" {
+  location = var.location
+  name = "${var.prefix}-template"
+}
+
+resource "panos_template_stack" "example" {
+  location = var.location
+  name = var.prefix
+  default_vsys = "vsys1"
+  templates = [panos_template.test.name]
+}
+`
+
+// TestAccTemplateStack_Complete creates a template stack with all fields
+// including default_vsys set directly during the initial create step.
 func TestAccTemplateStack_Complete(t *testing.T) {
 	t.Parallel()
 
@@ -245,51 +299,20 @@ func TestAccTemplateStack_Complete(t *testing.T) {
 		"panorama": config.ObjectVariable(map[string]config.Variable{}),
 	})
 
+	configVars := map[string]config.Variable{
+		"prefix":          config.StringVariable(prefix),
+		"location":        location,
+		"serial_number_1": config.StringVariable(serialNumber1),
+		"serial_number_2": config.StringVariable(serialNumber2),
+	}
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: templateStack_Complete_Step1_Tmpl,
-				ConfigVariables: map[string]config.Variable{
-					"prefix":          config.StringVariable(prefix),
-					"location":        location,
-					"serial_number_1": config.StringVariable(serialNumber1),
-					"serial_number_2": config.StringVariable(serialNumber2),
-				},
-				ConfigStateChecks: []statecheck.StateCheck{
-					statecheck.ExpectKnownValue(
-						"panos_template_stack.example",
-						tfjsonpath.New("name"),
-						knownvalue.StringExact(prefix),
-					),
-					statecheck.ExpectKnownValue(
-						"panos_template_stack.example",
-						tfjsonpath.New("description"),
-						knownvalue.StringExact("Complete template stack"),
-					),
-					statecheck.ExpectKnownValue(
-						"panos_template_stack.example",
-						tfjsonpath.New("devices"),
-						knownvalue.ListExact([]knownvalue.Check{
-							knownvalue.ObjectExact(map[string]knownvalue.Check{
-								"name": knownvalue.StringExact(serialNumber1),
-							}),
-							knownvalue.ObjectExact(map[string]knownvalue.Check{
-								"name": knownvalue.StringExact(serialNumber2),
-							}),
-						}),
-					),
-				},
-			},
-			{
-				Config: templateStack_Complete_Step2_Tmpl,
-				ConfigVariables: map[string]config.Variable{
-					"prefix":          config.StringVariable(prefix),
-					"location":        location,
-					"serial_number_1": config.StringVariable(serialNumber1),
-					"serial_number_2": config.StringVariable(serialNumber2),
-				},
+				Config:          templateStack_Complete_Tmpl,
+				ConfigVariables: configVars,
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
 						"panos_template_stack.example",
@@ -324,19 +347,16 @@ func TestAccTemplateStack_Complete(t *testing.T) {
 	})
 }
 
-const templateStack_Complete_Step1_Tmpl = `
+const templateStack_Complete_Tmpl = `
 variable "prefix" { type = string }
 variable "location" { type = any }
 variable "serial_number_1" { type = string }
 variable "serial_number_2" { type = string }
 
-data "panos_template" "existing" {
-  location = {
-    panorama = {
-      panorama_device = "localhost.localdomain"
-    }
-  }
-  name = "test-acc-tmpl"
+resource "panos_template" "test" {
+  location = var.location
+  name = "${var.prefix}-template"
+  default_vsys = "vsys1"
 }
 
 resource "panos_firewall_device" "device1" {
@@ -357,48 +377,7 @@ resource "panos_template_stack" "example" {
   location = var.location
   name = var.prefix
   description = "Complete template stack"
-  templates = [data.panos_template.existing.name]
-  devices = [
-    { name = panos_firewall_device.device1.name },
-    { name = panos_firewall_device.device2.name }
-  ]
-}
-`
-
-const templateStack_Complete_Step2_Tmpl = `
-variable "prefix" { type = string }
-variable "location" { type = any }
-variable "serial_number_1" { type = string }
-variable "serial_number_2" { type = string }
-
-data "panos_template" "existing" {
-  location = {
-    panorama = {
-      panorama_device = "localhost.localdomain"
-    }
-  }
-  name = "test-acc-tmpl"
-}
-
-resource "panos_firewall_device" "device1" {
-  location = var.location
-  name = var.serial_number_1
-  hostname = "fw1.example.com"
-  ip = "192.0.2.1"
-}
-
-resource "panos_firewall_device" "device2" {
-  location = var.location
-  name = var.serial_number_2
-  hostname = "fw2.example.com"
-  ip = "192.0.2.2"
-}
-
-resource "panos_template_stack" "example" {
-  location = var.location
-  name = var.prefix
-  description = "Complete template stack"
-  templates = [data.panos_template.existing.name]
+  templates = [panos_template.test.name]
   devices = [
     { name = panos_firewall_device.device1.name },
     { name = panos_firewall_device.device2.name }

@@ -35,8 +35,10 @@ func New{{ resourceStructName }}() resource.Resource {
 
 type {{ resourceStructName }} struct {
 	client *pango.Client
-{{- if IsCustom }}
+{{- if or IsCustom HasCrudHooks }}
 	custom *{{ structName }}Custom
+{{- end }}
+{{- if IsCustom }}
 {{- else if and IsEntry HasImports }}
 	manager *sdkmanager.ImportableEntryObjectManager[*{{ resourceSDKName }}.Entry, {{ resourceSDKName }}.Location, *{{ resourceSDKName }}.Service]
 {{- else if IsEntry }}
@@ -158,13 +160,16 @@ func (o *{{ resourceStructName }}) Configure(ctx context.Context, req {{ tfresou
 	providerData := req.ProviderData.(*ProviderData)
 	o.client = providerData.Client
 
-{{- if IsCustom }}
+{{- if or IsCustom HasCrudHooks }}
 	custom, err := New{{ structName }}Custom(providerData)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to configure SDK client", err.Error())
 		return
 	}
 	o.custom = custom
+{{- end }}
+
+{{- if IsCustom }}
 {{- else if and IsEntry HasImports }}
 	specifier, _, err := {{ resourceSDKName }}.Versioning(o.client.Versioning())
 	if err != nil {
