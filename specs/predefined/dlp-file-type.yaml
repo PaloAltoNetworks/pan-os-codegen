@@ -1,0 +1,73 @@
+name: Predefined Dlp File Type
+terraform_provider_config:
+  description: Predefined DLP file types and their associated file properties
+  skip_resource: true
+  skip_datasource: false
+  resource_type: entry
+  resource_variants: []
+  suffix: predefined_dlp_file_type
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+  custom_validation: false
+go_sdk_config:
+  skip: false
+  package:
+  - predefined
+  - dlp
+  - file_type
+  supported_methods:
+  - read
+  - list
+panos_xpath:
+  path:
+  - file-type
+  vars: []
+locations:
+- name: predefined
+  xpath:
+    path:
+    - config
+    - predefined
+    - dlp-file-property
+    vars: []
+  description: Predefined DLP file types on the device
+  devices:
+  - ngfw
+  - panorama
+  validators: []
+  required: false
+  read_only: true
+entries:
+- name: name
+  description: ''
+  validators: []
+spec:
+  params:
+  - name: file-property
+    type: list
+    profiles:
+    - xpath:
+      - file-property
+      - entry
+      type: entry
+    validators: []
+    spec:
+      type: object
+      items:
+        type: object
+        spec:
+          params:
+          - name: label
+            type: string
+            profiles:
+            - xpath:
+              - label
+            validators: []
+            spec: {}
+            description: The label of the file property
+            required: false
+          variants: []
+    description: List of file properties associated with this file type
+    required: false
+  variants: []

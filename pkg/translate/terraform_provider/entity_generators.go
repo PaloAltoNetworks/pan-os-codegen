@@ -325,7 +325,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 
 			if len(spec.Locations) > 0 {
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/diag", "")
-				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault", "")
+				if spec.HasLocationVars() {
+					terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault", "")
+				}
 				if resourceTyp != properties.ResourceCustom {
 					terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
 				}
@@ -373,7 +375,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 
 			if len(spec.Locations) > 0 {
 				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/diag", "")
-				terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault", "")
+				if spec.HasLocationVars() {
+					terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault", "")
+				}
 				if resourceTyp != properties.ResourceCustom {
 					terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-log/tflog", "")
 				}
@@ -468,7 +472,9 @@ func (g *GenerateTerraformProvider) GenerateTerraformDataSource(resourceTyp prop
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/attr", "")
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/diag", "")
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema", "rsschema")
-		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault", "")
+		if spec.HasLocationVars() {
+			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault", "")
+		}
 
 		names := NewNameProvider(spec, resourceTyp)
 		funcMap := template.FuncMap{
@@ -556,7 +562,9 @@ func (g *GenerateTerraformProvider) GenerateCommonCode(resourceTyp properties.Re
 			terraformProvider.ImportManager.AddStandardImport("encoding/base64", "")
 		}
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types/basetypes", "")
-		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
+		if !spec.TerraformProviderConfig.SkipResource {
+			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
+		}
 	case properties.ResourceConfig:
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types/basetypes", "")
 	case properties.ResourceCustom:
