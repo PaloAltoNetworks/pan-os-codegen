@@ -1,12 +1,12 @@
 name: data-filtering-profile
 terraform_provider_config:
-  description: Data Filtering Profile
+  description: Data Filtering Security Profile
   skip_resource: false
   skip_datasource: false
   resource_type: entry
   resource_variants:
   - singular
-  suffix: data_filtering_profile
+  suffix: data_filtering_security_profile
   plural_suffix: ''
   plural_name: ''
   plural_description: ''
@@ -32,6 +32,38 @@ locations:
   description: Panorama shared object
   devices:
   - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: ngfw_device
+      description: The NGFW device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The Virtual System name
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys name cannot be "shared". Use the "shared" location instead
+      type: entry
+  description: Located in a specific Virtual System
+  devices:
   - ngfw
   validators: []
   required: false
@@ -69,6 +101,160 @@ locations:
   validators: []
   required: false
   read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+  description: A shared resource located within a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template stack, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
 entries:
 - name: name
   description: ''
@@ -82,7 +268,7 @@ spec:
       - data-capture
     validators: []
     spec: {}
-    description: ''
+    description: Enable data capture
     required: false
   - name: description
     type: string
@@ -113,7 +299,7 @@ spec:
       values:
       - value: 'yes'
       - value: 'no'
-    description: disable object override in child device groups
+    description: Disable object override in child device groups
     required: false
   - name: rules
     type: list
@@ -136,7 +322,7 @@ spec:
               - data-object
             validators: []
             spec: {}
-            description: ''
+            description: Name of the data pattern object
             required: false
           - name: direction
             type: enum
@@ -151,11 +337,12 @@ spec:
                 - download
                 - both
             spec:
+              default: both
               values:
               - value: upload
               - value: download
               - value: both
-            description: ''
+            description: Direction of data transfer to monitor
             required: false
           - name: alert-threshold
             type: int64
@@ -169,7 +356,7 @@ spec:
                 max: 65535
             spec:
               default: 1
-            description: ''
+            description: Alert threshold count
             required: false
           - name: block-threshold
             type: int64
@@ -183,7 +370,7 @@ spec:
                 max: 65535
             spec:
               default: 1
-            description: ''
+            description: Block threshold count
             required: false
           - name: log-severity
             type: string
@@ -193,7 +380,7 @@ spec:
             validators: []
             spec:
               default: informational
-            description: ''
+            description: Log severity for matched traffic
             required: false
           - name: application
             type: list
@@ -206,7 +393,7 @@ spec:
               type: string
               items:
                 type: string
-            description: ''
+            description: Applications to match
             required: false
           - name: file-type
             type: list
@@ -219,9 +406,9 @@ spec:
               type: string
               items:
                 type: string
-            description: ''
+            description: File types to match
             required: false
           variants: []
-    description: ''
+    description: Data filtering rules
     required: false
   variants: []

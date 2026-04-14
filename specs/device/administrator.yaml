@@ -1,0 +1,233 @@
+name: administrator
+terraform_provider_config:
+  description: Administrator Account
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants: []
+  suffix: administrator
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+  custom_validation: false
+go_sdk_config:
+  skip: false
+  package:
+  - device
+  - administrator
+panos_xpath:
+  path:
+  - mgt-config
+  - users
+  vars: []
+locations:
+- name: panorama
+  xpath:
+    path:
+    - config
+    vars: []
+  description: Panorama administrator
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+  description: Administrator pushed via a Panorama template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+  description: Administrator pushed via a Panorama template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+spec:
+  params:
+  - name: authentication-profile
+    type: string
+    profiles:
+    - xpath:
+      - authentication-profile
+    validators:
+    - type: length
+      spec:
+        max: 255
+    spec: {}
+    description: Authentication profile for this administrator
+    required: false
+  - name: public-key
+    type: string
+    profiles:
+    - xpath:
+      - public-key
+    validators:
+    - type: length
+      spec:
+        max: 4096
+    spec: {}
+    description: SSH public key for certificate-based authentication
+    required: false
+  - name: phash
+    type: string
+    profiles:
+    - xpath:
+      - phash
+    validators: []
+    spec: {}
+    description: Hashed administrator password
+    required: false
+    codegen_overrides:
+      terraform:
+        name: password
+        sensitive: true
+    hashing:
+      type: solo
+  - name: permissions
+    type: object
+    profiles:
+    - xpath:
+      - permissions
+    validators: []
+    spec:
+      params:
+      - name: role-based
+        type: object
+        profiles:
+        - xpath:
+          - role-based
+        validators: []
+        spec:
+          params:
+          - name: superuser
+            type: bool
+            profiles:
+            - xpath:
+              - superuser
+            validators: []
+            spec: {}
+            description: Full system access
+            required: false
+          - name: superreader
+            type: bool
+            profiles:
+            - xpath:
+              - superreader
+            validators: []
+            spec: {}
+            description: Read-only access to entire system
+            required: false
+          - name: deviceadmin
+            type: bool
+            profiles:
+            - xpath:
+              - deviceadmin
+            validators: []
+            spec: {}
+            description: Device administrator access (all vsys)
+            required: false
+          - name: devicereader
+            type: bool
+            profiles:
+            - xpath:
+              - devicereader
+            validators: []
+            spec: {}
+            description: Device read-only access (all vsys)
+            required: false
+          - name: vsysadmin
+            type: bool
+            profiles:
+            - xpath:
+              - vsysadmin
+            validators: []
+            spec: {}
+            description: Virtual system administrator access
+            required: false
+          - name: vsysreader
+            type: bool
+            profiles:
+            - xpath:
+              - vsysreader
+            validators: []
+            spec: {}
+            description: Virtual system read-only access
+            required: false
+          - name: custom
+            type: object
+            profiles:
+            - xpath:
+              - custom
+            validators: []
+            spec:
+              params:
+              - name: profile
+                type: string
+                profiles:
+                - xpath:
+                  - profile
+                validators:
+                - type: length
+                  spec:
+                    max: 255
+                spec: {}
+                description: Custom admin role profile name
+                required: false
+              variants: []
+            description: Custom role based on an admin role profile
+            required: false
+          variants: []
+        description: Role-based access control
+        required: false
+      variants: []
+    description: Administrator permissions and role assignment
+    required: false
+  variants: []
