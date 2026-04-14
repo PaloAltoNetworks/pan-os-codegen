@@ -68,7 +68,7 @@ func (o *expectServerAddressObjects) CheckState(ctx context.Context, req statech
 	}
 }
 
-func TestAccAddresses(t *testing.T) {
+func TestAccAddresses_Basic(t *testing.T) {
 	t.Parallel()
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -114,6 +114,9 @@ func TestAccAddresses(t *testing.T) {
 						}),
 						fmt.Sprintf("%s-fqdn", prefix): config.ObjectVariable(map[string]config.Variable{
 							"fqdn": config.StringVariable("example.com"),
+						}),
+						fmt.Sprintf("%s-ip-netmask-2", prefix): config.ObjectVariable(map[string]config.Variable{
+							"ip_netmask": config.StringVariable("10.0.0.1/32"),
 						}),
 					}),
 				},
@@ -161,9 +164,18 @@ func TestAccAddresses(t *testing.T) {
 								"ip_wildcard":      knownvalue.Null(),
 								"fqdn":             knownvalue.StringExact("example.com"),
 							}),
+							fmt.Sprintf("%s-ip-netmask-2", prefix): knownvalue.ObjectExact(map[string]knownvalue.Check{
+								"tags":             knownvalue.Null(),
+								"description":      knownvalue.Null(),
+								"disable_override": knownvalue.Null(),
+								"ip_netmask":       knownvalue.StringExact("10.0.0.1/32"),
+								"ip_range":         knownvalue.Null(),
+								"ip_wildcard":      knownvalue.Null(),
+								"fqdn":             knownvalue.Null(),
+							}),
 						}),
 					),
-					ExpectServerAddressObjects(*location, prefix, []string{"ip-netmask", "ip-range", "ip-wildcard", "fqdn"}),
+					ExpectServerAddressObjects(*location, prefix, []string{"ip-netmask", "ip-range", "ip-wildcard", "fqdn", "ip-netmask-2"}),
 				},
 			},
 			{
@@ -177,6 +189,9 @@ func TestAccAddresses(t *testing.T) {
 						}),
 						fmt.Sprintf("%s-fqdn2", prefix): config.ObjectVariable(map[string]config.Variable{
 							"fqdn": config.StringVariable("example.com"),
+						}),
+						fmt.Sprintf("%s-ip-netmask-2", prefix): config.ObjectVariable(map[string]config.Variable{
+							"ip_netmask": config.StringVariable("10.0.0.2/32"),
 						}),
 					}),
 				},
@@ -204,9 +219,18 @@ func TestAccAddresses(t *testing.T) {
 								"ip_wildcard":      knownvalue.Null(),
 								"fqdn":             knownvalue.StringExact("example.com"),
 							}),
+							fmt.Sprintf("%s-ip-netmask-2", prefix): knownvalue.ObjectExact(map[string]knownvalue.Check{
+								"tags":             knownvalue.Null(),
+								"description":      knownvalue.Null(),
+								"disable_override": knownvalue.Null(),
+								"ip_netmask":       knownvalue.StringExact("10.0.0.2/32"),
+								"ip_range":         knownvalue.Null(),
+								"ip_wildcard":      knownvalue.Null(),
+								"fqdn":             knownvalue.Null(),
+							}),
 						}),
 					),
-					ExpectServerAddressObjects(*location, prefix, []string{"ip-range", "fqdn2"}),
+					ExpectServerAddressObjects(*location, prefix, []string{"ip-range", "fqdn2", "ip-netmask-2"}),
 				},
 			},
 			{
@@ -418,6 +442,159 @@ func TestAccAddresses_MultipleResources(t *testing.T) {
 				Config: addresses_Multiple_Resources_Tmpl,
 				ConfigVariables: map[string]config.Variable{
 					"prefix": config.StringVariable(prefix),
+				},
+			},
+		},
+	})
+}
+
+const testAccAddresses_Rename_Tmpl = `
+variable prefix { type = string }
+variable "addresses" {
+  type = map(object({
+    ip_netmask = string
+  }))
+}
+
+resource "panos_device_group" "example" {
+  location = { panorama = {} }
+  name = var.prefix
+}
+
+resource "panos_addresses" "addresses" {
+  location = { device_group = { name = panos_device_group.example.name } }
+
+  addresses = { for name, value in var.addresses : name => {
+    ip_netmask = value.ip_netmask
+  }}
+}
+`
+
+func TestAccAddresses_Rename(t *testing.T) {
+	t.Parallel()
+
+	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
+	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
+
+	location := address.NewDeviceGroupLocation()
+	location.DeviceGroup.DeviceGroup = prefix
+
+	addressCheck := func(name string, ipNetmask string) knownvalue.Check {
+		return knownvalue.ObjectExact(map[string]knownvalue.Check{
+			"tags":             knownvalue.Null(),
+			"description":      knownvalue.Null(),
+			"disable_override": knownvalue.Null(),
+			"ip_netmask":       knownvalue.StringExact(ipNetmask),
+			"ip_range":         knownvalue.Null(),
+			"ip_wildcard":      knownvalue.Null(),
+			"fqdn":             knownvalue.Null(),
+		})
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProviders,
+		Steps: []resource.TestStep{
+			// Step 1: Create 4 addresses
+			{
+				Config: testAccAddresses_Rename_Tmpl,
+				ConfigVariables: map[string]config.Variable{
+					"prefix": config.StringVariable(prefix),
+					"addresses": config.MapVariable(map[string]config.Variable{
+						fmt.Sprintf("%s-addr-1", prefix): config.ObjectVariable(map[string]config.Variable{
+							"ip_netmask": config.StringVariable("10.0.0.1/32"),
+						}),
+						fmt.Sprintf("%s-addr-2", prefix): config.ObjectVariable(map[string]config.Variable{
+							"ip_netmask": config.StringVariable("10.0.0.2/32"),
+						}),
+						fmt.Sprintf("%s-addr-3", prefix): config.ObjectVariable(map[string]config.Variable{
+							"ip_netmask": config.StringVariable("10.0.0.3/32"),
+						}),
+						fmt.Sprintf("%s-addr-4", prefix): config.ObjectVariable(map[string]config.Variable{
+							"ip_netmask": config.StringVariable("10.0.0.4/32"),
+						}),
+					}),
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue(
+						"panos_addresses.addresses",
+						tfjsonpath.New("addresses"),
+						knownvalue.ObjectExact(map[string]knownvalue.Check{
+							fmt.Sprintf("%s-addr-1", prefix): addressCheck("addr-1", "10.0.0.1/32"),
+							fmt.Sprintf("%s-addr-2", prefix): addressCheck("addr-2", "10.0.0.2/32"),
+							fmt.Sprintf("%s-addr-3", prefix): addressCheck("addr-3", "10.0.0.3/32"),
+							fmt.Sprintf("%s-addr-4", prefix): addressCheck("addr-4", "10.0.0.4/32"),
+						}),
+					),
+					ExpectServerAddressObjects(*location, prefix, []string{"addr-1", "addr-2", "addr-3", "addr-4"}),
+				},
+			},
+			// Step 2: Rename addr-1 -> addr-1-renamed, addr-3 -> addr-3-renamed
+			{
+				Config: testAccAddresses_Rename_Tmpl,
+				ConfigVariables: map[string]config.Variable{
+					"prefix": config.StringVariable(prefix),
+					"addresses": config.MapVariable(map[string]config.Variable{
+						fmt.Sprintf("%s-addr-1-renamed", prefix): config.ObjectVariable(map[string]config.Variable{
+							"ip_netmask": config.StringVariable("10.0.0.1/32"),
+						}),
+						fmt.Sprintf("%s-addr-2", prefix): config.ObjectVariable(map[string]config.Variable{
+							"ip_netmask": config.StringVariable("10.0.0.2/32"),
+						}),
+						fmt.Sprintf("%s-addr-3-renamed", prefix): config.ObjectVariable(map[string]config.Variable{
+							"ip_netmask": config.StringVariable("10.0.0.3/32"),
+						}),
+						fmt.Sprintf("%s-addr-4", prefix): config.ObjectVariable(map[string]config.Variable{
+							"ip_netmask": config.StringVariable("10.0.0.4/32"),
+						}),
+					}),
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue(
+						"panos_addresses.addresses",
+						tfjsonpath.New("addresses"),
+						knownvalue.ObjectExact(map[string]knownvalue.Check{
+							fmt.Sprintf("%s-addr-1-renamed", prefix): addressCheck("addr-1-renamed", "10.0.0.1/32"),
+							fmt.Sprintf("%s-addr-2", prefix):         addressCheck("addr-2", "10.0.0.2/32"),
+							fmt.Sprintf("%s-addr-3-renamed", prefix): addressCheck("addr-3-renamed", "10.0.0.3/32"),
+							fmt.Sprintf("%s-addr-4", prefix):         addressCheck("addr-4", "10.0.0.4/32"),
+						}),
+					),
+					ExpectServerAddressObjects(*location, prefix, []string{"addr-1-renamed", "addr-2", "addr-3-renamed", "addr-4"}),
+				},
+			},
+			// Step 3: Swap — addr-1-renamed gets addr-3-renamed's value and vice versa.
+			{
+				Config: testAccAddresses_Rename_Tmpl,
+				ConfigVariables: map[string]config.Variable{
+					"prefix": config.StringVariable(prefix),
+					"addresses": config.MapVariable(map[string]config.Variable{
+						fmt.Sprintf("%s-addr-1-renamed", prefix): config.ObjectVariable(map[string]config.Variable{
+							"ip_netmask": config.StringVariable("10.0.0.3/32"),
+						}),
+						fmt.Sprintf("%s-addr-2", prefix): config.ObjectVariable(map[string]config.Variable{
+							"ip_netmask": config.StringVariable("10.0.0.2/32"),
+						}),
+						fmt.Sprintf("%s-addr-3-renamed", prefix): config.ObjectVariable(map[string]config.Variable{
+							"ip_netmask": config.StringVariable("10.0.0.1/32"),
+						}),
+						fmt.Sprintf("%s-addr-4", prefix): config.ObjectVariable(map[string]config.Variable{
+							"ip_netmask": config.StringVariable("10.0.0.4/32"),
+						}),
+					}),
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue(
+						"panos_addresses.addresses",
+						tfjsonpath.New("addresses"),
+						knownvalue.ObjectExact(map[string]knownvalue.Check{
+							fmt.Sprintf("%s-addr-1-renamed", prefix): addressCheck("addr-1-renamed", "10.0.0.3/32"),
+							fmt.Sprintf("%s-addr-2", prefix):         addressCheck("addr-2", "10.0.0.2/32"),
+							fmt.Sprintf("%s-addr-3-renamed", prefix): addressCheck("addr-3-renamed", "10.0.0.1/32"),
+							fmt.Sprintf("%s-addr-4", prefix):         addressCheck("addr-4", "10.0.0.4/32"),
+						}),
+					),
+					ExpectServerAddressObjects(*location, prefix, []string{"addr-1-renamed", "addr-2", "addr-3-renamed", "addr-4"}),
 				},
 			},
 		},
