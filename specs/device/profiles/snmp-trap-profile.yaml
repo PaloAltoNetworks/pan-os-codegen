@@ -1,0 +1,427 @@
+name: snmp-trap-profile
+terraform_provider_config:
+  description: SNMP Trap Server Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: snmp_trap_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+  custom_validation: false
+go_sdk_config:
+  skip: false
+  package:
+  - device
+  - profiles
+  - snmptrap
+panos_xpath:
+  path:
+  - log-settings
+  - snmptrap
+  vars: []
+locations:
+- name: panorama
+  xpath:
+    path:
+    - config
+    - panorama
+    vars: []
+  description: Located in a panorama.
+  validators: []
+  required: false
+  read_only: false
+- name: vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: ngfw_device
+      description: The NGFW device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The Virtual System name
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys name cannot be "shared". Use the "shared" location instead
+      type: entry
+  description: Located in a specific Virtual System
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+  description: A shared resource located within a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template stack, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+spec:
+  params:
+  - name: version
+    type: object
+    profiles:
+    - xpath:
+      - version
+    validators: []
+    spec:
+      params: []
+      variants:
+      - name: v2c
+        type: object
+        profiles:
+        - xpath:
+          - v2c
+        validators: []
+        spec:
+          params:
+          - name: server
+            type: list
+            profiles:
+            - xpath:
+              - server
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: community
+                    type: string
+                    profiles:
+                    - xpath:
+                      - community
+                    validators:
+                    - type: length
+                      spec:
+                        max: 127
+                    spec: {}
+                    description: SNMP community string
+                    required: false
+                  - name: manager
+                    type: string
+                    profiles:
+                    - xpath:
+                      - manager
+                    validators:
+                    - type: length
+                      spec:
+                        max: 63
+                    spec: {}
+                    description: IP address or FQDN of SNMP manager
+                    required: false
+                  variants: []
+            description: List of SNMPv2c trap receivers
+            required: false
+            codegen_overrides:
+              terraform:
+                name: servers
+          variants: []
+        description: SNMPv2c configuration
+        required: false
+      - name: v3
+        type: object
+        profiles:
+        - xpath:
+          - v3
+        validators: []
+        spec:
+          params:
+          - name: server
+            type: list
+            profiles:
+            - xpath:
+              - server
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: engineid
+                    type: string
+                    profiles:
+                    - xpath:
+                      - engineid
+                    validators:
+                    - type: length
+                      spec:
+                        max: 255
+                    spec: {}
+                    description: SNMP engine ID (hex string, e.g. 0x80...)
+                    required: false
+                  - name: manager
+                    type: string
+                    profiles:
+                    - xpath:
+                      - manager
+                    validators:
+                    - type: length
+                      spec:
+                        max: 63
+                    spec: {}
+                    description: IP address or FQDN of SNMP manager
+                    required: false
+                  - name: user
+                    type: string
+                    profiles:
+                    - xpath:
+                      - user
+                    validators:
+                    - type: length
+                      spec:
+                        max: 31
+                    spec: {}
+                    description: SNMPv3 username
+                    required: false
+                  - name: authpwd
+                    type: string
+                    profiles:
+                    - xpath:
+                      - authpwd
+                    validators:
+                    - type: length
+                      spec:
+                        max: 255
+                    spec: {}
+                    description: SNMPv3 authentication password
+                    required: false
+                    codegen_overrides:
+                      terraform:
+                        sensitive: true
+                  - name: privpwd
+                    type: string
+                    profiles:
+                    - xpath:
+                      - privpwd
+                    validators:
+                    - type: length
+                      spec:
+                        max: 255
+                    spec: {}
+                    description: SNMPv3 privacy password
+                    required: false
+                    codegen_overrides:
+                      terraform:
+                        sensitive: true
+                  - name: authproto
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - authproto
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - MD5
+                        - SHA
+                    spec:
+                      default: SHA
+                      values:
+                      - value: MD5
+                      - value: SHA
+                    description: Authentication protocol
+                    required: false
+                  - name: privproto
+                    type: enum
+                    profiles:
+                    - xpath:
+                      - privproto
+                    validators:
+                    - type: values
+                      spec:
+                        values:
+                        - AES128
+                        - DES
+                    spec:
+                      default: AES128
+                      values:
+                      - value: AES128
+                      - value: DES
+                    description: Privacy protocol
+                    required: false
+                  variants: []
+            description: List of SNMPv3 trap receivers
+            required: false
+            codegen_overrides:
+              terraform:
+                name: servers
+          variants: []
+        description: SNMPv3 configuration
+        required: false
+    description: SNMP version and server configuration
+    required: false
+  variants: []
