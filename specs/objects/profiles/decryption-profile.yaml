@@ -1,0 +1,496 @@
+name: decryption-profile
+terraform_provider_config:
+  description: Decryption Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: decryption_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+  custom_validation: false
+go_sdk_config:
+  skip: false
+  package:
+  - objects
+  - profiles
+  - decryption
+panos_xpath:
+  path:
+  - profiles
+  - decryption
+  vars: []
+locations:
+- name: shared
+  xpath:
+    path:
+    - config
+    - shared
+    vars: []
+  description: Panorama shared object
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: ngfw_device
+      description: The NGFW device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The Virtual System name
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys name cannot be "shared". Use the "shared" location instead
+      type: entry
+  description: Located in a specific Virtual System
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: device-group
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - device-group
+    - $device_group
+    vars:
+    - name: panorama_device
+      description: Panorama device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: device_group
+      description: Device Group name
+      required: true
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The device group name cannot be "shared". Use the "shared" location
+              instead
+      type: entry
+      location_filter: true
+  description: Located in a specific Device Group
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+spec:
+  params:
+  - name: description
+    type: string
+    profiles:
+    - xpath:
+      - description
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 255
+    spec: {}
+    description: ''
+    required: false
+  - name: ssl-forward-proxy
+    type: object
+    profiles:
+    - xpath:
+      - ssl-forward-proxy
+    validators: []
+    spec:
+      params:
+      - name: auto-include-altname
+        type: bool
+        profiles:
+        - xpath:
+          - auto-include-altname
+        validators: []
+        spec: {}
+        description: Automatically include the alternative name of the certificate
+        required: false
+      - name: block-client-cert
+        type: bool
+        profiles:
+        - xpath:
+          - block-client-cert
+        validators: []
+        spec: {}
+        description: Block sessions with client certificate
+        required: false
+      - name: block-expired-certificate
+        type: bool
+        profiles:
+        - xpath:
+          - block-expired-certificate
+        validators: []
+        spec: {}
+        description: Block sessions with expired certificates
+        required: false
+      - name: block-timeout-cert
+        type: bool
+        profiles:
+        - xpath:
+          - block-timeout-cert
+        validators: []
+        spec: {}
+        description: Block sessions if certificate status cannot be retrieved within timeout
+        required: false
+      - name: block-unknown-cert
+        type: bool
+        profiles:
+        - xpath:
+          - block-unknown-cert
+        validators: []
+        spec: {}
+        description: Block sessions if certificate status is unknown
+        required: false
+      - name: block-unsupported-cipher
+        type: bool
+        profiles:
+        - xpath:
+          - block-unsupported-cipher
+        validators: []
+        spec: {}
+        description: Block sessions with unsupported cipher suites
+        required: false
+      - name: block-unsupported-version
+        type: bool
+        profiles:
+        - xpath:
+          - block-unsupported-version
+        validators: []
+        spec: {}
+        description: Block sessions with unsupported protocol versions
+        required: false
+      - name: block-untrusted-issuer
+        type: bool
+        profiles:
+        - xpath:
+          - block-untrusted-issuer
+        validators: []
+        spec: {}
+        description: Block sessions with untrusted certificate issuers
+        required: false
+      - name: client-cert-auth
+        type: bool
+        profiles:
+        - xpath:
+          - client-cert-auth
+        validators: []
+        spec: {}
+        description: Enable client certificate authentication
+        required: false
+      - name: restrict-cert-exts
+        type: bool
+        profiles:
+        - xpath:
+          - restrict-cert-exts
+        validators: []
+        spec: {}
+        description: Restrict certificate extensions
+        required: false
+      - name: strip-alpn
+        type: bool
+        profiles:
+        - xpath:
+          - strip-alpn
+        validators: []
+        spec: {}
+        description: Strip ALPN extension from ClientHello
+        required: false
+      variants: []
+    description: SSL forward proxy decryption settings
+    required: false
+  - name: ssl-inbound-proxy
+    type: object
+    profiles:
+    - xpath:
+      - ssl-inbound-proxy
+    validators: []
+    spec:
+      params:
+      - name: block-if-no-resource
+        type: bool
+        profiles:
+        - xpath:
+          - block-if-no-resource
+        validators: []
+        spec: {}
+        description: Block sessions when decryption resources are not available
+        required: false
+      - name: block-unsupported-cipher
+        type: bool
+        profiles:
+        - xpath:
+          - block-unsupported-cipher
+        validators: []
+        spec: {}
+        description: Block sessions with unsupported cipher suites
+        required: false
+      - name: block-unsupported-version
+        type: bool
+        profiles:
+        - xpath:
+          - block-unsupported-version
+        validators: []
+        spec: {}
+        description: Block sessions with unsupported protocol versions
+        required: false
+      - name: block-if-hsm-unavailable
+        type: bool
+        profiles:
+        - xpath:
+          - block-if-hsm-unavailable
+        validators: []
+        spec: {}
+        description: Block sessions when HSM is unavailable
+        required: false
+      - name: block-tls13-downgrade-no-resource
+        type: bool
+        profiles:
+        - xpath:
+          - block-tls13-downgrade-no-resource
+        validators: []
+        spec: {}
+        description: Block TLS 1.3 downgrade when no resources are available
+        required: false
+      variants: []
+    description: SSL inbound proxy decryption settings
+    required: false
+  - name: ssl-no-proxy
+    type: object
+    profiles:
+    - xpath:
+      - ssl-no-proxy
+    validators: []
+    spec:
+      params:
+      - name: block-expired-certificate
+        type: bool
+        profiles:
+        - xpath:
+          - block-expired-certificate
+        validators: []
+        spec: {}
+        description: Block sessions with expired certificates
+        required: false
+      - name: block-untrusted-issuer
+        type: bool
+        profiles:
+        - xpath:
+          - block-untrusted-issuer
+        validators: []
+        spec: {}
+        description: Block sessions with untrusted certificate issuers
+        required: false
+      variants: []
+    description: SSL no-proxy decryption settings
+    required: false
+  - name: ssl-protocol-settings
+    type: object
+    profiles:
+    - xpath:
+      - ssl-protocol-settings
+    validators: []
+    spec:
+      params:
+      - name: min-version
+        type: enum
+        profiles:
+        - xpath:
+          - min-version
+        validators:
+        - type: values
+          spec:
+            values:
+            - sslv3
+            - tls1-0
+            - tls1-1
+            - tls1-2
+            - tls1-3
+        spec:
+          default: tls1-0
+          values:
+          - value: sslv3
+          - value: tls1-0
+          - value: tls1-1
+          - value: tls1-2
+          - value: tls1-3
+        description: Minimum SSL/TLS protocol version
+        required: false
+      - name: max-version
+        type: enum
+        profiles:
+        - xpath:
+          - max-version
+        validators:
+        - type: values
+          spec:
+            values:
+            - sslv3
+            - tls1-0
+            - tls1-1
+            - tls1-2
+            - tls1-3
+            - max
+        spec:
+          default: max
+          values:
+          - value: sslv3
+          - value: tls1-0
+          - value: tls1-1
+          - value: tls1-2
+          - value: tls1-3
+          - value: max
+        description: Maximum SSL/TLS protocol version
+        required: false
+      - name: auth-algo-md5
+        type: bool
+        profiles:
+        - xpath:
+          - auth-algo-md5
+        validators: []
+        spec: {}
+        description: Allow MD5 authentication algorithm
+        required: false
+      - name: auth-algo-sha1
+        type: bool
+        profiles:
+        - xpath:
+          - auth-algo-sha1
+        validators: []
+        spec: {}
+        description: Allow SHA1 authentication algorithm
+        required: false
+      - name: auth-algo-sha256
+        type: bool
+        profiles:
+        - xpath:
+          - auth-algo-sha256
+        validators: []
+        spec: {}
+        description: Allow SHA256 authentication algorithm
+        required: false
+      - name: auth-algo-sha384
+        type: bool
+        profiles:
+        - xpath:
+          - auth-algo-sha384
+        validators: []
+        spec: {}
+        description: Allow SHA384 authentication algorithm
+        required: false
+      - name: enc-algo-3des
+        type: bool
+        profiles:
+        - xpath:
+          - enc-algo-3des
+        validators: []
+        spec: {}
+        description: Allow 3DES encryption algorithm
+        required: false
+      - name: enc-algo-rc4
+        type: bool
+        profiles:
+        - xpath:
+          - enc-algo-rc4
+        validators: []
+        spec: {}
+        description: Allow RC4 encryption algorithm
+        required: false
+      - name: enc-algo-aes-128-cbc
+        type: bool
+        profiles:
+        - xpath:
+          - enc-algo-aes-128-cbc
+        validators: []
+        spec: {}
+        description: Allow AES-128-CBC encryption algorithm
+        required: false
+      - name: enc-algo-aes-256-cbc
+        type: bool
+        profiles:
+        - xpath:
+          - enc-algo-aes-256-cbc
+        validators: []
+        spec: {}
+        description: Allow AES-256-CBC encryption algorithm
+        required: false
+      - name: enc-algo-aes-128-gcm
+        type: bool
+        profiles:
+        - xpath:
+          - enc-algo-aes-128-gcm
+        validators: []
+        spec: {}
+        description: Allow AES-128-GCM encryption algorithm
+        required: false
+      - name: enc-algo-aes-256-gcm
+        type: bool
+        profiles:
+        - xpath:
+          - enc-algo-aes-256-gcm
+        validators: []
+        spec: {}
+        description: Allow AES-256-GCM encryption algorithm
+        required: false
+      - name: keyxchg-algo-dhe
+        type: bool
+        profiles:
+        - xpath:
+          - keyxchg-algo-dhe
+        validators: []
+        spec: {}
+        description: Allow DHE key exchange algorithm
+        required: false
+      - name: keyxchg-algo-ecdhe
+        type: bool
+        profiles:
+        - xpath:
+          - keyxchg-algo-ecdhe
+        validators: []
+        spec: {}
+        description: Allow ECDHE key exchange algorithm
+        required: false
+      - name: keyxchg-algo-rsa
+        type: bool
+        profiles:
+        - xpath:
+          - keyxchg-algo-rsa
+        validators: []
+        spec: {}
+        description: Allow RSA key exchange algorithm
+        required: false
+      variants: []
+    description: SSL/TLS protocol settings
+    required: false
+  variants: []

@@ -1,0 +1,577 @@
+name: email-server-profile
+terraform_provider_config:
+  description: Email Server Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: email_server_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+  custom_validation: false
+go_sdk_config:
+  skip: false
+  package:
+  - device
+  - profiles
+  - email
+panos_xpath:
+  path:
+  - log-settings
+  - email
+  vars: []
+locations:
+- name: panorama
+  xpath:
+    path:
+    - config
+    - panorama
+    vars: []
+  description: Located in a panorama.
+  validators: []
+  required: false
+  read_only: false
+- name: vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: ngfw_device
+      description: The NGFW device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The Virtual System name
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys name cannot be "shared". Use the "shared" location instead
+      type: entry
+  description: Located in a specific Virtual System
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+  description: A shared resource located within a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - shared
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack-vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: The template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared".
+      type: entry
+  description: Located in a specific template stack, device and vsys.
+  devices:
+  - panorama
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+spec:
+  params:
+  - name: server
+    type: list
+    profiles:
+    - xpath:
+      - server
+      - entry
+      type: entry
+    validators: []
+    spec:
+      type: object
+      items:
+        type: object
+        spec:
+          params:
+          - name: from
+            type: string
+            profiles:
+            - xpath:
+              - from
+            validators:
+            - type: length
+              spec:
+                max: 128
+            spec: {}
+            description: From email address
+            required: false
+          - name: to
+            type: string
+            profiles:
+            - xpath:
+              - to
+            validators:
+            - type: length
+              spec:
+                max: 128
+            spec: {}
+            description: To email address
+            required: false
+          - name: and-also-to
+            type: string
+            profiles:
+            - xpath:
+              - and-also-to
+            validators:
+            - type: length
+              spec:
+                max: 128
+            spec: {}
+            description: Additional CC email address
+            required: false
+          - name: gateway
+            type: string
+            profiles:
+            - xpath:
+              - gateway
+            validators:
+            - type: length
+              spec:
+                max: 63
+            spec: {}
+            description: IP address or FQDN of SMTP gateway
+            required: false
+          - name: port
+            type: int64
+            profiles:
+            - xpath:
+              - port
+            validators:
+            - type: length
+              spec:
+                min: 1
+                max: 65535
+            spec:
+              default: 25
+            description: SMTP port number
+            required: false
+          - name: tls-version
+            type: enum
+            profiles:
+            - xpath:
+              - tls-version
+            validators:
+            - type: values
+              spec:
+                values:
+                - '1.0'
+                - '1.1'
+                - '1.2'
+            spec:
+              default: '1.2'
+              values:
+              - value: '1.0'
+              - value: '1.1'
+              - value: '1.2'
+            description: Minimum TLS version for SMTP connection
+            required: false
+          - name: auth
+            type: enum
+            profiles:
+            - xpath:
+              - auth
+            validators:
+            - type: values
+              spec:
+                values:
+                - Auto
+                - Login
+                - Plain
+            spec:
+              default: Auto
+              values:
+              - value: Auto
+              - value: Login
+              - value: Plain
+            description: Authentication method for SMTP
+            required: false
+          - name: certificate-profile
+            type: string
+            profiles:
+            - xpath:
+              - certificate-profile
+            validators:
+            - type: length
+              spec:
+                max: 255
+            spec: {}
+            description: Certificate profile for TLS verification
+            required: false
+          variants: []
+    description: List of email servers
+    required: false
+    codegen_overrides:
+      terraform:
+        name: servers
+  - name: format
+    type: object
+    profiles:
+    - xpath:
+      - format
+    validators: []
+    spec:
+      params:
+      - name: auth
+        type: string
+        profiles:
+        - xpath:
+          - auth
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: Custom format for auth log
+        required: false
+      - name: config
+        type: string
+        profiles:
+        - xpath:
+          - config
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: Custom format for config log
+        required: false
+      - name: correlation
+        type: string
+        profiles:
+        - xpath:
+          - correlation
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: Custom format for correlation log
+        required: false
+      - name: data
+        type: string
+        profiles:
+        - xpath:
+          - data
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: Custom format for data log
+        required: false
+      - name: decryption
+        type: string
+        profiles:
+        - xpath:
+          - decryption
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: Custom format for decryption log
+        required: false
+      - name: globalprotect
+        type: string
+        profiles:
+        - xpath:
+          - globalprotect
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: Custom format for globalprotect log
+        required: false
+      - name: gtp
+        type: string
+        profiles:
+        - xpath:
+          - gtp
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: Custom format for gtp log
+        required: false
+      - name: hip-match
+        type: string
+        profiles:
+        - xpath:
+          - hip-match
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: Custom format for hip-match log
+        required: false
+      - name: iptag
+        type: string
+        profiles:
+        - xpath:
+          - iptag
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: Custom format for iptag log
+        required: false
+      - name: sctp
+        type: string
+        profiles:
+        - xpath:
+          - sctp
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: Custom format for sctp log
+        required: false
+      - name: system
+        type: string
+        profiles:
+        - xpath:
+          - system
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: Custom format for system log
+        required: false
+      - name: threat
+        type: string
+        profiles:
+        - xpath:
+          - threat
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: Custom format for threat log
+        required: false
+      - name: traffic
+        type: string
+        profiles:
+        - xpath:
+          - traffic
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: Custom format for traffic log
+        required: false
+      - name: tunnel
+        type: string
+        profiles:
+        - xpath:
+          - tunnel
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: Custom format for tunnel log
+        required: false
+      - name: url
+        type: string
+        profiles:
+        - xpath:
+          - url
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: Custom format for url log
+        required: false
+      - name: userid
+        type: string
+        profiles:
+        - xpath:
+          - userid
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: Custom format for userid log
+        required: false
+      - name: wildfire
+        type: string
+        profiles:
+        - xpath:
+          - wildfire
+        validators:
+        - type: length
+          spec:
+            max: 2048
+        spec: {}
+        description: Custom format for wildfire log
+        required: false
+      variants: []
+    description: Custom log format strings
+    required: false
+  variants: []
