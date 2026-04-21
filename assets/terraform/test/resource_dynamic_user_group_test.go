@@ -207,7 +207,7 @@ resource "panos_administrative_tag" "tag2" {
 }
 
 resource "panos_dynamic_user_group" "example" {
-  depends_on = [panos_administrative_tag.tag1, panos_administrative_tag.tag2]
+  depends_on = [panos_administrative_tag.tag1, panos_administrative_tag.tag2, panos_device_group.example]
   location = var.location
 
   name = var.prefix

@@ -247,6 +247,63 @@ var _ = Describe("Entry", func() {
 				Expect(client.list()).To(MatchEntries(planEntries))
 			})
 		})
+
+		Context("when renaming an existing entry", func() {
+			It("should rename the entry on the server", func() {
+				stateEntries := []*MockEntryObject{{Name: "1", Value: "A"}, {Name: "2", Value: "B"}, {Name: "3", Value: "C"}}
+				planEntries := []*MockEntryObject{{Name: "1", Value: "A"}, {Name: "two", Value: "B"}, {Name: "3", Value: "C"}}
+
+				processed, err := sdk.UpdateMany(ctx, location, []string{}, stateEntries, planEntries)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(processed).To(MatchEntries(planEntries))
+				Expect(client.list()).To(MatchEntries(planEntries))
+
+				Expect(client.MultiConfigOpers).To(HaveLen(1))
+				Expect(client.MultiConfigOpers[0]).To(ContainElement(
+					MultiConfigOper{Operation: MultiConfigOperRename, EntryName: "2", NewName: "two"},
+				))
+			})
+		})
+
+		Context("with combined rename, delete, and add operations", func() {
+			BeforeEach(func() {
+				existing = []*MockEntryObject{
+					{Name: "1", Value: "A"},
+					{Name: "2", Value: "B"},
+					{Name: "3", Value: "C"},
+					{Name: "4", Value: "D"},
+				}
+			})
+
+			It("should correctly apply all changes", func() {
+				stateEntries := []*MockEntryObject{
+					{Name: "1", Value: "A"},
+					{Name: "2", Value: "B"},
+					{Name: "3", Value: "C"},
+					{Name: "4", Value: "D"},
+				}
+				planEntries := []*MockEntryObject{
+					{Name: "one", Value: "A"},   // renamed from "1"
+					{Name: "2", Value: "B"},     // unchanged
+					{Name: "three", Value: "C"}, // renamed from "3"
+					{Name: "5", Value: "E"},     // added (and "4" deleted)
+				}
+
+				processed, err := sdk.UpdateMany(ctx, location, []string{}, stateEntries, planEntries)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(processed).To(HaveLen(4))
+				Expect(processed).To(MatchEntries(planEntries))
+
+				Expect(client.MultiConfigOpers[0]).To(ContainElements([]MultiConfigOper{
+					{Operation: MultiConfigOperRename, EntryName: "1", NewName: "one"},
+					{Operation: MultiConfigOperRename, EntryName: "3", NewName: "three"},
+					{Operation: MultiConfigOperDelete, EntryName: "4"},
+					{Operation: MultiConfigOperEdit, EntryName: "5"},
+				}))
+			})
+		})
 	})
 
 	Context("Delete()", func() {
