@@ -899,6 +899,29 @@ func (spec *Normalization) SupportedMethod(method object.GoSdkMethod) bool {
 	return slices.Contains(spec.GoSdkSupportedMethods, method)
 }
 
+// HasLocationVars returns true if any location has variables defined.
+func (spec *Normalization) HasLocationVars() bool {
+	for _, location := range spec.Locations {
+		if len(location.Vars) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// HasLocationEntryXpathVars returns true if any location has xpath elements
+// that contain "Entry", which means util.AsEntryXpath() is needed.
+func (spec *Normalization) HasLocationEntryXpathVars() bool {
+	for _, location := range spec.Locations {
+		for _, xpath := range location.Xpath {
+			if strings.Contains(xpath, "Entry") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func (spec *Normalization) OrderedLocations() []*Location {
 	elements := make([]*Location, len(spec.Locations))
 	for _, elt := range spec.Locations {

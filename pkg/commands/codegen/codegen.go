@@ -67,13 +67,14 @@ func deriveSubcategoryFromPath(specPath string) string {
 
 	// Map directory names to subcategory names
 	subcategoryMap := map[string]string{
-		"network":  "Network",
-		"objects":  "Objects",
-		"device":   "Device",
-		"panorama": "Panorama",
-		"policies": "Policies",
-		"actions":  "", // empty for actions
-		"schema":   "", // empty for schema
+		"network":    "Network",
+		"objects":    "Objects",
+		"device":     "Device",
+		"panorama":   "Panorama",
+		"policies":   "Policies",
+		"predefined": "Predefined",
+		"actions":    "", // empty for actions
+		"schema":     "", // empty for schema
 	}
 
 	if subcategory, ok := subcategoryMap[category]; ok {

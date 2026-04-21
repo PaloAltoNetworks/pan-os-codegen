@@ -33,7 +33,9 @@ func RenderImports(spec *properties.Normalization, templateTypes ...string) (str
 		case "location":
 			manager.AddStandardImport("fmt", "")
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/errors", "")
-			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "")
+			if spec.HasLocationEntryXpathVars() {
+				manager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "")
+			}
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/version", "")
 			if spec.ResourceXpathVariablesWithChecks(true) {
 				manager.AddStandardImport("strings", "")
