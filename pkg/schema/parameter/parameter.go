@@ -58,15 +58,18 @@ type CodegenOverridesGoSdk struct {
 }
 
 type CodegenOverridesTerraform struct {
-	Name          *string           `yaml:"name"`
-	Type          *string           `yaml:"type"`
-	Private       *bool             `yaml:"private"`
-	Optional      *bool             `yaml:"optional"`
-	Sensitive     *bool             `yaml:"sensitive"`
-	Computed      *bool             `yaml:"computed"`
-	Required      *bool             `yaml:"required"`
-	VariantCheck  *VariantCheckType `yaml:"variant_check"`
-	XpathVariable *string           `yaml:"xpath_variable"`
+	Name              *string           `yaml:"name"`
+	Type              *string           `yaml:"type"`
+	Private           *bool             `yaml:"private"`
+	Optional          *bool             `yaml:"optional"`
+	Sensitive         *bool             `yaml:"sensitive"`
+	Computed          *bool             `yaml:"computed"`
+	Required          *bool             `yaml:"required"`
+	WriteOnly         *bool             `yaml:"write_only"`
+	VariantCheck      *VariantCheckType `yaml:"variant_check"`
+	XpathVariable     *string           `yaml:"xpath_variable"`
+	AlsoRequires      *string           `yaml:"also_requires"`
+	TriggerOnChangeOf *string           `yaml:"trigger_on_change_of"`
 }
 
 type CodegenOverrides struct {

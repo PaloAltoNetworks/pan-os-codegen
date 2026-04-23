@@ -19,6 +19,8 @@ tflog.Info(ctx, "performing resource create", map[string]any{
 var location {{ .resourceSDKName }}.Location
 {{ RenderLocationsStateToPango "state.Location" "location" }}
 
+{{ RenderTriggeredParamsExtractCreate }}
+
 type entryWithState struct {
 	Entry    *{{ $resourceSDKStructName }}
 	StateIdx int
@@ -76,10 +78,10 @@ if err != nil {
 
 {{ if eq .PluralType "map" }}
 for _, elt := range created {
-	if _, found := elements[elt.Name]; !found {
+	object, found := elements[elt.Name]
+	if !found {
 		continue
 	}
-	var object {{ $resourceTFStructName }}
 	object.name = elt.Name
 	resp.Diagnostics.Append(object.CopyFromPango(ctx, o.client, nil, elt, ev)...)
 	if resp.Diagnostics.HasError() {
@@ -106,7 +108,7 @@ for _, elt := range created {
 		continue
 	}
 
-	var object {{ $resourceTFStructName }}
+	object := elements[idx]
 	resp.Diagnostics.Append(object.CopyFromPango(ctx, o.client, nil, elt, ev)...)
 	if resp.Diagnostics.HasError() {
 		return

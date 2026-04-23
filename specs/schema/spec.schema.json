@@ -26,6 +26,13 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
+            "gosdk": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "skip": { "type": "boolean" }
+              }
+            },
             "terraform": {
               "type": "object",
               "additionalProperties": false,
@@ -35,6 +42,7 @@
                 "private": { "type": "boolean" },
                 "computed": { "type": "boolean" },
                 "sensitive": { "type": "boolean" },
+                "write_only": { "type": "boolean" },
                 "variant_check": { "type": "string" }
               }
             }

@@ -154,6 +154,44 @@ spec:
       - value: '1'
     description: Device binding configuration in HA Active-Active mode
     required: false
+  - name: audit-comment-version
+    type: string
+    description: Version trigger for audit comments. Change this value to send the
+      audit_comment_wo to PAN-OS. This attribute is not sent to PAN-OS itself, but
+      serves as a trigger to detect when the audit comment should be updated.
+    required: false
+    profiles:
+    - xpath: []
+    validators:
+    - type: length
+      spec:
+        max: 64
+    codegen_overrides:
+      gosdk:
+        skip: true
+      terraform:
+        also_requires: audit-comment-wo
+  - name: audit-comment-wo
+    type: string
+    description: Write-only audit comment for this rule. This value is sent to PAN-OS
+      but not read back. Changes are only sent when audit_comment_version is modified.
+      Each time audit_comment_version changes, this comment is added to the audit
+      history with a timestamp.
+    required: false
+    profiles:
+    - xpath: []
+    validators:
+    - type: length
+      spec:
+        max: 256
+    codegen_overrides:
+      gosdk:
+        skip: true
+      terraform:
+        type: audit-comment-wo
+        write_only: true
+        also_requires: audit-comment-version
+        trigger_on_change_of: audit-comment-version
   - name: description
     type: string
     profiles:

@@ -51,6 +51,7 @@ type attributeCtx struct {
 	Computed      bool
 	Optional      bool
 	Sensitive     bool
+	WriteOnly     bool
 	Default       *defaultCtx
 	ModifierType  string
 	Attributes    []attributeCtx
@@ -70,6 +71,7 @@ type schemaCtx struct {
 	Computed      bool
 	Optional      bool
 	Sensitive     bool
+	WriteOnly     bool
 	Attributes    []attributeCtx
 	Validators    *validatorCtx
 }
@@ -155,6 +157,10 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		if elt.IsPrivateParameter() {
 			continue
 		}
+		// Skip write-only parameters in datasources
+		if schemaTyp == properties.SchemaDataSource && elt.FinalWriteOnly() {
+			continue
+		}
 
 		var functions []validatorFunctionCtx
 		if len(elt.EnumValues) > 0 && schemaTyp == properties.SchemaResource {
@@ -193,6 +199,10 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 	var idx int
 	for _, elt := range param.Spec.SortedOneOf() {
 		if elt.IsPrivateParameter() {
+			continue
+		}
+		// Skip write-only parameters in datasources
+		if schemaTyp == properties.SchemaDataSource && elt.FinalWriteOnly() {
 			continue
 		}
 
@@ -255,6 +265,10 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		if elt.IsPrivateParameter() {
 			continue
 		}
+		// Skip write-only parameters in datasources
+		if schemaTyp == properties.SchemaDataSource && elt.FinalWriteOnly() {
+			continue
+		}
 
 		var functions []validatorFunctionCtx
 		if len(elt.EnumValues) > 0 && schemaTyp == properties.SchemaResource {
@@ -291,6 +305,10 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 
 	for _, elt := range param.Spec.SortedOneOf() {
 		if elt.IsPrivateParameter() {
+			continue
+		}
+		// Skip write-only parameters in datasources
+		if schemaTyp == properties.SchemaDataSource && elt.FinalWriteOnly() {
 			continue
 		}
 
@@ -383,8 +401,49 @@ func createSchemaAttributeForParameter(schemaTyp properties.SchemaType, manager 
 		optional = param.FinalOptional()
 		computed = param.FinalComputed()
 		required = param.FinalRequired()
+
+		// Special handling for write-only parameters (like audit comments)
+		// Write-only parameters must NOT be computed
+		// They are sent to the device but never read back
+		if param.FinalWriteOnly() {
+			optional = true
+			computed = false
+			required = false
+		}
+
+		// Parameters with also_requires must be optional (not required, not computed)
+		// This allows the validation to work properly - users can omit both or provide both
+		if param.TerraformProviderConfig != nil && param.TerraformProviderConfig.AlsoRequires != nil {
+			optional = true
+			computed = false
+			required = false
+		}
 	case properties.SchemaCommon, properties.SchemaProvider:
 		panic(fmt.Sprintf("unreachable for schemaTyp '%s'", schemaTyp))
+	}
+
+	// Add AlsoRequires validator if specified (for resources only)
+	if schemaTyp == properties.SchemaResource && param.TerraformProviderConfig != nil && param.TerraformProviderConfig.AlsoRequires != nil {
+		manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator", "")
+		manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
+
+		alsoRequiresValidator := validatorFunctionCtx{
+			Type:     "Expressions",
+			Function: "AlsoRequires",
+			Expressions: []string{
+				fmt.Sprintf("path.MatchRelative().AtParent().AtName(%q)", param.TerraformProviderConfig.AlsoRequires.Underscore),
+			},
+		}
+
+		if validators == nil {
+			validators = &validatorCtx{
+				ListType:  "String",
+				Package:   "stringvalidator",
+				Functions: []validatorFunctionCtx{alsoRequiresValidator},
+			}
+		} else {
+			validators.Functions = append(validators.Functions, alsoRequiresValidator)
+		}
 	}
 
 	return attributeCtx{
@@ -396,6 +455,7 @@ func createSchemaAttributeForParameter(schemaTyp properties.SchemaType, manager 
 		Required:    required,
 		Optional:    optional,
 		Sensitive:   param.FinalSensitive(),
+		WriteOnly:   param.FinalWriteOnly(),
 		Default:     defaultValue,
 		Computed:    computed,
 		Validators:  validators,
@@ -675,6 +735,10 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 		if elt.IsPrivateParameter() {
 			continue
 		}
+		// Skip write-only parameters in datasources
+		if schemaTyp == properties.SchemaDataSource && elt.FinalWriteOnly() {
+			continue
+		}
 
 		if resourceTyp == properties.ResourceEntryPlural && elt.TerraformProviderConfig != nil && elt.TerraformProviderConfig.XpathVariable != nil {
 			continue
@@ -714,6 +778,10 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 
 	for _, elt := range spec.Spec.SortedOneOf() {
 		if elt.IsPrivateParameter() {
+			continue
+		}
+		// Skip write-only parameters in datasources
+		if schemaTyp == properties.SchemaDataSource && elt.FinalWriteOnly() {
 			continue
 		}
 
