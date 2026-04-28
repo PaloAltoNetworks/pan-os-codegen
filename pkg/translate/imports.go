@@ -24,8 +24,10 @@ func RenderImports(spec *properties.Normalization, templateTypes ...string) (str
 			manager.AddStandardImport("fmt", "")
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/filtering", "")
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/generic", "")
-			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "")
 			manager.AddSdkImport("github.com/PaloAltoNetworks/pango/version", "")
+			if len(spec.Spec.Params) > 0 || len(spec.Spec.OneOf) > 0 {
+				manager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "")
+			}
 
 			if spec.HasParametersWithStrconv() {
 				manager.AddStandardImport("errors", "")

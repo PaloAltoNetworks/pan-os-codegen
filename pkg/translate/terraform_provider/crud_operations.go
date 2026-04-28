@@ -90,6 +90,8 @@ func ResourceCreateFunction(resourceTyp properties.ResourceType, names *NameProv
 		"resourceSDKName":                 resourceSDKName,
 		"locations":                       paramSpec.OrderedLocations(),
 		"ParametersWithTriggerOnChangeOf": paramSpec.GetParametersWithTriggerOnChangeOf(),
+		"HasPreCreateHook":                paramSpec.TerraformProviderConfig.HasCrudHook("PreCreate"),
+		"HasPostCreateHook":               paramSpec.TerraformProviderConfig.HasCrudHook("PostCreate"),
 	}
 
 	return processTemplate(tmpl, "resource-create-function", data, funcMap)
@@ -210,6 +212,8 @@ func ResourceReadFunction(resourceTyp properties.ResourceType, names *NameProvid
 		"serviceName":                      naming.CamelCase("", serviceName, "", false),
 		"resourceSDKName":                  resourceSDKName,
 		"locations":                        paramSpec.OrderedLocations(),
+		"HasPreReadHook":                   paramSpec.TerraformProviderConfig.HasCrudHook("PreRead"),
+		"HasPostReadHook":                  paramSpec.TerraformProviderConfig.HasCrudHook("PostRead"),
 	}
 
 	funcMap := template.FuncMap{
@@ -275,6 +279,8 @@ func ResourceUpdateFunction(resourceTyp properties.ResourceType, names *NameProv
 		"serviceName":                     naming.CamelCase("", serviceName, "", false),
 		"resourceSDKName":                 resourceSDKName,
 		"ParametersWithTriggerOnChangeOf": paramSpec.GetParametersWithTriggerOnChangeOf(),
+		"HasPreUpdateHook":                paramSpec.TerraformProviderConfig.HasCrudHook("PreUpdate"),
+		"HasPostUpdateHook":               paramSpec.TerraformProviderConfig.HasCrudHook("PostUpdate"),
 	}
 
 	funcMap := template.FuncMap{
@@ -345,6 +351,8 @@ func ResourceDeleteFunction(resourceTyp properties.ResourceType, names *NameProv
 		"structName":            names.ResourceStructName,
 		"serviceName":           naming.CamelCase("", serviceName, "", false),
 		"resourceSDKName":       resourceSDKName,
+		"HasPreDeleteHook":      paramSpec.TerraformProviderConfig.HasCrudHook("PreDelete"),
+		"HasPostDeleteHook":     paramSpec.TerraformProviderConfig.HasCrudHook("PostDelete"),
 	}
 
 	funcMap := template.FuncMap{

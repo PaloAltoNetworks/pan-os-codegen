@@ -30,6 +30,13 @@
 		return
 	}
 
+{{- if and (eq .ResourceOrDS "Resource") .HasPreReadHook }}
+	o.PreRead(ctx, req, resp, &state, location, ev)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- end }}
+
 {{- if .HasEntryName }}
 	object, err := o.manager.Read(ctx, location, components, state.Name.ValueString())
 {{- else }}
@@ -50,6 +57,15 @@
 
 	copy_diags := state.CopyFromPango(ctx, o.client, nil, object, ev)
 	resp.Diagnostics.Append(copy_diags...)
+
+{{- if and (eq .ResourceOrDS "Resource") .HasPostReadHook }}
+	if !resp.Diagnostics.HasError() {
+		o.PostRead(ctx, req, resp, &state, location, object, ev)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
+{{- end }}
 
 	/*
 			// Keep the timeouts.

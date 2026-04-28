@@ -53,6 +53,13 @@
 		return
 	}
 
+{{- if .HasPreUpdateHook }}
+	o.PreUpdate(ctx, req, resp, &plan, &state, location, obj, ev)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- end }}
+
 	components, err = plan.resourceXpathParentComponents()
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating resource xpath", err.Error())
@@ -87,6 +94,13 @@
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+{{- if .HasPostUpdateHook }}
+	o.PostUpdate(ctx, req, resp, &plan, &state, location, updated, ev)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- end }}
 
 	{{ RenderEncryptedValuesFinalizer }}
 
