@@ -35,6 +35,17 @@ const (
 	TerraformPluralSetType  TerraformPluralType = "set"
 )
 
+type TerraformCrudHooks struct {
+	PreCreate  bool `yaml:"pre_create"`
+	PostCreate bool `yaml:"post_create"`
+	PreRead    bool `yaml:"pre_read"`
+	PostRead   bool `yaml:"post_read"`
+	PreUpdate  bool `yaml:"pre_update"`
+	PostUpdate bool `yaml:"post_update"`
+	PreDelete  bool `yaml:"pre_delete"`
+	PostDelete bool `yaml:"post_delete"`
+}
+
 type TerraformConfig struct {
 	Description           string                     `yaml:"description"`
 	Action                bool                       `yaml:"action"`
@@ -53,6 +64,7 @@ type TerraformConfig struct {
 	PluralName            string                     `yaml:"plural_name"`
 	PluralType            TerraformPluralType        `yaml:"plural_type"`
 	PluralDescription     string                     `yaml:"plural_description"`
+	CrudHooks             *TerraformCrudHooks        `yaml:"crud_hooks"`
 }
 
 type GoSdkMethod string

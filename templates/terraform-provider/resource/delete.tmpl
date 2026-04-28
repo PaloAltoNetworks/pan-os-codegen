@@ -25,6 +25,13 @@
 	var location {{ .resourceSDKName }}.Location
 	{{ RenderLocationsStateToPango "state.Location" "location" }}
 
+{{- if .HasPreDeleteHook }}
+	o.PreDelete(ctx, req, resp, &state, location)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- end }}
+
 {{- if .HasEntryName }}
 	components, err := state.resourceXpathParentComponents()
 	if err != nil {
@@ -67,6 +74,13 @@
 	err = o.manager.Delete(ctx, location, &obj)
 	if err != nil && !errors.Is(err, sdkmanager.ErrObjectNotFound) {
 		resp.Diagnostics.AddError("Error in delete", err.Error())
+		return
+	}
+{{- end }}
+
+{{- if .HasPostDeleteHook }}
+	o.PostDelete(ctx, req, resp, &state, location)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 {{- end }}

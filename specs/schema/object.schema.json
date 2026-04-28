@@ -42,6 +42,20 @@
             "Invoke": { "type": "boolean" }
           }
         },
+        "crud_hooks": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "pre_create":  { "type": "boolean" },
+            "post_create": { "type": "boolean" },
+            "pre_read":    { "type": "boolean" },
+            "post_read":   { "type": "boolean" },
+            "pre_update":  { "type": "boolean" },
+            "post_update": { "type": "boolean" },
+            "pre_delete":  { "type": "boolean" },
+            "post_delete": { "type": "boolean" }
+          }
+        },
         "resource_variants": {
           "type": "array",
           "items": {

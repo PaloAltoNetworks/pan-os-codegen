@@ -42,6 +42,13 @@
 		return
 	}
 
+{{- if .HasPreCreateHook }}
+	o.PreCreate(ctx, req, resp, &state, location, obj, ev)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- end }}
+
 	/*
 		// Timeout handling.
 		ctx, cancel := context.WithTimeout(ctx, GetTimeout(state.Timeouts.Create))
@@ -85,6 +92,19 @@
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+{{- if .HasPostCreateHook }}
+	// Checkpoint: save state so resource is not orphaned if post-create hook fails.
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	o.PostCreate(ctx, req, resp, &state, location, created, ev)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- end }}
 
 	{{ RenderEncryptedValuesFinalizer }}
 

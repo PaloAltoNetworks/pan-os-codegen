@@ -60,24 +60,72 @@ const (
 )
 
 type TerraformProviderConfig struct {
-	Description           string                     `json:"description" yaml:"description"`
-	Subcategory           string                     `json:"subcategory" yaml:"subcategory"`
-	SkipSubcategory       bool                       `json:"skip_subcategory" yaml:"skip_subcategory"`
-	Ephemeral             bool                       `json:"ephemeral" yaml:"ephemeral"`
-	Action                bool                       `json:"action" yaml:"action"`
-	CustomValidation      bool                       `json:"custom_validation" yaml:"custom_validation"`
-	SkipResource          bool                       `json:"skip_resource" yaml:"skip_resource"`
-	SkipDatasource        bool                       `json:"skip_datasource" yaml:"skip_datasource"`
-	SkipDatasourceListing bool                       `json:"skip_datasource_listing" yaml:"skip_datasource_listing"`
-	ResourceType          TerraformResourceType      `json:"resource_type" yaml:"resource_type"`
-	XmlNode               *string                    `json:"xml_node" yaml:"xml_node"`
-	CustomFuncs           map[string]bool            `json:"custom_functions" yaml:"custom_functions"`
-	ResourceVariants      []TerraformResourceVariant `json:"resource_variants" yaml:"resource_variants"`
-	Suffix                string                     `json:"suffix" yaml:"suffix"`
-	PluralSuffix          string                     `json:"plural_suffix" yaml:"plural_suffix"`
-	PluralName            string                     `json:"plural_name" yaml:"plural_name"`
-	PluralType            object.TerraformPluralType `json:"plural_type" yaml:"plural_type"`
-	PluralDescription     string                     `json:"plural_description" yaml:"plural_description"`
+	Description           string                      `json:"description" yaml:"description"`
+	Subcategory           string                      `json:"subcategory" yaml:"subcategory"`
+	SkipSubcategory       bool                        `json:"skip_subcategory" yaml:"skip_subcategory"`
+	Ephemeral             bool                        `json:"ephemeral" yaml:"ephemeral"`
+	Action                bool                        `json:"action" yaml:"action"`
+	CustomValidation      bool                        `json:"custom_validation" yaml:"custom_validation"`
+	SkipResource          bool                        `json:"skip_resource" yaml:"skip_resource"`
+	SkipDatasource        bool                        `json:"skip_datasource" yaml:"skip_datasource"`
+	SkipDatasourceListing bool                        `json:"skip_datasource_listing" yaml:"skip_datasource_listing"`
+	ResourceType          TerraformResourceType       `json:"resource_type" yaml:"resource_type"`
+	XmlNode               *string                     `json:"xml_node" yaml:"xml_node"`
+	CustomFuncs           map[string]bool             `json:"custom_functions" yaml:"custom_functions"`
+	ResourceVariants      []TerraformResourceVariant  `json:"resource_variants" yaml:"resource_variants"`
+	Suffix                string                      `json:"suffix" yaml:"suffix"`
+	PluralSuffix          string                      `json:"plural_suffix" yaml:"plural_suffix"`
+	PluralName            string                      `json:"plural_name" yaml:"plural_name"`
+	PluralType            object.TerraformPluralType  `json:"plural_type" yaml:"plural_type"`
+	PluralDescription     string                      `json:"plural_description" yaml:"plural_description"`
+	CrudHooks             *TerraformProviderCrudHooks `json:"crud_hooks" yaml:"crud_hooks"`
+}
+
+type TerraformProviderCrudHooks struct {
+	PreCreate  bool
+	PostCreate bool
+	PreRead    bool
+	PostRead   bool
+	PreUpdate  bool
+	PostUpdate bool
+	PreDelete  bool
+	PostDelete bool
+}
+
+func (c *TerraformProviderConfig) HasCrudHook(hook string) bool {
+	if c.CrudHooks == nil {
+		return false
+	}
+	switch hook {
+	case "PreCreate":
+		return c.CrudHooks.PreCreate
+	case "PostCreate":
+		return c.CrudHooks.PostCreate
+	case "PreRead":
+		return c.CrudHooks.PreRead
+	case "PostRead":
+		return c.CrudHooks.PostRead
+	case "PreUpdate":
+		return c.CrudHooks.PreUpdate
+	case "PostUpdate":
+		return c.CrudHooks.PostUpdate
+	case "PreDelete":
+		return c.CrudHooks.PreDelete
+	case "PostDelete":
+		return c.CrudHooks.PostDelete
+	default:
+		return false
+	}
+}
+
+func (c *TerraformProviderConfig) HasAnyCrudHook() bool {
+	if c.CrudHooks == nil {
+		return false
+	}
+	return c.CrudHooks.PreCreate || c.CrudHooks.PostCreate ||
+		c.CrudHooks.PreRead || c.CrudHooks.PostRead ||
+		c.CrudHooks.PreUpdate || c.CrudHooks.PostUpdate ||
+		c.CrudHooks.PreDelete || c.CrudHooks.PostDelete
 }
 
 type Location struct {
@@ -820,6 +868,19 @@ func schemaToSpec(object object.Object) (*Normalization, error) {
 			Params: make(map[string]*SpecParam),
 			OneOf:  make(map[string]*SpecParam),
 		},
+	}
+
+	if object.TerraformConfig.CrudHooks != nil {
+		spec.TerraformProviderConfig.CrudHooks = &TerraformProviderCrudHooks{
+			PreCreate:  object.TerraformConfig.CrudHooks.PreCreate,
+			PostCreate: object.TerraformConfig.CrudHooks.PostCreate,
+			PreRead:    object.TerraformConfig.CrudHooks.PreRead,
+			PostRead:   object.TerraformConfig.CrudHooks.PostRead,
+			PreUpdate:  object.TerraformConfig.CrudHooks.PreUpdate,
+			PostUpdate: object.TerraformConfig.CrudHooks.PostUpdate,
+			PreDelete:  object.TerraformConfig.CrudHooks.PreDelete,
+			PostDelete: object.TerraformConfig.CrudHooks.PostDelete,
+		}
 	}
 
 	for idx, location := range object.Locations {
