@@ -1,0 +1,182 @@
+name: ospfv3-spf-timer-routing-profile
+terraform_provider_config:
+  description: OSPFv3 SPF Timer Routing Profile
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: ospfv3_spf_timer_routing_profile
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+  custom_validation: false
+go_sdk_config:
+  skip: false
+  package:
+  - network
+  - routing-profile
+  - ospfv3
+  - spf
+  - timer
+panos_xpath:
+  path:
+  - network
+  - routing-profile
+  - ospfv3
+  - spf-timer-profile
+  vars: []
+locations:
+- name: ngfw
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific NGFW device
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: template
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template
+    - $template
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template
+      description: Specific Panorama template
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: template-stack
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - template-stack
+    - $template_stack
+    - config
+    - devices
+    - $ngfw_device
+    vars:
+    - name: panorama_device
+      description: Specific Panorama device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: template_stack
+      description: Specific Panorama template stack
+      required: true
+      validators: []
+      type: entry
+    - name: ngfw_device
+      description: The NGFW device
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+  description: Located in a specific template stack
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+spec:
+  params:
+  - name: initial-hold-time
+    type: int64
+    profiles:
+    - xpath:
+      - initial-hold-time
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 600
+    spec:
+      default: 5
+    description: Initial hold time (second) between consecutive SPF calculations
+    required: false
+  - name: lsa-interval
+    type: int64
+    profiles:
+    - xpath:
+      - lsa-interval
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 10
+    spec:
+      default: 5
+    description: The minimum time in seconds between distinct originations of any
+      particular LSA
+    required: false
+  - name: max-hold-time
+    type: int64
+    profiles:
+    - xpath:
+      - max-hold-time
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 600
+    spec:
+      default: 5
+    description: Maximum hold time (second)
+    required: false
+  - name: spf-calculation-delay
+    type: int64
+    profiles:
+    - xpath:
+      - spf-calculation-delay
+    validators:
+    - type: length
+      spec:
+        min: 0
+        max: 600
+    spec:
+      default: 5
+    description: Delay in seconds before running the SPF algorithm
+    required: false
+  variants: []
