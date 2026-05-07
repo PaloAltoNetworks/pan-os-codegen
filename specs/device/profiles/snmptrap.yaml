@@ -1,4 +1,4 @@
-name: snmp-trap-profile
+name: snmptrap-profile
 terraform_provider_config:
   description: SNMP Trap Server Profile
   skip_resource: false
@@ -6,7 +6,7 @@ terraform_provider_config:
   resource_type: entry
   resource_variants:
   - singular
-  suffix: snmp_trap_profile
+  suffix: snmptrap_profile
   plural_suffix: ''
   plural_name: ''
   plural_description: ''
@@ -164,7 +164,7 @@ locations:
       required: true
       validators: []
       type: entry
-  description: Located in a specific template stack
+  description: Located in a specific template
   devices:
   - panorama
   validators: []
@@ -212,7 +212,7 @@ locations:
           - value: shared
             error: The vsys cannot be "shared".
       type: entry
-  description: Located in a specific template stack, device and vsys.
+  description: Located in a specific template, device and vsys.
   devices:
   - panorama
   - ngfw
@@ -256,6 +256,15 @@ spec:
                 type: object
                 spec:
                   params:
+                  - name: manager
+                    type: string
+                    profiles:
+                    - xpath:
+                      - manager
+                    validators: []
+                    spec: {}
+                    description: IP address or FQDN of SNMP manager
+                    required: false
                   - name: community
                     type: string
                     profiles:
@@ -267,18 +276,6 @@ spec:
                         max: 127
                     spec: {}
                     description: SNMP community string
-                    required: false
-                  - name: manager
-                    type: string
-                    profiles:
-                    - xpath:
-                      - manager
-                    validators:
-                    - type: length
-                      spec:
-                        max: 63
-                    spec: {}
-                    description: IP address or FQDN of SNMP manager
                     required: false
                   variants: []
             description: List of SNMPv2c trap receivers
@@ -311,27 +308,12 @@ spec:
                 type: object
                 spec:
                   params:
-                  - name: engineid
-                    type: string
-                    profiles:
-                    - xpath:
-                      - engineid
-                    validators:
-                    - type: length
-                      spec:
-                        max: 255
-                    spec: {}
-                    description: SNMP engine ID (hex string, e.g. 0x80...)
-                    required: false
                   - name: manager
                     type: string
                     profiles:
                     - xpath:
                       - manager
-                    validators:
-                    - type: length
-                      spec:
-                        max: 63
+                    validators: []
                     spec: {}
                     description: IP address or FQDN of SNMP manager
                     required: false
@@ -347,6 +329,21 @@ spec:
                     spec: {}
                     description: SNMPv3 username
                     required: false
+                  - name: engineid
+                    type: string
+                    profiles:
+                    - xpath:
+                      - engineid
+                    validators:
+                    - type: length
+                      spec:
+                        max: 255
+                    spec: {}
+                    description: SNMP engine ID (hex string, e.g. 0x80...)
+                    required: false
+                    codegen_overrides:
+                      terraform:
+                        name: engine-id
                   - name: authpwd
                     type: string
                     profiles:
@@ -355,13 +352,16 @@ spec:
                     validators:
                     - type: length
                       spec:
-                        max: 255
+                        min: 8
+                        max: 256
                     spec: {}
                     description: SNMPv3 authentication password
                     required: false
                     codegen_overrides:
                       terraform:
-                        sensitive: true
+                        name: authentication-password
+                    hashing:
+                      type: solo
                   - name: privpwd
                     type: string
                     profiles:
@@ -370,13 +370,16 @@ spec:
                     validators:
                     - type: length
                       spec:
-                        max: 255
+                        min: 8
+                        max: 256
                     spec: {}
                     description: SNMPv3 privacy password
                     required: false
                     codegen_overrides:
                       terraform:
-                        sensitive: true
+                        name: privacy-password
+                    hashing:
+                      type: solo
                   - name: authproto
                     type: enum
                     profiles:
@@ -386,15 +389,24 @@ spec:
                     - type: values
                       spec:
                         values:
-                        - MD5
                         - SHA
+                        - SHA-224
+                        - SHA-256
+                        - SHA-384
+                        - SHA-512
                     spec:
                       default: SHA
                       values:
-                      - value: MD5
                       - value: SHA
+                      - value: SHA-224
+                      - value: SHA-256
+                      - value: SHA-384
+                      - value: SHA-512
                     description: Authentication protocol
                     required: false
+                    codegen_overrides:
+                      terraform:
+                        name: authentication-protocol
                   - name: privproto
                     type: enum
                     profiles:
@@ -404,15 +416,20 @@ spec:
                     - type: values
                       spec:
                         values:
-                        - AES128
-                        - DES
+                        - AES
+                        - AES-192
+                        - AES-256
                     spec:
-                      default: AES128
+                      default: AES
                       values:
-                      - value: AES128
-                      - value: DES
+                      - value: AES
+                      - value: AES-192
+                      - value: AES-256
                     description: Privacy protocol
                     required: false
+                    codegen_overrides:
+                      terraform:
+                        name: privacy-protocol
                   variants: []
             description: List of SNMPv3 trap receivers
             required: false

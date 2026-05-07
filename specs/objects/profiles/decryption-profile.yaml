@@ -107,17 +107,87 @@ entries:
   validators: []
 spec:
   params:
-  - name: description
+  - name: disable-override
+    type: enum
+    profiles:
+    - xpath:
+      - disable-override
+    validators:
+    - type: values
+      spec:
+        values:
+        - 'yes'
+        - 'no'
+    spec:
+      default: 'no'
+      values:
+      - value: 'yes'
+      - value: 'no'
+    description: disable object override in child device groups
+    required: false
+  - name: forwarded-only
+    type: bool
+    profiles:
+    - xpath:
+      - forwarded-only
+    validators: []
+    spec: {}
+    description: mirror after security policy allow
+    required: false
+  - name: interface
     type: string
     profiles:
     - xpath:
-      - description
-    validators:
-    - type: length
-      spec:
-        min: 0
-        max: 255
+      - interface
+    validators: []
     spec: {}
+    description: decrypt mirror port
+    required: false
+  - name: ssh-proxy
+    type: object
+    profiles:
+    - xpath:
+      - ssh-proxy
+    validators: []
+    spec:
+      params:
+      - name: block-if-no-resource
+        type: bool
+        profiles:
+        - xpath:
+          - block-if-no-resource
+        validators: []
+        spec: {}
+        description: whether to block sessions if device has no enough resources
+        required: false
+      - name: block-ssh-errors
+        type: bool
+        profiles:
+        - xpath:
+          - block-ssh-errors
+        validators: []
+        spec: {}
+        description: whether to block sessions if ssh errors are encountered
+        required: false
+      - name: block-unsupported-alg
+        type: bool
+        profiles:
+        - xpath:
+          - block-unsupported-alg
+        validators: []
+        spec: {}
+        description: whether to block sessions if ssh algorithm is not supported
+        required: false
+      - name: block-unsupported-version
+        type: bool
+        profiles:
+        - xpath:
+          - block-unsupported-version
+        validators: []
+        spec: {}
+        description: whether to block sessions if ssh version is not supported
+        required: false
+      variants: []
     description: ''
     required: false
   - name: ssl-forward-proxy
@@ -135,7 +205,8 @@ spec:
           - auto-include-altname
         validators: []
         spec: {}
-        description: Automatically include the alternative name of the certificate
+        description: whether to automatically append SAN to impersonating certificate
+          if server certificate is missing SAN
         required: false
       - name: block-client-cert
         type: bool
@@ -155,6 +226,36 @@ spec:
         spec: {}
         description: Block sessions with expired certificates
         required: false
+      - name: block-if-hsm-unavailable
+        type: bool
+        profiles:
+        - xpath:
+          - block-if-hsm-unavailable
+        validators: []
+        spec: {}
+        description: whether to block sessions if HSM is unavailable
+        required: false
+      - name: block-if-no-resource
+        type: bool
+        profiles:
+        - xpath:
+          - block-if-no-resource
+        validators: []
+        spec: {}
+        description: whether to block sessions if device has no enough resources
+        required: false
+      - name: block-if-sni-mismatch
+        type: bool
+        profiles:
+        - xpath:
+          - block-if-sni-mismatch
+          min_version: 11.0.2
+          max_version: 11.0.3
+        validators: []
+        spec: {}
+        description: whether to block a session when certificate's subject name or
+          SAN doesn't match SNI
+        required: false
       - name: block-timeout-cert
         type: bool
         profiles:
@@ -162,7 +263,17 @@ spec:
           - block-timeout-cert
         validators: []
         spec: {}
-        description: Block sessions if certificate status cannot be retrieved within timeout
+        description: Block sessions if certificate status cannot be retrieved within
+          timeout
+        required: false
+      - name: block-tls13-downgrade-no-resource
+        type: bool
+        profiles:
+        - xpath:
+          - block-tls13-downgrade-no-resource
+        validators: []
+        spec: {}
+        description: whether to downgrade from tls1.3 if device has not enough resources
         required: false
       - name: block-unknown-cert
         type: bool
@@ -200,15 +311,6 @@ spec:
         spec: {}
         description: Block sessions with untrusted certificate issuers
         required: false
-      - name: client-cert-auth
-        type: bool
-        profiles:
-        - xpath:
-          - client-cert-auth
-        validators: []
-        spec: {}
-        description: Enable client certificate authentication
-        required: false
       - name: restrict-cert-exts
         type: bool
         profiles:
@@ -238,6 +340,15 @@ spec:
     validators: []
     spec:
       params:
+      - name: block-if-hsm-unavailable
+        type: bool
+        profiles:
+        - xpath:
+          - block-if-hsm-unavailable
+        validators: []
+        spec: {}
+        description: Block sessions when HSM is unavailable
+        required: false
       - name: block-if-no-resource
         type: bool
         profiles:
@@ -246,6 +357,15 @@ spec:
         validators: []
         spec: {}
         description: Block sessions when decryption resources are not available
+        required: false
+      - name: block-tls13-downgrade-no-resource
+        type: bool
+        profiles:
+        - xpath:
+          - block-tls13-downgrade-no-resource
+        validators: []
+        spec: {}
+        description: Block TLS 1.3 downgrade when no resources are available
         required: false
       - name: block-unsupported-cipher
         type: bool
@@ -264,24 +384,6 @@ spec:
         validators: []
         spec: {}
         description: Block sessions with unsupported protocol versions
-        required: false
-      - name: block-if-hsm-unavailable
-        type: bool
-        profiles:
-        - xpath:
-          - block-if-hsm-unavailable
-        validators: []
-        spec: {}
-        description: Block sessions when HSM is unavailable
-        required: false
-      - name: block-tls13-downgrade-no-resource
-        type: bool
-        profiles:
-        - xpath:
-          - block-tls13-downgrade-no-resource
-        validators: []
-        spec: {}
-        description: Block TLS 1.3 downgrade when no resources are available
         required: false
       variants: []
     description: SSL inbound proxy decryption settings
@@ -323,56 +425,6 @@ spec:
     validators: []
     spec:
       params:
-      - name: min-version
-        type: enum
-        profiles:
-        - xpath:
-          - min-version
-        validators:
-        - type: values
-          spec:
-            values:
-            - sslv3
-            - tls1-0
-            - tls1-1
-            - tls1-2
-            - tls1-3
-        spec:
-          default: tls1-0
-          values:
-          - value: sslv3
-          - value: tls1-0
-          - value: tls1-1
-          - value: tls1-2
-          - value: tls1-3
-        description: Minimum SSL/TLS protocol version
-        required: false
-      - name: max-version
-        type: enum
-        profiles:
-        - xpath:
-          - max-version
-        validators:
-        - type: values
-          spec:
-            values:
-            - sslv3
-            - tls1-0
-            - tls1-1
-            - tls1-2
-            - tls1-3
-            - max
-        spec:
-          default: max
-          values:
-          - value: sslv3
-          - value: tls1-0
-          - value: tls1-1
-          - value: tls1-2
-          - value: tls1-3
-          - value: max
-        description: Maximum SSL/TLS protocol version
-        required: false
       - name: auth-algo-md5
         type: bool
         profiles:
@@ -418,15 +470,6 @@ spec:
         spec: {}
         description: Allow 3DES encryption algorithm
         required: false
-      - name: enc-algo-rc4
-        type: bool
-        profiles:
-        - xpath:
-          - enc-algo-rc4
-        validators: []
-        spec: {}
-        description: Allow RC4 encryption algorithm
-        required: false
       - name: enc-algo-aes-128-cbc
         type: bool
         profiles:
@@ -435,15 +478,6 @@ spec:
         validators: []
         spec: {}
         description: Allow AES-128-CBC encryption algorithm
-        required: false
-      - name: enc-algo-aes-256-cbc
-        type: bool
-        profiles:
-        - xpath:
-          - enc-algo-aes-256-cbc
-        validators: []
-        spec: {}
-        description: Allow AES-256-CBC encryption algorithm
         required: false
       - name: enc-algo-aes-128-gcm
         type: bool
@@ -454,6 +488,15 @@ spec:
         spec: {}
         description: Allow AES-128-GCM encryption algorithm
         required: false
+      - name: enc-algo-aes-256-cbc
+        type: bool
+        profiles:
+        - xpath:
+          - enc-algo-aes-256-cbc
+        validators: []
+        spec: {}
+        description: Allow AES-256-CBC encryption algorithm
+        required: false
       - name: enc-algo-aes-256-gcm
         type: bool
         profiles:
@@ -462,6 +505,24 @@ spec:
         validators: []
         spec: {}
         description: Allow AES-256-GCM encryption algorithm
+        required: false
+      - name: enc-algo-chacha20-poly1305
+        type: bool
+        profiles:
+        - xpath:
+          - enc-algo-chacha20-poly1305
+        validators: []
+        spec: {}
+        description: Allow algorithm chacha20-poly1305
+        required: false
+      - name: enc-algo-rc4
+        type: bool
+        profiles:
+        - xpath:
+          - enc-algo-rc4
+        validators: []
+        spec: {}
+        description: Allow RC4 encryption algorithm
         required: false
       - name: keyxchg-algo-dhe
         type: bool
@@ -489,6 +550,56 @@ spec:
         validators: []
         spec: {}
         description: Allow RSA key exchange algorithm
+        required: false
+      - name: max-version
+        type: enum
+        profiles:
+        - xpath:
+          - max-version
+        validators:
+        - type: values
+          spec:
+            values:
+            - sslv3
+            - tls1-0
+            - tls1-1
+            - tls1-2
+            - tls1-3
+            - max
+        spec:
+          default: tls1-2
+          values:
+          - value: sslv3
+          - value: tls1-0
+          - value: tls1-1
+          - value: tls1-2
+          - value: tls1-3
+          - value: max
+        description: Maximum SSL/TLS protocol version
+        required: false
+      - name: min-version
+        type: enum
+        profiles:
+        - xpath:
+          - min-version
+        validators:
+        - type: values
+          spec:
+            values:
+            - sslv3
+            - tls1-0
+            - tls1-1
+            - tls1-2
+            - tls1-3
+        spec:
+          default: tls1-0
+          values:
+          - value: sslv3
+          - value: tls1-0
+          - value: tls1-1
+          - value: tls1-2
+          - value: tls1-3
+        description: Minimum SSL/TLS protocol version
         required: false
       variants: []
     description: SSL/TLS protocol settings
