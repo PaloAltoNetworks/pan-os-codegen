@@ -16,6 +16,7 @@ import (
 
 func TestAccMfaServerProfile_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -128,6 +129,7 @@ resource "panos_mfa_server_profile" "example" {
 
 func TestAccMfaServerProfile_Minimal(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -208,6 +210,7 @@ resource "panos_mfa_server_profile" "example" {
 
 func TestAccMfaServerProfile_MultipleConfigurations(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -309,6 +312,7 @@ resource "panos_mfa_server_profile" "example" {
 
 func TestAccMfaServerProfile_MaxLengthValues(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -423,6 +427,7 @@ resource "panos_mfa_server_profile" "example" {
 
 func TestAccMfaServerProfile_EmptyConfigurations(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -524,6 +529,7 @@ resource "panos_mfa_server_profile" "example" {
 
 func TestAccMfaServerProfile_CertificateProfileOnly(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -592,6 +598,7 @@ resource "panos_mfa_server_profile" "example" {
 
 func TestAccMfaServerProfile_AllParameters(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -704,6 +711,7 @@ resource "panos_mfa_server_profile" "example" {
 
 func TestAccMfaServerProfile_ConfigurationEdgeCases(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -805,6 +813,7 @@ resource "panos_mfa_server_profile" "example" {
 
 func TestAccMfaServerProfile_AllVendorTypes(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -929,6 +938,7 @@ resource "panos_mfa_server_profile" "rsa" {
 
 func TestAccMfaServerProfile_LargeConfigurationList(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1018,6 +1028,7 @@ resource "panos_mfa_server_profile" "example" {
 
 func TestAccMfaServerProfile_ConfigurationNameEdgeCases(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1132,6 +1143,7 @@ resource "panos_mfa_server_profile" "example" {
 
 func TestAccMfaServerProfile_OktaComplete(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1244,6 +1256,7 @@ resource "panos_mfa_server_profile" "example" {
 
 func TestAccMfaServerProfile_DuoComplete(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1356,6 +1369,7 @@ resource "panos_mfa_server_profile" "example" {
 
 func TestAccMfaServerProfile_RSAComplete(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1478,6 +1492,7 @@ resource "panos_mfa_server_profile" "example" {
 
 func TestAccMfaServerProfile_InvalidVendorType(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1519,6 +1534,7 @@ resource "panos_mfa_server_profile" "example" {
 
 func TestAccMfaServerProfile_MissingRequiredKeys(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1560,6 +1576,7 @@ resource "panos_mfa_server_profile" "example" {
 
 func TestAccMfaServerProfile_InvalidConfigKeys(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1609,6 +1626,7 @@ resource "panos_mfa_server_profile" "example" {
 
 func TestAccMfaServerProfile_MissingAndInvalidKeys(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1654,6 +1672,7 @@ resource "panos_mfa_server_profile" "example" {
 
 func TestAccMfaServerProfile_ConfigWithoutVendorType(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

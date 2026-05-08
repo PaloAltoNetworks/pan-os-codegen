@@ -14,6 +14,7 @@ import (
 
 func TestAccFiltersPrefixListRoutingProfile_Ipv6_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -110,6 +111,7 @@ resource "panos_filters_prefix_list_routing_profile" "example" {
 
 func TestAccFiltersPrefixListRoutingProfile_Ipv6_Prefix_Network(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -177,6 +179,7 @@ resource "panos_filters_prefix_list_routing_profile" "example" {
 
 func TestAccFiltersPrefixListRoutingProfile_Ipv6_Prefix_Entry(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -252,6 +255,7 @@ resource "panos_filters_prefix_list_routing_profile" "example" {
 
 func TestAccFiltersPrefixListRoutingProfile_Ipv6_Action_Permit(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -317,6 +321,7 @@ resource "panos_filters_prefix_list_routing_profile" "example" {
 
 func TestAccFiltersPrefixListRoutingProfile_Ipv6_MultipleEntries(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

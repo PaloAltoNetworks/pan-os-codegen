@@ -15,6 +15,7 @@ import (
 
 func TestAccCustomSpyware_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -134,6 +135,7 @@ resource "panos_custom_spyware" "example" {
 
 func TestAccCustomSpyware_DefaultActionAlert(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -200,6 +202,7 @@ resource "panos_custom_spyware" "example" {
 
 func TestAccCustomSpyware_DefaultActionAllow(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -266,6 +269,7 @@ resource "panos_custom_spyware" "example" {
 
 func TestAccCustomSpyware_DefaultActionBlockIp(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -338,6 +342,7 @@ resource "panos_custom_spyware" "example" {
 
 func TestAccCustomSpyware_DefaultActionDrop(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -404,6 +409,7 @@ resource "panos_custom_spyware" "example" {
 
 func TestAccCustomSpyware_DefaultActionResetBoth(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -470,6 +476,7 @@ resource "panos_custom_spyware" "example" {
 
 func TestAccCustomSpyware_DefaultActionResetClient(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -536,6 +543,7 @@ resource "panos_custom_spyware" "example" {
 
 func TestAccCustomSpyware_DefaultActionResetServer(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -601,6 +609,7 @@ resource "panos_custom_spyware" "example" {
 
 func TestAccCustomSpyware_SignatureCombination(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -698,6 +707,7 @@ resource "panos_custom_spyware" "example" {
 
 func TestAccCustomSpyware_SignatureStandard(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

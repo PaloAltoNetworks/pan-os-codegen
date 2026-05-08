@@ -14,6 +14,7 @@ import (
 
 func TestAccTunnelInterface(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	interfaceName := "tunnel.1"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)

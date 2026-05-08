@@ -14,6 +14,7 @@ import (
 
 func TestAccFiltersAsPathAccessListRoutingProfile_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -90,6 +91,7 @@ resource "panos_filters_as_path_access_list_routing_profile" "example" {
 
 func TestAccFiltersAsPathAccessListRoutingProfile_Action_Permit(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -149,6 +151,7 @@ resource "panos_filters_as_path_access_list_routing_profile" "example" {
 
 func TestAccFiltersAsPathAccessListRoutingProfile_MultipleEntries(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

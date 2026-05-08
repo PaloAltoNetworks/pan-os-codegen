@@ -15,6 +15,7 @@ import (
 
 func TestAccWildfireAnalysisSecurityProfile_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -76,6 +77,7 @@ resource "panos_wildfire_analysis_security_profile" "example" {
 
 func TestAccWildfireAnalysisSecurityProfile_Rules(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

@@ -62,6 +62,7 @@ resource "panos_security_policy_rules" "imported" {}
 
 func TestAccSecurityPolicyRulesImport(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -301,6 +302,7 @@ func withPrefix(prefix string, rules []string) []config.Variable {
 
 func TestAccSecurityPolicyRulesPositioning(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -573,6 +575,7 @@ resource "panos_security_policy_rules" "rules-before-rule-255" {
 
 func TestAccSecurityPolicyRulesOrderingDependant(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -686,6 +689,7 @@ func TestAccSecurityPolicyRulesOrderingDependant(t *testing.T) {
 
 func TestAccSecurityPolicyRules_PositionAsVariable(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -763,6 +767,7 @@ resource "panos_security_policy_rules" "policy" {
 
 func TestAccSecurityPolicyRules_WithLifecycle_IgnoredChanges(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1053,6 +1058,7 @@ resource "panos_security_policy_rules" "child" {
 
 func testAccSecurityPolicyRules_Hierarchy(t *testing.T, parent config.Variable, child config.Variable) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1102,6 +1108,7 @@ func testAccSecurityPolicyRules_Hierarchy(t *testing.T, parent config.Variable, 
 }
 
 func TestAccSecurityPolicyRules_Hierarchy_UniqueNames(t *testing.T) {
+	testAccSetup(t, TestConfig{})
 	parentRules := config.ListVariable(config.StringVariable("rule-1"), config.StringVariable("rule-2"))
 	childRules := config.ListVariable(config.StringVariable("rule-3"), config.StringVariable("rule-4"))
 	testAccSecurityPolicyRules_Hierarchy(t, parentRules, childRules)
@@ -1135,6 +1142,7 @@ resource "panos_security_policy_rules" "policy" {
 
 func TestAccSecurityPolicyRules_UpdateMissing(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1226,6 +1234,7 @@ resource "panos_security_policy_rules" "policy" {
 
 func TestAccSecurityPolicyRules_BeforePivotWithUpdate(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1381,6 +1390,7 @@ resource "panos_security_policy_rules" "post" {
 
 func TestAccSecurityPolicyRules_NonExistentPivot(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1419,6 +1429,7 @@ func TestAccSecurityPolicyRules_NonExistentPivot(t *testing.T) {
 
 func TestAccSecurityPolicyRules_CrossRulebasePivot(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

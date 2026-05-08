@@ -23,6 +23,7 @@ import (
 // - Multicast with PIM (local-rp static-rp), IGMP, MSDP
 func TestAccPanosLogicalRouter_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -394,6 +395,7 @@ resource "panos_logical_router" "example" {
 // Without the ability to create BGP profiles in this test, we cannot test peer-groups.
 // TODO: Re-enable this test once we have BGP profile resources available
 func TestAccPanosLogicalRouter_Bgp_PeerGroup_Ebgp(t *testing.T) {
+	testAccSetup(t, TestConfig{})
 	t.Skip("Skipping test - BGP peer-groups require address-family profiles which are not available in this test")
 }
 
@@ -403,12 +405,14 @@ func TestAccPanosLogicalRouter_Bgp_PeerGroup_Ebgp(t *testing.T) {
 // Without the ability to create BGP profiles in this test, we cannot test peer-groups.
 // TODO: Re-enable this test once we have BGP profile resources available
 func TestAccPanosLogicalRouter_Bgp_Peer_InheritNo(t *testing.T) {
+	testAccSetup(t, TestConfig{})
 	t.Skip("Skipping test - BGP peer-groups require address-family profiles which are not available in this test")
 }
 
 // TestAccPanosLogicalRouter_StaticRoute_NexthopDiscard tests static route discard nexthop
 func TestAccPanosLogicalRouter_StaticRoute_NexthopDiscard(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -461,6 +465,7 @@ resource "panos_logical_router" "example" {
 // TestAccPanosLogicalRouter_Ecmp_IpModulo tests ECMP ip-modulo algorithm
 func TestAccPanosLogicalRouter_Ecmp_IpModulo(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -510,6 +515,7 @@ resource "panos_logical_router" "example" {
 // TestAccPanosLogicalRouter_Ecmp_WeightedRoundRobin tests ECMP weighted round robin with interface weights
 func TestAccPanosLogicalRouter_Ecmp_WeightedRoundRobin(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -590,6 +596,7 @@ resource "panos_logical_router" "example" {
 // TestAccPanosLogicalRouter_Ecmp_BalancedRoundRobin tests ECMP balanced round robin
 func TestAccPanosLogicalRouter_Ecmp_BalancedRoundRobin(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -639,6 +646,7 @@ resource "panos_logical_router" "example" {
 // TestAccPanosLogicalRouter_Ospf_Area_Stub tests OSPF stub area variant
 func TestAccPanosLogicalRouter_Ospf_Area_Stub(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -726,6 +734,7 @@ resource "panos_logical_router" "example" {
 // TestAccPanosLogicalRouter_Ospf_Area_Nssa tests OSPF nssa area variant
 func TestAccPanosLogicalRouter_Ospf_Area_Nssa(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -825,6 +834,7 @@ resource "panos_logical_router" "example" {
 // TestAccPanosLogicalRouter_Ospf_Interface_LinkType_P2mp tests OSPF p2mp link-type with neighbors
 func TestAccPanosLogicalRouter_Ospf_Interface_LinkType_P2mp(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -907,6 +917,7 @@ resource "panos_logical_router" "example" {
 // TestAccPanosLogicalRouter_Ospfv3_Area_Stub tests OSPFv3 stub area variant
 func TestAccPanosLogicalRouter_Ospfv3_Area_Stub(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -995,6 +1006,7 @@ resource "panos_logical_router" "example" {
 // TestAccPanosLogicalRouter_Multicast_Pim_LocalRp_CandidateRp tests PIM candidate-rp variant
 func TestAccPanosLogicalRouter_Multicast_Pim_LocalRp_CandidateRp(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1078,6 +1090,7 @@ resource "panos_logical_router" "example" {
 // TestAccPanosLogicalRouter_Multicast_Msdp_PeerAddress_Fqdn tests MSDP fqdn peer address
 func TestAccPanosLogicalRouter_Multicast_Msdp_PeerAddress_Fqdn(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1160,6 +1173,7 @@ resource "panos_logical_router" "example" {
 // TestAccPanosLogicalRouter_Bgp_AggregateRoutes_Ipv6 tests BGP IPv6 aggregate routes
 func TestAccPanosLogicalRouter_Bgp_AggregateRoutes_Ipv6(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1225,5 +1239,6 @@ resource "panos_logical_router" "example" {
 // Without the ability to create BGP profiles in this test, we cannot test peer-groups.
 // TODO: Re-enable this test once we have BGP profile resources available
 func TestAccPanosLogicalRouter_Bgp_PeerAddress_Fqdn(t *testing.T) {
+	testAccSetup(t, TestConfig{})
 	t.Skip("Skipping test - BGP peer-groups require address-family profiles which are not available in this test")
 }

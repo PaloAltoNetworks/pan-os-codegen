@@ -12,6 +12,7 @@ import (
 
 func TestEphemeralApiKey(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 	t.Skip("Disabled until user management is part of terraform and GO SDK")
 
 	resource.Test(t, resource.TestCase{

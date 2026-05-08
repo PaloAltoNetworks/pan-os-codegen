@@ -14,6 +14,7 @@ import (
 
 func TestAccVirtualRouterInterface_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -57,6 +58,7 @@ func TestAccVirtualRouterInterface_Basic(t *testing.T) {
 
 func TestAccVirtualRouterInterface_UpdateVirtualRouter(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -116,6 +118,7 @@ func TestAccVirtualRouterInterface_UpdateVirtualRouter(t *testing.T) {
 
 func TestAccVirtualRouterInterface_UpdateInterface(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -169,6 +172,7 @@ func TestAccVirtualRouterInterface_UpdateInterface(t *testing.T) {
 
 func TestAccVirtualRouterInterface_MultipleInterfaces(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

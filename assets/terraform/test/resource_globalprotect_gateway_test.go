@@ -14,6 +14,7 @@ import (
 
 func TestAccGlobalProtectGateway_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -184,6 +185,7 @@ resource "panos_globalprotect_gateway" "example" {
 
 func TestAccGlobalProtectGateway_RemoteUserTunnelConfigs(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -330,6 +332,7 @@ resource "panos_globalprotect_gateway" "example" {
 
 func TestAccGlobalProtectGateway_RemoteUserTunnelConfigs_CookieLifetime(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -436,6 +439,7 @@ resource "panos_globalprotect_gateway" "example" {
 
 func TestAccGlobalProtectGateway_Roles(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -517,6 +521,7 @@ resource "panos_globalprotect_gateway" "example" {
 
 func TestAccGlobalProtectGateway_Roles_LoginLifetime(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -613,6 +618,7 @@ resource "panos_globalprotect_gateway" "example" {
 
 func TestAccGlobalProtectGateway_SecurityRestrictions(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -683,6 +689,7 @@ resource "panos_globalprotect_gateway" "example" {
 
 func TestAccGlobalProtectGateway_SecurityRestrictions_SourceIpEnforcement(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -739,6 +746,7 @@ resource "panos_globalprotect_gateway" "example" {
 
 func TestAccGlobalProtectGateway_LocalAddress_Ip_Ipv4(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -781,6 +789,7 @@ func TestAccGlobalProtectGateway_LocalAddress_Ip_Ipv4(t *testing.T) {
 
 func TestAccGlobalProtectGateway_LocalAddress_Ip_Ipv6(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -823,6 +832,7 @@ func TestAccGlobalProtectGateway_LocalAddress_Ip_Ipv6(t *testing.T) {
 
 func TestAccGlobalProtectGateway_LocalAddress_Ip_Ipv4_Ipv6(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

@@ -14,6 +14,7 @@ import (
 )
 
 func TestAccIkeGateway_Basic(t *testing.T) {
+	testAccSetup(t, TestConfig{})
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
 
@@ -94,6 +95,7 @@ func TestAccIkeGateway_Basic(t *testing.T) {
 }
 
 func TestAccIkeGateway_PresharedKey(t *testing.T) {
+	testAccSetup(t, TestConfig{})
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
 
@@ -119,6 +121,7 @@ func TestAccIkeGateway_PresharedKey(t *testing.T) {
 }
 
 func TestAccIkeGateway_PeerAddressFqdn(t *testing.T) {
+	testAccSetup(t, TestConfig{})
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
 
@@ -144,6 +147,7 @@ func TestAccIkeGateway_PeerAddressFqdn(t *testing.T) {
 }
 
 func TestAccIkeGateway_PeerAddressDynamic(t *testing.T) {
+	testAccSetup(t, TestConfig{})
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
 
@@ -194,6 +198,7 @@ func TestAccIkeGateway_PeerAddressDynamic(t *testing.T) {
 // }
 
 func TestAccIkeGateway_Protocol(t *testing.T) {
+	testAccSetup(t, TestConfig{})
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
 
@@ -224,6 +229,7 @@ func TestAccIkeGateway_Protocol(t *testing.T) {
 }
 
 func TestAccIkeGateway_AuthCertProfile(t *testing.T) {
+	testAccSetup(t, TestConfig{})
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
 
@@ -249,6 +255,7 @@ func TestAccIkeGateway_AuthCertProfile(t *testing.T) {
 }
 
 func TestAccIkeGateway_AuthLocalCert(t *testing.T) {
+	testAccSetup(t, TestConfig{})
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
 
@@ -274,6 +281,7 @@ func TestAccIkeGateway_AuthLocalCert(t *testing.T) {
 }
 
 func TestAccIkeGateway_ProtocolIkev1(t *testing.T) {
+	testAccSetup(t, TestConfig{})
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
 
@@ -299,6 +307,7 @@ func TestAccIkeGateway_ProtocolIkev1(t *testing.T) {
 }
 
 func TestAccIkeGateway_ProtocolIkev2(t *testing.T) {
+	testAccSetup(t, TestConfig{})
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
 
@@ -324,6 +333,7 @@ func TestAccIkeGateway_ProtocolIkev2(t *testing.T) {
 }
 
 func TestAccIkeGateway_PlaintextValueMissingRejected(t *testing.T) {
+	testAccSetup(t, TestConfig{})
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
 

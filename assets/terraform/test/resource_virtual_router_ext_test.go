@@ -19,6 +19,7 @@ import (
 // variants (prepend, remove_and_prepend, none) remain null in state.
 func TestAccPanosVirtualRouter_BgpExport_AsPath_Remove(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	templateName := fmt.Sprintf("acc-vrouter-bgp-%s", nameSuffix)
@@ -72,6 +73,7 @@ func TestAccPanosVirtualRouter_BgpExport_AsPath_Remove(t *testing.T) {
 // nulls to work correctly.
 func TestAccPanosVirtualRouter_BgpExport_AsPath_Remove_ExplicitNull(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	templateName := fmt.Sprintf("acc-vrouter-bgp-%s", nameSuffix)
@@ -123,6 +125,7 @@ func TestAccPanosVirtualRouter_BgpExport_AsPath_Remove_ExplicitNull(t *testing.T
 // variants to null, we check if the other variants remain null or get defaults.
 func TestAccPanosVirtualRouter_BgpExport_AsPath_Prepend_ExplicitNull(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	templateName := fmt.Sprintf("acc-vrouter-bgp-%s", nameSuffix)
@@ -169,6 +172,7 @@ func TestAccPanosVirtualRouter_BgpExport_AsPath_Prepend_ExplicitNull(t *testing.
 // variants (none, remove, remove_and_prepend) remain null.
 func TestAccPanosVirtualRouter_BgpExport_AsPath_Prepend_Only(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	templateName := fmt.Sprintf("acc-vrouter-bgp-%s", nameSuffix)
@@ -215,6 +219,7 @@ func TestAccPanosVirtualRouter_BgpExport_AsPath_Prepend_Only(t *testing.T) {
 // This should be rejected by either Terraform validation or the provider.
 func TestAccPanosVirtualRouter_BgpExport_AsPath_MultipleVariants(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	templateName := fmt.Sprintf("acc-vrouter-bgp-%s", nameSuffix)
@@ -242,6 +247,7 @@ func TestAccPanosVirtualRouter_BgpExport_AsPath_MultipleVariants(t *testing.T) {
 // while others remain null.
 func TestAccPanosVirtualRouter_BgpExport_AsPath_Prepend(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	templateName := fmt.Sprintf("acc-vrouter-bgp-%s", nameSuffix)

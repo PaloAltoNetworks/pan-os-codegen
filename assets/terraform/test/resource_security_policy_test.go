@@ -315,6 +315,7 @@ resource "panos_security_policy" "policy" {
 
 func TestAccSecurityPolicyDuplicatedPlan(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -336,6 +337,7 @@ func TestAccSecurityPolicyDuplicatedPlan(t *testing.T) {
 
 func TestAccSecurityPolicyExtended(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -566,6 +568,7 @@ resource "panos_security_policy" "policy" {
 
 func TestAccSecurityPolicyOrdering(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -711,6 +714,7 @@ resource "panos_security_policy_rules" "policy" {
 
 func TestAccSecurityPolicy_UpdateMissing(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -891,6 +895,7 @@ resource "panos_device_group" "dg" {
 
 func TestAccSecurityPolicy_DeletePartiallyMissing(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1242,6 +1247,7 @@ resource "panos_security_policy" "policy" {
 
 func TestAccSecurityPolicy_WithCustomUrlCategory(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1348,6 +1354,7 @@ func TestAccSecurityPolicy_WithCustomUrlCategory(t *testing.T) {
 
 func TestAccSecurityPolicy_WithMultipleCustomUrlCategories(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

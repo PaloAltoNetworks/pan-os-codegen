@@ -14,6 +14,7 @@ import (
 
 func TestAccGlobalProtectPortal_ExternalGateway_Fqdn(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -371,6 +372,7 @@ resource "panos_globalprotect_portal" "example" {
 
 func TestAccGlobalProtectPortal_ExternalGateway_Ip(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -486,6 +488,7 @@ resource "panos_globalprotect_portal" "example" {
 
 func TestAccGlobalProtectPortal_CookieLifetime_Days(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -557,6 +560,7 @@ resource "panos_globalprotect_portal" "example" {
 
 func TestAccGlobalProtectPortal_CookieLifetime_Minutes(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -623,6 +627,7 @@ resource "panos_globalprotect_portal" "example" {
 
 func TestAccGlobalProtectPortal_MachineAccount_Yes(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -688,6 +693,7 @@ resource "panos_globalprotect_portal" "example" {
 
 func TestAccGlobalProtectPortal_ClientCertificateLocal(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 	t.Skip("Missing certificate resource support")
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -753,6 +759,7 @@ resource "panos_globalprotect_portal" "example" {
 
 func TestAccGlobalProtectPortal_ClientCertificateScep(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 	t.Skip("missing scep profile resource")
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -865,6 +872,7 @@ resource "panos_globalprotect_portal" "example" {
 
 func TestAccGlobalProtectPortal_ClientlessVpn_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -988,6 +996,7 @@ resource "panos_globalprotect_portal" "example" {
 
 func TestAccGlobalProtectPortal_ClientlessVpn_LogoutLoginVariants(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1100,6 +1109,7 @@ resource "panos_globalprotect_portal" "example" {
 
 func TestAccGlobalProtectPortal_ClientlessVpn_AppsToUserMapping(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 	t.Skip("disabled, requires more testing around applications")
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -1236,6 +1246,7 @@ resource "panos_globalprotect_portal" "example" {
 
 func TestAccGlobalProtectPortal_PortalConfig_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1359,6 +1370,7 @@ resource "panos_globalprotect_portal" "example" {
 
 func TestAccGlobalProtectPortal_PortalConfig_FloatingIp(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 	t.Skip("requires floating ip support")
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -1435,6 +1447,7 @@ resource "panos_globalprotect_portal" "example" {
 
 func TestAccGlobalProtectPortal_SatelliteConfig_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 	t.Skip("missing support for satellite devices")
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -1515,6 +1528,7 @@ resource "panos_globalprotect_portal" "example" {
 
 func TestAccGlobalProtectPortal_SatelliteConfig_ClientCertificateLocal(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 	t.Skip("missing local certificates resources")
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -1580,6 +1594,7 @@ resource "panos_globalprotect_portal" "example" {
 
 func TestAccGlobalProtectPortal_SatelliteConfig_ClientCertificateScep(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 	t.Skip("missing scep profile resource")
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)

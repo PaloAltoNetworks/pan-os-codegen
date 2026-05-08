@@ -14,6 +14,7 @@ import (
 
 func TestAccSchedule_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -71,6 +72,7 @@ resource "panos_schedule" "example" {
 
 func TestAccSchedule_ScheduleType_NonRecurring(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -136,6 +138,7 @@ resource "panos_schedule" "example" {
 
 func TestAccSchedule_ScheduleType_Recurring_Daily(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -206,6 +209,7 @@ resource "panos_schedule" "example" {
 
 func TestAccSchedule_ScheduleType_Recurring_Weekly(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -289,6 +293,7 @@ resource "panos_schedule" "example" {
 
 func TestAccSchedule_ScheduleType_Recurring_Weekly_SingleDay(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

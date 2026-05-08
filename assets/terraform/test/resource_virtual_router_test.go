@@ -17,6 +17,7 @@ import (
 
 func TestAccPanosVirtualRouter_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	resName := "vr_profile"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -56,6 +57,7 @@ func TestAccPanosVirtualRouter_Basic(t *testing.T) {
 
 func TestAccPanosVirtualRouter_WithEthernetInterface(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	resName := "vr_profile_if"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -100,6 +102,7 @@ func TestAccPanosVirtualRouter_WithEthernetInterface(t *testing.T) {
 
 func TestAccPanosVirtualRouter_AdministrativeDistances(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	resName := "vr_admin_dist"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -175,6 +178,7 @@ func TestAccPanosVirtualRouter_AdministrativeDistances(t *testing.T) {
 
 func TestAccPanosVirtualRouter_Ecmp_BalancedRoundRobin(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	resName := "vr_ecmp_brr"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -230,6 +234,7 @@ func TestAccPanosVirtualRouter_Ecmp_BalancedRoundRobin(t *testing.T) {
 
 func TestAccPanosVirtualRouter_Ecmp_IpModulo(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	resName := "vr_ecmp_ipmodulo"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -383,6 +388,7 @@ resource "panos_virtual_router" "vr_admin_dist" {
 
 func TestAccPanosVirtualRouter_Multicast(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	resName := "vr_multicast"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -486,6 +492,7 @@ resource "panos_virtual_router" "vr_multicast" {
 
 func TestAccPanosVirtualRouter_Bgp_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	resName := "vr_bgp_basic"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -595,6 +602,7 @@ resource "panos_virtual_router" "vr_bgp_basic" {
 
 func TestAccPanosVirtualRouter_Bgp_Dampening(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	resName := "vr_bgp_dampening"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -710,6 +718,7 @@ resource "panos_virtual_router" "vr_bgp_dampening" {
 
 func TestAccPanosVirtualRouter_Bgp_AuthProfile(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	resName := "vr_bgp_auth"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -790,6 +799,7 @@ resource "panos_virtual_router" "vr_bgp_auth" {
 
 func TestAccPanosVirtualRouter_Bgp_AuthProfile_NoSecret(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	resName := "vr_bgp_auth_nosecret"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -869,6 +879,7 @@ resource "panos_virtual_router" "vr_bgp_auth_nosecret" {
 
 func TestAccPanosVirtualRouter_Bgp_AuthProfile_MaxLength(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	resName := "vr_bgp_auth_maxlen"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -953,6 +964,7 @@ resource "panos_virtual_router" "vr_bgp_auth_maxlen" {
 
 func TestAccPanosVirtualRouter_Bgp_AuthProfile_SecretUpdate(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	resName := "vr_bgp_auth_update"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -1136,6 +1148,7 @@ func makePanosVirtualRouterConfig(label string) string {
 
 func TestAccPanosVirtualRouter_BgpExport_AsPath_None(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1249,6 +1262,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_BgpExport_AsPath_RemoveAndPrepend(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1364,6 +1378,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_BgpAggregation_AsPath_None(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1446,6 +1461,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_BgpAggregation_AsPath_Prepend(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1530,6 +1546,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_BgpExport_Community_RemoveAll(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1644,6 +1661,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_BgpExport_Community_Append(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1762,6 +1780,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_Ecmp_Algorithm_IpHash(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1823,6 +1842,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_Ecmp_Algorithm_WeightedRoundRobin(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1942,6 +1962,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_Ospf_Area_Normal(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -2047,6 +2068,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_Ospf_Area_Stub(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -2116,6 +2138,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_Ospf_Area_Nssa(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -2186,6 +2209,7 @@ resource "panos_virtual_router" "test" {
 func TestAccPanosVirtualRouter_Ospf_ExportRules(t *testing.T) {
 	t.Skip("OSPF export_rules needs OSPF redistribution routing profile - requires implementation")
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -2245,6 +2269,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_Ospf_AuthProfile(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -2312,6 +2337,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_Ospfv3_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -2423,6 +2449,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_Ospfv3_Areas(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -2498,6 +2525,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_Rip_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -2586,6 +2614,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_Rip_AuthProfile_Md5(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -2660,6 +2689,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_Rip_AuthProfile_Text(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -2729,6 +2759,7 @@ resource "panos_virtual_router" "test" {
 func TestAccPanosVirtualRouter_Rip_ExportRules(t *testing.T) {
 	t.Skip("RIP export_rules needs RIP redistribution routing profile - requires implementation")
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -2799,6 +2830,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_Bgp_PeerGroup_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -2878,6 +2910,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_Bgp_PeerGroup_Advanced(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -2950,6 +2983,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_Bgp_Import(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -3027,6 +3061,7 @@ resource "panos_virtual_router" "test" {
 func TestAccPanosVirtualRouter_Bgp_Redist(t *testing.T) {
 	t.Skip("BGP redist_rules validation issue - profile reference not working as expected")
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -3107,6 +3142,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_Bgp_Community_RemoveRegex(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -3197,6 +3233,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_Bgp_Community_Overwrite(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -3287,6 +3324,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_Bgp_ExtendedCommunity(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -3377,6 +3415,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_Bgp_AggregationComplete(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -3453,6 +3492,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_Bgp_ExportComplete(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -3551,6 +3591,7 @@ resource "panos_virtual_router" "test" {
 func TestAccPanosVirtualRouter_Bgp_Complete(t *testing.T) {
 	t.Skip("BGP redist_rules validation issue - profile reference not working as expected")
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -3715,6 +3756,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_Multicast_Complete(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -3826,6 +3868,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_Ecmp_Complete(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -3901,6 +3944,7 @@ resource "panos_virtual_router" "test" {
 
 func TestAccPanosVirtualRouter_TemplateStack(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -3963,6 +4007,7 @@ resource "panos_virtual_router" "test" {
 func TestAccPanosVirtualRouter_TemplateVsys(t *testing.T) {
 	t.Skip("template-vsys/template-stack-vsys location not supported")
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -4019,6 +4064,7 @@ resource "panos_virtual_router" "test" {
 func TestAccPanosVirtualRouter_TemplateStackVsys(t *testing.T) {
 	t.Skip("template-vsys/template-stack-vsys location not supported")
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -4083,6 +4129,7 @@ resource "panos_virtual_router" "test" {
 // empty → vsys1 → vsys2 → empty
 func TestAccPanosVirtualRouter_VsysImport_Lifecycle(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	templateName := fmt.Sprintf("acc-vr-import-lifecycle-%s", nameSuffix)
@@ -4144,6 +4191,7 @@ func TestAccPanosVirtualRouter_VsysImport_Lifecycle(t *testing.T) {
 // interfere with manual imports when vsys is empty (not managed by Terraform).
 func TestAccPanosVirtualRouter_VsysImport_ManualDrift(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	templateName := fmt.Sprintf("acc-vr-drift-%s", nameSuffix)

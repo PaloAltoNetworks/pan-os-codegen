@@ -14,6 +14,7 @@ import (
 
 func TestAccAggregateLayer3Subinterface_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -206,6 +207,7 @@ resource "panos_aggregate_layer3_subinterface" "example" {
 
 func TestAccAggregateLayer3Subinterface_DhcpClient(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -388,6 +390,7 @@ resource "panos_aggregate_layer3_subinterface" "example" {
 
 func TestAccAggregateLayer3Subinterface_Ipv6_Address(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -648,6 +651,7 @@ resource "panos_aggregate_layer3_subinterface" "example" {
 
 func TestAccAggregateLayer3Subinterface_Ipv6_Inherited(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -930,6 +934,7 @@ resource "panos_aggregate_layer3_subinterface" "example" {
 
 func TestAccAggregateLayer3Subinterface_Ipv6_Inherited_NeighborDiscovery_DnsServer_Manual(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1103,6 +1108,7 @@ resource "panos_aggregate_layer3_subinterface" "example" {
 
 func TestAccAggregateLayer3Subinterface_Ipv6_NeighborDiscovery(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1255,6 +1261,7 @@ resource "panos_aggregate_layer3_subinterface" "example" {
 
 func TestAccAggregateLayer3Subinterface_SdwanLinkSettings_UpstreamNat_Ddns(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 	t.Skip("missing required resources: sdwan profile and certificate profile")
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -1421,6 +1428,7 @@ resource "panos_aggregate_layer3_subinterface" "example" {
 
 func TestAccAggregateLayer3Subinterface_SdwanLinkSettings_UpstreamNat_StaticIp_Fqdn(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 	t.Skip("missing required resource: sdwan profile")
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -1596,6 +1604,7 @@ resource "panos_zone" "zone" {
 
 func TestAccAggregateLayer3Subinterface_SdwanLinkSettings_UpstreamNat_StaticIp_Address(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 	t.Skip("missing required resource: sdwan profile")
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -1669,6 +1678,7 @@ func TestAccAggregateLayer3Subinterface_SdwanLinkSettings_UpstreamNat_StaticIp_A
 
 func TestAccAggregateLayer3Subinterface_Import_Zone_Layer3(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1789,6 +1799,7 @@ resource "panos_aggregate_layer3_subinterface" "example" {
 
 func TestAccAggregateLayer3Subinterface_Ipv6_DhcpClient(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

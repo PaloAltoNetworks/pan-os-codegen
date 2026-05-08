@@ -14,6 +14,7 @@ import (
 
 func TestAccLoopbackInterface(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	interfaceName := "loopback.1"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)

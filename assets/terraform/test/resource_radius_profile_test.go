@@ -14,6 +14,7 @@ import (
 
 func TestAccRadiusProfile_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -97,6 +98,7 @@ resource "panos_radius_profile" "example" {
 
 func TestAccRadiusProfile_Protocol_Chap(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -170,6 +172,7 @@ resource "panos_radius_profile" "example" {
 
 func TestAccRadiusProfile_Protocol_EapTtlsWithPap(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -257,6 +260,7 @@ resource "panos_radius_profile" "example" {
 
 func TestAccRadiusProfile_Protocol_Pap(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -330,6 +334,7 @@ resource "panos_radius_profile" "example" {
 
 func TestAccRadiusProfile_Protocol_PeapMschapv2(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -419,6 +424,7 @@ resource "panos_radius_profile" "example" {
 
 func TestAccRadiusProfile_Protocol_PeapWithGtc(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -506,6 +512,7 @@ resource "panos_radius_profile" "example" {
 
 func TestAccRadiusProfile_MultipleServers(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

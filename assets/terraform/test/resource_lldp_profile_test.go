@@ -15,6 +15,7 @@ import (
 
 func TestAccLldpProfile_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -95,6 +96,7 @@ resource "panos_lldp_profile" "example" {
 
 func TestAccLldpProfile_ManagementAddress(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -160,6 +162,7 @@ resource "panos_lldp_profile" "example" {
 
 func TestAccLldpProfile_ManagementAddress_Ipv4(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -248,6 +251,7 @@ resource "panos_lldp_profile" "example" {
 
 func TestAccLldpProfile_ManagementAddress_Ipv6(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -338,6 +342,7 @@ resource "panos_lldp_profile" "example" {
 
 func TestAccLldpProfile_Mode_TransmitOnly(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -395,6 +400,7 @@ resource "panos_lldp_profile" "example" {
 
 func TestAccLldpProfile_Mode_ReceiveOnly(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

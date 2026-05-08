@@ -95,6 +95,7 @@ test/terraform-acc: codegen assets
 	TF_ACC=1 PANOS_HOSTNAME=$(PANOS_HOSTNAME) \
 	PANOS_SKIP_VERIFY_CERTIFICATE=1 \
 	PANOS_USE_CREDENTIALS=1 \
+        PANOS_XML_FILE_PATH=$(PANOS_XML_FILE_PATH) \
 	PANOS_USERNAME=$(PANOS_USERNAME) PANOS_PASSWORD=$(PANOS_PASSWORD) \
 	go test -v ./test $(TESTARGS) |grep -v -E "(No slog handler provided|Pango logging configured)"
 

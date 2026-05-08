@@ -17,6 +17,7 @@ import (
 // with isolated XML file copies per test worker.
 func TestAccTemplateStack_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -87,6 +88,7 @@ resource "panos_template_stack" "example" {
 
 func TestAccTemplateStack_Devices(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 	t.Skip("Skipping: panos_firewall_device resource does not exist - devices field testing requires implementation of firewall device management")
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -170,6 +172,7 @@ resource "panos_template_stack" "example" {
 
 func TestAccTemplateStack_DefaultVsys(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -228,6 +231,7 @@ resource "panos_template_stack" "example" {
 
 func TestAccTemplateStack_Complete(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 	t.Skip("Skipping: panos_firewall_device resource does not exist - complete stack testing with devices requires implementation of firewall device management")
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)

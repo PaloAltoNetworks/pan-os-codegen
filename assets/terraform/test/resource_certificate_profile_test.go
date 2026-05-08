@@ -14,6 +14,7 @@ import (
 
 func TestAccCertificateProfile_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -138,6 +139,7 @@ resource "panos_certificate_profile" "example" {
 
 func TestAccCertificateProfile_UsernameFieldSubjectAltEmail(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -196,6 +198,7 @@ resource "panos_certificate_profile" "example" {
 
 func TestAccCertificateProfile_UsernameFieldSubjectAltPrincipalName(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -254,6 +257,7 @@ resource "panos_certificate_profile" "example" {
 
 func TestAccCertificateProfile_WithCertificate(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 	t.Skip("This test is skipped because it requires CA and OCSP certificates to be present on the device.")
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -320,6 +324,7 @@ resource "panos_certificate_profile" "example" {
 
 func TestAccCertificateProfile_TemplateLocation(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

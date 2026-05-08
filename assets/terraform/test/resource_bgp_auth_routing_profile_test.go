@@ -14,6 +14,7 @@ import (
 
 func TestAccBgpAuthRoutingProfile_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -71,6 +72,7 @@ resource "panos_bgp_auth_routing_profile" "example" {
 
 func TestAccBgpAuthRoutingProfile_NoSecret(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -127,6 +129,7 @@ resource "panos_bgp_auth_routing_profile" "example" {
 
 func TestAccBgpAuthRoutingProfile_MaxLengthSecret(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

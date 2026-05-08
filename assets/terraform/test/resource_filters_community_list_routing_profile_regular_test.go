@@ -14,6 +14,7 @@ import (
 
 func TestAccFiltersCommunityListRoutingProfile_Regular_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -102,6 +103,7 @@ resource "panos_filters_community_list_routing_profile" "example" {
 
 func TestAccFiltersCommunityListRoutingProfile_Regular_Action_Permit(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -165,6 +167,7 @@ resource "panos_filters_community_list_routing_profile" "example" {
 
 func TestAccFiltersCommunityListRoutingProfile_Regular_MultipleEntries(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

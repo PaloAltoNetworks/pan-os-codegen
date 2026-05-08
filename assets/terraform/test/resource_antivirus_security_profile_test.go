@@ -15,6 +15,7 @@ import (
 
 func TestAccAntivirusSecurityProfile_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -113,6 +114,7 @@ resource "panos_antivirus_security_profile" "example" {
 
 func TestAccAntivirusSecurityProfile_ApplicationExceptions(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -176,6 +178,7 @@ resource "panos_antivirus_security_profile" "example" {
 
 func TestAccAntivirusSecurityProfile_Decoders(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -249,6 +252,7 @@ resource "panos_antivirus_security_profile" "example" {
 
 func TestAccAntivirusSecurityProfile_MachineLearningModels(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -319,6 +323,7 @@ resource "panos_antivirus_security_profile" "example" {
 
 func TestAccAntivirusSecurityProfile_MachineLearningExceptions(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -380,6 +385,7 @@ resource "panos_antivirus_security_profile" "example" {
 
 func TestAccAntivirusSecurityProfile_ThreatExceptions(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

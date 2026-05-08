@@ -14,6 +14,7 @@ import (
 
 func TestAccDhcp_Relay_Ip(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -90,6 +91,7 @@ resource "panos_dhcp" "example" {
 
 func TestAccDhcp_Relay_Ipv6(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -187,6 +189,7 @@ resource "panos_dhcp" "example" {
 
 func TestAccDhcp_Server_Option_Lease_Timeout(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -269,6 +272,7 @@ resource "panos_dhcp" "example" {
 
 func TestAccDhcp_Server_Option_Lease_Unlimited(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -351,6 +355,7 @@ resource "panos_dhcp" "example" {
 
 func TestAccDhcp_Server_Option_Dns(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -434,6 +439,7 @@ resource "panos_dhcp" "example" {
 
 func TestAccDhcp_Server_Option_DnsSuffix(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -511,6 +517,7 @@ resource "panos_dhcp" "example" {
 
 func TestAccDhcp_Server_Option_Gateway(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -588,6 +595,7 @@ resource "panos_dhcp" "example" {
 
 func TestAccDhcp_Server_Option_Inheritance(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -674,6 +682,7 @@ resource "panos_dhcp" "example" {
 
 func TestAccDhcp_Server_Option_Nis(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -757,6 +766,7 @@ resource "panos_dhcp" "example" {
 
 func TestAccDhcp_Server_Option_Ntp(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -840,6 +850,7 @@ resource "panos_dhcp" "example" {
 
 func TestAccDhcp_Server_Option_Pop3Server(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -917,6 +928,7 @@ resource "panos_dhcp" "example" {
 
 func TestAccDhcp_Server_Option_SmtpServer(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1006,6 +1018,7 @@ resource "panos_dhcp" "example" {
 
 func TestAccDhcp_Server_Option_SubnetMask(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1101,6 +1114,7 @@ resource "panos_dhcp" "example" {
 
 func TestAccDhcp_Server_Option_UserDefined_Ip(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1197,6 +1211,7 @@ resource "panos_dhcp" "example" {
 
 func TestAccDhcp_Server_Option_UserDefined_Ascii(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1291,6 +1306,7 @@ resource "panos_dhcp" "example" {
 
 func TestAccDhcp_Server_Option_UserDefined_Hex(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1385,6 +1401,7 @@ resource "panos_dhcp" "example" {
 
 func TestAccDhcp_Server_Option_Wins(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1468,6 +1485,7 @@ resource "panos_dhcp" "example" {
 
 func TestAccDhcp_Server_Mode_Disabled(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1531,6 +1549,7 @@ resource "panos_dhcp" "example" {
 
 func TestAccDhcp_Server_Mode_Auto(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1594,6 +1613,7 @@ resource "panos_dhcp" "example" {
 
 func TestAccDhcp_Server_ProbeIp_False(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1657,6 +1677,7 @@ resource "panos_dhcp" "example" {
 
 func TestAccDhcp_Server_Option_UserDefined_Inherited(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1740,6 +1761,7 @@ resource "panos_dhcp" "example" {
 
 func TestAccDhcp_Server_Option_UserDefined_Ascii_Vci(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1823,6 +1845,7 @@ resource "panos_dhcp" "example" {
 
 func TestAccDhcp_Server_Option_UserDefined_Hex_Vci(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

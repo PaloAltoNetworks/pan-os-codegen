@@ -14,6 +14,7 @@ import (
 
 func TestAccTacacsPlusProfile_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -75,6 +76,7 @@ func TestAccTacacsPlusProfile_Basic(t *testing.T) {
 
 func TestAccTacacsPlusProfile_Protocol_PAP(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -144,6 +146,7 @@ resource "panos_tacacs_plus_profile" "example" {
 
 func TestAccTacacsPlusProfile_MultipleServers(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -228,6 +231,7 @@ resource "panos_tacacs_plus_profile" "example" {
 
 func TestAccTacacsPlusProfile_ServerDefaults(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

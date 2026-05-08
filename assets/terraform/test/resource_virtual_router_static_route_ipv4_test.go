@@ -14,6 +14,7 @@ import (
 )
 
 func TestAccVirtualRouterStaticRouteIpv4(t *testing.T) {
+	testAccSetup(t, TestConfig{})
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
 

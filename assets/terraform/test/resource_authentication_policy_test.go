@@ -190,6 +190,7 @@ resource "panos_authentication_policy" "policy" {
 
 func TestAccAuthenticationPolicy_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -394,6 +395,7 @@ resource "panos_authentication_policy" "policy" {
 
 func TestAccAuthenticationPolicy_Target(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -476,6 +478,7 @@ resource "panos_authentication_policy" "policy" {
 
 func TestAccAuthenticationPolicy_Ordering(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -599,6 +602,7 @@ resource "panos_authentication_policy" "policy" {
 
 func TestAccAuthenticationPolicy_Minimal(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -740,6 +744,7 @@ resource "panos_authentication_policy" "policy" {
 
 func TestAccAuthenticationPolicy_Validation(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

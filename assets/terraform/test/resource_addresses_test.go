@@ -70,6 +70,7 @@ func (o *expectServerAddressObjects) CheckState(ctx context.Context, req statech
 
 func TestAccAddresses(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -328,6 +329,7 @@ resource "panos_addresses" "child" {
 
 func TestAccAddresses_Hierarchy(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -406,6 +408,7 @@ resource "panos_addresses" "b" {
 
 func TestAccAddresses_MultipleResources(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

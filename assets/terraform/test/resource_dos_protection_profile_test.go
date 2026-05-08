@@ -15,6 +15,7 @@ import (
 
 func TestAccDosProtectionProfile_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -99,6 +100,7 @@ resource "panos_dos_protection_profile" "example" {
 
 func TestAccDosProtectionProfile_Classified(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -155,6 +157,7 @@ resource "panos_dos_protection_profile" "example" {
 
 func TestAccDosProtectionProfile_ResourceSessions(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -221,6 +224,7 @@ resource "panos_dos_protection_profile" "example" {
 
 func TestAccDosProtectionProfile_FloodIcmp(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -305,6 +309,7 @@ resource "panos_dos_protection_profile" "example" {
 
 func TestAccDosProtectionProfile_FloodIcmpv6(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -389,6 +394,7 @@ resource "panos_dos_protection_profile" "example" {
 
 func TestAccDosProtectionProfile_FloodOtherIp(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -473,6 +479,7 @@ resource "panos_dos_protection_profile" "example" {
 
 func TestAccDosProtectionProfile_FloodUdp(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -557,6 +564,7 @@ resource "panos_dos_protection_profile" "example" {
 
 func TestAccDosProtectionProfile_FloodTcpSyn_Red(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -642,6 +650,7 @@ resource "panos_dos_protection_profile" "example" {
 
 func TestAccDosProtectionProfile_FloodTcpSyn_SynCookies(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

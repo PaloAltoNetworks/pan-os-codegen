@@ -39,6 +39,7 @@ resource "panos_ethernet_interface" "example" {
 
 func TestAccEthernetInterface_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 	if os.Getenv("TF_ACC") != "1" {
 		t.Skip("environment setup not complete")
 	}
@@ -100,6 +101,7 @@ func TestAccEthernetInterface_Basic(t *testing.T) {
 
 func TestAccEthernetInterface_Concurrent(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -186,6 +188,7 @@ resource "panos_ethernet_interface" "example6" {
 
 func TestAccPanosEthernetInterface_Layer3(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	resName := "ethernet"
 	templateName := "acc-codegen"
@@ -324,6 +327,7 @@ resource "panos_zone" "test" {
 
 func TestAccEthernetInterface_Layer3_TemplateVsys1WithZone(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -431,6 +435,7 @@ resource "panos_zone" "test" {
 
 func TestAccEthernetInterface_Layer3_TemplateVsysNullWithZone(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -539,6 +544,7 @@ resource "panos_zone" "test" {
 
 func TestAccEthernetInterface_Layer3_TemplateVsysEmptyNoZone(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

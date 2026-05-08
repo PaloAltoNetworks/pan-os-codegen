@@ -14,6 +14,7 @@ import (
 
 func TestAccPanosSamlIdpProfile_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -109,6 +110,7 @@ resource "panos_saml_idp_profile" "example" {
 
 func TestAccPanosSamlIdpProfile_AllBoolFlags(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -190,6 +192,7 @@ resource "panos_saml_idp_profile" "example" {
 
 func TestAccPanosSamlIdpProfile_AttributeNameImports(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -277,6 +280,7 @@ resource "panos_saml_idp_profile" "example" {
 
 func TestAccPanosSamlIdpProfile_RedirectBindings(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -352,6 +356,7 @@ resource "panos_saml_idp_profile" "example" {
 
 func TestAccPanosSamlIdpProfile_Update(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

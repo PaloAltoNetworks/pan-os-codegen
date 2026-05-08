@@ -399,6 +399,7 @@ resource "panos_nat_policy" "policy" {
 
 func TestAccNatPolicy_Extended(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -776,6 +777,7 @@ func TestAccNatPolicy_Extended(t *testing.T) {
 
 func TestAccPanosNatPolicyOrdering(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

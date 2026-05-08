@@ -15,6 +15,7 @@ import (
 
 func TestAccCertificateImport_Local_PEM_Certificate(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -83,6 +84,7 @@ func TestAccCertificateImport_Local_PEM_Certificate(t *testing.T) {
 
 func TestAccCertificateImport_Local_PEM_CertificateWithKey(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -230,6 +232,7 @@ func TestAccCertificateImport_Local_PEM_CertificateWithKey(t *testing.T) {
 
 func TestAccCertificateImport_Local_PKCS12_Certificate(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -286,6 +289,7 @@ func TestAccCertificateImport_Local_PKCS12_Certificate(t *testing.T) {
 // NOTE: This test is commented out because of a bug in the provider's Read function for vsys locations.
 // func TestAccCertificateImport_Vsys_Local_PEM_Certificate(t *testing.T) {
 // 	t.Parallel()
+// 	testAccSetup(t, TestConfig{})
 //
 // 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 // 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -326,6 +330,7 @@ func TestAccCertificateImport_Local_PKCS12_Certificate(t *testing.T) {
 
 func TestAccCertificateImport_Local_PKCS12_CertificateWithKey(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

@@ -14,6 +14,7 @@ import (
 
 func TestAccBgpRedistributionRoutingProfile_Ipv4_Unicast_Connected(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -90,6 +91,7 @@ resource "panos_bgp_redistribution_routing_profile" "example" {
 
 func TestAccBgpRedistributionRoutingProfile_Ipv4_Unicast_Ospf(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -166,6 +168,7 @@ resource "panos_bgp_redistribution_routing_profile" "example" {
 
 func TestAccBgpRedistributionRoutingProfile_Ipv4_Unicast_Rip(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -242,6 +245,7 @@ resource "panos_bgp_redistribution_routing_profile" "example" {
 
 func TestAccBgpRedistributionRoutingProfile_Ipv4_Unicast_Static(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -318,6 +322,7 @@ resource "panos_bgp_redistribution_routing_profile" "example" {
 
 func TestAccBgpRedistributionRoutingProfile_Ipv4_Unicast_Multiple(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

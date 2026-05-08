@@ -21,6 +21,7 @@ import (
 
 func TestAccPanosAddress_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	prefix := fmt.Sprintf("test-acc-%s", acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum))
 
@@ -82,6 +83,7 @@ func TestAccPanosAddress_Basic(t *testing.T) {
 
 func TestAccPanosAddress_Rename_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	prefix := fmt.Sprintf("test-acc-%s", acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum))
 
@@ -131,6 +133,7 @@ func TestAccPanosAddress_Rename_Basic(t *testing.T) {
 
 func TestAccPanosAddress_Rename_Missing_Source(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	prefix := fmt.Sprintf("test-acc-%s", acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum))
 
@@ -183,6 +186,7 @@ func TestAccPanosAddress_Rename_Missing_Source(t *testing.T) {
 
 func TestAccPanosAddress_Rename_Existing_Target(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	prefix := fmt.Sprintf("test-acc-%s", acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum))
 
@@ -327,6 +331,7 @@ func panosAddressCreateObject(prefix string, name string) {
 
 func TestAccAddressImportShared(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("test-acc-import-%s", nameSuffix)

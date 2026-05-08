@@ -36,6 +36,7 @@ resource "panos_general_settings" "example" {
 
 func TestAccGeneralSettings_Location_Template(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -73,6 +74,7 @@ func TestAccGeneralSettings_Location_Template(t *testing.T) {
 
 func TestAccGeneralSettings_Location_System(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -199,6 +201,7 @@ resource "panos_ntp_settings" "example" {
 
 func TestAccGeneralSettings_Sanity_Delete(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

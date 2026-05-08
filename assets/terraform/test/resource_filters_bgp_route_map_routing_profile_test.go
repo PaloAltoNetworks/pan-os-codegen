@@ -14,6 +14,7 @@ import (
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -91,6 +92,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_RouteMap_ActionPermit(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -148,6 +150,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Match_BasicStrings(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 	t.Skip("requires AS path access list and community list resources")
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -226,6 +229,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Match_Enums(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -301,6 +305,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Set_BasicValues(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -385,6 +390,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Set_BooleanFlags(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -462,6 +468,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Set_Metric(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -527,6 +534,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Set_Aggregator(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -592,6 +600,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Set_Ipv4(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 	t.Skip("source_address validation requires additional routing configuration beyond interface creation")
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -669,6 +678,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Set_Ipv6(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 	t.Skip("source_address validation requires additional routing configuration beyond interface creation")
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -748,6 +758,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Set_AspathPrepend(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -818,6 +829,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_MultipleRouteMaps(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -901,6 +913,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Set_RegularCommunity(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -963,6 +976,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Set_LargeCommunity(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1025,7 +1039,9 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Set_ExtendedCommunity(t *testing.T) {
 	t.Parallel()
-	t.Skip("extended_community only available in PAN-OS 11.0.2-11.0.3")
+	testAccSetup(t, TestConfig{
+		Versions: []VersionRange{{Min: "11.0.2", Max: "11.0.4"}},
+	})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1088,6 +1104,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Set_RemoveCommunities(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 	t.Skip("remove community requires community list resources")
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -1154,6 +1171,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Set_Metric_ActionSet(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1219,6 +1237,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Set_Metric_ActionSubtract(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1284,6 +1303,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Match_Origin_Variants(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1365,6 +1385,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Set_Origin_Variants(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1446,6 +1467,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Match_Ipv4_Address_AccessList(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1529,6 +1551,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Match_Ipv4_Address_PrefixList(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1614,6 +1637,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Match_Ipv4_NextHop_AccessList(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1697,6 +1721,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Match_Ipv4_NextHop_PrefixList(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1782,6 +1807,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Match_Ipv4_RouteSource_AccessList(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1865,6 +1891,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Match_Ipv4_RouteSource_PrefixList(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1950,6 +1977,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Match_Ipv6_Address_AccessList(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -2033,6 +2061,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Match_Ipv6_Address_PrefixList(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -2118,6 +2147,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Match_Ipv6_NextHop_AccessList(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -2201,6 +2231,7 @@ resource "panos_filters_bgp_route_map_routing_profile" "example" {
 
 func TestAccFiltersBgpRouteMapRoutingProfile_Match_Ipv6_NextHop_PrefixList(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

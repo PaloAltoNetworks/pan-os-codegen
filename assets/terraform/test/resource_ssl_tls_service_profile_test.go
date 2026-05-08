@@ -14,6 +14,7 @@ import (
 
 func TestAccSslTlsServiceProfile_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -94,6 +95,7 @@ resource "panos_ssl_tls_service_profile" "example" {
 
 func TestAccSslTlsServiceProfile_ProtocolSettings_EncryptionAlgorithms(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -187,6 +189,7 @@ resource "panos_ssl_tls_service_profile" "example" {
 
 func TestAccSslTlsServiceProfile_ProtocolSettings_KeyExchangeAlgorithms(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -279,6 +282,7 @@ resource "panos_ssl_tls_service_profile" "example" {
 
 func TestAccSslTlsServiceProfile_ProtocolSettings_AuthenticationAlgorithms(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -371,6 +375,7 @@ resource "panos_ssl_tls_service_profile" "example" {
 
 func TestAccSslTlsServiceProfile_ProtocolSettings_TlsVersions(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -461,6 +466,7 @@ resource "panos_ssl_tls_service_profile" "example" {
 
 func TestAccSslTlsServiceProfile_ProtocolSettings_Complete(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

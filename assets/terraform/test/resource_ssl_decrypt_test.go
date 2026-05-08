@@ -14,6 +14,7 @@ import (
 
 func TestAccSslDecrypt_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -68,6 +69,7 @@ resource "panos_ssl_decrypt" "example" {
 
 func TestAccSslDecrypt_ForwardCertificates(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -157,6 +159,7 @@ resource "panos_ssl_decrypt" "example" {
 
 func TestAccSslDecrypt_SslExcludeCert(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -230,6 +233,7 @@ resource "panos_ssl_decrypt" "example" {
 
 func TestAccSslDecrypt_TrustedRootCa(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -319,6 +323,7 @@ resource "panos_ssl_decrypt" "example" {
 
 func TestAccSslDecrypt_RootCaExcludeList(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 	t.Skip("root_ca_exclude_list requires actual CA certificates, not regular certificates")
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)

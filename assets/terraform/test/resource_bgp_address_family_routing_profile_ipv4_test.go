@@ -14,6 +14,7 @@ import (
 
 func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Multicast_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -75,6 +76,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Multicast_Basic(t *testing.T) {
 
 func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Multicast_AllowasIn_Occurrence(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -147,6 +149,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Multicast_AllowasIn_Occurrence(t
 
 func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Multicast_AllowasIn_Origin(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -217,6 +220,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Multicast_AllowasIn_Origin(t *te
 
 func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Multicast_SendCommunity_Extended(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -257,6 +261,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Multicast_SendCommunity_Extended
 
 func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Multicast_SendCommunity_Large(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -297,6 +302,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Multicast_SendCommunity_Large(t 
 
 func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Multicast_SendCommunity_Standard(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -496,6 +502,7 @@ resource "panos_bgp_address_family_routing_profile" "example" {
 
 func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Unicast_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -552,6 +559,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Unicast_Basic(t *testing.T) {
 
 func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Unicast_AllowasIn_Occurrence(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -589,6 +597,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Unicast_AllowasIn_Occurrence(t *
 
 func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Unicast_AllowasIn_Origin(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -626,6 +635,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Unicast_AllowasIn_Origin(t *test
 
 func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Unicast_SendCommunity_Extended(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -666,6 +676,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Unicast_SendCommunity_Extended(t
 
 func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Unicast_SendCommunity_Large(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -706,6 +717,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Unicast_SendCommunity_Large(t *t
 
 func TestAccBgpAddressFamilyRoutingProfile_Ipv4_Unicast_SendCommunity_Standard(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

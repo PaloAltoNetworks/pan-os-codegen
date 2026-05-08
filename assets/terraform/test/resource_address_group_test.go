@@ -15,6 +15,7 @@ import (
 
 func TestAccPanosAddressGroup(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	resourceName := "dns_addresses"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -187,6 +188,7 @@ resource "panos_address_group" "child" {
 
 func TestAccAddressGroup_Hierarchy(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

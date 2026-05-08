@@ -15,6 +15,7 @@ import (
 
 func TestAccZoneProtectionProfile_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -185,6 +186,7 @@ resource "panos_zone_protection_profile" "example" {
 
 func TestAccZoneProtectionProfile_Flood_Icmp(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -252,6 +254,7 @@ resource "panos_zone_protection_profile" "example" {
 
 func TestAccZoneProtectionProfile_Flood_Icmpv6(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -319,6 +322,7 @@ resource "panos_zone_protection_profile" "example" {
 
 func TestAccZoneProtectionProfile_Flood_OtherIp(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -386,6 +390,7 @@ resource "panos_zone_protection_profile" "example" {
 
 func TestAccZoneProtectionProfile_Flood_TcpSyn_Red(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -454,6 +459,7 @@ resource "panos_zone_protection_profile" "example" {
 
 func TestAccZoneProtectionProfile_Flood_TcpSyn_SynCookies(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -522,6 +528,7 @@ resource "panos_zone_protection_profile" "example" {
 
 func TestAccZoneProtectionProfile_Flood_Udp(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

@@ -17,6 +17,7 @@ import (
 
 func TestAccCustomUrlCategory(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -99,6 +100,7 @@ resource "panos_custom_url_category" "category" {
 
 func TestAccCustomUrlCategoryImportShared(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	name := fmt.Sprintf("test-acc-import-shared-%s", nameSuffix)
@@ -168,6 +170,7 @@ resource "panos_custom_url_category" "imported" {
 
 func TestAccCustomUrlCategoryImportDeviceGroup(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	dgName := fmt.Sprintf("dg-%s", nameSuffix)

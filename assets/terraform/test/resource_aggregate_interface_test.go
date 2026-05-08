@@ -15,6 +15,7 @@ import (
 
 func TestAccAggregateInterface_DecryptMirror(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	interfaceName := "ae1"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -83,6 +84,7 @@ resource "panos_aggregate_interface" "iface" {
 
 func TestAccAggregateInterface_HA(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	interfaceName := "ae1"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -201,6 +203,7 @@ resource "panos_aggregate_interface" "iface" {
 
 func TestAccAggregateInterface_Layer2(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	interfaceName := "ae1"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -308,6 +311,7 @@ resource "panos_aggregate_interface" "iface" {
 
 func TestAccAggregateInterface_Layer3_1(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	interfaceName := "ae1"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -488,6 +492,7 @@ func TestAccAggregateInterface_Layer3_1(t *testing.T) {
 
 func TestAccAggregateInterface_Layer3_2(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	interfaceName := "ae1"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -634,6 +639,7 @@ func TestAccAggregateInterface_Layer3_2(t *testing.T) {
 
 func TestAccAggregateInterface_Layer3_3(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	interfaceName := "ae1"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -1148,6 +1154,7 @@ resource "panos_aggregate_interface" "iface" {
 
 func TestAccAggregateInterface_VirtualWire(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	interfaceName := "ae1"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -1226,6 +1233,7 @@ resource "panos_aggregate_interface" "iface" {
 // Test 1: TestAccAggregateInterface_Layer3_TemplateVsys1WithZone
 func TestAccAggregateInterface_Layer3_TemplateVsys1WithZone(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1312,6 +1320,7 @@ resource "panos_zone" "test" {
 // Test 2: TestAccAggregateInterface_Layer3_TemplateVsysNullNoZone
 func TestAccAggregateInterface_Layer3_TemplateVsysNullNoZone(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1415,6 +1424,7 @@ resource "panos_zone" "test" {
 // Test 3: TestAccAggregateInterface_Layer3_TemplateVsysEmptyNoZone
 func TestAccAggregateInterface_Layer3_TemplateVsysEmptyNoZone(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

@@ -15,6 +15,7 @@ import (
 
 func TestAccEthernetLayer3Subinterface_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -196,6 +197,7 @@ func TestAccEthernetLayer3Subinterface_Basic(t *testing.T) {
 
 func TestAccEthernetLayer3Subinterface_DHCP_Client(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -272,6 +274,7 @@ func TestAccEthernetLayer3Subinterface_DHCP_Client(t *testing.T) {
 
 func TestAccEthernetLayer3Subinterface_PPPoE(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -336,6 +339,7 @@ func TestAccEthernetLayer3Subinterface_PPPoE(t *testing.T) {
 
 func TestAccEthernetLayer3Subinterface_IPv6_DHCP_Client(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -422,6 +426,7 @@ func TestAccEthernetLayer3Subinterface_IPv6_DHCP_Client(t *testing.T) {
 
 func TestAccEthernetLayer3Subinterface_IPv6_Neighbor_Discovery(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -497,6 +502,7 @@ func TestAccEthernetLayer3Subinterface_IPv6_Neighbor_Discovery(t *testing.T) {
 
 func TestAccEthernetLayer3Subinterface_IPv6_GUA(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -535,6 +541,7 @@ func TestAccEthernetLayer3Subinterface_IPv6_GUA(t *testing.T) {
 
 func TestAccEthernetLayer3Subinterface_IPv6_ULA(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -574,6 +581,7 @@ func TestAccEthernetLayer3Subinterface_IPv6_ULA(t *testing.T) {
 
 func TestAccEthernetLayer3Subinterface_SDWAN_DDNS(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 	t.Skip("Missing resource implementation")
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -609,6 +617,7 @@ func TestAccEthernetLayer3Subinterface_SDWAN_DDNS(t *testing.T) {
 
 func TestAccEthernetLayer3Subinterface_SDWAN_StaticIP_FQDN(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 	t.Skip("Missing resource implementation")
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -640,6 +649,7 @@ func TestAccEthernetLayer3Subinterface_SDWAN_StaticIP_FQDN(t *testing.T) {
 
 func TestAccEthernetLayer3Subinterface_SDWAN_StaticIP_IPAddress(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 	t.Skip("Missing resource implementation")
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)

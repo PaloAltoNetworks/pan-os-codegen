@@ -14,6 +14,7 @@ import (
 
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -102,6 +103,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
 
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_Bgp_Ospf(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -218,6 +220,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
 
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_Bgp_Ospfv3(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -331,6 +334,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
 `
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_Bgp_Rib(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -412,6 +416,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
 `
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_Bgp_Rip(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -525,6 +530,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
 `
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_ConnectedStatic_Bgp(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -607,6 +613,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
 `
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_ConnectedStatic_Ospf(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -669,6 +676,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
 
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_ConnectedStatic_Ospfv3(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -731,6 +739,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
 
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_ConnectedStatic_Rib(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -793,6 +802,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
 
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_ConnectedStatic_Rip(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -854,6 +864,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
 `
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_Ospf_Bgp(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -916,6 +927,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
 
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_Ospf_Rib(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -978,6 +990,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
 
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_Ospf_Rip(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1040,6 +1053,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
 
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_Ospfv3_Bgp(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1102,6 +1116,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
 
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_Ospfv3_Rib(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1164,6 +1179,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
 
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_Rip_Bgp(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1226,6 +1242,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
 
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_Rip_Ospf(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1288,6 +1305,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
 
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_Rip_Rib(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1350,6 +1368,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
 
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_Bgp_Ospf_Match_Ipv4(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1519,6 +1538,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
 
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_Bgp_Ospfv3_Match_Ipv6(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1660,6 +1680,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
 
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_ConnectedStatic_Bgp_Set(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1749,6 +1770,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
 
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_ConnectedStatic_Bgp_Match_Ipv4(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -1882,6 +1904,7 @@ resource "panos_filters_route_maps_redistribution_routing_profile" "example" {
 
 func TestAccFiltersRouteMapsRedistributionRoutingProfile_ConnectedStatic_Bgp_Match_Ipv6(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

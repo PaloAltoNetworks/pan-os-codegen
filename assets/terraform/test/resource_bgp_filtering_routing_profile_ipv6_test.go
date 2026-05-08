@@ -14,6 +14,7 @@ import (
 
 func TestAccBgpFilteringRoutingProfile_Ipv6_Unicast_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -67,6 +68,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv6_Unicast_Basic(t *testing.T) {
 
 func TestAccBgpFilteringRoutingProfile_Ipv6_Unicast_ConditionalAdvertisement_Exist(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -107,6 +109,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv6_Unicast_ConditionalAdvertisement_Exi
 
 func TestAccBgpFilteringRoutingProfile_Ipv6_Unicast_ConditionalAdvertisement_NonExist(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -147,6 +150,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv6_Unicast_ConditionalAdvertisement_Non
 
 func TestAccBgpFilteringRoutingProfile_Ipv6_Unicast_FilterList(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -184,6 +188,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv6_Unicast_FilterList(t *testing.T) {
 
 func TestAccBgpFilteringRoutingProfile_Ipv6_Unicast_InboundNetworkFilters_DistributeList(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -221,6 +226,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv6_Unicast_InboundNetworkFilters_Distri
 
 func TestAccBgpFilteringRoutingProfile_Ipv6_Unicast_InboundNetworkFilters_PrefixList(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -258,6 +264,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv6_Unicast_InboundNetworkFilters_Prefix
 
 func TestAccBgpFilteringRoutingProfile_Ipv6_Unicast_OutboundNetworkFilters_DistributeList(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -295,6 +302,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv6_Unicast_OutboundNetworkFilters_Distr
 
 func TestAccBgpFilteringRoutingProfile_Ipv6_Unicast_OutboundNetworkFilters_PrefixList(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -332,6 +340,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv6_Unicast_OutboundNetworkFilters_Prefi
 
 func TestAccBgpFilteringRoutingProfile_Ipv6_Unicast_RouteMaps(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -369,6 +378,7 @@ func TestAccBgpFilteringRoutingProfile_Ipv6_Unicast_RouteMaps(t *testing.T) {
 
 func TestAccBgpFilteringRoutingProfile_Ipv6_Unicast_UnsuppressMap(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

@@ -16,6 +16,7 @@ import (
 )
 
 func TestAccAdministrativeTag(t *testing.T) {
+	testAccSetup(t, TestConfig{})
 	resourceName := "test_tag"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

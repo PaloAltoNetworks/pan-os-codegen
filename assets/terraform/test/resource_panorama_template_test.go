@@ -14,6 +14,7 @@ import (
 
 func TestAccPanosTemplate_RequiredInputs(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	resourceName := "acc_test_template"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)

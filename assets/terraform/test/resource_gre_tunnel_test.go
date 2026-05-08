@@ -14,6 +14,7 @@ import (
 
 func TestAccGreTunnel_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -61,6 +62,7 @@ func TestAccGreTunnel_Basic(t *testing.T) {
 
 func TestAccGreTunnel_KeepAlive(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -98,6 +100,7 @@ func TestAccGreTunnel_KeepAlive(t *testing.T) {
 
 func TestAccGreTunnel_LocalAddressIp(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -134,6 +137,7 @@ func TestAccGreTunnel_LocalAddressIp(t *testing.T) {
 
 func TestAccGreTunnel_PeerAddress(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -168,6 +172,7 @@ func TestAccGreTunnel_PeerAddress(t *testing.T) {
 
 func TestAccGreTunnel_Full(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

@@ -11,6 +11,7 @@ import (
 )
 
 func TestAccDnsSettings(t *testing.T) {
+	testAccSetup(t, TestConfig{})
 	location := config.ObjectVariable(map[string]config.Variable{
 		"system": config.ObjectVariable(map[string]config.Variable{}),
 	})

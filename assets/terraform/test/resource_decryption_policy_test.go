@@ -217,6 +217,7 @@ resource "panos_device_group" "dg" {
 `
 
 func TestAccDecryptionPolicyExtended(t *testing.T) {
+	testAccSetup(t, TestConfig{})
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
 
@@ -294,6 +295,7 @@ func TestAccDecryptionPolicyExtended(t *testing.T) {
 }
 
 func TestAccPanosDecryptionPolicyOrdering(t *testing.T) {
+	testAccSetup(t, TestConfig{})
 	rulesInitial := []string{"rule-1", "rule-2", "rule-3"}
 	rulesReordered := []string{"rule-2", "rule-1", "rule-3"}
 

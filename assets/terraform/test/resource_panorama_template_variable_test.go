@@ -15,6 +15,7 @@ import (
 
 func TestAccPanosPanoramaTemplateVariable_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	testData := []struct {
 		variableType string
@@ -78,6 +79,7 @@ func TestAccPanosPanoramaTemplateVariable_Basic(t *testing.T) {
 
 func TestAccPanosPanoramaTemplateVariable_Override(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

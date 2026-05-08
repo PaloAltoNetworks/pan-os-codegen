@@ -14,6 +14,7 @@ import (
 
 func TestAccVlanInterface_1(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	interfaceName := "vlan.1"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -338,6 +339,7 @@ resource "panos_vlan_interface" "iface" {
 
 func TestAccVlanInterface_2(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	interfaceName := "vlan.1"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -514,6 +516,7 @@ resource "panos_vlan_interface" "iface" {
 
 func TestAccVlanInterface_3(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	interfaceName := "vlan.1"
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)

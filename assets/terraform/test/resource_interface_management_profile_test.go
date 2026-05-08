@@ -14,6 +14,7 @@ import (
 
 func TestAccInterfaceManagementProfile_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -96,6 +97,7 @@ func TestAccInterfaceManagementProfile_Basic(t *testing.T) {
 
 func TestAccInterfaceManagementProfile_PermittedIps(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

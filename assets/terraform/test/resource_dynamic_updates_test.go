@@ -14,6 +14,7 @@ import (
 
 func TestAccDynamicUpdates_1(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -307,6 +308,7 @@ func TestAccDynamicUpdates_1(t *testing.T) {
 
 func TestAccDynamicUpdates_2(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -518,6 +520,7 @@ func TestAccDynamicUpdates_2(t *testing.T) {
 
 func TestAccDynamicUpdates_3(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -650,6 +653,7 @@ func TestAccDynamicUpdates_3(t *testing.T) {
 
 func TestAccDynamicUpdates_4(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -821,6 +825,7 @@ func TestAccDynamicUpdates_4(t *testing.T) {
 
 func TestAccDynamicUpdates_5(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -864,6 +869,7 @@ func TestAccDynamicUpdates_5(t *testing.T) {
 
 func TestAccDynamicUpdates_6(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

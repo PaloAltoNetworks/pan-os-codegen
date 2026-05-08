@@ -14,6 +14,7 @@ import (
 
 func TestAccBgpAddressFamilyRoutingProfile_Ipv6_Unicast_Basic(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -69,6 +70,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv6_Unicast_Basic(t *testing.T) {
 
 func TestAccBgpAddressFamilyRoutingProfile_Ipv6_Unicast_AllowasIn_Occurrence(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -106,6 +108,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv6_Unicast_AllowasIn_Occurrence(t *
 
 func TestAccBgpAddressFamilyRoutingProfile_Ipv6_Unicast_AllowasIn_Origin(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -143,6 +146,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv6_Unicast_AllowasIn_Origin(t *test
 
 func TestAccBgpAddressFamilyRoutingProfile_Ipv6_Unicast_SendCommunity_Extended(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -183,6 +187,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv6_Unicast_SendCommunity_Extended(t
 
 func TestAccBgpAddressFamilyRoutingProfile_Ipv6_Unicast_SendCommunity_Large(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
@@ -223,6 +228,7 @@ func TestAccBgpAddressFamilyRoutingProfile_Ipv6_Unicast_SendCommunity_Large(t *t
 
 func TestAccBgpAddressFamilyRoutingProfile_Ipv6_Unicast_SendCommunity_Standard(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)

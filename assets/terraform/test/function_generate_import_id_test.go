@@ -15,6 +15,7 @@ import (
 // with an address resource in a device-group location.
 func TestAccFunction_GenerateImportId_Address_DeviceGroup(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	prefix := fmt.Sprintf("test-acc-%s", acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum))
 
@@ -59,6 +60,7 @@ output "import_id" {
 // with an ethernet interface resource in a template location.
 func TestAccFunction_GenerateImportId_EthernetInterface_Template(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	prefix := fmt.Sprintf("test-acc-%s", acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum))
 
@@ -104,6 +106,7 @@ output "import_id" {
 // with an ethernet interface resource in a shared location using layer3 variant.
 // Note: This test is skipped because shared location is not supported for ethernet interfaces on Panorama.
 func TestAccFunction_GenerateImportId_EthernetInterface_Shared(t *testing.T) {
+	testAccSetup(t, TestConfig{Modes: Firewall})
 	t.Skip("Skipping shared location test - not supported for ethernet interfaces on Panorama")
 }
 
@@ -127,6 +130,7 @@ output "import_id" {
 // with an ethernet interface resource in a template-stack location using layer3 variant.
 func TestAccFunction_GenerateImportId_EthernetInterface_TemplateStack(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	prefix := fmt.Sprintf("test-acc-%s", acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum))
 
@@ -178,6 +182,7 @@ output "import_id" {
 // with an ethernet interface resource using virtual-wire variant in template location.
 func TestAccFunction_GenerateImportId_EthernetInterface_VirtualWire_Template(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	prefix := fmt.Sprintf("test-acc-%s", acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum))
 
@@ -222,6 +227,7 @@ output "import_id" {
 // Note: This test is skipped because vsys is only available on NGFW, not Panorama.
 // TODO: Enable this test when running against NGFW test environment.
 func TestAccFunction_GenerateImportId_Address_Vsys(t *testing.T) {
+	testAccSetup(t, TestConfig{Modes: Firewall})
 	t.Skip("Skipping vsys test - only applicable on NGFW, not Panorama")
 }
 
@@ -244,6 +250,7 @@ output "import_id" {
 // with an address resource in a shared location.
 func TestAccFunction_GenerateImportId_Address_Shared(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	prefix := fmt.Sprintf("test-acc-%s", acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum))
 
@@ -283,6 +290,7 @@ output "import_id" {
 // with an unsupported resource type.
 func TestAccFunction_GenerateImportId_UnsupportedResource(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	prefix := fmt.Sprintf("test-acc-%s", acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum))
 
@@ -323,6 +331,7 @@ output "import_id" {
 // with a resource missing the name attribute.
 func TestAccFunction_GenerateImportId_MissingName(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	resource.Test(t, resource.TestCase{
 		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
@@ -351,6 +360,7 @@ output "import_id" {
 // with a resource missing the location attribute.
 func TestAccFunction_GenerateImportId_MissingLocation(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	prefix := fmt.Sprintf("test-acc-%s", acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum))
 
@@ -386,6 +396,7 @@ output "import_id" {
 // with multiple different resource types in one configuration.
 func TestAccFunction_GenerateImportId_MultipleResourceTypes(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	prefix := fmt.Sprintf("test-acc-%s", acctest.RandStringFromCharSet(10, acctest.CharSetAlphaNum))
 
@@ -450,6 +461,7 @@ output "address_group_import_id" {
 // with an address resource in a shared location using inline object literals.
 func TestAccFunction_GenerateImportId_Inline_Address_Shared(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	resource.Test(t, resource.TestCase{
 		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
@@ -478,6 +490,7 @@ output "import_id" {
 // with an address resource in a device-group location using inline object literals.
 func TestAccFunction_GenerateImportId_Inline_Address_DeviceGroup(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	resource.Test(t, resource.TestCase{
 		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
@@ -506,6 +519,7 @@ output "import_id" {
 // with an ethernet interface resource in a template location using inline object literals.
 func TestAccFunction_GenerateImportId_Inline_EthernetInterface_Template(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	resource.Test(t, resource.TestCase{
 		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
@@ -534,6 +548,7 @@ output "import_id" {
 // with a service resource in a device-group location using inline object literals.
 func TestAccFunction_GenerateImportId_Inline_Service_DeviceGroup(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	resource.Test(t, resource.TestCase{
 		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
@@ -562,6 +577,7 @@ output "import_id" {
 // with an address group resource in a device-group location using inline object literals.
 func TestAccFunction_GenerateImportId_Inline_AddressGroup_DeviceGroup(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	resource.Test(t, resource.TestCase{
 		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
@@ -590,6 +606,7 @@ output "import_id" {
 // with a zone resource in a complex template location using inline object literals.
 func TestAccFunction_GenerateImportId_Inline_Zone_Template(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	resource.Test(t, resource.TestCase{
 		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
@@ -624,6 +641,7 @@ output "import_id" {
 // with multiple inline objects in a single configuration.
 func TestAccFunction_GenerateImportId_Inline_MultipleResources(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	resource.Test(t, resource.TestCase{
 		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
@@ -666,6 +684,7 @@ output "address_group_import_id" {
 // with an invalid location type using inline object literals.
 func TestAccFunction_GenerateImportId_Inline_InvalidLocation(t *testing.T) {
 	t.Parallel()
+	testAccSetup(t, TestConfig{})
 
 	resource.Test(t, resource.TestCase{
 		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
@@ -695,6 +714,7 @@ output "import_id" {
 // with an address resource in a vsys location using inline object literals.
 // Note: This test is skipped because vsys is only available on NGFW, not Panorama.
 func TestAccFunction_GenerateImportId_Inline_Address_Vsys(t *testing.T) {
+	testAccSetup(t, TestConfig{Modes: Firewall})
 	t.Skip("Skipping vsys test - only applicable on NGFW, not Panorama")
 }
 
