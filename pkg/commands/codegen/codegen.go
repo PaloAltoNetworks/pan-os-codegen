@@ -11,6 +11,7 @@ import (
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/generate"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/load"
 	"github.com/paloaltonetworks/pan-os-codegen/pkg/properties"
+	"github.com/paloaltonetworks/pan-os-codegen/pkg/translate/terraform_provider"
 )
 
 type CommandType string
@@ -218,6 +219,9 @@ func (c *Command) Execute() error {
 	if err != nil {
 		return fmt.Errorf("error parsing %s - %s", configPath, err)
 	}
+
+	terraform_provider.DisableSchemaValidators = config.CodegenOptions.DisableSchemaValidators
+
 	var resourceList []string
 	var dataSourceList []string
 	var ephemeralResourceList []string

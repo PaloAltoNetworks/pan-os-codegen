@@ -551,9 +551,9 @@ func (g *GenerateTerraformProvider) GenerateCommonCode(resourceTyp properties.Re
 	case properties.ResourceEntry, properties.ResourceEntryPlural, properties.ResourceUuid, properties.ResourceUuidPlural:
 		if !spec.TerraformProviderConfig.SkipResource {
 			terraformProvider.ImportManager.AddStandardImport("encoding/base64", "")
+			terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
 		}
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types/basetypes", "")
-		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
 	case properties.ResourceConfig:
 		terraformProvider.ImportManager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/types/basetypes", "")
 	case properties.ResourceCustom:

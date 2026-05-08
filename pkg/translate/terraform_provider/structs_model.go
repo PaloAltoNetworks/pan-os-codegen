@@ -812,6 +812,9 @@ func RenderResourceValidators(resourceTyp properties.ResourceType, names *NamePr
 		Validators []modelValidatorSpec
 	}
 
+	// ValidateConfig methods always use path.Path in their signatures
+	manager.AddHashicorpImport("github.com/hashicorp/terraform-plugin-framework/path", "")
+
 	// Pass imports manager so validators can register required Go packages (e.g. "strings" for plaintext validation)
 	validators := createValidatorSpecForModel(resourceTyp, names, spec, manager)
 

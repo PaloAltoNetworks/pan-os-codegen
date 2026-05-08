@@ -1,4 +1,12 @@
 ####################################################
+#~~~~~~~      CodeGen Options Section      ~~~~~~~#
+####################################################
+codegen_options:
+  # When true, generated Terraform provider schema attributes will not include
+  # validators (OneOf, ExactlyOneOf, ConflictsWith). Useful for local XML mode
+  # testing where schema constraints may not apply.
+  disable_schema_validators: true
+####################################################
 #~~~~~~~   CodeGen General Config Section   ~~~~~~~#
 ####################################################
 output:
@@ -143,7 +151,7 @@ terraform_provider_config:
       type: string
       default_value: "safe"
       validators:
-        - "OneOf(\"safe\", \"deferred\", \"periodic\")"
+        - 'OneOf("safe", "deferred", "periodic")'
     xml_write_check_interval_ms:
       description: "Milliseconds between dirty flag checks in deferred mode (range: 5-20, default: 10). Only applies when xml_write_mode is 'deferred'."
       optional: true

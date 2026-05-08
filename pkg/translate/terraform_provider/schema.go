@@ -157,7 +157,7 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		}
 
 		var functions []validatorFunctionCtx
-		if len(elt.EnumValues) > 0 && schemaTyp == properties.SchemaResource {
+		if len(elt.EnumValues) > 0 && schemaTyp == properties.SchemaResource && !DisableSchemaValidators {
 			var values []string
 			for _, elt := range elt.EnumValues {
 				values = append(values, elt.Name)
@@ -197,7 +197,7 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		}
 
 		var validators *validatorCtx
-		if schemaTyp == properties.SchemaResource {
+		if schemaTyp == properties.SchemaResource && !DisableSchemaValidators {
 			validatorFn, found := validatorFns[elt.VariantGroupId]
 			if found && validatorFn.Function != "Disabled" {
 				typ := elt.ValidatorType()
@@ -257,7 +257,7 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		}
 
 		var functions []validatorFunctionCtx
-		if len(elt.EnumValues) > 0 && schemaTyp == properties.SchemaResource {
+		if len(elt.EnumValues) > 0 && schemaTyp == properties.SchemaResource && !DisableSchemaValidators {
 			var values []string
 			for _, elt := range elt.EnumValues {
 				values = append(values, elt.Name)
@@ -297,14 +297,16 @@ func createSchemaSpecForParameter(schemaTyp properties.SchemaType, manager *impo
 		if elt.Type == "" || ((elt.FinalType() == "list" || elt.FinalType() == "set") && elt.Items.Type == "entry") {
 			var validators *validatorCtx
 
-			validatorFn, found := validatorFns[elt.VariantGroupId]
-			if found && validatorFn.Function != "Disabled" {
-				validatorImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework-validators/%svalidator", "object")
-				manager.AddHashicorpImport(validatorImport, "")
-				validators = &validatorCtx{
-					ListType:  "Object",
-					Package:   "objectvalidator",
-					Functions: []validatorFunctionCtx{*validatorFn},
+			if !DisableSchemaValidators {
+				validatorFn, found := validatorFns[elt.VariantGroupId]
+				if found && validatorFn.Function != "Disabled" {
+					validatorImport := fmt.Sprintf("github.com/hashicorp/terraform-plugin-framework-validators/%svalidator", "object")
+					manager.AddHashicorpImport(validatorImport, "")
+					validators = &validatorCtx{
+						ListType:  "Object",
+						Package:   "objectvalidator",
+						Functions: []validatorFunctionCtx{*validatorFn},
+					}
 				}
 			}
 			schemas = append(schemas, createSchemaSpecForParameter(schemaTyp, manager, structName, packageName, elt, validators)...)
@@ -681,7 +683,7 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 		}
 
 		var functions []validatorFunctionCtx
-		if len(elt.EnumValues) > 0 && schemaTyp == properties.SchemaResource {
+		if len(elt.EnumValues) > 0 && schemaTyp == properties.SchemaResource && !DisableSchemaValidators {
 			var values []string
 			for _, elt := range elt.EnumValues {
 				values = append(values, elt.Name)
@@ -722,7 +724,7 @@ func createSchemaSpecForNormalization(resourceTyp properties.ResourceType, schem
 		}
 
 		var validators *validatorCtx
-		if schemaTyp == properties.SchemaResource {
+		if schemaTyp == properties.SchemaResource && !DisableSchemaValidators {
 			validatorFn, found := validatorFns[elt.VariantGroupId]
 			if found && validatorFn.Function != "Disabled" {
 				typ := elt.ValidatorType()

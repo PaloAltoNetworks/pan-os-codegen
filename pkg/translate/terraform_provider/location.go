@@ -156,7 +156,7 @@ func RenderLocationSchemaGetter(names *NameProvider, spec *properties.Normalizat
 		modifierType := "Object"
 
 		var validators *validatorCtx
-		if len(locations) > 1 && idx == 0 {
+		if len(locations) > 1 && idx == 0 && !DisableSchemaValidators {
 			var expressions []string
 			for _, location := range locations {
 				expressions = append(expressions, fmt.Sprintf(`path.MatchRelative().AtParent().AtName("%s")`, location))

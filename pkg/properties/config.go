@@ -2,10 +2,15 @@ package properties
 
 import "github.com/paloaltonetworks/pan-os-codegen/pkg/content"
 
+type CodegenOptions struct {
+	DisableSchemaValidators bool `json:"disable_schema_validators" yaml:"disable_schema_validators"`
+}
+
 type Config struct {
 	Output                  OutputPaths       `json:"output" yaml:"output"`
 	Assets                  map[string]*Asset `json:"assets" yaml:"assets"`
 	TerraformProviderConfig TerraformProvider `json:"terraform_provider_config" yaml:"terraform_provider_config"`
+	CodegenOptions          CodegenOptions    `json:"codegen_options" yaml:"codegen_options"`
 }
 
 type OutputPaths struct {

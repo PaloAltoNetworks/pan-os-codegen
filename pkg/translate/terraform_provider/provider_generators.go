@@ -101,6 +101,10 @@ func hasVariantsImpl(props []*properties.SpecParam) bool {
 
 // conditionallyAddValidators adds validator imports if the spec requires them.
 func conditionallyAddValidators(manager *imports.Manager, spec *properties.Normalization) {
+	if DisableSchemaValidators {
+		return
+	}
+
 	if spec.Spec == nil {
 		return
 	}
