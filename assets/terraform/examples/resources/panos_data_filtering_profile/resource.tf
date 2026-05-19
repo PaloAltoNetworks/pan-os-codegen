@@ -22,7 +22,7 @@ resource "panos_custom_data_object" "example" {
 	}
 }
 
-resource "panos_data_filtering_profile" "example" {
+resource "panos_data_filtering_security_profile" "example" {
 	location = {
 		device_group = panos_device_group.example.name
 	}
