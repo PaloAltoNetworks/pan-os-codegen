@@ -381,7 +381,7 @@ func TestAccDecryptionProfile_SslProtocolSettings_Versions(t *testing.T) {
 						tfjsonpath.New("ssl_protocol_settings").AtMapKey("min_version"),
 						knownvalue.StringExact("tls1-0"),
 					),
-					// "max" is the PR default — verify device accepts it
+					// "max" means no upper bound restriction
 					statecheck.ExpectKnownValue(
 						"panos_decryption_profile.example",
 						tfjsonpath.New("ssl_protocol_settings").AtMapKey("max_version"),
@@ -413,7 +413,7 @@ resource "panos_decryption_profile" "example" {
 }
 `
 
-func TestAccDecryptionProfile_SslProtocolSettings_LegacyVersions(t *testing.T) {
+func TestAccDecryptionProfile_SslProtocolSettings_Complete(t *testing.T) {
 	t.Parallel()
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -430,7 +430,7 @@ func TestAccDecryptionProfile_SslProtocolSettings_LegacyVersions(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: decryptionProfile_SslProtocolSettings_LegacyVersions_Tmpl,
+				Config: decryptionProfile_SslProtocolSettings_Complete_Tmpl,
 				ConfigVariables: map[string]config.Variable{
 					"prefix":   config.StringVariable(prefix),
 					"location": location,
@@ -438,18 +438,83 @@ func TestAccDecryptionProfile_SslProtocolSettings_LegacyVersions(t *testing.T) {
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
 						"panos_decryption_profile.example",
-						tfjsonpath.New("name"),
-						knownvalue.StringExact(prefix),
-					),
-					statecheck.ExpectKnownValue(
-						"panos_decryption_profile.example",
 						tfjsonpath.New("ssl_protocol_settings").AtMapKey("min_version"),
-						knownvalue.StringExact("sslv3"),
+						knownvalue.StringExact("tls1-2"),
 					),
 					statecheck.ExpectKnownValue(
 						"panos_decryption_profile.example",
 						tfjsonpath.New("ssl_protocol_settings").AtMapKey("max_version"),
-						knownvalue.StringExact("tls1-2"),
+						knownvalue.StringExact("tls1-3"),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_decryption_profile.example",
+						tfjsonpath.New("ssl_protocol_settings").AtMapKey("auth_algo_md5"),
+						knownvalue.Bool(true),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_decryption_profile.example",
+						tfjsonpath.New("ssl_protocol_settings").AtMapKey("auth_algo_sha1"),
+						knownvalue.Bool(true),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_decryption_profile.example",
+						tfjsonpath.New("ssl_protocol_settings").AtMapKey("auth_algo_sha256"),
+						knownvalue.Bool(true),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_decryption_profile.example",
+						tfjsonpath.New("ssl_protocol_settings").AtMapKey("auth_algo_sha384"),
+						knownvalue.Bool(true),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_decryption_profile.example",
+						tfjsonpath.New("ssl_protocol_settings").AtMapKey("enc_algo_3des"),
+						knownvalue.Bool(true),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_decryption_profile.example",
+						tfjsonpath.New("ssl_protocol_settings").AtMapKey("enc_algo_aes_128_cbc"),
+						knownvalue.Bool(true),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_decryption_profile.example",
+						tfjsonpath.New("ssl_protocol_settings").AtMapKey("enc_algo_aes_128_gcm"),
+						knownvalue.Bool(true),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_decryption_profile.example",
+						tfjsonpath.New("ssl_protocol_settings").AtMapKey("enc_algo_aes_256_cbc"),
+						knownvalue.Bool(true),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_decryption_profile.example",
+						tfjsonpath.New("ssl_protocol_settings").AtMapKey("enc_algo_aes_256_gcm"),
+						knownvalue.Bool(true),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_decryption_profile.example",
+						tfjsonpath.New("ssl_protocol_settings").AtMapKey("enc_algo_chacha20_poly1305"),
+						knownvalue.Bool(true),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_decryption_profile.example",
+						tfjsonpath.New("ssl_protocol_settings").AtMapKey("enc_algo_rc4"),
+						knownvalue.Bool(true),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_decryption_profile.example",
+						tfjsonpath.New("ssl_protocol_settings").AtMapKey("keyxchg_algo_dhe"),
+						knownvalue.Bool(true),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_decryption_profile.example",
+						tfjsonpath.New("ssl_protocol_settings").AtMapKey("keyxchg_algo_ecdhe"),
+						knownvalue.Bool(true),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_decryption_profile.example",
+						tfjsonpath.New("ssl_protocol_settings").AtMapKey("keyxchg_algo_rsa"),
+						knownvalue.Bool(true),
 					),
 				},
 			},
@@ -457,7 +522,7 @@ func TestAccDecryptionProfile_SslProtocolSettings_LegacyVersions(t *testing.T) {
 	})
 }
 
-const decryptionProfile_SslProtocolSettings_LegacyVersions_Tmpl = `
+const decryptionProfile_SslProtocolSettings_Complete_Tmpl = `
 variable "prefix" { type = string }
 variable "location" { type = any }
 
@@ -471,8 +536,81 @@ resource "panos_decryption_profile" "example" {
 	location = var.location
 	name = var.prefix
 	ssl_protocol_settings = {
-		min_version = "sslv3"
-		max_version = "tls1-2"
+		min_version              = "tls1-2"
+		max_version              = "tls1-3"
+		auth_algo_md5            = true
+		auth_algo_sha1           = true
+		auth_algo_sha256         = true
+		auth_algo_sha384         = true
+		enc_algo_3des            = true
+		enc_algo_aes_128_cbc     = true
+		enc_algo_aes_128_gcm     = true
+		enc_algo_aes_256_cbc     = true
+		enc_algo_aes_256_gcm     = true
+		enc_algo_chacha20_poly1305 = true
+		enc_algo_rc4             = true
+		keyxchg_algo_dhe         = true
+		keyxchg_algo_ecdhe       = true
+		keyxchg_algo_rsa         = true
+	}
+}
+`
+
+func TestAccDecryptionProfile_SslProtocolSettings_MinVersionTls13(t *testing.T) {
+	t.Parallel()
+
+	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
+	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
+
+	location := config.ObjectVariable(map[string]config.Variable{
+		"device_group": config.ObjectVariable(map[string]config.Variable{
+			"name": config.StringVariable(prefix),
+		}),
+	})
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: decryptionProfile_SslProtocolSettings_MinVersionTls13_Tmpl,
+				ConfigVariables: map[string]config.Variable{
+					"prefix":   config.StringVariable(prefix),
+					"location": location,
+				},
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue(
+						"panos_decryption_profile.example",
+						tfjsonpath.New("ssl_protocol_settings").AtMapKey("min_version"),
+						knownvalue.StringExact("tls1-3"),
+					),
+					statecheck.ExpectKnownValue(
+						"panos_decryption_profile.example",
+						tfjsonpath.New("ssl_protocol_settings").AtMapKey("max_version"),
+						knownvalue.StringExact("tls1-3"),
+					),
+				},
+			},
+		},
+	})
+}
+
+const decryptionProfile_SslProtocolSettings_MinVersionTls13_Tmpl = `
+variable "prefix" { type = string }
+variable "location" { type = any }
+
+resource "panos_device_group" "example" {
+	location = { panorama = {} }
+	name = var.prefix
+}
+
+resource "panos_decryption_profile" "example" {
+	depends_on = [panos_device_group.example]
+	location = var.location
+	name = var.prefix
+	ssl_protocol_settings = {
+		min_version = "tls1-3"
+		max_version = "tls1-3"
 	}
 }
 `

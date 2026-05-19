@@ -1,12 +1,12 @@
 name: data-filtering-profile
 terraform_provider_config:
-  description: Data Filtering Security Profile
+  description: Data Filtering Profile
   skip_resource: false
   skip_datasource: false
   resource_type: entry
   resource_variants:
   - singular
-  suffix: data_filtering_security_profile
+  suffix: data_filtering_profile
   plural_suffix: ''
   plural_name: ''
   plural_description: ''
@@ -32,38 +32,6 @@ locations:
   description: Panorama shared object
   devices:
   - panorama
-  - ngfw
-  validators: []
-  required: false
-  read_only: false
-- name: vsys
-  xpath:
-    path:
-    - config
-    - devices
-    - $ngfw_device
-    - vsys
-    - $vsys
-    vars:
-    - name: ngfw_device
-      description: The NGFW device name
-      required: false
-      default: localhost.localdomain
-      validators: []
-      type: entry
-    - name: vsys
-      description: The Virtual System name
-      required: false
-      default: vsys1
-      validators:
-      - type: not-values
-        spec:
-          values:
-          - value: shared
-            error: The vsys name cannot be "shared". Use the "shared" location instead
-      type: entry
-  description: Located in a specific Virtual System
-  devices:
   - ngfw
   validators: []
   required: false
@@ -98,160 +66,6 @@ locations:
   description: Located in a specific Device Group
   devices:
   - panorama
-  validators: []
-  required: false
-  read_only: false
-- name: template
-  xpath:
-    path:
-    - config
-    - devices
-    - $panorama_device
-    - template
-    - $template
-    - config
-    - shared
-    vars:
-    - name: panorama_device
-      description: Specific Panorama device
-      required: false
-      default: localhost.localdomain
-      validators: []
-      type: entry
-    - name: template
-      description: Specific Panorama template
-      required: true
-      validators: []
-      type: entry
-  description: A shared resource located within a specific template
-  devices:
-  - panorama
-  validators: []
-  required: false
-  read_only: false
-- name: template-vsys
-  xpath:
-    path:
-    - config
-    - devices
-    - $panorama_device
-    - template
-    - $template
-    - config
-    - devices
-    - $ngfw_device
-    - vsys
-    - $vsys
-    vars:
-    - name: panorama_device
-      description: Specific Panorama device
-      required: false
-      default: localhost.localdomain
-      validators: []
-      type: entry
-    - name: template
-      description: Specific Panorama template
-      required: true
-      validators: []
-      type: entry
-    - name: ngfw_device
-      description: The NGFW device
-      required: false
-      default: localhost.localdomain
-      validators: []
-      type: entry
-    - name: vsys
-      description: The vsys.
-      required: false
-      default: vsys1
-      validators:
-      - type: not-values
-        spec:
-          values:
-          - value: shared
-            error: The vsys cannot be "shared".
-      type: entry
-  description: Located in a specific template, device and vsys.
-  devices:
-  - panorama
-  - ngfw
-  validators: []
-  required: false
-  read_only: false
-- name: template-stack
-  xpath:
-    path:
-    - config
-    - devices
-    - $panorama_device
-    - template-stack
-    - $template_stack
-    - config
-    - shared
-    vars:
-    - name: panorama_device
-      description: Specific Panorama device
-      required: false
-      default: localhost.localdomain
-      validators: []
-      type: entry
-    - name: template_stack
-      description: The template stack
-      required: true
-      validators: []
-      type: entry
-  description: Located in a specific template stack
-  devices:
-  - panorama
-  validators: []
-  required: false
-  read_only: false
-- name: template-stack-vsys
-  xpath:
-    path:
-    - config
-    - devices
-    - $panorama_device
-    - template-stack
-    - $template_stack
-    - config
-    - devices
-    - $ngfw_device
-    - vsys
-    - $vsys
-    vars:
-    - name: panorama_device
-      description: Specific Panorama device
-      required: false
-      default: localhost.localdomain
-      validators: []
-      type: entry
-    - name: template_stack
-      description: The template stack
-      required: true
-      validators: []
-      type: entry
-    - name: ngfw_device
-      description: The NGFW device
-      required: false
-      default: localhost.localdomain
-      validators: []
-      type: entry
-    - name: vsys
-      description: The vsys.
-      required: false
-      default: vsys1
-      validators:
-      - type: not-values
-        spec:
-          values:
-          - value: shared
-            error: The vsys cannot be "shared".
-      type: entry
-  description: Located in a specific template stack, device and vsys.
-  devices:
-  - panorama
-  - ngfw
   validators: []
   required: false
   read_only: false
@@ -299,7 +113,7 @@ spec:
       values:
       - value: 'yes'
       - value: 'no'
-    description: Disable object override in child device groups
+    description: disable object override in child device groups
     required: false
   - name: rules
     type: list
@@ -337,7 +151,6 @@ spec:
                 - download
                 - both
             spec:
-              default: both
               values:
               - value: upload
               - value: download

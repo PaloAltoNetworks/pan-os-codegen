@@ -273,7 +273,7 @@ resource "panos_snmptrap_profile" "example" {
 // --- Enum value coverage tests ---
 // Each test exercises untested auth/priv protocol enum values.
 
-func TestAccSnmptrapProfile_V3_AuthProto_SHA224(t *testing.T) {
+func TestAccSnmptrapProfile_V3_AuthProto_SHA256(t *testing.T) {
 	t.Parallel()
 
 	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
@@ -290,7 +290,7 @@ func TestAccSnmptrapProfile_V3_AuthProto_SHA224(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: snmptrapProfile_V3_AuthProto_SHA224_Tmpl,
+				Config: snmptrapProfile_V3_AuthProto_SHA256_Tmpl,
 				ConfigVariables: map[string]config.Variable{
 					"prefix":   config.StringVariable(prefix),
 					"location": location,
@@ -299,7 +299,7 @@ func TestAccSnmptrapProfile_V3_AuthProto_SHA224(t *testing.T) {
 					statecheck.ExpectKnownValue(
 						"panos_snmptrap_profile.example",
 						tfjsonpath.New("version").AtMapKey("v3").AtMapKey("servers").AtSliceIndex(0).AtMapKey("authentication_protocol"),
-						knownvalue.StringExact("SHA-224"),
+						knownvalue.StringExact("SHA-256"),
 					),
 					statecheck.ExpectKnownValue(
 						"panos_snmptrap_profile.example",
@@ -312,7 +312,7 @@ func TestAccSnmptrapProfile_V3_AuthProto_SHA224(t *testing.T) {
 	})
 }
 
-const snmptrapProfile_V3_AuthProto_SHA224_Tmpl = `
+const snmptrapProfile_V3_AuthProto_SHA256_Tmpl = `
 variable "prefix" { type = string }
 variable "location" { type = any }
 
@@ -331,12 +331,12 @@ resource "panos_snmptrap_profile" "example" {
     v3 = {
       servers = [
         {
-          name                    = "sha224-server"
+          name                    = "sha256-server"
           manager                 = "10.0.0.1"
           user                    = "snmpuser"
           authentication_password = "AuthPassword1!"
           privacy_password        = "PrivPassword1!"
-          authentication_protocol = "SHA-224"
+          authentication_protocol = "SHA-256"
           privacy_protocol        = "AES-256"
         }
       ]
@@ -477,143 +477,3 @@ resource "panos_snmptrap_profile" "example" {
 }
 `
 
-// Legacy enum values from PR — not in our XML schema.
-// These tests verify whether the device actually accepts MD5, DES, AES128.
-
-func TestAccSnmptrapProfile_V3_Legacy_MD5(t *testing.T) {
-	t.Parallel()
-
-	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
-	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
-
-	location := config.ObjectVariable(map[string]config.Variable{
-		"template": config.ObjectVariable(map[string]config.Variable{
-			"name": config.StringVariable(prefix),
-		}),
-	})
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: snmptrapProfile_V3_Legacy_MD5_Tmpl,
-				ConfigVariables: map[string]config.Variable{
-					"prefix":   config.StringVariable(prefix),
-					"location": location,
-				},
-				ConfigStateChecks: []statecheck.StateCheck{
-					statecheck.ExpectKnownValue(
-						"panos_snmptrap_profile.example",
-						tfjsonpath.New("version").AtMapKey("v3").AtMapKey("servers").AtSliceIndex(0).AtMapKey("authentication_protocol"),
-						knownvalue.StringExact("MD5"),
-					),
-					statecheck.ExpectKnownValue(
-						"panos_snmptrap_profile.example",
-						tfjsonpath.New("version").AtMapKey("v3").AtMapKey("servers").AtSliceIndex(0).AtMapKey("privacy_protocol"),
-						knownvalue.StringExact("DES"),
-					),
-				},
-			},
-		},
-	})
-}
-
-const snmptrapProfile_V3_Legacy_MD5_Tmpl = `
-variable "prefix" { type = string }
-variable "location" { type = any }
-
-resource "panos_template" "example" {
-  location = { panorama = {} }
-  name = var.prefix
-}
-
-resource "panos_snmptrap_profile" "example" {
-  depends_on = [panos_template.example]
-  location = var.location
-
-  name = var.prefix
-
-  version = {
-    v3 = {
-      servers = [
-        {
-          name                    = "md5-server"
-          manager                 = "10.0.0.1"
-          user                    = "snmpuser"
-          authentication_password = "AuthPassword1!"
-          privacy_password        = "PrivPassword1!"
-          authentication_protocol = "MD5"
-          privacy_protocol        = "DES"
-        }
-      ]
-    }
-  }
-}
-`
-
-func TestAccSnmptrapProfile_V3_Legacy_AES128(t *testing.T) {
-	t.Parallel()
-
-	nameSuffix := acctest.RandStringFromCharSet(6, acctest.CharSetAlphaNum)
-	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
-
-	location := config.ObjectVariable(map[string]config.Variable{
-		"template": config.ObjectVariable(map[string]config.Variable{
-			"name": config.StringVariable(prefix),
-		}),
-	})
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProviders,
-		Steps: []resource.TestStep{
-			{
-				Config: snmptrapProfile_V3_Legacy_AES128_Tmpl,
-				ConfigVariables: map[string]config.Variable{
-					"prefix":   config.StringVariable(prefix),
-					"location": location,
-				},
-				ConfigStateChecks: []statecheck.StateCheck{
-					statecheck.ExpectKnownValue(
-						"panos_snmptrap_profile.example",
-						tfjsonpath.New("version").AtMapKey("v3").AtMapKey("servers").AtSliceIndex(0).AtMapKey("privacy_protocol"),
-						knownvalue.StringExact("AES128"),
-					),
-				},
-			},
-		},
-	})
-}
-
-const snmptrapProfile_V3_Legacy_AES128_Tmpl = `
-variable "prefix" { type = string }
-variable "location" { type = any }
-
-resource "panos_template" "example" {
-  location = { panorama = {} }
-  name = var.prefix
-}
-
-resource "panos_snmptrap_profile" "example" {
-  depends_on = [panos_template.example]
-  location = var.location
-
-  name = var.prefix
-
-  version = {
-    v3 = {
-      servers = [
-        {
-          name                    = "aes128-server"
-          manager                 = "10.0.0.1"
-          user                    = "snmpuser"
-          authentication_password = "AuthPassword1!"
-          privacy_password        = "PrivPassword1!"
-          privacy_protocol        = "AES128"
-        }
-      ]
-    }
-  }
-}
-`

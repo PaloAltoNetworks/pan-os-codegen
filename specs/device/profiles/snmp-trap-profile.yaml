@@ -263,7 +263,7 @@ spec:
                       - manager
                     validators: []
                     spec: {}
-                    description: IP address or FQDN of SNMP manager
+                    description: IP address or FQDN of SNMP manager to use
                     required: false
                   - name: community
                     type: string
@@ -315,7 +315,7 @@ spec:
                       - manager
                     validators: []
                     spec: {}
-                    description: IP address or FQDN of SNMP manager
+                    description: IP address or FQDN of SNMP manager to use
                     required: false
                   - name: user
                     type: string
@@ -390,7 +390,6 @@ spec:
                       spec:
                         values:
                         - SHA
-                        - SHA-224
                         - SHA-256
                         - SHA-384
                         - SHA-512
@@ -398,7 +397,6 @@ spec:
                       default: SHA
                       values:
                       - value: SHA
-                      - value: SHA-224
                       - value: SHA-256
                       - value: SHA-384
                       - value: SHA-512
