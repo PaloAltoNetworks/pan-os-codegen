@@ -1,10 +1,11 @@
 name: administrator
 terraform_provider_config:
-  description: Administrator Account
+  description: Administrator
   skip_resource: false
   skip_datasource: false
   resource_type: entry
-  resource_variants: []
+  resource_variants:
+  - singular
   suffix: administrator
   plural_suffix: ''
   plural_name: ''
@@ -17,7 +18,6 @@ go_sdk_config:
   - administrator
 panos_xpath:
   path:
-  - mgt-config
   - users
   vars: []
 locations:
@@ -25,10 +25,21 @@ locations:
   xpath:
     path:
     - config
+    - mgt-config
     vars: []
-  description: Panorama administrator
+  description: Located in panorama.
+  validators: []
+  required: false
+  read_only: false
+- name: ngfw
+  xpath:
+    path:
+    - config
+    - mgt-config
+    vars: []
+  description: Located within device-level configuration
   devices:
-  - panorama
+  - ngfw
   validators: []
   required: false
   read_only: false
@@ -41,6 +52,7 @@ locations:
     - template
     - $template
     - config
+    - mgt-config
     vars:
     - name: panorama_device
       description: Specific Panorama device
@@ -53,7 +65,7 @@ locations:
       required: true
       validators: []
       type: entry
-  description: Administrator pushed via a Panorama template
+  description: A management configuration object located within a specific template
   devices:
   - panorama
   validators: []
@@ -68,6 +80,7 @@ locations:
     - template-stack
     - $template_stack
     - config
+    - mgt-config
     vars:
     - name: panorama_device
       description: Specific Panorama device
@@ -80,7 +93,7 @@ locations:
       required: true
       validators: []
       type: entry
-  description: Administrator pushed via a Panorama template stack
+  description: A management configuration object located within a specific template
   devices:
   - panorama
   validators: []
@@ -97,40 +110,28 @@ spec:
     profiles:
     - xpath:
       - authentication-profile
-    validators:
-    - type: length
-      spec:
-        max: 255
+    validators: []
     spec: {}
     description: Authentication profile for this administrator
     required: false
-  - name: public-key
-    type: string
+  - name: client-certificate-only
+    type: bool
     profiles:
     - xpath:
-      - public-key
-    validators:
-    - type: length
-      spec:
-        max: 4096
-    spec: {}
-    description: SSH public key for certificate-based authentication
-    required: false
-  - name: phash
-    type: string
-    profiles:
-    - xpath:
-      - phash
+      - client-certificate-only
     validators: []
     spec: {}
-    description: Hashed administrator password
+    description: Is client certificate authentication enough?
     required: false
-    codegen_overrides:
-      terraform:
-        name: password
-        sensitive: true
-    hashing:
-      type: solo
+  - name: password-profile
+    type: string
+    profiles:
+    - xpath:
+      - password-profile
+    validators: []
+    spec: {}
+    description: ''
+    required: false
   - name: permissions
     type: object
     profiles:
@@ -138,7 +139,8 @@ spec:
       - permissions
     validators: []
     spec:
-      params:
+      params: []
+      variants:
       - name: role-based
         type: object
         profiles:
@@ -146,61 +148,8 @@ spec:
           - role-based
         validators: []
         spec:
-          params:
-          - name: superuser
-            type: bool
-            profiles:
-            - xpath:
-              - superuser
-            validators: []
-            spec: {}
-            description: Full system access
-            required: false
-          - name: superreader
-            type: bool
-            profiles:
-            - xpath:
-              - superreader
-            validators: []
-            spec: {}
-            description: Read-only access to entire system
-            required: false
-          - name: deviceadmin
-            type: bool
-            profiles:
-            - xpath:
-              - deviceadmin
-            validators: []
-            spec: {}
-            description: Device administrator access (all vsys)
-            required: false
-          - name: devicereader
-            type: bool
-            profiles:
-            - xpath:
-              - devicereader
-            validators: []
-            spec: {}
-            description: Device read-only access (all vsys)
-            required: false
-          - name: vsysadmin
-            type: bool
-            profiles:
-            - xpath:
-              - vsysadmin
-            validators: []
-            spec: {}
-            description: Virtual system administrator access
-            required: false
-          - name: vsysreader
-            type: bool
-            profiles:
-            - xpath:
-              - vsysreader
-            validators: []
-            spec: {}
-            description: Virtual system read-only access
-            required: false
+          params: []
+          variants:
           - name: custom
             type: object
             profiles:
@@ -217,17 +166,729 @@ spec:
                 validators:
                 - type: length
                   spec:
-                    max: 255
+                    max: 63
                 spec: {}
                 description: Custom admin role profile name
+                required: false
+              - name: vsys
+                type: list
+                profiles:
+                - xpath:
+                  - vsys
+                  type: member
+                validators: []
+                spec:
+                  type: string
+                  items:
+                    type: string
+                description: ''
                 required: false
               variants: []
             description: Custom role based on an admin role profile
             required: false
-          variants: []
+          - name: deviceadmin
+            type: list
+            profiles:
+            - xpath:
+              - deviceadmin
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: Device administrator access (all vsys)
+            required: false
+            codegen_overrides:
+              terraform:
+                name: device_admins
+          - name: devicereader
+            type: list
+            profiles:
+            - xpath:
+              - devicereader
+              type: member
+            validators: []
+            spec:
+              type: string
+              items:
+                type: string
+            description: Device read-only access (all vsys)
+            required: false
+            codegen_overrides:
+              terraform:
+                name: device_readers
+          - name: panorama-admin
+            type: enum
+            profiles:
+            - xpath:
+              - panorama-admin
+            validators:
+            - type: values
+              spec:
+                values:
+                - 'yes'
+            spec:
+              values:
+              - value: 'yes'
+            description: ''
+            required: false
+          - name: superreader
+            type: enum
+            profiles:
+            - xpath:
+              - superreader
+            validators:
+            - type: values
+              spec:
+                values:
+                - 'yes'
+            spec:
+              values:
+              - value: 'yes'
+            description: Read-only access to entire system
+            required: false
+          - name: superuser
+            type: enum
+            profiles:
+            - xpath:
+              - superuser
+            validators:
+            - type: values
+              spec:
+                values:
+                - 'yes'
+            spec:
+              values:
+              - value: 'yes'
+            description: Full system access
+            required: false
+          - name: vsysadmin
+            type: list
+            profiles:
+            - xpath:
+              - vsysadmin
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: vsys
+                    type: list
+                    profiles:
+                    - xpath:
+                      - vsys
+                      type: member
+                    validators: []
+                    spec:
+                      type: string
+                      items:
+                        type: string
+                    description: ''
+                    required: false
+                  variants: []
+            description: Virtual system administrator access
+            required: false
+            codegen_overrides:
+              terraform:
+                name: vsys_admins
+          - name: vsysreader
+            type: list
+            profiles:
+            - xpath:
+              - vsysreader
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: vsys
+                    type: list
+                    profiles:
+                    - xpath:
+                      - vsys
+                      type: member
+                    validators: []
+                    spec:
+                      type: string
+                      items:
+                        type: string
+                    description: ''
+                    required: false
+                  variants: []
+            description: Virtual system read-only access
+            required: false
+            codegen_overrides:
+              terraform:
+                name: vsys_readers
+                variant_check: Disabled
         description: Role-based access control
         required: false
-      variants: []
     description: Administrator permissions and role assignment
+    required: false
+  - name: phash
+    type: string
+    profiles:
+    - xpath:
+      - phash
+    validators:
+    - type: length
+      spec:
+        max: 63
+    spec: {}
+    description: Hashed administrator password
+    required: false
+    codegen_overrides:
+      terraform:
+        name: password
+    hashing:
+      type: client
+      spec:
+        hashing_func:
+          name: administratorCreatePasswordHash
+  - name: preferences
+    type: object
+    profiles:
+    - xpath:
+      - preferences
+    validators: []
+    spec:
+      params:
+      - name: disable-dns
+        type: bool
+        profiles:
+        - xpath:
+          - disable-dns
+        validators: []
+        spec: {}
+        description: ''
+        required: false
+      - name: saved-log-query
+        type: object
+        profiles:
+        - xpath:
+          - saved-log-query
+        validators: []
+        spec:
+          params:
+          - name: alarm
+            type: list
+            profiles:
+            - xpath:
+              - alarm
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: query
+                    type: string
+                    profiles:
+                    - xpath:
+                      - query
+                    validators:
+                    - type: length
+                      spec:
+                        max: 2048
+                    spec: {}
+                    description: ''
+                    required: false
+                  variants: []
+            description: ''
+            required: false
+          - name: auth
+            type: list
+            profiles:
+            - xpath:
+              - auth
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: query
+                    type: string
+                    profiles:
+                    - xpath:
+                      - query
+                    validators:
+                    - type: length
+                      spec:
+                        max: 2048
+                    spec: {}
+                    description: ''
+                    required: false
+                  variants: []
+            description: ''
+            required: false
+          - name: config
+            type: list
+            profiles:
+            - xpath:
+              - config
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: query
+                    type: string
+                    profiles:
+                    - xpath:
+                      - query
+                    validators:
+                    - type: length
+                      spec:
+                        max: 2048
+                    spec: {}
+                    description: ''
+                    required: false
+                  variants: []
+            description: ''
+            required: false
+          - name: corr
+            type: list
+            profiles:
+            - xpath:
+              - corr
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: query
+                    type: string
+                    profiles:
+                    - xpath:
+                      - query
+                    validators:
+                    - type: length
+                      spec:
+                        max: 2048
+                    spec: {}
+                    description: ''
+                    required: false
+                  variants: []
+            description: ''
+            required: false
+          - name: data
+            type: list
+            profiles:
+            - xpath:
+              - data
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: query
+                    type: string
+                    profiles:
+                    - xpath:
+                      - query
+                    validators:
+                    - type: length
+                      spec:
+                        max: 2048
+                    spec: {}
+                    description: ''
+                    required: false
+                  variants: []
+            description: ''
+            required: false
+          - name: decryption
+            type: list
+            profiles:
+            - xpath:
+              - decryption
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: query
+                    type: string
+                    profiles:
+                    - xpath:
+                      - query
+                    validators:
+                    - type: length
+                      spec:
+                        max: 2048
+                    spec: {}
+                    description: ''
+                    required: false
+                  variants: []
+            description: ''
+            required: false
+          - name: globalprotect
+            type: list
+            profiles:
+            - xpath:
+              - globalprotect
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: query
+                    type: string
+                    profiles:
+                    - xpath:
+                      - query
+                    validators:
+                    - type: length
+                      spec:
+                        max: 2048
+                    spec: {}
+                    description: ''
+                    required: false
+                  variants: []
+            description: ''
+            required: false
+          - name: gtp
+            type: list
+            profiles:
+            - xpath:
+              - gtp
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: query
+                    type: string
+                    profiles:
+                    - xpath:
+                      - query
+                    validators:
+                    - type: length
+                      spec:
+                        max: 2048
+                    spec: {}
+                    description: ''
+                    required: false
+                  variants: []
+            description: ''
+            required: false
+          - name: hipmatch
+            type: list
+            profiles:
+            - xpath:
+              - hipmatch
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: query
+                    type: string
+                    profiles:
+                    - xpath:
+                      - query
+                    validators:
+                    - type: length
+                      spec:
+                        max: 2048
+                    spec: {}
+                    description: ''
+                    required: false
+                  variants: []
+            description: ''
+            required: false
+          - name: system
+            type: list
+            profiles:
+            - xpath:
+              - system
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: query
+                    type: string
+                    profiles:
+                    - xpath:
+                      - query
+                    validators:
+                    - type: length
+                      spec:
+                        max: 2048
+                    spec: {}
+                    description: ''
+                    required: false
+                  variants: []
+            description: ''
+            required: false
+          - name: threat
+            type: list
+            profiles:
+            - xpath:
+              - threat
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: query
+                    type: string
+                    profiles:
+                    - xpath:
+                      - query
+                    validators:
+                    - type: length
+                      spec:
+                        max: 2048
+                    spec: {}
+                    description: ''
+                    required: false
+                  variants: []
+            description: ''
+            required: false
+          - name: traffic
+            type: list
+            profiles:
+            - xpath:
+              - traffic
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: query
+                    type: string
+                    profiles:
+                    - xpath:
+                      - query
+                    validators:
+                    - type: length
+                      spec:
+                        max: 2048
+                    spec: {}
+                    description: ''
+                    required: false
+                  variants: []
+            description: ''
+            required: false
+          - name: tunnel
+            type: list
+            profiles:
+            - xpath:
+              - tunnel
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: query
+                    type: string
+                    profiles:
+                    - xpath:
+                      - query
+                    validators:
+                    - type: length
+                      spec:
+                        max: 2048
+                    spec: {}
+                    description: ''
+                    required: false
+                  variants: []
+            description: ''
+            required: false
+          - name: unified
+            type: list
+            profiles:
+            - xpath:
+              - unified
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: query
+                    type: string
+                    profiles:
+                    - xpath:
+                      - query
+                    validators:
+                    - type: length
+                      spec:
+                        max: 2048
+                    spec: {}
+                    description: ''
+                    required: false
+                  variants: []
+            description: ''
+            required: false
+          - name: url
+            type: list
+            profiles:
+            - xpath:
+              - url
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: query
+                    type: string
+                    profiles:
+                    - xpath:
+                      - query
+                    validators:
+                    - type: length
+                      spec:
+                        max: 2048
+                    spec: {}
+                    description: ''
+                    required: false
+                  variants: []
+            description: ''
+            required: false
+          - name: userid
+            type: list
+            profiles:
+            - xpath:
+              - userid
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: query
+                    type: string
+                    profiles:
+                    - xpath:
+                      - query
+                    validators:
+                    - type: length
+                      spec:
+                        max: 2048
+                    spec: {}
+                    description: ''
+                    required: false
+                  variants: []
+            description: ''
+            required: false
+          - name: wildfire
+            type: list
+            profiles:
+            - xpath:
+              - wildfire
+              - entry
+              type: entry
+            validators: []
+            spec:
+              type: object
+              items:
+                type: object
+                spec:
+                  params:
+                  - name: query
+                    type: string
+                    profiles:
+                    - xpath:
+                      - query
+                    validators:
+                    - type: length
+                      spec:
+                        max: 2048
+                    spec: {}
+                    description: ''
+                    required: false
+                  variants: []
+            description: ''
+            required: false
+          variants: []
+        description: ''
+        required: false
+      variants: []
+    description: ''
+    required: false
+  - name: public-key
+    type: string
+    profiles:
+    - xpath:
+      - public-key
+    validators:
+    - type: length
+      spec:
+        min: 1
+        max: 4096
+    spec: {}
+    description: SSH public key for certificate-based authentication
     required: false
   variants: []
