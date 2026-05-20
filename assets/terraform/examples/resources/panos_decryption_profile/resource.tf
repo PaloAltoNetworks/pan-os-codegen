@@ -2,8 +2,7 @@ resource "panos_decryption_profile" "example" {
 	location = {
 		shared = {}
 	}
-	name        = "my-decryption-profile"
-	description = "Example decryption profile"
+	name = "my-decryption-profile"
 
 	ssl_forward_proxy = {
 		block_expired_certificate  = true
