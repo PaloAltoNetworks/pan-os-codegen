@@ -118,6 +118,11 @@ entries:
 - name: name
   description: ''
   validators: []
+imports:
+  target: interface
+  variants:
+  - '*'
+  default_value: ''
 spec:
   params:
   - name: adjust-tcp-mss
