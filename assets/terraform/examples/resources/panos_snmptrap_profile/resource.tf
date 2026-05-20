@@ -1,4 +1,4 @@
-resource "panos_snmp_trap_profile" "example" {
+resource "panos_snmptrap_profile" "example" {
 	location = {
 		vsys = {
 			name = "vsys1"
