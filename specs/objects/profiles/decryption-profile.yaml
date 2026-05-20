@@ -560,7 +560,6 @@ spec:
         - type: values
           spec:
             values:
-            - sslv3
             - tls1-0
             - tls1-1
             - tls1-2
@@ -569,7 +568,6 @@ spec:
         spec:
           default: tls1-2
           values:
-          - value: sslv3
           - value: tls1-0
           - value: tls1-1
           - value: tls1-2
@@ -586,7 +584,6 @@ spec:
         - type: values
           spec:
             values:
-            - sslv3
             - tls1-0
             - tls1-1
             - tls1-2
@@ -594,7 +591,6 @@ spec:
         spec:
           default: tls1-0
           values:
-          - value: sslv3
           - value: tls1-0
           - value: tls1-1
           - value: tls1-2
