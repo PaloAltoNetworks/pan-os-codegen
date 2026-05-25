@@ -243,7 +243,7 @@ spec:
           spec:
             max: 2048
         spec: {}
-        description: ''
+        description: Custom format for auth log
         required: false
       - name: config
         type: string
@@ -255,7 +255,7 @@ spec:
           spec:
             max: 2048
         spec: {}
-        description: ''
+        description: Custom format for config log
         required: false
       - name: correlation
         type: string
@@ -267,7 +267,7 @@ spec:
           spec:
             max: 2048
         spec: {}
-        description: ''
+        description: Custom format for correlation log
         required: false
       - name: data
         type: string
@@ -279,7 +279,7 @@ spec:
           spec:
             max: 2048
         spec: {}
-        description: ''
+        description: Custom format for data log
         required: false
       - name: decryption
         type: string
@@ -291,7 +291,7 @@ spec:
           spec:
             max: 2048
         spec: {}
-        description: ''
+        description: Custom format for decryption log
         required: false
       - name: escaping
         type: object
@@ -339,7 +339,7 @@ spec:
           spec:
             max: 2048
         spec: {}
-        description: ''
+        description: Custom format for globalprotect log
         required: false
       - name: gtp
         type: string
@@ -351,7 +351,7 @@ spec:
           spec:
             max: 2048
         spec: {}
-        description: ''
+        description: Custom format for gtp log
         required: false
       - name: hip-match
         type: string
@@ -363,7 +363,7 @@ spec:
           spec:
             max: 2048
         spec: {}
-        description: ''
+        description: Custom format for hip-match log
         required: false
       - name: iptag
         type: string
@@ -375,7 +375,7 @@ spec:
           spec:
             max: 2048
         spec: {}
-        description: ''
+        description: Custom format for iptag log
         required: false
       - name: sctp
         type: string
@@ -387,7 +387,7 @@ spec:
           spec:
             max: 2048
         spec: {}
-        description: ''
+        description: Custom format for sctp log
         required: false
       - name: system
         type: string
@@ -399,7 +399,7 @@ spec:
           spec:
             max: 2048
         spec: {}
-        description: ''
+        description: Custom format for system log
         required: false
       - name: threat
         type: string
@@ -411,7 +411,7 @@ spec:
           spec:
             max: 2048
         spec: {}
-        description: ''
+        description: Custom format for threat log
         required: false
       - name: traffic
         type: string
@@ -423,7 +423,7 @@ spec:
           spec:
             max: 2048
         spec: {}
-        description: ''
+        description: Custom format for traffic log
         required: false
       - name: tunnel
         type: string
@@ -435,7 +435,7 @@ spec:
           spec:
             max: 2048
         spec: {}
-        description: ''
+        description: Custom format for tunnel log
         required: false
       - name: url
         type: string
@@ -447,7 +447,7 @@ spec:
           spec:
             max: 2048
         spec: {}
-        description: ''
+        description: Custom format for url log
         required: false
       - name: userid
         type: string
@@ -459,7 +459,7 @@ spec:
           spec:
             max: 2048
         spec: {}
-        description: ''
+        description: Custom format for userid log
         required: false
       - name: wildfire
         type: string
@@ -471,10 +471,10 @@ spec:
           spec:
             max: 2048
         spec: {}
-        description: ''
+        description: Custom format for wildfire log
         required: false
       variants: []
-    description: custom formats for forwarded logs
+    description: Custom log format strings
     required: false
   - name: server
     type: list
@@ -509,7 +509,7 @@ spec:
               spec:
                 max: 128
             spec: {}
-            description: email address (e.g. admin@mycompany.com)
+            description: From email address
             required: false
           - name: to
             type: string
@@ -521,7 +521,7 @@ spec:
               spec:
                 max: 128
             spec: {}
-            description: email address (e.g. admin@mycompany.com)
+            description: To email address
             required: false
           - name: and-also-to
             type: string
@@ -533,7 +533,7 @@ spec:
               spec:
                 max: 128
             spec: {}
-            description: email address (e.g. admin@mycompany.com)
+            description: Additional CC email address
             required: false
           - name: gateway
             type: string
@@ -545,7 +545,7 @@ spec:
               spec:
                 max: 63
             spec: {}
-            description: IP address or FQDN of SMTP gateway to use
+            description: IP address or FQDN of SMTP gateway
             required: false
           - name: protocol
             type: enum
@@ -577,7 +577,7 @@ spec:
                 max: 65535
             spec:
               default: 25
-            description: Port number (Standard EMAIL ports SMTP:25, TLS:587)
+            description: SMTP port number
             required: false
           - name: tls-version
             type: enum
@@ -614,7 +614,7 @@ spec:
               - value: Auto
               - value: Login
               - value: Plain
-            description: ''
+            description: Authentication method for SMTP
             required: false
             codegen_overrides:
               terraform:
@@ -627,7 +627,7 @@ spec:
             validators: []
             spec:
               default: None
-            description: Certificate Profile for validating server certificate
+            description: Certificate profile for TLS verification
             required: false
           - name: username
             type: string
@@ -658,7 +658,7 @@ spec:
             hashing:
               type: solo
           variants: []
-    description: ''
+    description: List of email servers
     required: false
     codegen_overrides:
       terraform:
