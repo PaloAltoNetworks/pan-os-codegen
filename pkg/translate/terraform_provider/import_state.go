@@ -89,8 +89,11 @@ func RenderImportStateStructs(resourceTyp properties.ResourceType, names *NamePr
 
 // ResourceImportStateFunction generates the import state function for resources.
 func ResourceImportStateFunction(resourceTyp properties.ResourceType, names *NameProvider, spec *properties.Normalization) (string, error) {
-	if resourceTyp == properties.ResourceConfig || resourceTyp == properties.ResourceCustom {
+	if resourceTyp == properties.ResourceConfig {
 		return "", nil
+	}
+	if resourceTyp == properties.ResourceCustom {
+		return "o.ImportStateCustom(ctx, req, resp)", nil
 	}
 
 	type context struct {
