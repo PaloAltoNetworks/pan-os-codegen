@@ -1,0 +1,93 @@
+name: "IP Tag"
+terraform_provider_config:
+  description: "Dynamic IP-to-tag registration"
+  resource_type: custom
+  suffix: "ip_tag"
+  custom_functions:
+    Create: true
+    Read: true
+    Update: true
+    Delete: true
+go_sdk_config:
+  skip: true
+  package: ["ip_tag"]
+panos_xpath:
+  path:
+    - registered-ip
+locations:
+  - name: "vsys"
+    description: "Located in a specific Virtual System on an NGFW."
+    devices:
+      - ngfw
+    xpath:
+      path:
+        - "config"
+        - "devices"
+        - "$ngfw_device"
+        - "vsys"
+        - "$vsys"
+      vars:
+        - name: "ngfw_device"
+          description: "The NGFW device name."
+          required: false
+          default: "localhost.localdomain"
+          type: entry
+        - name: "vsys"
+          description: "The Virtual System name."
+          required: false
+          default: "vsys1"
+          type: entry
+  - name: "panorama"
+    description: "Registered directly on Panorama's own User-ID table (no target firewall)."
+    devices:
+      - panorama
+    xpath:
+      path:
+        - "config"
+        - "shared"
+      vars: []
+  - name: "target-device"
+    description: "A firewall managed by Panorama, targeted by serial number."
+    devices:
+      - panorama
+    xpath:
+      path:
+        - "config"
+        - "devices"
+        - "$serial"
+        - "vsys"
+        - "$vsys"
+      vars:
+        - name: "serial"
+          description: "The serial number of the Panorama-managed firewall."
+          required: true
+          type: entry
+        - name: "vsys"
+          description: "The Virtual System name."
+          required: false
+          default: "vsys1"
+          type: entry
+version: "10.1.0"
+spec:
+  params:
+    - name: ip
+      type: string
+      description: "The IP address to register tags against."
+      required: true
+      profiles:
+        - xpath: ["ip"]
+    - name: tags
+      type: list
+      description: "The set of tags to register against the IP address."
+      required: true
+      profiles:
+        - xpath: ["tag", "member"]
+          type: member
+      spec:
+        type: string
+        items:
+          type: string
+      codegen_overrides:
+        terraform:
+          type: set
+          name: tags
