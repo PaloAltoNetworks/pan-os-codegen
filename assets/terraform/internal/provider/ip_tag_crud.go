@@ -333,6 +333,10 @@ func registeredTagsForIp(ctx context.Context, client *pango.Client, vsys, target
 	return all[ip], nil
 }
 
+func (o *IpTagResource) ImportStateCustom(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resp.Diagnostics.AddError("Import not supported", "The panos_ip_tag resource does not support terraform import.")
+}
+
 func (o *IpTagResource) CreateCustom(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data IpTagResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
