@@ -118,7 +118,7 @@ func XmlTag(param *properties.SpecParam) string {
 	if len(param.Profiles) > 0 {
 		suffix := ""
 
-		if param.Name != nil && (param.Name.Underscore == "uuid" || param.Name.Underscore == "name") {
+		if param.Name != nil && param.Name.Underscore == "uuid" {
 			suffix = suffix + ",attr"
 		}
 
