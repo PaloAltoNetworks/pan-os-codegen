@@ -109,11 +109,10 @@ spec:
         - 'yes'
         - 'no'
     spec:
-      default: 'no'
       values:
       - value: 'yes'
       - value: 'no'
-    description: Disable object override in child device groups
+    description: disable object override in child device groups
     required: false
   - name: rules
     type: list
