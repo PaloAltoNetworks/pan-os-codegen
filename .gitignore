@@ -26,6 +26,15 @@
 *.swp
 .env
 
+# Secrets: never commit private keys or certificate material. Example/test
+# certificates should be generated at apply/test time (see the tls provider in
+# examples and the certificate fixtures in the acceptance tests) rather than
+# checked in. Add a genuinely-public example cert with `git add -f` if needed.
+*.pem
+*.key
+*.p12
+*.pfx
+
 # IDE
 .idea/
 
