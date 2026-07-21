@@ -36,38 +36,6 @@ locations:
   validators: []
   required: false
   read_only: false
-- name: vsys
-  xpath:
-    path:
-    - config
-    - devices
-    - $ngfw_device
-    - vsys
-    - $vsys
-    vars:
-    - name: ngfw_device
-      description: The NGFW device name
-      required: false
-      default: localhost.localdomain
-      validators: []
-      type: entry
-    - name: vsys
-      description: The Virtual System name
-      required: false
-      default: vsys1
-      validators:
-      - type: not-values
-        spec:
-          values:
-          - value: shared
-            error: The vsys name cannot be "shared". Use the "shared" location instead
-      type: entry
-  description: Located in a specific Virtual System
-  devices:
-  - ngfw
-  validators: []
-  required: false
-  read_only: false
 - name: device-group
   xpath:
     path:
@@ -101,6 +69,38 @@ locations:
   validators: []
   required: false
   read_only: false
+- name: vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: ngfw_device
+      description: The NGFW device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The Virtual System name
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys name cannot be "shared". Use the "shared" location instead
+      type: entry
+  description: Located in a specific Virtual System
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
 entries:
 - name: name
   description: ''
@@ -119,7 +119,6 @@ spec:
         - 'yes'
         - 'no'
     spec:
-      default: 'no'
       values:
       - value: 'yes'
       - value: 'no'
@@ -158,7 +157,7 @@ spec:
           - block-if-no-resource
         validators: []
         spec: {}
-        description: whether to block sessions if device has no enough resources
+        description: Block sessions when decryption resources are not available
         required: false
       - name: block-ssh-errors
         type: bool
@@ -185,7 +184,7 @@ spec:
           - block-unsupported-version
         validators: []
         spec: {}
-        description: whether to block sessions if ssh version is not supported
+        description: Block sessions with unsupported protocol versions
         required: false
       variants: []
     description: ''
@@ -233,7 +232,7 @@ spec:
           - block-if-hsm-unavailable
         validators: []
         spec: {}
-        description: whether to block sessions if HSM is unavailable
+        description: Block sessions when HSM is unavailable
         required: false
       - name: block-if-no-resource
         type: bool
@@ -242,7 +241,7 @@ spec:
           - block-if-no-resource
         validators: []
         spec: {}
-        description: whether to block sessions if device has no enough resources
+        description: Block sessions when decryption resources are not available
         required: false
       - name: block-if-sni-mismatch
         type: bool
@@ -273,7 +272,7 @@ spec:
           - block-tls13-downgrade-no-resource
         validators: []
         spec: {}
-        description: whether to downgrade from tls1.3 if device has not enough resources
+        description: Block TLS 1.3 downgrade when no resources are available
         required: false
       - name: block-unknown-cert
         type: bool
