@@ -1116,15 +1116,32 @@ func TestXmlTag(t *testing.T) {
 		},
 	}
 
+	// User-defined param literally named "name" inside a nested <sequence>
+	// (e.g. IKE gateway authentication.certificate.local-certificate.name).
+	// Must NOT serialize as an XML attribute — PAN-OS expects a child element.
+	paramTypeNestedName := properties.SpecParam{
+		Type:     "string",
+		Required: false,
+		Name:     properties.NewNameVariant("name"),
+		Profiles: []*properties.SpecParamProfile{
+			{
+				Type:  "string",
+				Xpath: []string{"name"},
+			},
+		},
+	}
+
 	// when
 	calculatedXmlTagRequiredString := XmlTag(&paramTypeRequiredString)
 	calculatedXmlTagListString := XmlTag(&paramTypeListString)
 	calculatedXmlTagUuid := XmlTag(&paramTypeUuid)
+	calculatedXmlTagNestedName := XmlTag(&paramTypeNestedName)
 
 	// then
 	assert.Equal(t, "`xml:\"description\"`", calculatedXmlTagRequiredString)
 	assert.Equal(t, "`xml:\"tag,omitempty\"`", calculatedXmlTagListString)
 	assert.Equal(t, "`xml:\"uuid,attr,omitempty\"`", calculatedXmlTagUuid)
+	assert.Equal(t, "`xml:\"name,omitempty\"`", calculatedXmlTagNestedName)
 }
 
 func TestCreateGoSuffixFromVersion(t *testing.T) {
