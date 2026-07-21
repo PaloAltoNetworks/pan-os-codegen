@@ -2,17 +2,9 @@
 # hashicorp/tls provider purely so the example applies out of the box. DO NOT use
 # generated demo material in production - supply your own certificate and private
 # key (for example from a file or a secrets manager) instead.
-
-terraform {
-  required_providers {
-    panos = {
-      source = "PaloAltoNetworks/panos"
-    }
-    tls = {
-      source = "hashicorp/tls"
-    }
-  }
-}
+#
+# The tls provider (hashicorp/tls) is resolved automatically from the registry;
+# add it to your own terraform.required_providers block in a real configuration.
 
 resource "tls_private_key" "example" {
   algorithm = "RSA"
