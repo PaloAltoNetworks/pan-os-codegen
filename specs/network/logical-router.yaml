@@ -147,6 +147,10 @@ entries:
 - name: name
   description: ''
   validators: []
+imports:
+  target: logical-router
+  variants:
+  - '*'
 spec:
   params:
   - name: vrf
