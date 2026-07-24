@@ -6428,6 +6428,8 @@ spec:
                                 description: hex format xxxxxxxx[-xxxxxxxx]... total
                                   4 sections
                                 required: false
+                                hashing:
+                                  type: solo
                               variants: []
                             description: key is 128 bit
                             required: false
@@ -6453,6 +6455,8 @@ spec:
                                 description: hex format xxxxxxxx[-xxxxxxxx]... total
                                   5 sections
                                 required: false
+                                hashing:
+                                  type: solo
                               variants: []
                             description: key is 160 bit
                             required: false
@@ -6478,6 +6482,8 @@ spec:
                                 description: hex format xxxxxxxx[-xxxxxxxx]... total
                                   8 sections
                                 required: false
+                                hashing:
+                                  type: solo
                               variants: []
                             description: key is 256 bit
                             required: false
@@ -6503,6 +6509,8 @@ spec:
                                 description: hex format xxxxxxxx[-xxxxxxxx]... total
                                   12 sections
                                 required: false
+                                hashing:
+                                  type: solo
                               variants: []
                             description: key is 384 bit
                             required: false
@@ -6528,6 +6536,8 @@ spec:
                                 description: hex format xxxxxxxx[-xxxxxxxx]... total
                                   16 sections
                                 required: false
+                                hashing:
+                                  type: solo
                               variants: []
                             description: key is 512 bit
                             required: false
@@ -6591,6 +6601,8 @@ spec:
                               number of sections: 3des: 6, aes128: 4, aes192: 6, aes256:
                               8'
                             required: false
+                            hashing:
+                              type: solo
                           variants: []
                         description: encryption algorithm
                         required: false
@@ -6628,6 +6640,8 @@ spec:
                             description: hex format xxxxxxxx[-xxxxxxxx]... total 4
                               sections
                             required: false
+                            hashing:
+                              type: solo
                           variants: []
                         description: key is 128 bit
                         required: false
@@ -6653,6 +6667,8 @@ spec:
                             description: hex format xxxxxxxx[-xxxxxxxx]... total 5
                               sections
                             required: false
+                            hashing:
+                              type: solo
                           variants: []
                         description: key is 160 bit
                         required: false
@@ -6678,6 +6694,8 @@ spec:
                             description: hex format xxxxxxxx[-xxxxxxxx]... total 8
                               sections
                             required: false
+                            hashing:
+                              type: solo
                           variants: []
                         description: key is 256 bit
                         required: false
@@ -6703,6 +6721,8 @@ spec:
                             description: hex format xxxxxxxx[-xxxxxxxx]... total 12
                               sections
                             required: false
+                            hashing:
+                              type: solo
                           variants: []
                         description: key is 384 bit
                         required: false
@@ -6728,6 +6748,8 @@ spec:
                             description: hex format xxxxxxxx[-xxxxxxxx]... total 16
                               sections
                             required: false
+                            hashing:
+                              type: solo
                           variants: []
                         description: key is 512 bit
                         required: false

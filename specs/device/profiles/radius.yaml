@@ -462,9 +462,6 @@ spec:
             spec: {}
             description: Shared secret for RADIUS communication
             required: false
-            codegen_overrides:
-              terraform:
-                sensitive: false
             hashing:
               type: solo
           - name: port
