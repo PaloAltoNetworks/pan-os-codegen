@@ -155,12 +155,17 @@ func TestAsEntryXpath(t *testing.T) {
 		{[]string{"one"}, "entry[@name='one']"},
 		{[]string{"one", "two"}, "entry[@name='one' or @name='two']"},
 		{nil, "entry"},
+		// CWE-643: names containing single quotes must not be able to
+		// break out of the predicate; they are emitted via concat().
+		{[]string{"x' or '1'='1"}, `entry[@name=concat('x',"'",' or ',"'",'1',"'",'=',"'",'1')]`},
+		{[]string{"a'b"}, `entry[@name=concat('a',"'",'b')]`},
+		{[]string{"one", "x'y"}, `entry[@name='one' or @name=concat('x',"'",'y')]`},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.r, func(t *testing.T) {
 			if AsEntryXpath(tc.v...) != tc.r {
-				t.Fail()
+				t.Errorf("AsEntryXpath(%q) = %q, want %q", tc.v, AsEntryXpath(tc.v...), tc.r)
 			}
 		})
 	}
@@ -174,12 +179,54 @@ func TestAsMemberXpath(t *testing.T) {
 		{[]string{"one"}, "member[text()='one']"},
 		{[]string{"one", "two"}, "member[text()='one' or text()='two']"},
 		{nil, "member[]"},
+		// CWE-643: member values with single quotes are emitted via concat().
+		{[]string{"a'b"}, `member[text()=concat('a',"'",'b')]`},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.r, func(t *testing.T) {
 			if AsMemberXpath(tc.v) != tc.r {
-				t.Fail()
+				t.Errorf("AsMemberXpath(%q) = %q, want %q", tc.v, AsMemberXpath(tc.v), tc.r)
+			}
+		})
+	}
+}
+
+func TestAsUuidXpath(t *testing.T) {
+	testCases := []struct {
+		v string
+		r string
+	}{
+		{"one", "entry[@uuid='one']"},
+		// CWE-643: uuid values with single quotes are emitted via concat().
+		{"a'b", `entry[@uuid=concat('a',"'",'b')]`},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.r, func(t *testing.T) {
+			if AsUuidXpath(tc.v) != tc.r {
+				t.Errorf("AsUuidXpath(%q) = %q, want %q", tc.v, AsUuidXpath(tc.v), tc.r)
+			}
+		})
+	}
+}
+
+func TestXpathSafe(t *testing.T) {
+	testCases := []struct {
+		v string
+		r string
+	}{
+		{"", "''"},
+		{"plain", "'plain'"},
+		{"a'b", `concat('a',"'",'b')`},
+		{"'", `concat('',"'",'')`},
+		{"a'b'c", `concat('a',"'",'b',"'",'c')`},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.v, func(t *testing.T) {
+			if xpathSafe(tc.v) != tc.r {
+				t.Errorf("xpathSafe(%q) = %q, want %q", tc.v, xpathSafe(tc.v), tc.r)
 			}
 		})
 	}

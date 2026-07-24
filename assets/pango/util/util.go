@@ -108,6 +108,30 @@ func AsXpath(i interface{}) string {
 	}
 }
 
+// xpathSafe returns val as an XPath string expression that is safe to embed
+// in a predicate, guarding against XPath injection (CWE-643) when val
+// contains single-quote characters.
+//
+// XPath 1.0 provides no escape mechanism for a quote character inside a
+// string literal, so values containing a single quote are emitted using the
+// concat() function (e.g. a'b becomes concat('a',"'",'b')). Values without a
+// single quote are simply wrapped in single quotes. The returned expression
+// always evaluates to val as a literal string and can never alter the
+// surrounding predicate structure.
+func xpathSafe(val string) string {
+	if !strings.Contains(val, "'") {
+		return "'" + val + "'"
+	}
+
+	parts := strings.Split(val, "'")
+	quoted := make([]string, len(parts))
+	for i, p := range parts {
+		quoted[i] = "'" + p + "'"
+	}
+
+	return "concat(" + strings.Join(quoted, `,"'",`) + ")"
+}
+
 // AsEntryXpath returns the given values as an entry xpath segment.
 func AsEntryXpath(vals ...string) string {
 	if len(vals) == 0 || (len(vals) == 1 && vals[0] == "") {
@@ -121,9 +145,8 @@ func AsEntryXpath(vals ...string) string {
 		if i != 0 {
 			buf.WriteString(" or ")
 		}
-		buf.WriteString("@name='")
-		buf.WriteString(vals[i])
-		buf.WriteString("'")
+		buf.WriteString("@name=")
+		buf.WriteString(xpathSafe(vals[i]))
 	}
 	buf.WriteString("]")
 
@@ -132,7 +155,7 @@ func AsEntryXpath(vals ...string) string {
 
 // AsUuidXpath returns an xpath segment as a UUID location.
 func AsUuidXpath(v string) string {
-	return fmt.Sprintf("entry[@uuid='%s']", v)
+	return "entry[@uuid=" + xpathSafe(v) + "]"
 }
 
 // AsMemberXpath returns the given values as a member xpath segment.
@@ -144,9 +167,8 @@ func AsMemberXpath(vals []string) string {
 		if i != 0 {
 			buf.WriteString(" or ")
 		}
-		buf.WriteString("text()='")
-		buf.WriteString(vals[i])
-		buf.WriteString("'")
+		buf.WriteString("text()=")
+		buf.WriteString(xpathSafe(vals[i]))
 	}
 
 	buf.WriteString("]")
