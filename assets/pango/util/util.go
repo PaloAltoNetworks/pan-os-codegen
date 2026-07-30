@@ -158,6 +158,65 @@ func AsUuidXpath(v string) string {
 	return "entry[@uuid=" + xpathSafe(v) + "]"
 }
 
+// EntryName is the inverse of AsEntryXpath for a single value: given an entry
+// xpath segment such as entry[@name='foo'] or the injection-safe
+// entry[@name=concat('a',"'",'b')] form produced by xpathSafe, it returns the
+// literal name. Any input that is not a recognizable entry-name predicate
+// (including the bare "entry" listing segment) is returned unchanged.
+func EntryName(component string) string {
+	const prefix = "entry[@name="
+	const suffix = "]"
+
+	expr := component
+	if strings.HasPrefix(expr, prefix) && strings.HasSuffix(expr, suffix) {
+		expr = expr[len(prefix) : len(expr)-len(suffix)]
+	}
+
+	return xpathUnquote(expr)
+}
+
+// xpathUnquote decodes an XPath string expression produced by xpathSafe back to
+// its literal value. It handles both a single-quoted literal ('foo') and the
+// concat('a',"'",'b') form. Unrecognized input is returned unchanged.
+func xpathUnquote(expr string) string {
+	// Injection-safe concat(...) form.
+	if strings.HasPrefix(expr, "concat(") && strings.HasSuffix(expr, ")") {
+		body := expr[len("concat(") : len(expr)-1]
+
+		var buf bytes.Buffer
+		for i := 0; i < len(body); {
+			switch body[i] {
+			case '\'':
+				// A single-quoted segment: '...'. Segments never contain a
+				// single quote because that is xpathSafe's split delimiter.
+				j := strings.IndexByte(body[i+1:], '\'')
+				if j < 0 {
+					return expr // malformed; leave as-is.
+				}
+				buf.WriteString(body[i+1 : i+1+j])
+				i += j + 2
+			case '"':
+				// The literal single quote is always emitted as "'".
+				buf.WriteByte('\'')
+				i += 3
+			case ',':
+				i++
+			default:
+				return expr // unexpected token; leave as-is.
+			}
+		}
+
+		return buf.String()
+	}
+
+	// Plain single-quoted literal.
+	if len(expr) >= 2 && expr[0] == '\'' && expr[len(expr)-1] == '\'' {
+		return expr[1 : len(expr)-1]
+	}
+
+	return expr
+}
+
 // AsMemberXpath returns the given values as a member xpath segment.
 func AsMemberXpath(vals []string) string {
 	var buf bytes.Buffer

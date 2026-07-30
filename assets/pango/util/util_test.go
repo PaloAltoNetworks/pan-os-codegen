@@ -269,3 +269,52 @@ func TestStripPanosPackagingNoResult(t *testing.T) {
 		t.Errorf("Expected empty string, got %q", ans)
 	}
 }
+
+func TestEntryName(t *testing.T) {
+	testCases := []struct {
+		component string
+		want      string
+	}{
+		{"entry[@name='one']", "one"},
+		{"entry[@name='']", ""},
+		{`entry[@name=concat('a',"'",'b')]`, "a'b"},
+		{`entry[@name=concat('',"'",'')]`, "'"},
+		{`entry[@name=concat('a',"'",'b',"'",'c')]`, "a'b'c"},
+		{`entry[@name=concat('a,b',"'",'c')]`, "a,b'c"},
+		// Not an entry-name predicate: returned unchanged.
+		{"entry", "entry"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.component, func(t *testing.T) {
+			if EntryName(tc.component) != tc.want {
+				t.Errorf("EntryName(%q) = %q, want %q", tc.component, EntryName(tc.component), tc.want)
+			}
+		})
+	}
+}
+
+// TestEntryNameRoundTrip proves EntryName is the exact inverse of AsEntryXpath
+// for arbitrary names, including those that trigger the concat() form.
+func TestEntryNameRoundTrip(t *testing.T) {
+	// Note: "" is excluded because AsEntryXpath("") is the bare "entry" listing
+	// segment, not a name predicate.
+	names := []string{
+		"plain",
+		"a'b",
+		"'",
+		"O'Brien",
+		`x' or '1'='1`,
+		"a,b'c",
+		`has"double`,
+	}
+
+	for _, name := range names {
+		t.Run(name, func(t *testing.T) {
+			got := EntryName(AsEntryXpath(name))
+			if got != name {
+				t.Errorf("EntryName(AsEntryXpath(%q)) = %q, want %q", name, got, name)
+			}
+		})
+	}
+}

@@ -3,10 +3,9 @@
 	{{ $.Target }}.{{ .Name }} = types.StringValue(components[{{ .Idx }}])
   {{- else if eq .Type "entry" }}
 {
-	component := components[{{ .Idx }}]
-	component = strings.TrimPrefix(component, "entry[@name='")
-	component = strings.TrimSuffix(component, "']")
-	{{ $.Target }}.{{ .Name.CamelCase }} = types.StringValue(component)
+	// Decode via the SDK's inverse of AsEntryXpath so the injection-safe
+	// concat(...) form (CWE-643) round-trips correctly.
+	{{ $.Target }}.{{ .Name.CamelCase }} = types.StringValue(pangoutil.EntryName(components[{{ .Idx }}]))
 }
   {{- end }}
 {{- end }}
