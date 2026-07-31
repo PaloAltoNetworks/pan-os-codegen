@@ -30,7 +30,6 @@ locations:
   description: Panorama shared object
   devices:
   - panorama
-  - ngfw
   validators: []
   required: false
   read_only: false

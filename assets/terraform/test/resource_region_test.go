@@ -21,7 +21,9 @@ func TestAccRegion(t *testing.T) {
 	prefix := fmt.Sprintf("test-acc-%s", nameSuffix)
 
 	location := config.ObjectVariable(map[string]config.Variable{
-		"shared": config.ObjectVariable(map[string]config.Variable{}),
+		"vsys": config.ObjectVariable(map[string]config.Variable{
+			"name": config.StringVariable("vsys1"),
+		}),
 	})
 
 	regionName := fmt.Sprintf("%s-region1", prefix)

@@ -13,7 +13,9 @@ resource "panos_region" "classroom" {
   longitude = 103.833333
 }
 
-# Region objects can also be defined in Panorama's shared scope.
+# Region objects can also be defined in Panorama's shared scope (a provider
+# targeting Panorama, not a standalone NGFW -- shared scope has no region
+# node on a standalone firewall's own local config tree).
 resource "panos_region" "shared" {
   location = {
     shared = {}
