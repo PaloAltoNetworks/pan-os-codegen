@@ -87,6 +87,8 @@ locations:
     - config
     - devices
     - $ngfw_device
+    - vsys
+    - $vsys
     vars:
     - name: panorama_device
       description: Specific Panorama device
@@ -104,6 +106,17 @@ locations:
       required: false
       default: localhost.localdomain
       validators: []
+      type: entry
+    - name: vsys
+      description: The vsys.
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys cannot be "shared". Use the "shared" location instead.
       type: entry
   description: Located in a specific template stack
   devices:
@@ -249,6 +262,7 @@ imports:
   target: virtual-router
   variants:
   - '*'
+  default_value: vsys1
 spec:
   params:
   - name: admin-dists

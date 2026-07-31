@@ -89,7 +89,7 @@
   {{- if .Encryption }}
 
 	var {{ .TerraformName.LowerCamelCase }}_value *string
-	{
+	if !o.{{ .TerraformName.CamelCase }}.IsNull() && !o.{{ .TerraformName.CamelCase }}.IsUnknown() {
 	valueKey, err := CreateXpathForAttributeWithAncestors(ancestors, "{{ .TerraformName.Original }}")
 	if err != nil {
 		diags.AddError("Failed to create encrypted values state key", err.Error())

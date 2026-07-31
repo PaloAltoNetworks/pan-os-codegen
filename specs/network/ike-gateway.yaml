@@ -654,6 +654,9 @@ spec:
     - xpath:
       - protocol-common
     validators: []
+    codegen_overrides:
+      terraform:
+        computed: true
     spec:
       params:
       - name: fragmentation
