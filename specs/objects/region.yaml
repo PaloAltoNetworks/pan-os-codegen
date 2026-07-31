@@ -1,0 +1,148 @@
+name: region
+terraform_provider_config:
+  description: Region
+  skip_resource: false
+  skip_datasource: false
+  resource_type: entry
+  resource_variants:
+  - singular
+  suffix: region
+  plural_suffix: ''
+  plural_name: ''
+  plural_description: ''
+  custom_validation: false
+go_sdk_config:
+  skip: false
+  package:
+  - objects
+  - region
+panos_xpath:
+  path:
+  - region
+  vars: []
+locations:
+- name: shared
+  xpath:
+    path:
+    - config
+    - shared
+    vars: []
+  description: Panorama shared object
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+- name: vsys
+  xpath:
+    path:
+    - config
+    - devices
+    - $ngfw_device
+    - vsys
+    - $vsys
+    vars:
+    - name: ngfw_device
+      description: The NGFW device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: vsys
+      description: The Virtual System name
+      required: false
+      default: vsys1
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The vsys name cannot be "shared". Use the "shared" location instead
+      type: entry
+  description: Located in a specific Virtual System
+  devices:
+  - ngfw
+  validators: []
+  required: false
+  read_only: false
+- name: device-group
+  xpath:
+    path:
+    - config
+    - devices
+    - $panorama_device
+    - device-group
+    - $device_group
+    vars:
+    - name: panorama_device
+      description: Panorama device name
+      required: false
+      default: localhost.localdomain
+      validators: []
+      type: entry
+    - name: device_group
+      description: Device Group name
+      required: true
+      validators:
+      - type: not-values
+        spec:
+          values:
+          - value: shared
+            error: The device group name cannot be "shared". Use the "shared" location
+              instead
+      type: entry
+      location_filter: true
+  description: Located in a specific Device Group
+  devices:
+  - panorama
+  validators: []
+  required: false
+  read_only: false
+entries:
+- name: name
+  description: ''
+  validators: []
+spec:
+  params:
+  - name: address
+    type: list
+    profiles:
+    - xpath:
+      - address
+      type: member
+    validators: []
+    spec:
+      type: string
+      items:
+        type: string
+    description: List of IP networks or ranges associated with this region
+    required: false
+  - name: latitude
+    type: float64
+    profiles:
+    - xpath:
+      - geo-location
+      - latitude
+    validators:
+    - type: length
+      spec:
+        min: -90.0
+        max: 90.0
+    spec: {}
+    description: Latitude of the region
+    required: false
+  - name: longitude
+    type: float64
+    profiles:
+    - xpath:
+      - geo-location
+      - longitude
+    validators:
+    - type: length
+      spec:
+        min: -180.0
+        max: 180.0
+    spec: {}
+    description: Longitude of the region
+    required: false
+  variants: []
