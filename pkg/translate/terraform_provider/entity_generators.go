@@ -335,7 +335,8 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 			}
 
 			if spec.ResourceXpathVariablesWithChecks(false) {
-				terraformProvider.ImportManager.AddStandardImport("strings", "")
+				// The xpath entry name is decoded via pangoutil.EntryName; no
+				// direct strings usage remains on the provider side here.
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "pangoutil")
 			}
 
@@ -385,7 +386,8 @@ func (g *GenerateTerraformProvider) GenerateTerraformResource(resourceTyp proper
 			}
 
 			if spec.ResourceXpathVariablesWithChecks(false) {
-				terraformProvider.ImportManager.AddStandardImport("strings", "")
+				// The xpath entry name is decoded via pangoutil.EntryName; no
+				// direct strings usage remains on the provider side here.
 				terraformProvider.ImportManager.AddSdkImport("github.com/PaloAltoNetworks/pango/util", "pangoutil")
 			}
 
