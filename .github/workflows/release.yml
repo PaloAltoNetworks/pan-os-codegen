@@ -33,12 +33,12 @@ jobs:
       existing_pr: ${{ steps.version.outputs.existing_pr }}
     steps:
       - name: Checkout pan-os-codegen
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
         with:
           fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v5
         with:
           go-version-file: "assets/terraform/go.mod"
 
@@ -135,7 +135,7 @@ jobs:
           echo "All resources have valid subcategories"
 
       - name: Upload generated code
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: generated-code
           path: |
@@ -154,7 +154,7 @@ jobs:
     steps:
       - name: Generate GitHub App token
         id: app-token
-        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
           app-id: ${{ secrets.CODEGEN_APP_ID }}
           private-key: ${{ secrets.CODEGEN_PRIVATE_KEY }}
@@ -163,14 +163,14 @@ jobs:
           repositories: pango
 
       - name: Checkout pango
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
         with:
           repository: PaloAltoNetworks/pango
           token: ${{ steps.app-token.outputs.token }}
           path: pango
 
       - name: Download generated code
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: generated-code
           path: generated
@@ -207,7 +207,7 @@ jobs:
     steps:
       - name: Generate GitHub App token
         id: app-token
-        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
           app-id: ${{ secrets.CODEGEN_APP_ID }}
           private-key: ${{ secrets.CODEGEN_PRIVATE_KEY }}
@@ -216,19 +216,19 @@ jobs:
           repositories: terraform-provider-panos
 
       - name: Set up Terraform
-        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
           terraform_wrapper: false
 
       - name: Checkout provider
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
         with:
           repository: PaloAltoNetworks/terraform-provider-panos
           token: ${{ steps.app-token.outputs.token }}
           path: provider
 
       - name: Checkout pan-os-codegen scripts
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
         with:
           path: codegen
           sparse-checkout: |
@@ -237,13 +237,13 @@ jobs:
           sparse-checkout-cone-mode: false
 
       - name: Download generated code
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: generated-code
           path: generated
 
       - name: Set up Go
-        uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v5
         with:
           go-version-file: "generated/terraform/go.mod"
 
@@ -373,7 +373,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout pan-os-codegen
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
         with:
           fetch-depth: 0
 
