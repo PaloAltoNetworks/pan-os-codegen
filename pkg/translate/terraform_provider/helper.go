@@ -42,7 +42,7 @@ func mergeFuncMaps(map1, map2 template.FuncMap) template.FuncMap {
 func structToMap(item interface{}) map[string]interface{} {
 	out := make(map[string]interface{})
 	v := reflect.ValueOf(item)
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 	t := v.Type()

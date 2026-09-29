@@ -19,11 +19,11 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5
         with:
-          go-version: "1.23"
+          go-version-file: "go.mod"
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@55c2c1448f86e01eaae002a5a3a9624417608d84 # v6
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
-          version: v1.60
+          version: v2.14.0
 
   ci:
     name: Continuous integration
@@ -34,7 +34,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5
         with:
-          go-version: "1.23"
+          go-version-file: "go.mod"
 
       - name: Download Go dependencies
         run: go get  ./... && go mod tidy
@@ -55,6 +55,9 @@ jobs:
       - name: Test codegen
         run: go test -v ./...
 
+      - name: Check codegen for vulnerabilities
+        run: bash scripts/govulncheck.sh .
+
   generate:
     needs: ci
     name: Generate code
@@ -65,7 +68,9 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5
         with:
-          go-version: "1.23"
+          # Build and test the generated code with the Go version the
+          # provider and pango SDK are released with.
+          go-version-file: "assets/terraform/go.mod"
 
       - name: Download Go dependencies
         run: go get  ./... && go mod tidy
@@ -79,15 +84,27 @@ jobs:
       - name: Execute codegen for all targets
         run: go run cmd/codegen/main.go
 
+      - name: Check generated go.mod files are tidy
+        run: |
+          for dir in pango terraform; do
+            (cd target/${dir} && go mod tidy)
+            if ! diff -q target/${dir}/go.mod assets/${dir}/go.mod || ! diff -q target/${dir}/go.sum assets/${dir}/go.sum; then
+              echo "::error::assets/${dir}/go.mod or go.sum is not tidy. Run 'make codegen assets', then 'go mod tidy' in target/${dir} and copy go.mod/go.sum back to assets/${dir}."
+              exit 1
+            fi
+          done
+
       - name: Test generated code
         run: |
-          for dir in $(ls target/); do
-            [ ! -d $dir ] && continue
+          for dir in pango terraform; do
             echo "Run tests for ${dir}"
-            cd target/${dir}
-            go test -v ./...
-            cd -
+            (cd target/${dir} && go test -v ./...)
           done
+
+      - name: Check generated code for vulnerabilities
+        run: |
+          bash scripts/govulncheck.sh target/pango
+          bash scripts/govulncheck.sh target/terraform
 
       - name: Build provider
         run: |
