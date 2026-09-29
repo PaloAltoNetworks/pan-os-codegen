@@ -1,0 +1,47 @@
+# Keeps Go dependencies and GitHub Actions up to date.
+#
+# assets/pango and assets/terraform become the go.mod of the released pango
+# SDK and terraform-provider-panos, so their updates use the "fix(deps)"
+# prefix, which scripts/determine-version.sh treats as a patch release.
+# The PR CI "Check generated go.mod files are tidy" step validates these
+# updates against the generated code.
+
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directories:
+      - "/assets/pango"
+      - "/assets/terraform"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "fix"
+      include: "scope"
+    groups:
+      go-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    groups:
+      go-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    groups:
+      github-actions:
+        patterns:
+          - "*"

@@ -1,3 +1,4 @@
+version: "2"
 linters:
   enable:
     - asasalint
@@ -8,9 +9,7 @@ linters:
     - exhaustive
     - fatcontext
     - forcetypeassert
-    - gci
     - ginkgolinter
-    - gofmt
     - grouper
     - importas
     - makezero
@@ -19,24 +18,40 @@ linters:
     - nilnil
     - predeclared
     - sloglint
-    #- wrapcheck  # this one will be useful, but we have to fix a multitude of errors
-    #- unparam  # when fixed, probably already covered by revive/gocritic
-    #- revive  # too many errors, but useful, similar to gocritic, so probably choose one
-    #- prealloc  # enable when can
-    #- nestif  # enable once we clean up the code
-    #- gofumpt  # fix all files before we switch to gofumpt
-    #- gocritic  # too many failures for now
-    #- goconst  # once we rewrite string literals to consts
-    #- gochecknoglobals  # once we rewrite terraform codegen and drop global functions
-    #- funlen  # couple of functions over 60 lines
-    #- err113  # disabled because of too many dynamic errors that don't wrap anything
-
-linters-settings:
-  gci:
-    sections:
-      - standard
-      - default
-      - prefix(github.com/paloaltonetworks/pan-os-codegen)
-issues:
-  exclude-dirs:
-    - generated/
+  settings:
+    staticcheck:
+      # Keep parity with golangci-lint v1, where stylecheck (ST*) and
+      # quickfix (QF*) checks were not enabled.
+      checks:
+        - all
+        - -ST*
+        - -QF*
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - generated/
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gci
+    - gofmt
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/paloaltonetworks/pan-os-codegen)
+  exclusions:
+    generated: lax
+    paths:
+      - generated/
+      - third_party$
+      - builtin$
+      - examples$

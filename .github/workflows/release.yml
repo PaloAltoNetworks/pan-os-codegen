@@ -40,7 +40,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5
         with:
-          go-version: "1.23"
+          go-version-file: "assets/terraform/go.mod"
 
       - name: Generate code
         run: make codegen
@@ -50,6 +50,9 @@ jobs:
 
       - name: Run pango SDK tests
         run: make test/pango
+
+      - name: Check pango SDK for vulnerabilities
+        run: bash scripts/govulncheck.sh target/pango
 
       - name: Determine version
         id: version
@@ -212,11 +215,6 @@ jobs:
           owner: PaloAltoNetworks
           repositories: terraform-provider-panos
 
-      - name: Set up Go
-        uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5
-        with:
-          go-version: "1.23"
-
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
@@ -229,11 +227,25 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
           path: provider
 
+      - name: Checkout pan-os-codegen scripts
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          path: codegen
+          sparse-checkout: |
+            /scripts/
+            /.govulncheck-ignore
+          sparse-checkout-cone-mode: false
+
       - name: Download generated code
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: generated-code
           path: generated
+
+      - name: Set up Go
+        uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5
+        with:
+          go-version-file: "generated/terraform/go.mod"
 
       - name: Sync generated code to provider
         run: |
@@ -261,6 +273,11 @@ jobs:
 
           # Clean up after generation
           go mod tidy
+
+      - name: Check provider for vulnerabilities
+        # Runs against the final dependency set that GoReleaser will build,
+        # after pango and tfplugindocs have been resolved.
+        run: bash codegen/scripts/govulncheck.sh provider
 
       - name: Validate subcategories in provider
         run: |
