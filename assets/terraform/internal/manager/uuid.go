@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"sort"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -208,9 +209,26 @@ func (o *UuidObjectManager[E, L, S]) moveExhaustive(ctx context.Context, locatio
 	}
 
 	if movementRequired {
-		entries := make([]E, len(entriesByName))
+		// Collect only non-deleted entries: deleted entries have already been removed
+		// from Panorama by the time moveExhaustive is called, so passing them to
+		// MoveGroup would either crash (nil slot from overlapping StateIdx) or hit an
+		// API error for a non-existent rule.
+		type idxEntry struct {
+			idx   int
+			entry E
+		}
+		var active []idxEntry
 		for _, elt := range entriesByName {
-			entries[elt.StateIdx] = elt.Entry
+			if elt.State != entryDeleted {
+				active = append(active, idxEntry{elt.StateIdx, elt.Entry})
+			}
+		}
+		sort.Slice(active, func(i, j int) bool {
+			return active[i].idx < active[j].idx
+		})
+		entries := make([]E, len(active))
+		for i, ae := range active {
+			entries[i] = ae.entry
 		}
 
 		err = o.service.MoveGroup(ctx, location, position, entries, o.batchSize)

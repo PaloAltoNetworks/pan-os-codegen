@@ -250,6 +250,9 @@ spec:
     - xpath:
       - tunnel-monitor
     validators: []
+    codegen_overrides:
+      terraform:
+        computed: true
     spec:
       params:
       - name: destination-ip
