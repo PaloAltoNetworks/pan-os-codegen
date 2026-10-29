@@ -1,0 +1,47 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: "Device"
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+{{ if .HasExample -}}
+## Example Usage
+
+{{ tffile .ExampleFile }}
+{{- end }}
+
+## DNS proxy selection
+
+Select an existing shared proxy using `dns_settings.dns_proxy_object` instead
+of `dns_settings.servers`. Configure exactly one of these when `dns_settings`
+is provided. The proxy must have cache and EDNS cache enabled for queries
+originating from the firewall. Existing server-based configurations remain
+supported. Selecting a proxy updates candidate configuration only; commit and
+push follow the operator's normal workflow.
+
+```terraform
+resource "panos_dns_settings" "split_dns" {
+  location = {
+    template = { name = "firewall-template" }
+  }
+  dns_settings = {
+    # Name of an existing shared DNS proxy in this template.
+    dns_proxy_object = "existing-shared-dns-proxy"
+  }
+}
+```
+
+{{ .SchemaMarkdown | trimspace }}
+
+{{ if .HasImport -}}
+## Import
+
+Import is supported using the following syntax:
+
+{{ codefile "shell" .ImportFile }}
+{{- end }}

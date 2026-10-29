@@ -122,7 +122,18 @@ spec:
       - dns-setting
     validators: []
     spec:
-      params:
+      params: []
+      variants:
+      - name: dns-proxy-object
+        type: string
+        profiles:
+        - xpath:
+          - dns-proxy-object
+        validators: []
+        spec: {}
+        description: Shared DNS proxy object used for firewall-generated queries. Mutually exclusive with
+          DNS servers.
+        required: false
       - name: servers
         type: object
         profiles:
@@ -152,7 +163,6 @@ spec:
           variants: []
         description: Primary and secondary dns servers
         required: false
-      variants: []
     description: DNS settings
     required: false
     codegen_overrides:
