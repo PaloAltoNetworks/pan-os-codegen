@@ -89,6 +89,15 @@
   {{- if .Encryption }}
 
 	var {{ .TerraformName.LowerCamelCase }}_value *string
+	{{- if .WriteOnlyVersion }}
+	if !o.{{ .WriteOnlyVersion }}.IsNull() {
+		// Preserve the server hash on unrelated updates; the CRUD hook handles rotation.
+		if *obj != nil {
+			{{ .TerraformName.LowerCamelCase }}_value = (*obj).{{ .PangoName.CamelCase }}
+		}
+		delete(ev.EncryptedValues, "{{ .TerraformName.Original }}")
+	} else
+	{{- end }}
 	{
 	valueKey, err := CreateXpathForAttributeWithAncestors(ancestors, "{{ .TerraformName.Original }}")
 	if err != nil {

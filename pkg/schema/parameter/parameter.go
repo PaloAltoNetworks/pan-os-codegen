@@ -66,6 +66,7 @@ type CodegenOverridesTerraform struct {
 	Computed          *bool             `yaml:"computed"`
 	Required          *bool             `yaml:"required"`
 	WriteOnly         *bool             `yaml:"write_only"`
+	WriteOnlyVersion  *string           `yaml:"write_only_version"`
 	VariantCheck      *VariantCheckType `yaml:"variant_check"`
 	XpathVariable     *string           `yaml:"xpath_variable"`
 	AlsoRequires      *string           `yaml:"also_requires"`

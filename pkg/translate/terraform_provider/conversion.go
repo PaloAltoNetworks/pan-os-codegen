@@ -19,14 +19,15 @@ type parameterEncryptionSpec struct {
 
 // parameterSpec describes a parameter used in conversion templates.
 type parameterSpec struct {
-	PangoName     *properties.NameVariant
-	TerraformName *properties.NameVariant
-	TerraformType string
-	ComplexType   string
-	Type          string
-	Required      bool
-	ItemsType     string
-	Encryption    *parameterEncryptionSpec
+	PangoName        *properties.NameVariant
+	TerraformName    *properties.NameVariant
+	TerraformType    string
+	ComplexType      string
+	Type             string
+	Required         bool
+	ItemsType        string
+	Encryption       *parameterEncryptionSpec
+	WriteOnlyVersion string
 }
 
 // spec describes a struct specification used in conversion templates.
@@ -92,14 +93,19 @@ func renderSpecsForParams(names *NameProvider, schemaTyp properties.SchemaType, 
 			structPrefix += elt.TerraformNameVariant().CamelCase
 		}
 
+		var writeOnlyVersion string
+		if schemaTyp == properties.SchemaResource && elt.TerraformProviderConfig != nil && elt.TerraformProviderConfig.WriteOnlyVersion != nil {
+			writeOnlyVersion = properties.NewNameVariant(*elt.TerraformProviderConfig.WriteOnlyVersion).CamelCase
+		}
 		specs = append(specs, parameterSpec{
-			PangoName:     elt.PangoNameVariant(),
-			TerraformName: elt.TerraformNameVariant(),
-			TerraformType: terraformTypeForProperty(structPrefix, elt, false),
-			ComplexType:   elt.ComplexType(),
-			Type:          elt.FinalType(),
-			ItemsType:     itemsType,
-			Encryption:    encryptionSpec,
+			PangoName:        elt.PangoNameVariant(),
+			TerraformName:    elt.TerraformNameVariant(),
+			TerraformType:    terraformTypeForProperty(structPrefix, elt, false),
+			ComplexType:      elt.ComplexType(),
+			Type:             elt.FinalType(),
+			ItemsType:        itemsType,
+			Encryption:       encryptionSpec,
+			WriteOnlyVersion: writeOnlyVersion,
 		})
 
 	}

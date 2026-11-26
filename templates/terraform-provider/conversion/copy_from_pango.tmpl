@@ -218,6 +218,13 @@ var {{ .TerraformName.LowerCamelCase }}_list types.Set
     {{- $terraformType := printf "types.%s" (.Type | PascalCase) }}
     {{- if (not (or (eq .Type "") (eq .Type "list") (eq .Type "set") (eq .ComplexType "string-as-member"))) }}
 	var {{ .TerraformName.LowerCamelCase }}_value {{ $terraformType }}
+	{{- if .WriteOnlyVersion }}
+	if !o.{{ .WriteOnlyVersion }}.IsNull() {
+		// Never retain either password representation in public or private state.
+		{{ .TerraformName.LowerCamelCase }}_value = types.StringNull()
+		delete(ev.EncryptedValues, "{{ .TerraformName.Original }}")
+	} else
+	{{- end }}
 	if obj.{{ .PangoName.CamelCase }} != nil {
 {{- if .Encryption }}
 		valueKey, err := CreateXpathForAttributeWithAncestors(ancestors, "{{ .TerraformName.Original }}")
