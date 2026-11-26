@@ -1338,4 +1338,32 @@ spec:
       - value: Zulu
     description: ''
     required: false
+  - name: panorama
+    type: object
+    profiles:
+    - xpath:
+      - panorama
+    validators: []
+    spec:
+      params:
+      - name: managed-by
+        type: enum
+        profiles:
+        - xpath:
+          - managed-by
+        validators:
+        - type: values
+          spec:
+            values:
+            - panorama
+            - cloud-service
+        spec:
+          values:
+          - value: panorama
+          - value: cloud-service
+        description: Select whether device is managed by Panorama or Cloud Service
+        required: false
+      variants: []
+    description: Panorama management settings
+    required: false
   variants: []
