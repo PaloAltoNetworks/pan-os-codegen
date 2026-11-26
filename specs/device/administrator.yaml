@@ -10,7 +10,10 @@ terraform_provider_config:
   plural_suffix: ''
   plural_name: ''
   plural_description: ''
-  custom_validation: false
+  custom_validation: true
+  crud_hooks:
+    pre_create: true
+    pre_update: true
 go_sdk_config:
   skip: false
   package:
@@ -349,11 +352,37 @@ spec:
     codegen_overrides:
       terraform:
         name: password
+        write_only_version: password-wo-version
     hashing:
       type: client
       spec:
         hashing_func:
           name: administratorCreatePasswordHash
+  - name: password-wo
+    type: string
+    profiles: []
+    validators: []
+    spec: {}
+    description: Write-only administrator password. Requires password_wo_version; never retained in state.
+    required: false
+    codegen_overrides:
+      gosdk:
+        skip: true
+      terraform:
+        write_only: true
+        sensitive: true
+  - name: password-wo-version
+    type: int64
+    profiles: []
+    validators: []
+    spec: {}
+    description: Positive password rotation version. Increment to apply a new password_wo value.
+    required: false
+    codegen_overrides:
+      gosdk:
+        skip: true
+      terraform:
+        computed: false
   - name: preferences
     type: object
     profiles:

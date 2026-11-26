@@ -43,6 +43,7 @@
                 "computed": { "type": "boolean" },
                 "sensitive": { "type": "boolean" },
                 "write_only": { "type": "boolean" },
+                "write_only_version": { "type": "string" },
                 "variant_check": { "type": "string" }
               }
             }

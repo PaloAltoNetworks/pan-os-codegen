@@ -250,6 +250,7 @@ type SpecParamTerraformProviderConfig struct {
 	Computed          *bool        `json:"computed" yaml:"computed"`
 	Required          *bool        `json:"required" yaml:"required"`
 	WriteOnly         *bool        `json:"write_only" yaml:"write_only"`
+	WriteOnlyVersion  *string      `json:"write_only_version" yaml:"write_only_version"`
 	VariantCheck      *string      `json:"variant_check" yaml:"variant_check"`
 	XpathVariable     *string      `json:"xpath_variable" yaml:"xpath_variable"`
 	AlsoRequires      *NameVariant `json:"also_requires" yaml:"also_requires,omitempty"`
@@ -730,16 +731,17 @@ func schemaParameterToSpecParameter(schemaSpec *parameter.Parameter) (*SpecParam
 		}
 
 		terraformProviderConfig = &SpecParamTerraformProviderConfig{
-			Name:          schemaSpec.CodegenOverrides.Terraform.Name,
-			Type:          schemaSpec.CodegenOverrides.Terraform.Type,
-			Private:       schemaSpec.CodegenOverrides.Terraform.Private,
-			Optional:      schemaSpec.CodegenOverrides.Terraform.Optional,
-			Sensitive:     schemaSpec.CodegenOverrides.Terraform.Sensitive,
-			Computed:      schemaSpec.CodegenOverrides.Terraform.Computed,
-			Required:      schemaSpec.CodegenOverrides.Terraform.Required,
-			WriteOnly:     schemaSpec.CodegenOverrides.Terraform.WriteOnly,
-			VariantCheck:  variantCheck,
-			XpathVariable: schemaSpec.CodegenOverrides.Terraform.XpathVariable,
+			Name:             schemaSpec.CodegenOverrides.Terraform.Name,
+			Type:             schemaSpec.CodegenOverrides.Terraform.Type,
+			Private:          schemaSpec.CodegenOverrides.Terraform.Private,
+			Optional:         schemaSpec.CodegenOverrides.Terraform.Optional,
+			Sensitive:        schemaSpec.CodegenOverrides.Terraform.Sensitive,
+			Computed:         schemaSpec.CodegenOverrides.Terraform.Computed,
+			Required:         schemaSpec.CodegenOverrides.Terraform.Required,
+			WriteOnly:        schemaSpec.CodegenOverrides.Terraform.WriteOnly,
+			WriteOnlyVersion: schemaSpec.CodegenOverrides.Terraform.WriteOnlyVersion,
+			VariantCheck:     variantCheck,
+			XpathVariable:    schemaSpec.CodegenOverrides.Terraform.XpathVariable,
 		}
 
 		if schemaSpec.CodegenOverrides.Terraform.AlsoRequires != nil {
